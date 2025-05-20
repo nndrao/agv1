@@ -44,14 +44,10 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       cellTextColor: "#000000",
       checkboxBorderRadius: 2,
       columnBorder: true,
-      fontFamily: {
-        theme: selectedFont,
-      },
+      fontFamily: selectedFont,
       fontSize: 14,
       headerBackgroundColor: "#EFEFEFD6",
-      headerFontFamily: {
-        theme: selectedFont,
-      },
+      headerFontFamily: selectedFont,
       headerFontSize: 14,
       headerFontWeight: 500,
       iconButtonBorderRadius: 1,
@@ -68,9 +64,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       borderRadius: 2,
       checkboxBorderRadius: 2,
       columnBorder: true,
-      fontFamily: {
-        theme: selectedFont,
-      },
+      fontFamily: selectedFont,
       browserColorScheme: "dark",
       chromeBackgroundColor: {
         ref: "foregroundColor",
@@ -79,9 +73,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       },
       fontSize: 14,
       foregroundColor: "#FFF",
-      headerFontFamily: {
-        theme: selectedFont,
-      },
+      headerFontFamily: selectedFont,
       headerFontSize: 14,
       iconSize: 12,
       inputBorderRadius: 2,
