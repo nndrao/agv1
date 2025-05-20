@@ -23,6 +23,9 @@ function setDarkMode(enabled: boolean) {
   document.body.dataset.agThemeMode = enabled ? "dark" : "light";
 }
 
+// Initialize AG Grid with dark mode by default
+setDarkMode(true);
+
 export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const gridRef = useRef<AgGridReact>(null);
   const { theme: currentTheme } = useTheme();

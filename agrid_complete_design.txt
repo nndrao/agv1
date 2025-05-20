@@ -1,0 +1,1585 @@
+# AG-Grid Wrapper Component - Complete Design Document
+
+## 1. Overview
+
+This document provides a comprehensive design for an independent data table component that wraps AG-Grid 33+ to provide runtime configuration, customization, and state management capabilities. The component saves settings under various profiles in local storage with modular architecture for multiple customization dialogs.
+
+## 2. Architecture Overview
+
+### 2.1 Core Principles
+- **Stateless AG-Grid**: AG-Grid only renders and fires events, never manages state
+- **External State Management**: All state managed via Zustand store
+- **Profile-Based Configuration**: All settings organized under named profiles
+- **Modular Dialog System**: Each customization dialog has isolated configuration
+- **Explicit Update Triggers**: AG-Grid updates only on specific actions
+
+### 2.2 Component Architecture
+
+```
+AGGridWrapper/
+├── components/
+│   ├── AGGridWrapper.tsx              # Main wrapper component
+│   ├── Toolbar/
+│   │   ├── Toolbar.tsx                # Main toolbar
+│   │   ├── ProfileSelector.tsx        # Profile dropdown
+│   │   ├── CustomizationMenu.tsx      # Dialog access menu
+│   │   └── SaveProfileButton.tsx      # Save profile button
+│   ├── Dialogs/
+│   │   ├── ColumnCustomizationDialog.tsx     # Column settings dialog
+│   │   ├── GeneralOptionsDialog.tsx          # General grid options
+│   │   ├── CalculatedColumnsDialog.tsx       # Calculated columns
+│   │   ├── ColumnGroupsDialog.tsx            # Column hierarchies
+│   │   ├── NamedFiltersDialog.tsx            # Complex filters
+│   │   ├── ConditionalStylingDialog.tsx      # Dynamic styling rules
+│   │   ├── CellFlashingDialog.tsx            # Cell animation rules
+│   │   ├── GridEditingDialog.tsx             # Editing permissions
+│   │   ├── DataPreprocessingDialog.tsx       # Data transformation
+│   │   └── DataSourceDialog.tsx              # WebSocket/HTTP sources
+│   ├── ExpressionEditor/
+│   │   ├── ExpressionEditor.tsx               # Modular expression editor
+│   │   ├── SyntaxHighlighter.tsx             # Code highlighting
+│   │   ├── AutoComplete.tsx                  # Intelligent suggestions
+│   │   └── FunctionLibrary.tsx               # Built-in functions
+│   └── Preview/
+│       └── GridPreview.tsx                   # Real-time preview
+├── store/
+│   ├── index.ts                      # Main Zustand store
+│   ├── slices/
+│   │   ├── columnSettingsSlice.ts    # Column customizations
+│   │   ├── generalOptionsSlice.ts    # General grid options
+│   │   ├── calculatedColumnsSlice.ts # Calculated columns
+│   │   ├── columnGroupsSlice.ts      # Column groups
+│   │   ├── namedFiltersSlice.ts      # Named filters
+│   │   ├── conditionalStylingSlice.ts # Conditional styling
+│   │   ├── cellFlashingSlice.ts      # Cell flashing rules
+│   │   ├── gridEditingSlice.ts       # Editing configuration
+│   │   ├── dataPreprocessingSlice.ts # Data preprocessing
+│   │   └── dataSourceSlice.ts        # Data source config
+├── services/
+│   ├── ProfileService.ts             # Profile CRUD operations
+│   ├── GridConfigurationService.ts   # Apply settings to AG-Grid
+│   ├── StorageService.ts             # LocalStorage interface
+│   ├── ExpressionEvaluator.ts        # Expression execution
+│   └── DataSourceService.ts          # WebSocket/HTTP handling
+├── types/
+│   ├── ProfileTypes.ts               # Profile interfaces
+│   ├── SettingsTypes.ts              # All configuration types
+│   ├── GridTypes.ts                  # AG-Grid related types
+│   └── ExpressionTypes.ts            # Expression system types
+├── hooks/
+│   ├── useGridConfiguration.ts       # Grid configuration hook
+│   ├── useProfileManagement.ts       # Profile operations hook
+│   └── useExpressionEditor.ts        # Expression editing hook
+└── utils/
+    ├── expressionUtils.ts            # Expression utilities
+    ├── gridUtils.ts                  # AG-Grid helpers
+    └── storageUtils.ts               # Storage utilities
+```
+
+## 3. Data Models & Types
+
+### 3.1 Profile Structure
+
+```typescript
+interface GridProfile {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  
+  // Modular configuration sections
+  columnSettings: ColumnSettings;
+  generalOptions: GeneralOptions;
+  calculatedColumns: CalculatedColumn[];
+  columnGroups: ColumnGroup[];
+  namedFilters: NamedFilter[];
+  conditionalStyling: ConditionalStyle[];
+  cellFlashing: CellFlashingRule[];
+  gridEditing: EditingConfig;
+  dataPreprocessing: PreprocessingRule[];
+  datasource: DataSourceConfig;
+  
+  // Extracted AG-Grid state (read-only from grid)
+  agGridState: {
+    columnState: any[];
+    filterModel: any;
+    sortModel: any[];
+  };
+}
+```
+
+### 3.2 Configuration Types
+
+```typescript
+// Column Settings (Column Customization Dialog)
+interface ColumnSettings {
+  [columnField: string]: {
+    headerStyle?: HeaderStyle;
+    cellStyle?: CellStyle;
+    valueFormatter?: ValueFormatterConfig;
+    filter?: FilterConfig;
+    cellEditor?: CellEditorConfig;
+    visibility?: boolean;
+    width?: number;
+    pinned?: 'left' | 'right' | null;
+  };
+}
+
+interface HeaderStyle {
+  textColor?: string;
+  backgroundColor?: string;
+  font?: FontConfig;
+  alignment?: AlignmentConfig;
+  border?: BorderConfig;
+  headerName?: string;
+}
+
+interface CellStyle {
+  textColor?: string;
+  backgroundColor?: string;
+  font?: FontConfig;
+  alignment?: AlignmentConfig;
+  border?: BorderConfig;
+}
+
+interface FontConfig {
+  family?: string;
+  size?: string;
+  weight?: 'normal' | 'bold' | '600' | '700';
+  style?: 'normal' | 'italic';
+  decoration?: 'none' | 'underline' | 'line-through';
+}
+
+interface AlignmentConfig {
+  horizontal?: 'left' | 'center' | 'right';
+  vertical?: 'top' | 'middle' | 'bottom';
+}
+
+interface BorderConfig {
+  top?: BorderSide;
+  right?: BorderSide;
+  bottom?: BorderSide;
+  left?: BorderSide;
+}
+
+interface BorderSide {
+  width?: string;
+  style?: 'solid' | 'dashed' | 'dotted';
+  color?: string;
+}
+
+// General Options (General Options Dialog)
+interface GeneralOptions {
+  theme: 'quartz' | 'alpine' | 'balham' | 'material';
+  rowHeight?: number;
+  headerHeight?: number;
+  fontSize?: number;
+  fontFamily?: string;
+  gridSpacing?: 'compact' | 'normal' | 'comfortable';
+  enableSorting?: boolean;
+  enableFiltering?: boolean;
+  enableRangeSelection?: boolean;
+  suppressRowClickSelection?: boolean;
+  allowContextMenuWithControlKey?: boolean;
+  pagination?: {
+    enabled: boolean;
+    pageSize?: number;
+    pageSizeOptions?: number[];
+  };
+}
+
+// Calculated Columns (Calculated Columns Dialog)
+interface CalculatedColumn {
+  id: string;
+  name: string;
+  expression: string;
+  headerName: string;
+  dataType: 'number' | 'string' | 'date' | 'boolean';
+  formatter?: ValueFormatterConfig;
+  position: 'start' | 'end' | { after: string };
+  dependencies: string[]; // columns this calculation depends on
+}
+
+// Column Groups (Column Groups Dialog)
+interface ColumnGroup {
+  id: string;
+  headerName: string;
+  children: string[]; // column field names or other group IDs
+  headerClass?: string;
+  headerStyle?: HeaderStyle;
+  groupDisplayType?: 'singleColumn' | 'multipleColumns' | 'groupTotal';
+}
+
+// Named Filters (Named Filters Dialog)
+interface NamedFilter {
+  id: string;
+  name: string;
+  description?: string;
+  expression: string;
+  isQuickFilter?: boolean;
+  category?: string;
+  parameters?: FilterParameter[];
+}
+
+interface FilterParameter {
+  name: string;
+  type: 'string' | 'number' | 'date' | 'boolean';
+  defaultValue?: any;
+  required?: boolean;
+}
+
+// Conditional Styling (Conditional Styling Dialog)
+interface ConditionalStyle {
+  id: string;
+  name: string;
+  description?: string;
+  condition: string; // expression
+  target: 'row' | 'cell';
+  columns?: string[]; // only for cell styling
+  priority: number; // for rule ordering
+  style: {
+    backgroundColor?: string;
+    textColor?: string;
+    fontWeight?: string;
+    fontStyle?: string;
+    border?: BorderConfig;
+    className?: string; // custom CSS class
+  };
+}
+
+// Cell Flashing (Cell Flashing Dialog)
+interface CellFlashingRule {
+  id: string;
+  name: string;
+  columns: string[];
+  trigger: 'valueChange' | 'expression' | 'manual';
+  expression?: string; // if trigger is 'expression'
+  flashDuration: number;
+  flashColor: string;
+  flashCount: number;
+  fadeEffect?: boolean;
+  conditions?: string[]; // additional triggering conditions
+}
+
+// Grid Editing (Grid Editing Dialog)
+interface EditingConfig {
+  enableEditing: boolean;
+  editType: 'fullRow' | 'cell';
+  singleClickEdit?: boolean;
+  stopEditingWhenCellsLoseFocus?: boolean;
+  enterKeyDirection: 'down' | 'up' | 'none';
+  tabKeyDirection: 'right' | 'left' | 'none';
+  columnPermissions: {
+    [columnField: string]: {
+      editable: boolean;
+      validator?: string; // expression
+      required?: boolean;
+      customEditor?: string;
+    };
+  };
+  onCellValueChanged?: string; // expression
+  onRowValueChanged?: string; // expression
+}
+
+// Data Preprocessing (Data Preprocessing Dialog)
+interface PreprocessingRule {
+  id: string;
+  name: string;
+  description?: string;
+  type: 'filter' | 'transform' | 'validation' | 'aggregation';
+  expression: string;
+  enabled: boolean;
+  order: number;
+  errorHandling: 'ignore' | 'log' | 'stop';
+  appliesTo: 'all' | string[]; // columns
+}
+
+// Data Source (Data Source Dialog)
+interface DataSourceConfig {
+  type: 'static' | 'http' | 'websocket';
+  
+  http?: {
+    url: string;
+    method: 'GET' | 'POST' | 'PUT';
+    headers?: Record<string, string>;
+    params?: Record<string, any>;
+    refreshInterval?: number;
+    authentication?: {
+      type: 'none' | 'bearer' | 'basic' | 'apiKey';
+      credentials?: Record<string, string>;
+    };
+  };
+  
+  websocket?: {
+    url: string;
+    protocol: 'socket.io' | 'stomp' | 'raw';
+    options?: Record<string, any>;
+    subscriptions?: string[];
+    heartbeat?: {
+      enabled: boolean;
+      interval: number;
+    };
+  };
+  
+  schemaInference: {
+    enabled: boolean;
+    sampleSize: number;
+    typeDetection: boolean;
+    columnMapping?: Record<string, string>;
+  };
+  
+  errorHandling: {
+    retry: boolean;
+    maxRetries: number;
+    retryDelay: number;
+    fallbackToStatic: boolean;
+  };
+}
+
+// Expression System Types
+interface ExpressionConfig {
+  expression: string;
+  variables?: Record<string, any>;
+  functions?: string[]; // available function names
+  context?: 'cell' | 'row' | 'grid';
+}
+
+interface ExpressionValidation {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  dependencies: string[]; // columns/variables used
+}
+```
+
+## 4. State Management (Zustand)
+
+### 4.1 Main Store Structure
+
+```typescript
+interface GridStore {
+  // Current state
+  activeProfile: GridProfile | null;
+  
+  // Configuration slices (hydrated from active profile)
+  columnSettings: ColumnSettings;
+  generalOptions: GeneralOptions;
+  calculatedColumns: CalculatedColumn[];
+  columnGroups: ColumnGroup[];
+  namedFilters: NamedFilter[];
+  conditionalStyling: ConditionalStyle[];
+  cellFlashing: CellFlashingRule[];
+  gridEditing: EditingConfig;
+  dataPreprocessing: PreprocessingRule[];
+  datasource: DataSourceConfig;
+  
+  // UI state
+  isLoading: boolean;
+  error: string | null;
+  
+  // Actions for each slice
+  columnSettings: {
+    update: (columnField: string, settings: Partial<ColumnSettings[string]>) => void;
+    reset: (columnField: string) => void;
+    bulkUpdate: (columns: string[], settings: Partial<ColumnSettings[string]>) => void;
+  };
+  
+  generalOptions: {
+    update: (options: Partial<GeneralOptions>) => void;
+    reset: () => void;
+  };
+  
+  calculatedColumns: {
+    add: (column: CalculatedColumn) => void;
+    update: (id: string, updates: Partial<CalculatedColumn>) => void;
+    delete: (id: string) => void;
+    reorder: (oldIndex: number, newIndex: number) => void;
+  };
+  
+  columnGroups: {
+    add: (group: ColumnGroup) => void;
+    update: (id: string, updates: Partial<ColumnGroup>) => void;
+    delete: (id: string) => void;
+    addColumns: (groupId: string, columns: string[]) => void;
+    removeColumns: (groupId: string, columns: string[]) => void;
+  };
+  
+  namedFilters: {
+    add: (filter: NamedFilter) => void;
+    update: (id: string, updates: Partial<NamedFilter>) => void;
+    delete: (id: string) => void;
+    apply: (id: string, parameters?: Record<string, any>) => void;
+  };
+  
+  conditionalStyling: {
+    add: (rule: ConditionalStyle) => void;
+    update: (id: string, updates: Partial<ConditionalStyle>) => void;
+    delete: (id: string) => void;
+    reorder: (rules: ConditionalStyle[]) => void;
+    toggle: (id: string, enabled: boolean) => void;
+  };
+  
+  cellFlashing: {
+    add: (rule: CellFlashingRule) => void;
+    update: (id: string, updates: Partial<CellFlashingRule>) => void;
+    delete: (id: string) => void;
+    trigger: (ruleId: string) => void;
+  };
+  
+  gridEditing: {
+    update: (config: Partial<EditingConfig>) => void;
+    updateColumnPermission: (column: string, permission: Partial<EditingConfig['columnPermissions'][string]>) => void;
+  };
+  
+  dataPreprocessing: {
+    add: (rule: PreprocessingRule) => void;
+    update: (id: string, updates: Partial<PreprocessingRule>) => void;
+    delete: (id: string) => void;
+    reorder: (rules: PreprocessingRule[]) => void;
+    toggle: (id: string, enabled: boolean) => void;
+  };
+  
+  datasource: {
+    update: (config: Partial<DataSourceConfig>) => void;
+    testConnection: () => Promise<boolean>;
+    refresh: () => void;
+  };
+  
+  // Profile management actions
+  profiles: {
+    save: (name: string) => void;
+    load: (profileId: string) => void;
+    delete: (profileId: string) => void;
+    duplicate: (profileId: string, newName: string) => void;
+    export: (profileId: string) => string;
+    import: (jsonData: string) => void;
+    list: () => GridProfile[];
+  };
+  
+  // Grid interaction actions
+  grid: {
+    applyAllSettings: () => void;
+    extractState: () => void;
+    refresh: () => void;
+    reset: () => void;
+  };
+}
+```
+
+### 4.2 Store Implementation Pattern
+
+```typescript
+const useGridStore = create<GridStore>()(
+  subscribeWithSelector(
+    immer((set, get) => ({
+      // Initial state
+      activeProfile: null,
+      columnSettings: {},
+      generalOptions: {
+        theme: 'quartz',
+        enableSorting: true,
+        enableFiltering: true,
+        gridSpacing: 'normal'
+      },
+      // ... other initial states
+      
+      // Column settings actions
+      columnSettings: {
+        update: (columnField, settings) => set((state) => {
+          state.columnSettings[columnField] = {
+            ...state.columnSettings[columnField],
+            ...settings
+          };
+        }),
+        
+        bulkUpdate: (columns, settings) => set((state) => {
+          columns.forEach(column => {
+            state.columnSettings[column] = {
+              ...state.columnSettings[column],
+              ...settings
+            };
+          });
+        }),
+        
+        reset: (columnField) => set((state) => {
+          delete state.columnSettings[columnField];
+        })
+      },
+      
+      // Profile management
+      profiles: {
+        save: (name) => {
+          const state = get();
+          const profile: GridProfile = {
+            id: generateId(),
+            name,
+            isDefault: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            columnSettings: state.columnSettings,
+            generalOptions: state.generalOptions,
+            calculatedColumns: state.calculatedColumns,
+            columnGroups: state.columnGroups,
+            namedFilters: state.namedFilters,
+            conditionalStyling: state.conditionalStyling,
+            cellFlashing: state.cellFlashing,
+            gridEditing: state.gridEditing,
+            dataPreprocessing: state.dataPreprocessing,
+            datasource: state.datasource,
+            agGridState: gridConfigurationService.extractGridState()
+          };
+          
+          profileService.saveProfile(profile);
+          set({ activeProfile: profile });
+        },
+        
+        load: (profileId) => {
+          const profile = profileService.getProfile(profileId);
+          if (profile) {
+            set((state) => {
+              // Flush current state and repopulate from profile
+              state.activeProfile = profile;
+              state.columnSettings = profile.columnSettings;
+              state.generalOptions = profile.generalOptions;
+              state.calculatedColumns = profile.calculatedColumns;
+              state.columnGroups = profile.columnGroups;
+              state.namedFilters = profile.namedFilters;
+              state.conditionalStyling = profile.conditionalStyling;
+              state.cellFlashing = profile.cellFlashing;
+              state.gridEditing = profile.gridEditing;
+              state.dataPreprocessing = profile.dataPreprocessing;
+              state.datasource = profile.datasource;
+            });
+            
+            // Apply all settings to AG-Grid
+            get().grid.applyAllSettings();
+          }
+        }
+      },
+      
+      // Grid actions
+      grid: {
+        applyAllSettings: () => {
+          const state = get();
+          gridConfigurationService.applyAllSettings({
+            columnSettings: state.columnSettings,
+            generalOptions: state.generalOptions,
+            calculatedColumns: state.calculatedColumns,
+            columnGroups: state.columnGroups,
+            namedFilters: state.namedFilters,
+            conditionalStyling: state.conditionalStyling,
+            cellFlashing: state.cellFlashing,
+            gridEditing: state.gridEditing,
+            dataPreprocessing: state.dataPreprocessing,
+            datasource: state.datasource
+          });
+        },
+        
+        extractState: () => set((state) => {
+          if (state.activeProfile) {
+            state.activeProfile.agGridState = gridConfigurationService.extractGridState();
+          }
+        })
+      }
+    }))
+  )
+);
+```
+
+## 5. Service Layer
+
+### 5.1 Profile Service
+
+```typescript
+class ProfileService {
+  private readonly storageKey = 'agGrid_profiles';
+  private readonly activeProfileKey = 'agGrid_activeProfile';
+  
+  saveProfile(profile: GridProfile): void {
+    const profiles = this.getAllProfiles();
+    const existingIndex = profiles.findIndex(p => p.id === profile.id);
+    
+    if (existingIndex >= 0) {
+      profiles[existingIndex] = { ...profile, updatedAt: new Date() };
+    } else {
+      profiles.push(profile);
+    }
+    
+    localStorage.setItem(this.storageKey, JSON.stringify(profiles));
+  }
+  
+  getProfile(id: string): GridProfile | null {
+    const profiles = this.getAllProfiles();
+    return profiles.find(p => p.id === id) || null;
+  }
+  
+  getAllProfiles(): GridProfile[] {
+    const stored = localStorage.getItem(this.storageKey);
+    return stored ? JSON.parse(stored) : [this.createDefaultProfile()];
+  }
+  
+  deleteProfile(id: string): boolean {
+    const profiles = this.getAllProfiles();
+    const filtered = profiles.filter(p => p.id !== id && !p.isDefault);
+    
+    if (filtered.length !== profiles.length) {
+      localStorage.setItem(this.storageKey, JSON.stringify(filtered));
+      return true;
+    }
+    return false;
+  }
+  
+  exportProfile(id: string): string {
+    const profile = this.getProfile(id);
+    return profile ? JSON.stringify(profile, null, 2) : '';
+  }
+  
+  importProfile(jsonData: string): GridProfile {
+    const profile: GridProfile = JSON.parse(jsonData);
+    profile.id = generateId(); // Generate new ID to avoid conflicts
+    profile.createdAt = new Date();
+    profile.updatedAt = new Date();
+    
+    this.saveProfile(profile);
+    return profile;
+  }
+  
+  private createDefaultProfile(): GridProfile {
+    return {
+      id: 'default',
+      name: 'Default',
+      isDefault: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      columnSettings: {},
+      generalOptions: {
+        theme: 'quartz',
+        enableSorting: true,
+        enableFiltering: true,
+        gridSpacing: 'normal'
+      },
+      calculatedColumns: [],
+      columnGroups: [],
+      namedFilters: [],
+      conditionalStyling: [],
+      cellFlashing: [],
+      gridEditing: {
+        enableEditing: false,
+        editType: 'cell',
+        columnPermissions: {}
+      },
+      dataPreprocessing: [],
+      datasource: { type: 'static', schemaInference: { enabled: true, sampleSize: 100 } },
+      agGridState: { columnState: [], filterModel: {}, sortModel: [] }
+    };
+  }
+}
+```
+
+### 5.2 Grid Configuration Service
+
+```typescript
+class GridConfigurationService {
+  private gridApi: GridApi | null = null;
+  private columnApi: ColumnApi | null = null;
+  
+  setGridReferences(gridApi: GridApi, columnApi: ColumnApi): void {
+    this.gridApi = gridApi;
+    this.columnApi = columnApi;
+  }
+  
+  applyAllSettings(settings: {
+    columnSettings: ColumnSettings;
+    generalOptions: GeneralOptions;
+    calculatedColumns: CalculatedColumn[];
+    columnGroups: ColumnGroup[];
+    namedFilters: NamedFilter[];
+    conditionalStyling: ConditionalStyle[];
+    cellFlashing: CellFlashingRule[];
+    gridEditing: EditingConfig;
+    dataPreprocessing: PreprocessingRule[];
+    datasource: DataSourceConfig;
+  }): void {
+    if (!this.gridApi || !this.columnApi) return;
+    
+    // Apply general options
+    this.applyGeneralOptions(settings.generalOptions);
+    
+    // Apply column customizations
+    this.applyColumnSettings(settings.columnSettings);
+    
+    // Apply calculated columns
+    this.applyCalculatedColumns(settings.calculatedColumns);
+    
+    // Apply column groups
+    this.applyColumnGroups(settings.columnGroups);
+    
+    // Apply conditional styling
+    this.applyConditionalStyling(settings.conditionalStyling);
+    
+    // Apply editing configuration
+    this.applyEditingConfig(settings.gridEditing);
+    
+    // Setup cell flashing
+    this.setupCellFlashing(settings.cellFlashing);
+    
+    // Apply data preprocessing
+    this.applyDataPreprocessing(settings.dataPreprocessing);
+    
+    // Configure data source
+    this.configureDataSource(settings.datasource);
+  }
+  
+  private applyColumnSettings(settings: ColumnSettings): void {
+    const columnDefs = this.gridApi!.getColumnDefs() || [];
+    
+    const updatedColumnDefs = columnDefs.map(colDef => {
+      const field = colDef.field;
+      if (!field || !settings[field]) return colDef;
+      
+      const customization = settings[field];
+      const updated = { ...colDef };
+      
+      // Apply header customization
+      if (customization.headerStyle?.headerName) {
+        updated.headerName = customization.headerStyle.headerName;
+      }
+      
+      // Apply value formatter
+      if (customization.valueFormatter) {
+        updated.valueFormatter = this.createValueFormatter(customization.valueFormatter);
+      }
+      
+      // Apply filter configuration
+      if (customization.filter) {
+        updated.filter = customization.filter.type;
+        updated.filterParams = customization.filter.params;
+      }
+      
+      // Apply cell editor
+      if (customization.cellEditor) {
+        updated.cellEditor = customization.cellEditor.type;
+        updated.cellEditorParams = customization.cellEditor.params;
+        updated.editable = true;
+      }
+      
+      // Apply styling via CSS classes
+      const styleClasses = this.generateStyleClasses(field, customization);
+      updated.headerClass = [...(updated.headerClass || []), ...styleClasses.header];
+      updated.cellClass = [...(updated.cellClass || []), ...styleClasses.cell];
+      
+      // Apply column properties
+      if (customization.width !== undefined) {
+        updated.width = customization.width;
+      }
+      
+      if (customization.pinned !== undefined) {
+        updated.pinned = customization.pinned;
+      }
+      
+      if (customization.visibility !== undefined) {
+        updated.hide = !customization.visibility;
+      }
+      
+      return updated;
+    });
+    
+    this.gridApi!.setColumnDefs(updatedColumnDefs);
+    
+    // Inject CSS styles
+    this.injectCustomStyles(settings);
+  }
+  
+  private generateStyleClasses(field: string, customization: ColumnSettings[string]) {
+    const classes = {
+      header: [] as string[],
+      cell: [] as string[]
+    };
+    
+    if (customization.headerStyle) {
+      classes.header.push(`custom-header-${field}`);
+    }
+    
+    if (customization.cellStyle) {
+      classes.cell.push(`custom-cell-${field}`);
+    }
+    
+    return classes;
+  }
+  
+  private injectCustomStyles(settings: ColumnSettings): void {
+    // Remove existing custom styles
+    const existingStyles = document.getElementById('ag-grid-custom-styles');
+    if (existingStyles) {
+      existingStyles.remove();
+    }
+    
+    // Generate CSS for each customized column
+    const cssRules: string[] = [];
+    
+    Object.entries(settings).forEach(([field, customization]) => {
+      if (customization.headerStyle) {
+        cssRules.push(this.generateHeaderCSS(field, customization.headerStyle));
+      }
+      if (customization.cellStyle) {
+        cssRules.push(this.generateCellCSS(field, customization.cellStyle));
+      }
+    });
+    
+    // Inject styles if any exist
+    if (cssRules.length > 0) {
+      const styleElement = document.createElement('style');
+      styleElement.id = 'ag-grid-custom-styles';
+      styleElement.textContent = cssRules.join('\n');
+      document.head.appendChild(styleElement);
+    }
+  }
+  
+  private generateHeaderCSS(field: string, style: HeaderStyle): string {
+    const selector = `.custom-header-${field}`;
+    const properties: string[] = [];
+    
+    if (style.textColor) properties.push(`color: ${style.textColor}`);
+    if (style.backgroundColor) properties.push(`background-color: ${style.backgroundColor}`);
+    
+    if (style.font) {
+      if (style.font.family) properties.push(`font-family: ${style.font.family}`);
+      if (style.font.size) properties.push(`font-size: ${style.font.size}`);
+      if (style.font.weight) properties.push(`font-weight: ${style.font.weight}`);
+      if (style.font.style) properties.push(`font-style: ${style.font.style}`);
+      if (style.font.decoration) properties.push(`text-decoration: ${style.font.decoration}`);
+    }
+    
+    if (style.alignment) {
+      if (style.alignment.horizontal) properties.push(`text-align: ${style.alignment.horizontal}`);
+      if (style.alignment.vertical) {
+        properties.push(`display: flex`);
+        properties.push(`align-items: ${style.alignment.vertical === 'top' ? 'flex-start' : 
+          style.alignment.vertical === 'bottom' ? 'flex-end' : 'center'}`);
+      }
+    }
+    
+    if (style.border) {
+      const borderParts: string[] = [];
+      if (style.border.top) borderParts.push(`border-top: ${this.formatBorder(style.border.top)}`);
+      if (style.border.right) borderParts.push(`border-right: ${this.formatBorder(style.border.right)}`);
+      if (style.border.bottom) borderParts.push(`border-bottom: ${this.formatBorder(style.border.bottom)}`);
+      if (style.border.left) borderParts.push(`border-left: ${this.formatBorder(style.border.left)}`);
+      properties.push(...borderParts);
+    }
+    
+    return `${selector} { ${properties.join('; ')} }`;
+  }
+  
+  private generateCellCSS(field: string, style: CellStyle): string {
+    const selector = `.custom-cell-${field}`;
+    // Similar implementation to generateHeaderCSS but for cell styles
+    // ... (implementation details similar to header CSS generation)
+    return `${selector} { /* cell styles */ }`;
+  }
+  
+  private formatBorder(border: BorderSide): string {
+    return `${border.width || '1px'} ${border.style || 'solid'} ${border.color || '#000'}`;
+  }
+  
+  extractGridState(): { columnState: any[]; filterModel: any; sortModel: any[] } {
+    if (!this.gridApi || !this.columnApi) {
+      return { columnState: [], filterModel: {}, sortModel: [] };
+    }
+    
+    return {
+      columnState: this.columnApi.getColumnState(),
+      filterModel: this.gridApi.getFilterModel(),
+      sortModel: this.gridApi.getSortModel()
+    };
+  }
+  
+  // Additional methods for other configuration types...
+}
+```
+
+## 6. Data Flow Rules
+
+### 6.1 Update Triggers (Only 3 Scenarios)
+
+1. **Apply Changes Button**: User clicks "Apply Changes" in any dialog
+   - Dialog settings → Zustand store → AG-Grid update
+   - No automatic saving to profile
+
+2. **App Load**: Application initializes
+   - Load active profile from localStorage → Zustand store → AG-Grid
+
+3. **Profile Selection Change**: User selects different profile
+   - Flush Zustand store → Load selected profile → Zustand store → AG-Grid
+
+### 6.2 Save Operations
+
+- **Save Profile Button**: Explicit save action on toolbar
+  - Extract current AG-Grid state → Combine with Zustand settings → Save to profile
+  - All dialog settings and grid state saved together
+
+### 6.3 Data Flow Sequence
+
+```
+1. Dialog opens → Hydrates from Zustand store (never from AG-Grid)
+2. User modifies settings in dialog
+3. User clicks "Apply Changes" → Settings save to Zustand → Apply to AG-Grid
+4. Dialog stays open for more changes
+5. User clicks "Save Profile" → Extract AG-Grid state → Combine with Zustand → Save to profile
+6. Profile switch → Flush Zustand → Load profile → Populate Zustand → Apply to AG-Grid
+```
+
+## 7. Expression System
+
+### 7.1 Expression Editor Component
+
+```typescript
+interface ExpressionEditorProps {
+  value: string;
+  onChange: (expression: string) => void;
+  context: 'cell' | 'row' | 'grid';
+  availableColumns: string[];
+  availableFunctions: string[];
+  placeholder?: string;
+  multiline?: boolean;
+}
+
+const ExpressionEditor: React.FC<ExpressionEditorProps> = ({
+  value,
+  onChange,
+  context,
+  availableColumns,
+  availableFunctions,
+  placeholder,
+  multiline = false
+}) => {
+  const [isValid, setIsValid] = useState(true);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  
+  // Validate expression in real-time
+  useEffect(() => {
+    const validation = expressionEvaluator.validate(value, {
+      context,
+      availableColumns,
+      availableFunctions
+    });
+    
+    setIsValid(validation.isValid);
+    setValidationErrors(validation.errors);
+  }, [value, context, availableColumns, availableFunctions]);
+  
+  // Generate autocomplete suggestions
+  const handleInputChange = (newValue: string, cursorPosition: number) => {
+    onChange(newValue);
+    
+    const suggestions = expressionEvaluator.getSuggestions(
+      newValue,
+      cursorPosition,
+      { availableColumns, availableFunctions }
+    );
+    setSuggestions(suggestions);
+  };
+  
+  return (
+    <div className="expression-editor">
+      <CodeEditor
+        value={value}
+        onChange={handleInputChange}
+        language="javascript"
+        multiline={multiline}
+        placeholder={placeholder}
+        suggestions={suggestions}
+        errors={validationErrors}
+        theme="vs-dark"
+      />
+      
+      {!isValid && (
+        <div className="expression-errors">
+          {validationErrors.map((error, index) => (
+            <div key={index} className="error-message">
+              {error}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <div className="expression-help">
+        <FunctionLibrary functions={availableFunctions} />
+        <ColumnReference columns={availableColumns} />
+      </div>
+    </div>
+  );
+};
+```
+
+### 7.2 Expression Evaluator Service
+
+```typescript
+class ExpressionEvaluator {
+  validate(expression: string, options: {
+    context: 'cell' | 'row' | 'grid';
+    availableColumns: string[];
+    availableFunctions: string[];
+  }): ExpressionValidation {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const dependencies: string[] = [];
+    
+    try {
+      // Parse expression and check syntax
+      const ast = this.parseExpression(expression);
+      
+      // Validate function calls
+      const functions = this.extractFunctions(ast);
+      functions.forEach(fn => {
+        if (!options.availableFunctions.includes(fn)) {
+          errors.push(`Unknown function: ${fn}`);
+        }
+      });
+      
+      // Validate column references
+      const columns = this.extractColumnReferences(ast);
+      columns.forEach(col => {
+        if (!options.availableColumns.includes(col)) {
+          errors.push(`Unknown column: ${col}`);
+        }
+        dependencies.push(col);
+      });
+      
+      // Context-specific validations
+      if (options.context === 'cell') {
+        // Cell expressions should return a single value
+        if (this.returnsArray(ast)) {
+          warnings.push('Cell expressions should return a single value');
+        }
+      }
+      
+    } catch (parseError) {
+      errors.push(`Syntax error: ${parseError.message}`);
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+      dependencies
+    };
+  }
+  
+  evaluate(expression: string, data: any, context: {
+    rowData?: any;
+    columnData?: any[];
+    gridApi?: GridApi;
+  }): any {
+    // Safe expression evaluation with sandboxing
+    try {
+      const func = new Function('data', 'row', 'column', 'grid', `
+        "use strict";
+        return ${expression};
+      `);
+      
+      return func(data, context.rowData, context.columnData, context.gridApi);
+    } catch (error) {
+      console.error('Expression evaluation error:', error);
+      return undefined;
+    }
+  }
+  
+  getSuggestions(
+    expression: string,
+    cursorPosition: number,
+    options: {
+      availableColumns: string[];
+      availableFunctions: string[];
+    }
+  ): string[] {
+    const beforeCursor = expression.substring(0, cursorPosition);
+    const afterCursor = expression.substring(cursorPosition);
+    
+    // Determine context at cursor
+    const context = this.getContextAtPosition(beforeCursor);
+    
+    const suggestions: string[] = [];
+    
+    if (context.type === 'column') {
+      // Suggest column names
+      suggestions.push(...options.availableColumns.filter(col =>
+        col.toLowerCase().startsWith(context.partial.toLowerCase())
+      ));
+    } else if (context.type === 'function') {
+      // Suggest function names
+      suggestions.push(...options.availableFunctions.filter(fn =>
+        fn.toLowerCase().startsWith(context.partial.toLowerCase())
+      ));
+    }
+    
+    return suggestions;
+  }
+  
+  private parseExpression(expression: string): any {
+    // Implementation depends on chosen expression parser (e.g., Esprima, Acorn)
+    // Return AST for further analysis
+  }
+  
+  private extractFunctions(ast: any): string[] {
+    // Extract function call names from AST
+    return [];
+  }
+  
+  private extractColumnReferences(ast: any): string[] {
+    // Extract column references from AST
+    // Look for patterns like data.columnName or [columnName]
+    return [];
+  }
+  
+  private getContextAtPosition(text: string): { type: string; partial: string } {
+    // Analyze text before cursor to determine what kind of suggestion to provide
+    return { type: 'column', partial: '' };
+  }
+}
+```
+
+## 8. Component Implementation Examples
+
+### 8.1 Main AGGridWrapper Component
+
+```typescript
+interface AGGridWrapperProps {
+  columnDefs: ColDef[];
+  rowData: any[];
+  defaultProfileId?: string;
+  onProfileChange?: (profile: GridProfile) => void;
+  className?: string;
+}
+
+const AGGridWrapper: React.FC<AGGridWrapperProps> = ({
+  columnDefs: initialColumnDefs,
+  rowData,
+  defaultProfileId,
+  onProfileChange,
+  className
+}) => {
+  const [gridApi, setGridApi] = useState<GridApi | null>(null);
+  const [columnApi, setColumnApi] = useState<ColumnApi | null>(null);
+  
+  // Zustand store hooks
+  const {
+    activeProfile,
+    columnSettings,
+    generalOptions,
+    profiles,
+    grid
+  } = useGridStore();
+  
+  // Initialize grid references and apply active profile
+  const onGridReady = useCallback((params: GridReadyEvent) => {
+    setGridApi(params.api);
+    setColumnApi(params.columnApi);
+    
+    // Set grid references in configuration service
+    gridConfigurationService.setGridReferences(params.api, params.columnApi);
+    
+    // Apply active profile if exists
+    if (activeProfile) {
+      grid.applyAllSettings();
+    }
+  }, [activeProfile, grid]);
+  
+  // Load default profile on mount
+  useEffect(() => {
+    if (defaultProfileId) {
+      profiles.load(defaultProfileId);
+    } else {
+      // Load last active profile or default
+      const lastActiveId = localStorage.getItem('agGrid_lastActiveProfile');
+      if (lastActiveId) {
+        profiles.load(lastActiveId);
+      }
+    }
+  }, [defaultProfileId, profiles]);
+  
+  // Save last active profile
+  useEffect(() => {
+    if (activeProfile) {
+      localStorage.setItem('agGrid_lastActiveProfile', activeProfile.id);
+      onProfileChange?.(activeProfile);
+    }
+  }, [activeProfile, onProfileChange]);
+  
+  return (
+    <div className={`ag-grid-wrapper ${className || ''}`}>
+      <Toolbar />
+      
+      <div className="ag-grid-container">
+        <AgGridReact
+          columnDefs={initialColumnDefs}
+          rowData={rowData}
+          onGridReady={onGridReady}
+          
+          // Apply general options from store
+          rowHeight={generalOptions.rowHeight}
+          headerHeight={generalOptions.headerHeight}
+          theme={generalOptions.theme}
+          
+          // Grid features
+          defaultColDef={{
+            sortable: generalOptions.enableSorting,
+            filter: generalOptions.enableFiltering,
+            resizable: true,
+            enableRowGroup: true
+          }}
+          
+          // No event handlers - we don't track grid events
+          suppressSaveFilterState={true}
+          suppressSaveSortState={true}
+          suppressColumnStateEvents={true}
+        />
+      </div>
+      
+      <DialogManager />
+    </div>
+  );
+};
+```
+
+### 8.2 Enhanced Column Customization Dialog
+
+```typescript
+const ColumnCustomizationDialog: React.FC<{
+  open: boolean;
+  onClose: () => void;
+}> = ({ open, onClose }) => {
+  const {
+    columnSettings,
+    activeProfile
+  } = useGridStore();
+  
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+  const [bulkUpdateMode, setBulkUpdateMode] = useState(false);
+  const [localCustomizations, setLocalCustomizations] = useState(columnSettings);
+  
+  // Hydrate from store when dialog opens
+  useEffect(() => {
+    if (open) {
+      setLocalCustomizations(columnSettings);
+    }
+  }, [open, columnSettings]);
+  
+  // Handle apply changes - save to store and apply to grid
+  const handleApplyChanges = useCallback(() => {
+    // Update Zustand store
+    Object.entries(localCustomizations).forEach(([field, settings]) => {
+      columnSettings.update(field, settings);
+    });
+    
+    // Apply to AG-Grid
+    grid.applyAllSettings();
+    
+    // Keep dialog open for more changes
+  }, [localCustomizations]);
+  
+  // Handle bulk updates
+  const handleBulkUpdate = useCallback((update: Partial<ColumnSettings[string]>) => {
+    setLocalCustomizations(prev => {
+      const updated = { ...prev };
+      selectedColumns.forEach(column => {
+        updated[column] = { ...updated[column], ...update };
+      });
+      return updated;
+    });
+  }, [selectedColumns]);
+  
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      maxWidth="xl"
+      fullWidth
+      aria-labelledby="column-customization-title"
+    >
+      <DialogTitle id="column-customization-title">
+        <div className="flex justify-between items-center">
+          <span>Column Customization</span>
+          <div className="flex items-center gap-4">
+            <FormControlLabel
+              control={
+                <Switch 
+                  checked={bulkUpdateMode}
+                  onChange={(e) => setBulkUpdateMode(e.target.checked)}
+                />
+              }
+              label="Bulk Update Mode"
+            />
+            <IconButton onClick={onClose} size="small">
+              <CloseIcon />
+            </IconButton>
+          </div>
+        </div>
+      </DialogTitle>
+      
+      <DialogContent className="p-0">
+        <div className="grid grid-cols-4 h-[70vh]">
+          {/* Column Selector */}
+          <div className="col-span-1 border-r">
+            <ColumnSelector
+              columns={getAvailableColumns()}
+              selectedColumns={selectedColumns}
+              onSelectionChange={setSelectedColumns}
+              bulkMode={bulkUpdateMode}
+              customizations={localCustomizations}
+            />
+          </div>
+          
+          {/* Customization Panels */}
+          <div className="col-span-2 overflow-y-auto">
+            {selectedColumns.length > 0 ? (
+              <Tabs defaultValue="header" className="h-full">
+                <TabsList className="grid w-full grid-cols-5">
+                  <TabsTrigger value="header">Header</TabsTrigger>
+                  <TabsTrigger value="cell">Cell</TabsTrigger>
+                  <TabsTrigger value="formatter">Formatter</TabsTrigger>
+                  <TabsTrigger value="filter">Filter</TabsTrigger>
+                  <TabsTrigger value="editor">Editor</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="header" className="p-4">
+                  <HeaderCustomizationPanel
+                    selectedColumns={selectedColumns}
+                    customizations={localCustomizations}
+                    onUpdate={bulkUpdateMode ? handleBulkUpdate : handleSingleUpdate}
+                    bulkMode={bulkUpdateMode}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="cell" className="p-4">
+                  <CellCustomizationPanel
+                    selectedColumns={selectedColumns}
+                    customizations={localCustomizations}
+                    onUpdate={bulkUpdateMode ? handleBulkUpdate : handleSingleUpdate}
+                    bulkMode={bulkUpdateMode}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="formatter" className="p-4">
+                  <FormatterPanel
+                    selectedColumns={selectedColumns}
+                    customizations={localCustomizations}
+                    onUpdate={bulkUpdateMode ? handleBulkUpdate : handleSingleUpdate}
+                    bulkMode={bulkUpdateMode}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="filter" className="p-4">
+                  <FilterPanel
+                    selectedColumns={selectedColumns}
+                    customizations={localCustomizations}
+                    onUpdate={bulkUpdateMode ? handleBulkUpdate : handleSingleUpdate}
+                    bulkMode={bulkUpdateMode}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="editor" className="p-4">
+                  <EditorPanel
+                    selectedColumns={selectedColumns}
+                    customizations={localCustomizations}
+                    onUpdate={bulkUpdateMode ? handleBulkUpdate : handleSingleUpdate}
+                    bulkMode={bulkUpdateMode}
+                  />
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Select one or more columns to customize
+              </div>
+            )}
+          </div>
+          
+          {/* Preview Panel */}
+          <div className="col-span-1 border-l bg-muted/30">
+            <PreviewPanel
+              selectedColumns={selectedColumns}
+              customizations={localCustomizations}
+            />
+          </div>
+        </div>
+      </DialogContent>
+      
+      <DialogActions className="px-6 py-4 border-t">
+        <div className="flex justify-between w-full">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleResetColumns(selectedColumns)}
+              disabled={selectedColumns.length === 0}
+            >
+              Reset Selected
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedColumns([])}
+              disabled={selectedColumns.length === 0}
+            >
+              Clear Selection
+            </Button>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleApplyChanges}
+              disabled={!hasChanges}
+              className="min-w-32"
+            >
+              Apply Changes
+              {getModifiedColumnsCount() > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {getModifiedColumnsCount()}
+                </Badge>
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogActions>
+    </Dialog>
+  );
+};
+```
+
+## 9. LocalStorage Structure
+
+```typescript
+// Storage keys
+const STORAGE_KEYS = {
+  PROFILES: 'agGrid_profiles',
+  ACTIVE_PROFILE_ID: 'agGrid_activeProfileId',
+  USER_PREFERENCES: 'agGrid_userPreferences',
+  EXPRESSION_HISTORY: 'agGrid_expressionHistory'
+} as const;
+
+// Storage schema with versioning
+interface StorageSchema {
+  version: '1.0.0';
+  profiles: GridProfile[];
+  activeProfileId: string;
+  userPreferences: {
+    defaultTheme: string;
+    autoSave: boolean;
+    confirmDialogActions: boolean;
+  };
+  expressionHistory: {
+    [context: string]: string[]; // Recent expressions by context
+  };
+}
+```
+
+## 10. Performance Optimizations
+
+### 10.1 Efficient State Updates
+- Use Immer for immutable state updates
+- Selective subscriptions with `subscribeWithSelector`
+- Memoized selectors for computed values
+- Debounced updates for rapid changes
+
+### 10.2 Grid Performance
+- Virtual scrolling for large datasets
+- Selective column updates instead of full grid refresh
+- Lazy loading of dialog content
+- Efficient CSS injection/removal
+
+### 10.3 Memory Management
+- Cleanup of event listeners and timers
+- Removal of unused CSS styles
+- Garbage collection of old expressions
+- Profile cache management
+
+## 11. Testing Strategy
+
+### 11.1 Unit Tests
+- Individual Zustand slice actions
+- Expression evaluator validation
+- Profile service CRUD operations
+- CSS generation utilities
+- Storage serialization/deserialization
+
+### 11.2 Integration Tests
+- Profile loading and application to grid
+- Dialog state synchronization with store
+- Expression evaluation in different contexts
+- Data source configuration and connection
+
+### 11.3 E2E Tests
+- Complete customization workflows
+- Profile switching scenarios
+- Bulk operations
+- Import/export functionality
+- Real-time data integration
+
+## 12. Accessibility (a11y)
+
+### 12.1 Keyboard Navigation
+- Tab order through all interactive elements
+- Keyboard shortcuts for common actions
+- Focus management in dialogs
+- Arrow key navigation in lists
+
+### 12.2 Screen Reader Support
+- ARIA labels and descriptions
+- Live regions for dynamic updates
+- Role assignments for custom components
+- Alt text for visual indicators
+
+### 12.3 Visual Accessibility
+- High contrast mode support
+- Scalable font sizes
+- Color-blind friendly palettes
+- Focus indicators
+
+## 13. Browser Compatibility
+
+### 13.1 Supported Browsers
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+### 13.2 Polyfills Required
+- ResizeObserver for older browsers
+- CSS Custom Properties fallbacks
+- ES6+ feature polyfills as needed
+
+## 14. Security Considerations
+
+### 14.1 Expression Sandboxing
+- Safe evaluation of user expressions
+- Limited function/variable scope
+- Input sanitization and validation
+- Protection against code injection
+
+### 14.2 Data Protection
+- Secure localStorage access
+- Profile data encryption (optional)
+- Sensitive data masking in exports
+- CORS configuration for data sources
+
+## 15. Future Enhancements
+
+### 15.1 Planned Features
+- Cloud profile synchronization
+- Advanced charting integration
+- Machine learning for data insights
+- Collaborative editing
+- Mobile optimization
+
+### 15.2 Extensibility
+- Plugin system for custom dialogs
+- Custom expression functions
+- Theme marketplace
+- Third-party integrations
+
+---
+
+This comprehensive design document provides a complete blueprint for implementing the AG-Grid wrapper component with all required features, maintaining clean separation of concerns and ensuring scalability for future enhancements.
