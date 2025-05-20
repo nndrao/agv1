@@ -32,7 +32,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const gridApiRef = useRef<GridApi | null>(null);
   const isDarkMode = currentTheme === 'dark';
   const [selectedFont, setSelectedFont] = useState('monospace');
-  const [gridSpacing, setGridSpacing] = useState('6');
+  // Fixed spacing value of 6 (normal)
+  const gridSpacing = 6;
 
   const theme = useMemo(() => {
     const lightTheme = {
@@ -54,7 +55,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       iconSize: 12,
       inputBorderRadius: 2,
       oddRowBackgroundColor: "#EEF1F1E8",
-      spacing: parseInt(gridSpacing),
+      spacing: gridSpacing,
       wrapperBorderRadius: 2,
     };
 
@@ -78,14 +79,14 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       iconSize: 12,
       inputBorderRadius: 2,
       oddRowBackgroundColor: "#2A2E35",
-      spacing: parseInt(gridSpacing),
+      spacing: gridSpacing,
       wrapperBorderRadius: 2,
     };
 
     return themeQuartz
       .withParams(lightTheme, "light")
       .withParams(darkTheme, "dark");
-  }, [selectedFont, gridSpacing]);
+  }, [selectedFont]);
 
   // Update AG Grid theme when app theme changes
   useEffect(() => {
@@ -121,18 +122,11 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     }
   };
 
-  const handleSpacingChange = (spacing: string) => {
-    setGridSpacing(spacing);
-    if (gridApiRef.current) {
-      gridApiRef.current.refreshCells({ force: true });
-    }
-  };
-
   return (
     <div className="h-full w-full flex flex-col box-border overflow-hidden">
       <DataTableToolbar 
         onFontChange={handleFontChange} 
-        onSpacingChange={handleSpacingChange}
+        onSpacingChange={() => {}} // Empty function to satisfy prop requirements
       />
       
       <div className="flex-1 overflow-hidden">
