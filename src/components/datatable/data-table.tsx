@@ -10,7 +10,8 @@ ModuleRegistry.registerModules([AllEnterpriseModule]);
 export interface ColumnDef {
   field: string;
   headerName: string;
-  type?: string;
+  type?: string; // For legacy/custom use
+  columnDataType?: 'text' | 'number' | 'date' | 'boolean'; // ag-Grid v33+ optimization
 }
 
 interface DataTableProps {
