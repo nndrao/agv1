@@ -1,6 +1,8 @@
 import * as React from 'react';
 import * as RechartsPrimitive from 'recharts';
-import {
+
+// @ts-ignore - Recharts type imports may vary by version
+import type {
   NameType,
   Payload,
   ValueType,

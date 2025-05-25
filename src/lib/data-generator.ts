@@ -1,5 +1,5 @@
 // Types for our fixed income data
-interface FixedIncomePosition {
+export interface FixedIncomePosition {
   // Basic identifiers
   positionId: string;
   traderId: string;
@@ -134,7 +134,7 @@ function randomElement<T>(array: T[]): T {
 /**
  * Creates a single fixed income position with 320+ attributes
  */
-function createPosition(index: number): FixedIncomePosition {
+function createPosition(_index: number): FixedIncomePosition {
   // Generate basic identifiers
   const positionId = `POS-${randomString(8)}`;
   const traderId = `TR${randomString(4)}`;

@@ -5,9 +5,6 @@ import { DataTable, type ColumnDef } from '@/components/datatable/data-table';
 import { generateFixedIncomeData, type FixedIncomePosition } from '@/lib/data-generator';
 import { useMemo } from 'react';
 
-// Efficient column inference: sample a fixed number of rows (max 10), cache by data shape, and improve type inference
-import isEqual from 'fast-deep-equal';
-
 function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   if (!Array.isArray(data) || data.length === 0) return [];
 
@@ -65,31 +62,37 @@ function App() {
   const columns = useMemo(() => inferColumnDefinitions(data), [data && data[0] ? Object.keys(data[0]).join(',') : '']);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-background border-b flex items-center justify-between px-6 z-50">
-        <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6" />
-          <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Menu className="h-6 w-6" />
+            <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
+          </div>
+          <ThemeToggle />
         </div>
-        <ThemeToggle />
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 mt-16 mb-16">
-        <div className="p-6">
-          <div className="h-[calc(100vh-8rem-3rem)]">
-            {/* DataTable receives stable, memoized props */}
-            <DataTable columnDefs={columns} dataRow={data} />
+      <main className="flex-1">
+        <div className="container py-6">
+          <div className="rounded-lg border bg-card shadow-sm">
+            <div className="h-[calc(100vh-10rem)]">
+              {/* DataTable receives stable, memoized props */}
+              <DataTable columnDefs={columns} dataRow={data} />
+            </div>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 h-16 bg-background border-t flex items-center justify-center px-6">
-        <p className="text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Your Company. All rights reserved.
-        </p>
+      <footer className="border-t">
+        <div className="container flex h-16 items-center justify-center">
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} Your Company. All rights reserved.
+          </p>
+        </div>
       </footer>
     </div>
   );
