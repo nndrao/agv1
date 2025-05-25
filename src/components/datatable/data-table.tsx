@@ -5,6 +5,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { DataTableToolbar } from './data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
+import { useColumnCustomizationStore } from './dialogs/columnSettings/store/column-customization.store';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 
@@ -39,6 +40,9 @@ export function DataTable({ columnDefs: initialColumnDefs, dataRow }: DataTableP
   const [columnDefs, setColumnDefs] = useState(initialColumnDefs);
   // Fixed spacing value of 6 (normal)
   const gridSpacing = 6;
+  
+  // Get the loadFromLocalStorage function from the store
+  const { loadFromLocalStorage } = useColumnCustomizationStore();
 
   const theme = useMemo(() => {
     const lightTheme = {
@@ -165,6 +169,28 @@ export function DataTable({ columnDefs: initialColumnDefs, dataRow }: DataTableP
           getContextMenuItems={getContextMenuItems}
           onGridReady={(params) => {
             setGridApi(params.api);
+            
+            // Load saved column settings from local storage
+            const savedSettings = loadFromLocalStorage();
+            if (savedSettings && savedSettings.size > 0) {
+              const currentColDefs = params.api.getColumnDefs() || [];
+              const updatedColDefs = currentColDefs.map(colDef => {
+                const colId = colDef.field || colDef.colId || '';
+                const savedColSettings = savedSettings.get(colId);
+                
+                if (savedColSettings) {
+                  // Merge saved settings with current column definition
+                  return { ...colDef, ...savedColSettings };
+                }
+                return colDef;
+              });
+              
+              // Apply the updated column definitions
+              params.api.setGridOption('columnDefs', updatedColDefs);
+              setColumnDefs(updatedColDefs as ColumnDef[]);
+              
+              console.log('Applied saved column settings from local storage');
+            }
           }}
           theme={theme}
         />

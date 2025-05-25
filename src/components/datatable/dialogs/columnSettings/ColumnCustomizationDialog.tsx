@@ -55,6 +55,12 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
 
   const handleApply = () => {
     applyChanges();
+    
+    // Apply the updated column definitions to AG-Grid
+    if (gridApi && onColumnDefsChange) {
+      const updatedColumnDefs = Array.from(columnDefinitions.values());
+      onColumnDefsChange(updatedColumnDefs);
+    }
   };
 
   const handleApplyAndClose = () => {

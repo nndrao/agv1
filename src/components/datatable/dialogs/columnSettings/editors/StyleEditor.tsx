@@ -47,19 +47,50 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
     });
   };
 
+  const updateBorderStyle = (property: string, value: string | number | undefined, side: string) => {
+    setStyle(prev => {
+      const newStyle = { ...prev };
+      
+      // When setting individual side properties, remove the general border properties
+      // to avoid conflicts
+      if (side !== 'all') {
+        delete newStyle.borderWidth;
+        delete newStyle.borderStyle;
+        delete newStyle.borderColor;
+      }
+      
+      if (value === '' || value === undefined) {
+        delete newStyle[property];
+      } else {
+        newStyle[property] = value;
+      }
+      
+      return newStyle;
+    });
+  };
+
   const handleSave = () => {
     // Clean up disabled properties
     const cleanedStyle = { ...style };
     if (!enableTextColor) delete cleanedStyle.color;
     if (!enableBackground) delete cleanedStyle.backgroundColor;
     if (!enableBorders) {
+      // Remove all border-related properties
       delete cleanedStyle.borderWidth;
       delete cleanedStyle.borderStyle;
       delete cleanedStyle.borderColor;
-      delete cleanedStyle.borderTop;
-      delete cleanedStyle.borderRight;
-      delete cleanedStyle.borderBottom;
-      delete cleanedStyle.borderLeft;
+      delete cleanedStyle.borderTopWidth;
+      delete cleanedStyle.borderTopStyle;
+      delete cleanedStyle.borderTopColor;
+      delete cleanedStyle.borderRightWidth;
+      delete cleanedStyle.borderRightStyle;
+      delete cleanedStyle.borderRightColor;
+      delete cleanedStyle.borderBottomWidth;
+      delete cleanedStyle.borderBottomStyle;
+      delete cleanedStyle.borderBottomColor;
+      delete cleanedStyle.borderLeftWidth;
+      delete cleanedStyle.borderLeftStyle;
+      delete cleanedStyle.borderLeftColor;
     }
     onSave(cleanedStyle);
     onOpenChange(false);
@@ -82,56 +113,32 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
   const getBorderStyle = () => {
     if (!enableBorders) return {};
     
-    if (borderSides === 'all') {
-      return {
-        borderWidth: style.borderWidth,
-        borderStyle: style.borderStyle,
-        borderColor: style.borderColor,
-      };
-    } else if (borderSides === 'top') {
-      return {
-        borderTopWidth: style.borderTopWidth || style.borderWidth,
-        borderTopStyle: style.borderTopStyle || style.borderStyle,
-        borderTopColor: style.borderTopColor || style.borderColor,
-      };
-    } else if (borderSides === 'right') {
-      return {
-        borderRightWidth: style.borderRightWidth || style.borderWidth,
-        borderRightStyle: style.borderRightStyle || style.borderStyle,
-        borderRightColor: style.borderRightColor || style.borderColor,
-      };
-    } else if (borderSides === 'bottom') {
-      return {
-        borderBottomWidth: style.borderBottomWidth || style.borderWidth,
-        borderBottomStyle: style.borderBottomStyle || style.borderStyle,
-        borderBottomColor: style.borderBottomColor || style.borderColor,
-      };
-    } else if (borderSides === 'left') {
-      return {
-        borderLeftWidth: style.borderLeftWidth || style.borderWidth,
-        borderLeftStyle: style.borderLeftStyle || style.borderStyle,
-        borderLeftColor: style.borderLeftColor || style.borderColor,
-      };
-    } else if (borderSides === 'horizontal') {
-      return {
-        borderTopWidth: style.borderTopWidth || style.borderWidth,
-        borderTopStyle: style.borderTopStyle || style.borderStyle,
-        borderTopColor: style.borderTopColor || style.borderColor,
-        borderBottomWidth: style.borderBottomWidth || style.borderWidth,
-        borderBottomStyle: style.borderBottomStyle || style.borderStyle,
-        borderBottomColor: style.borderBottomColor || style.borderColor,
-      };
-    } else if (borderSides === 'vertical') {
-      return {
-        borderLeftWidth: style.borderLeftWidth || style.borderWidth,
-        borderLeftStyle: style.borderLeftStyle || style.borderStyle,
-        borderLeftColor: style.borderLeftColor || style.borderColor,
-        borderRightWidth: style.borderRightWidth || style.borderWidth,
-        borderRightStyle: style.borderRightStyle || style.borderStyle,
-        borderRightColor: style.borderRightColor || style.borderColor,
-      };
-    }
-    return {};
+    // Return all border-related styles from the style object
+    const borderStyles: React.CSSProperties = {};
+    
+    // Include general border properties if they exist
+    if (style.borderWidth) borderStyles.borderWidth = style.borderWidth;
+    if (style.borderStyle) borderStyles.borderStyle = style.borderStyle;
+    if (style.borderColor) borderStyles.borderColor = style.borderColor;
+    
+    // Include specific side properties if they exist
+    if (style.borderTopWidth) borderStyles.borderTopWidth = style.borderTopWidth;
+    if (style.borderTopStyle) borderStyles.borderTopStyle = style.borderTopStyle;
+    if (style.borderTopColor) borderStyles.borderTopColor = style.borderTopColor;
+    
+    if (style.borderRightWidth) borderStyles.borderRightWidth = style.borderRightWidth;
+    if (style.borderRightStyle) borderStyles.borderRightStyle = style.borderRightStyle;
+    if (style.borderRightColor) borderStyles.borderRightColor = style.borderRightColor;
+    
+    if (style.borderBottomWidth) borderStyles.borderBottomWidth = style.borderBottomWidth;
+    if (style.borderBottomStyle) borderStyles.borderBottomStyle = style.borderBottomStyle;
+    if (style.borderBottomColor) borderStyles.borderBottomColor = style.borderBottomColor;
+    
+    if (style.borderLeftWidth) borderStyles.borderLeftWidth = style.borderLeftWidth;
+    if (style.borderLeftStyle) borderStyles.borderLeftStyle = style.borderLeftStyle;
+    if (style.borderLeftColor) borderStyles.borderLeftColor = style.borderLeftColor;
+    
+    return borderStyles;
   };
 
   return (
@@ -421,21 +428,21 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                       } 
                       onValueChange={(value) => {
                         if (borderSides === 'all') {
-                          updateStyle('borderStyle', value);
+                          updateBorderStyle('borderStyle', value, 'all');
                         } else if (borderSides === 'top') {
-                          updateStyle('borderTopStyle', value);
+                          updateBorderStyle('borderTopStyle', value, 'top');
                         } else if (borderSides === 'right') {
-                          updateStyle('borderRightStyle', value);
+                          updateBorderStyle('borderRightStyle', value, 'right');
                         } else if (borderSides === 'bottom') {
-                          updateStyle('borderBottomStyle', value);
+                          updateBorderStyle('borderBottomStyle', value, 'bottom');
                         } else if (borderSides === 'left') {
-                          updateStyle('borderLeftStyle', value);
+                          updateBorderStyle('borderLeftStyle', value, 'left');
                         } else if (borderSides === 'horizontal') {
-                          updateStyle('borderTopStyle', value);
-                          updateStyle('borderBottomStyle', value);
+                          updateBorderStyle('borderTopStyle', value, 'horizontal');
+                          updateBorderStyle('borderBottomStyle', value, 'horizontal');
                         } else if (borderSides === 'vertical') {
-                          updateStyle('borderLeftStyle', value);
-                          updateStyle('borderRightStyle', value);
+                          updateBorderStyle('borderLeftStyle', value, 'vertical');
+                          updateBorderStyle('borderRightStyle', value, 'vertical');
                         }
                       }}
                     >
@@ -469,21 +476,21 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                       } 
                       onValueChange={(value) => {
                         if (borderSides === 'all') {
-                          updateStyle('borderWidth', value);
+                          updateBorderStyle('borderWidth', value, 'all');
                         } else if (borderSides === 'top') {
-                          updateStyle('borderTopWidth', value);
+                          updateBorderStyle('borderTopWidth', value, 'top');
                         } else if (borderSides === 'right') {
-                          updateStyle('borderRightWidth', value);
+                          updateBorderStyle('borderRightWidth', value, 'right');
                         } else if (borderSides === 'bottom') {
-                          updateStyle('borderBottomWidth', value);
+                          updateBorderStyle('borderBottomWidth', value, 'bottom');
                         } else if (borderSides === 'left') {
-                          updateStyle('borderLeftWidth', value);
+                          updateBorderStyle('borderLeftWidth', value, 'left');
                         } else if (borderSides === 'horizontal') {
-                          updateStyle('borderTopWidth', value);
-                          updateStyle('borderBottomWidth', value);
+                          updateBorderStyle('borderTopWidth', value, 'horizontal');
+                          updateBorderStyle('borderBottomWidth', value, 'horizontal');
                         } else if (borderSides === 'vertical') {
-                          updateStyle('borderLeftWidth', value);
-                          updateStyle('borderRightWidth', value);
+                          updateBorderStyle('borderLeftWidth', value, 'vertical');
+                          updateBorderStyle('borderRightWidth', value, 'vertical');
                         }
                       }}
                     >
@@ -523,21 +530,21 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                         onChange={(e) => {
                           const value = e.target.value;
                           if (borderSides === 'all') {
-                            updateStyle('borderColor', value);
+                            updateBorderStyle('borderColor', value, 'all');
                           } else if (borderSides === 'top') {
-                            updateStyle('borderTopColor', value);
+                            updateBorderStyle('borderTopColor', value, 'top');
                           } else if (borderSides === 'right') {
-                            updateStyle('borderRightColor', value);
+                            updateBorderStyle('borderRightColor', value, 'right');
                           } else if (borderSides === 'bottom') {
-                            updateStyle('borderBottomColor', value);
+                            updateBorderStyle('borderBottomColor', value, 'bottom');
                           } else if (borderSides === 'left') {
-                            updateStyle('borderLeftColor', value);
+                            updateBorderStyle('borderLeftColor', value, 'left');
                           } else if (borderSides === 'horizontal') {
-                            updateStyle('borderTopColor', value);
-                            updateStyle('borderBottomColor', value);
+                            updateBorderStyle('borderTopColor', value, 'horizontal');
+                            updateBorderStyle('borderBottomColor', value, 'horizontal');
                           } else if (borderSides === 'vertical') {
-                            updateStyle('borderLeftColor', value);
-                            updateStyle('borderRightColor', value);
+                            updateBorderStyle('borderLeftColor', value, 'vertical');
+                            updateBorderStyle('borderRightColor', value, 'vertical');
                           }
                         }}
                         className="w-10 h-9 rounded border cursor-pointer"
@@ -559,21 +566,21 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                         onChange={(e) => {
                           const value = e.target.value;
                           if (borderSides === 'all') {
-                            updateStyle('borderColor', value);
+                            updateBorderStyle('borderColor', value, 'all');
                           } else if (borderSides === 'top') {
-                            updateStyle('borderTopColor', value);
+                            updateBorderStyle('borderTopColor', value, 'top');
                           } else if (borderSides === 'right') {
-                            updateStyle('borderRightColor', value);
+                            updateBorderStyle('borderRightColor', value, 'right');
                           } else if (borderSides === 'bottom') {
-                            updateStyle('borderBottomColor', value);
+                            updateBorderStyle('borderBottomColor', value, 'bottom');
                           } else if (borderSides === 'left') {
-                            updateStyle('borderLeftColor', value);
+                            updateBorderStyle('borderLeftColor', value, 'left');
                           } else if (borderSides === 'horizontal') {
-                            updateStyle('borderTopColor', value);
-                            updateStyle('borderBottomColor', value);
+                            updateBorderStyle('borderTopColor', value, 'horizontal');
+                            updateBorderStyle('borderBottomColor', value, 'horizontal');
                           } else if (borderSides === 'vertical') {
-                            updateStyle('borderLeftColor', value);
-                            updateStyle('borderRightColor', value);
+                            updateBorderStyle('borderLeftColor', value, 'vertical');
+                            updateBorderStyle('borderRightColor', value, 'vertical');
                           }
                         }}
                         className="h-9"

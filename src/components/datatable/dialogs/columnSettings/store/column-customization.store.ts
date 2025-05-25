@@ -7,6 +7,9 @@ import { DialogState } from '../types/column-customization.types';
 // Enable Immer's MapSet plugin
 enableMapSet();
 
+// Local storage key
+const STORAGE_KEY = 'ag-grid-column-settings';
+
 interface ColumnCustomizationStore extends DialogState {
   // Actions
   setSelectedColumns: (columns: string[]) => void;
@@ -28,10 +31,76 @@ interface ColumnCustomizationStore extends DialogState {
   setGroupBy: (groupBy: 'none' | 'type' | 'dataType') => void;
   setApplyMode: (mode: 'override' | 'merge' | 'empty') => void;
   setColumnDefinitions: (columns: Map<string, ColDef>) => void;
+  
+  // Local storage actions
+  saveToLocalStorage: () => void;
+  loadFromLocalStorage: () => Map<string, Partial<ColDef>> | null;
 }
 
+// Helper functions for local storage
+const saveColumnSettingsToStorage = (columnDefinitions: Map<string, ColDef>) => {
+  try {
+    const settings: Record<string, Partial<ColDef>> = {};
+    columnDefinitions.forEach((colDef, colId) => {
+      settings[colId] = {
+        headerName: colDef.headerName,
+        field: colDef.field,
+        type: colDef.type,
+        cellDataType: colDef.cellDataType,
+        sortable: colDef.sortable,
+        resizable: colDef.resizable,
+        editable: colDef.editable,
+        filter: colDef.filter,
+        floatingFilter: colDef.floatingFilter,
+        enableRowGroup: colDef.enableRowGroup,
+        enablePivot: colDef.enablePivot,
+        enableValue: colDef.enableValue,
+        minWidth: colDef.minWidth,
+        maxWidth: colDef.maxWidth,
+        flex: colDef.flex,
+        lockPosition: colDef.lockPosition,
+        lockVisible: colDef.lockVisible,
+        suppressMenu: colDef.suppressMenu,
+        autoHeight: colDef.autoHeight,
+        wrapText: colDef.wrapText,
+        cellStyle: colDef.cellStyle,
+        headerStyle: colDef.headerStyle,
+        cellClass: colDef.cellClass,
+        headerClass: colDef.headerClass,
+        filterParams: colDef.filterParams,
+        menuTabs: colDef.menuTabs,
+        // Add more properties as needed
+      };
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    console.log('Column settings saved to local storage');
+  } catch (error) {
+    console.error('Failed to save column settings to local storage:', error);
+  }
+};
+
+const loadColumnSettingsFromStorage = (): Map<string, Partial<ColDef>> | null => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+    
+    const settings = JSON.parse(stored) as Record<string, Partial<ColDef>>;
+    const map = new Map<string, Partial<ColDef>>();
+    
+    Object.entries(settings).forEach(([colId, colDef]) => {
+      map.set(colId, colDef);
+    });
+    
+    console.log('Column settings loaded from local storage');
+    return map;
+  } catch (error) {
+    console.error('Failed to load column settings from local storage:', error);
+    return null;
+  }
+};
+
 export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
-  immer((set) => ({
+  immer((set, get) => ({
     // Initial state
     selectedColumns: new Set(),
     columnDefinitions: new Map(),
@@ -97,6 +166,17 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         description: `Updated ${state.pendingChanges.size} columns`
       });
       
+      // Apply changes to column definitions
+      state.pendingChanges.forEach((changes, columnId) => {
+        const colDef = state.columnDefinitions.get(columnId);
+        if (colDef) {
+          Object.assign(colDef, changes);
+        }
+      });
+      
+      // Save to local storage after applying changes
+      saveColumnSettingsToStorage(state.columnDefinitions);
+      
       // Clear pending changes and redo stack
       state.pendingChanges.clear();
       state.bulkChanges = {};
@@ -160,5 +240,15 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
     setColumnDefinitions: (columns) => set((state) => {
       state.columnDefinitions = columns;
     }),
+    
+    // Local storage actions
+    saveToLocalStorage: () => {
+      const state = get();
+      saveColumnSettingsToStorage(state.columnDefinitions);
+    },
+    
+    loadFromLocalStorage: () => {
+      return loadColumnSettingsFromStorage();
+    },
   }))
 );
