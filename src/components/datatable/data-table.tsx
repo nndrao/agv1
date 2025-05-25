@@ -4,6 +4,7 @@ import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
 import { DataTableToolbar } from './data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
+import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 
@@ -27,12 +28,15 @@ function setDarkMode(enabled: boolean) {
 // Initialize AG Grid with dark mode by default
 setDarkMode(true);
 
-export function DataTable({ columnDefs, dataRow }: DataTableProps) {
+export function DataTable({ columnDefs: initialColumnDefs, dataRow }: DataTableProps) {
   const gridRef = useRef<AgGridReact>(null);
   const { theme: currentTheme } = useTheme();
-  const gridApiRef = useRef<GridApi | null>(null);
+  const [gridApi, setGridApi] = useState<GridApi | null>(null);
   const isDarkMode = currentTheme === 'dark';
   const [selectedFont, setSelectedFont] = useState('monospace');
+  const [showColumnCustomization, setShowColumnCustomization] = useState(false);
+  // Use state for column definitions to allow updates
+  const [columnDefs, setColumnDefs] = useState(initialColumnDefs);
   // Fixed spacing value of 6 (normal)
   const gridSpacing = 6;
 
@@ -118,8 +122,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
   const handleFontChange = (font: string) => {
     setSelectedFont(font);
-    if (gridApiRef.current) {
-      gridApiRef.current.refreshCells({ force: true });
+    if (gridApi) {
+      gridApi.refreshCells({ force: true });
     }
   };
 
@@ -128,6 +132,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       <DataTableToolbar 
         onFontChange={handleFontChange} 
         onSpacingChange={() => {}} // Empty function to satisfy prop requirements
+        onColumnSettingsClick={() => setShowColumnCustomization(true)}
       />
       
       <div className="flex-1 overflow-hidden">
@@ -159,11 +164,20 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           }}
           getContextMenuItems={getContextMenuItems}
           onGridReady={(params) => {
-            gridApiRef.current = params.api;
+            setGridApi(params.api);
           }}
           theme={theme}
         />
       </div>
+      
+      {gridApi ? (
+        <ColumnCustomizationDialog
+          open={showColumnCustomization}
+          onOpenChange={setShowColumnCustomization}
+          gridApi={gridApi}
+          onColumnDefsChange={setColumnDefs}
+        />
+      ) : null}
     </div>
   );
 }

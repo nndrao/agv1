@@ -5,6 +5,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Settings2 } from "lucide-react";
 
 const monospaceFonts = [
   { value: 'JetBrains Mono', label: 'JetBrains Mono' },
@@ -21,11 +23,12 @@ const monospaceFonts = [
 interface DataTableToolbarProps {
   onFontChange: (font: string) => void;
   onSpacingChange: (spacing: string) => void;
+  onColumnSettingsClick?: () => void;
 }
 
-export function DataTableToolbar({ onFontChange }: DataTableToolbarProps) {
+export function DataTableToolbar({ onFontChange, onColumnSettingsClick }: DataTableToolbarProps) {
   return (
-    <div className="h-[60px] flex items-center px-4 border-b bg-muted/40 backdrop-blur-sm">
+    <div className="h-[60px] flex items-center justify-between px-4 border-b bg-muted/40 backdrop-blur-sm">
       <div className="flex items-center gap-2">
         <Select onValueChange={onFontChange} defaultValue="monospace">
           <SelectTrigger className="w-[180px] h-9">
@@ -39,6 +42,18 @@ export function DataTableToolbar({ onFontChange }: DataTableToolbarProps) {
             ))}
           </SelectContent>
         </Select>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onColumnSettingsClick}
+          className="h-9"
+        >
+          <Settings2 className="h-4 w-4 mr-2" />
+          Column Settings
+        </Button>
       </div>
     </div>
   );
