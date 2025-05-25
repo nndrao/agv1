@@ -183,6 +183,7 @@ const SAMPLE_DATA = {
 export const ValueFormatterEditor: React.FC<ValueFormatterEditorProps> = ({
   open,
   onOpenChange,
+  initialFormatter,
   onSave,
   title,
   columnType = 'text'
@@ -190,7 +191,22 @@ export const ValueFormatterEditor: React.FC<ValueFormatterEditorProps> = ({
   const [activeTab, setActiveTab] = useState('template');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [templateConfig, setTemplateConfig] = useState<Record<string, unknown>>({});
-  const [customCode, setCustomCode] = useState('');
+  const [customCode, setCustomCode] = useState('(params) => {\n  return String(params.value || "");\n}');
+  
+  // Initialize custom code from initialFormatter if it exists
+  useEffect(() => {
+    if (initialFormatter && typeof initialFormatter === 'function') {
+      // Try to extract the function source
+      const funcStr = initialFormatter.toString();
+      setCustomCode(funcStr);
+      setActiveTab('custom');
+    } else if (!initialFormatter) {
+      // Reset to default if no formatter
+      setCustomCode('(params) => {\n  return String(params.value || "");\n}');
+      setActiveTab('template');
+      setSelectedTemplate('');
+    }
+  }, [initialFormatter]);
 
   // Filter templates by column type
   const availableTemplates = useMemo(() => {
@@ -219,13 +235,22 @@ export const ValueFormatterEditor: React.FC<ValueFormatterEditorProps> = ({
     let code = '';
     if (activeTab === 'template' && selectedTemplateObj) {
       code = selectedTemplateObj.generator(templateConfig);
-    } else {
+    } else if (activeTab === 'custom' && customCode) {
       code = customCode;
+    }
+
+    // If no code to generate, return default formatter
+    if (!code || code.trim() === '') {
+      return (params: { value: unknown }) => String(params.value || '');
     }
 
     try {
       // Create function from code string
       const func = new Function('return ' + code.trim())();
+      if (typeof func !== 'function') {
+        console.error('Generated code is not a function');
+        return (params: { value: unknown }) => String(params.value || '');
+      }
       return func;
     } catch (e) {
       console.error('Invalid formatter code:', e);
@@ -238,15 +263,33 @@ export const ValueFormatterEditor: React.FC<ValueFormatterEditorProps> = ({
   // Generate preview data
   const previewData = useMemo(() => {
     const sampleValues = SAMPLE_DATA[columnType] || SAMPLE_DATA.text;
-    return sampleValues.map(value => ({
-      original: value,
-      formatted: currentFormatter({ value })
-    }));
+    if (!currentFormatter || typeof currentFormatter !== 'function') {
+      return sampleValues.map(value => ({
+        original: value,
+        formatted: String(value)
+      }));
+    }
+    try {
+      return sampleValues.map(value => ({
+        original: value,
+        formatted: currentFormatter({ value })
+      }));
+    } catch (e) {
+      console.error('Error formatting preview:', e);
+      return sampleValues.map(value => ({
+        original: value,
+        formatted: String(value)
+      }));
+    }
   }, [currentFormatter, columnType]);
 
   const handleSave = () => {
-    onSave(currentFormatter);
-    onOpenChange(false);
+    if (currentFormatter && typeof currentFormatter === 'function') {
+      onSave(currentFormatter);
+      onOpenChange(false);
+    } else {
+      console.error('Cannot save invalid formatter');
+    }
   };
 
   const updateTemplateConfig = (key: string, value: unknown) => {
