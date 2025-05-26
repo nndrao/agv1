@@ -19,6 +19,7 @@ export const BulkActionsPanel: React.FC = () => {
     selectedColumns,
     columnDefinitions,
     pendingChanges,
+    templateColumns,
     updateBulkProperty
   } = useColumnCustomizationStore();
 
@@ -126,23 +127,18 @@ export const BulkActionsPanel: React.FC = () => {
     setSourceColumnId(''); // Clear selection after copying
   }, [sourceColumnId, columnDefinitions, updateBulkProperty]);
 
-  // Get columns available for copying (those with customizations)
-  const customizedColumns = useMemo(() => {
+  // Get template columns available for copying
+  const templateColumnsList = useMemo(() => {
+    // Ensure templateColumns is a Set
+    const templates = templateColumns instanceof Set ? templateColumns : new Set();
     return Array.from(columnDefinitions.entries())
-      .filter(([colId]) => !selectedColumns.has(colId))
-      .filter(([, colDef]) => {
-        // Check if column has any customizations
-        return colDef.cellStyle || colDef.headerStyle || 
-               colDef.valueFormatter || colDef.cellRenderer ||
-               (colDef.type && colDef.type !== 'textColumn') ||
-               (colDef.cellDataType && colDef.cellDataType !== 'text');
-      })
+      .filter(([colId]) => templates.has(colId) && !selectedColumns.has(colId))
       .sort((a, b) => {
         const nameA = a[1].headerName || a[1].field || '';
         const nameB = b[1].headerName || b[1].field || '';
         return nameA.localeCompare(nameB);
       });
-  }, [columnDefinitions, selectedColumns]);
+  }, [columnDefinitions, selectedColumns, templateColumns]);
 
   // Count pending changes
   const changeCount = useMemo(() => {
@@ -196,17 +192,17 @@ export const BulkActionsPanel: React.FC = () => {
             <Select
               value={sourceColumnId}
               onValueChange={setSourceColumnId}
-              disabled={isDisabled || customizedColumns.length === 0}
+              disabled={isDisabled || templateColumnsList.length === 0}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={
-                  customizedColumns.length === 0
-                    ? "No customized columns available"
-                    : "Select a column to copy from"
+                  templateColumnsList.length === 0
+                    ? "No template columns available"
+                    : "Select a template column"
                 } />
               </SelectTrigger>
               <SelectContent>
-                {customizedColumns.map(([colId, col]) => (
+                {templateColumnsList.map(([colId, col]) => (
                   <SelectItem key={colId} value={colId}>
                     {col.headerName || col.field}
                   </SelectItem>

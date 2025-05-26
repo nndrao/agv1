@@ -24,6 +24,9 @@ export interface DialogState {
 
   // Immediate apply callback
   onImmediateApply?: (columns: AgColDef[]) => void;
+
+  // Template columns for quick copy
+  templateColumns: Set<string>;
 }
 
 export interface DialogActions {
@@ -48,6 +51,10 @@ export interface DialogActions {
 
   // Panel actions
   setBulkActionsPanelCollapsed: (collapsed: boolean) => void;
+
+  // Template column actions
+  toggleTemplateColumn: (columnId: string) => void;
+  clearTemplateColumns: () => void;
 }
 
 export type ColumnCustomizationStore = DialogState & DialogActions;
@@ -68,6 +75,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       cellDataTypeFilter: 'all',
       bulkActionsPanelCollapsed: false,
       onImmediateApply: undefined,
+      templateColumns: new Set<string>(),
 
       // Actions
       setOpen: (open) => set({ open }),
@@ -157,6 +165,20 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       setSearchTerm: (term) => set({ searchTerm: term }),
       setCellDataTypeFilter: (filter) => set({ cellDataTypeFilter: filter }),
       setBulkActionsPanelCollapsed: (collapsed) => set({ bulkActionsPanelCollapsed: collapsed }),
+
+      // Template column actions
+      toggleTemplateColumn: (columnId) => {
+        const { templateColumns } = get();
+        const newTemplates = new Set(templateColumns);
+        if (newTemplates.has(columnId)) {
+          newTemplates.delete(columnId);
+        } else {
+          newTemplates.add(columnId);
+        }
+        set({ templateColumns: newTemplates });
+      },
+
+      clearTemplateColumns: () => set({ templateColumns: new Set() }),
     }),
     {
       name: 'column-customization-store',
@@ -168,7 +190,14 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         compareMode: state.compareMode,
         cellDataTypeFilter: state.cellDataTypeFilter,
         bulkActionsPanelCollapsed: state.bulkActionsPanelCollapsed,
+        templateColumns: Array.from(state.templateColumns), // Convert Set to Array for serialization
       }),
+      onRehydrateStorage: () => (state) => {
+        // Convert templateColumns back to Set after rehydration
+        if (state && Array.isArray(state.templateColumns)) {
+          state.templateColumns = new Set(state.templateColumns);
+        }
+      },
     }
   )
 );

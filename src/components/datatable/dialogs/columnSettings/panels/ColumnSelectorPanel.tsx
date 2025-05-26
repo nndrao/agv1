@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Columns3, Filter } from 'lucide-react';
+import { Search, Columns3, Filter, Star } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { COLUMN_ICONS } from '../types';
@@ -17,9 +17,11 @@ export const ColumnSelectorPanel: React.FC = () => {
     columnDefinitions,
     searchTerm,
     cellDataTypeFilter,
+    templateColumns,
     setSelectedColumns,
     setSearchTerm,
-    setCellDataTypeFilter
+    setCellDataTypeFilter,
+    toggleTemplateColumn
   } = useColumnCustomizationStore();
 
   const parentRef = useRef<HTMLDivElement>(null);
@@ -222,7 +224,9 @@ export const ColumnSelectorPanel: React.FC = () => {
                     <ColumnItem
                       column={item.column}
                       selected={selectedColumns.has(item.column.field || item.column.colId || '')}
+                      isTemplate={templateColumns instanceof Set ? templateColumns.has(item.column.field || item.column.colId || '') : false}
                       onToggle={() => toggleColumnSelection(item.column.field || item.column.colId || '')}
+                      onToggleTemplate={() => toggleTemplateColumn(item.column.field || item.column.colId || '')}
                     />
                   </div>
                 );
@@ -241,8 +245,10 @@ export const ColumnSelectorPanel: React.FC = () => {
 const ColumnItem: React.FC<{
   column: ColDef;
   selected: boolean;
+  isTemplate: boolean;
   onToggle: () => void;
-}> = ({ column, selected, onToggle }) => {
+  onToggleTemplate: () => void;
+}> = ({ column, selected, isTemplate, onToggle, onToggleTemplate }) => {
   const iconKey = (column.cellDataType || column.type || 'default') as string;
   const icon = COLUMN_ICONS[iconKey] || COLUMN_ICONS.default;
 
@@ -256,6 +262,24 @@ const ColumnItem: React.FC<{
       <span className="text-xs flex-1 truncate font-medium text-foreground group-hover:text-foreground">
         {column.headerName || column.field}
       </span>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-6 w-6 p-0 transition-all ${
+          isTemplate ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleTemplate();
+        }}
+        title={isTemplate ? 'Remove from templates' : 'Add to templates'}
+      >
+        <Star 
+          className={`h-3.5 w-3.5 transition-colors ${
+            isTemplate ? 'text-yellow-500 fill-current' : 'text-muted-foreground hover:text-yellow-500'
+          }`}
+        />
+      </Button>
       <span className="text-xs opacity-60 group-hover:opacity-100 transition-opacity">{icon}</span>
     </div>
   );
