@@ -32,9 +32,9 @@ export const ColumnSelectorPanel: React.FC = () => {
   // Filter columns based on search
   const filteredColumns = useMemo(() => {
     if (!searchTerm) return allColumns;
-    
+
     const term = searchTerm.toLowerCase();
-    return allColumns.filter(col => 
+    return allColumns.filter(col =>
       col.field?.toLowerCase().includes(term) ||
       col.headerName?.toLowerCase().includes(term)
     );
@@ -48,7 +48,7 @@ export const ColumnSelectorPanel: React.FC = () => {
     } else {
       // Group by type or dataType
       const groupsMap = new Map<string, ColDef[]>();
-      
+
       filteredColumns.forEach(col => {
         let groupKey = 'default';
         if (groupBy === 'type' && col.type) {
@@ -56,13 +56,13 @@ export const ColumnSelectorPanel: React.FC = () => {
         } else if (groupBy === 'category' && col.cellDataType) {
           groupKey = col.cellDataType as string;
         }
-        
+
         if (!groupsMap.has(groupKey)) {
           groupsMap.set(groupKey, []);
         }
         groupsMap.get(groupKey)!.push(col);
       });
-      
+
       groups = Array.from(groupsMap.entries()).map(([key, cols]) => ({
         name: key,
         columns: cols,
@@ -72,12 +72,12 @@ export const ColumnSelectorPanel: React.FC = () => {
 
     // Flatten items for virtual scrolling
     const items: Array<{ type: 'group' | 'column'; group?: string; column?: ColDef; icon?: string }> = [];
-    
+
     groups.forEach(group => {
       if (groupBy !== 'none') {
         items.push({ type: 'group', group: group.name, icon: group.icon });
       }
-      
+
       if (groupBy === 'none' || expandedGroups.has(group.name)) {
         group.columns.forEach(column => {
           items.push({ type: 'column', column, group: group.name });
@@ -124,39 +124,41 @@ export const ColumnSelectorPanel: React.FC = () => {
     setSelectedColumns(new Set());
   };
 
-  const isAllSelected = filteredColumns.length > 0 && 
+  const isAllSelected = filteredColumns.length > 0 &&
     filteredColumns.every(col => selectedColumns.has(col.field || col.colId || ''));
-  const isIndeterminate = filteredColumns.some(col => selectedColumns.has(col.field || col.colId || '')) && 
+  const isIndeterminate = filteredColumns.some(col => selectedColumns.has(col.field || col.colId || '')) &&
     !isAllSelected;
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="px-3 py-2.5 border-b border-border/50 bg-muted/5">
-        <div className="flex items-center gap-2">
-          <Columns3 className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">Columns</span>
-          <Badge variant="outline" className="text-xs px-1.5 py-0.5 ml-auto">
+      {/* Modern Header */}
+      <div className="px-4 py-3 border-b border-border/40 bg-gradient-to-r from-muted/15 to-muted/5 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded-md bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
+            <Columns3 className="h-4 w-4 text-primary" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">Columns</span>
+          <Badge variant="outline" className="text-xs px-2 py-1 ml-auto font-medium rounded-md border-border/60">
             {filteredColumns.length}
           </Badge>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col p-3">
-        {/* Compact Search Bar */}
-        <div className="relative mb-3">
-          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground h-3.5 w-3.5" />
+      <div className="flex-1 flex flex-col p-4">
+        {/* Modern Search Bar */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search..."
+            placeholder="Search columns..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 h-8 text-sm"
+            className="pl-9 h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm focus:border-primary/60 focus:ring-primary/20 transition-all duration-200"
           />
         </div>
 
-        {/* Compact Selection Controls */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
+        {/* Modern Selection Controls */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
             <Checkbox
               checked={isAllSelected || isIndeterminate}
               onCheckedChange={(checked) => {
@@ -166,35 +168,35 @@ export const ColumnSelectorPanel: React.FC = () => {
                   deselectAllColumns();
                 }
               }}
-              className={isIndeterminate ? 'data-[state=checked]:bg-primary/50' : ''}
+              className={`h-4 w-4 rounded border-border/60 data-[state=checked]:bg-primary data-[state=checked]:border-primary ${isIndeterminate ? 'data-[state=checked]:bg-primary/50' : ''}`}
             />
-            <span className="text-xs font-medium">All</span>
+            <span className="text-xs font-medium text-foreground">All</span>
             {selectedColumns.size > 0 && (
-              <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+              <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium rounded-md bg-secondary/80 border border-secondary/40">
                 {selectedColumns.size}
               </Badge>
             )}
           </div>
-          
-          <Select 
-            value={groupBy} 
+
+          <Select
+            value={groupBy}
             onValueChange={(value: 'none' | 'type' | 'category') => setGroupBy(value)}
           >
-            <SelectTrigger className="w-[100px] h-7 text-xs">
-              <Filter className="h-3 w-3 mr-1" />
+            <SelectTrigger className="w-[110px] h-8 text-xs rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
+              <Filter className="h-3.5 w-3.5 mr-1.5" />
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              <SelectItem value="type">Type</SelectItem>
-              <SelectItem value="category">Category</SelectItem>
+            <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
+              <SelectItem value="none" className="text-xs">None</SelectItem>
+              <SelectItem value="type" className="text-xs">Type</SelectItem>
+              <SelectItem value="category" className="text-xs">Category</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Virtual Column List */}
         <div className="flex-1 -mx-1">
-          <div 
+          <div
             ref={parentRef}
             className="h-full overflow-auto px-1"
             style={{ contain: 'strict' }}
@@ -208,7 +210,7 @@ export const ColumnSelectorPanel: React.FC = () => {
             >
               {virtualizer.getVirtualItems().map((virtualItem) => {
                 const item = flatItems[virtualItem.index];
-                
+
                 return (
                   <div
                     key={virtualItem.key}
@@ -226,8 +228,8 @@ export const ColumnSelectorPanel: React.FC = () => {
                         onClick={() => toggleGroup(item.group!)}
                         className="flex items-center gap-2 w-full p-1.5 hover:bg-accent rounded-md transition-colors"
                       >
-                        {expandedGroups.has(item.group!) ? 
-                          <ChevronDown className="h-3.5 w-3.5" /> : 
+                        {expandedGroups.has(item.group!) ?
+                          <ChevronDown className="h-3.5 w-3.5" /> :
                           <ChevronRight className="h-3.5 w-3.5" />
                         }
                         <span className="text-xs font-medium flex-1 text-left">
@@ -253,17 +255,17 @@ export const ColumnSelectorPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Compact Save Selection Set */}
-        <Button variant="outline" className="mt-3 w-full gap-1.5 h-8" size="sm">
-          <Save className="h-3.5 w-3.5" />
-          <span className="text-xs">Save Set</span>
+        {/* Modern Save Selection Set */}
+        <Button variant="outline" className="mt-4 w-full gap-2 h-9 rounded-lg border-border/60 bg-background/80 backdrop-blur-sm hover:bg-muted/50 transition-all duration-200" size="sm">
+          <Save className="h-4 w-4" />
+          <span className="text-sm font-medium">Save Set</span>
         </Button>
       </div>
     </div>
   );
 };
 
-// Compact Column Item Component
+// Modern Column Item Component
 const ColumnItem: React.FC<{
   column: ColDef;
   selected: boolean;
@@ -271,18 +273,18 @@ const ColumnItem: React.FC<{
 }> = ({ column, selected, onToggle }) => {
   const iconKey = (column.cellDataType || column.type || 'default') as string;
   const icon = COLUMN_ICONS[iconKey] || COLUMN_ICONS.default;
-  
+
   return (
-    <div className="flex items-center gap-2 p-1.5 hover:bg-accent/50 rounded-md transition-colors group">
-      <Checkbox 
-        checked={selected} 
+    <div className="flex items-center gap-2.5 p-2 hover:bg-gradient-to-r hover:from-accent/30 hover:to-accent/10 rounded-lg transition-all duration-200 group cursor-pointer border border-transparent hover:border-border/30">
+      <Checkbox
+        checked={selected}
         onCheckedChange={onToggle}
-        className="h-3.5 w-3.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+        className="h-4 w-4 rounded border-border/60 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
       />
-      <span className="text-xs flex-1 truncate font-medium group-hover:text-foreground">
+      <span className="text-xs flex-1 truncate font-medium text-foreground group-hover:text-foreground">
         {column.headerName || column.field}
       </span>
-      <span className="text-xs opacity-60 group-hover:opacity-100">{icon}</span>
+      <span className="text-xs opacity-60 group-hover:opacity-100 transition-opacity">{icon}</span>
     </div>
   );
 };

@@ -7,10 +7,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { ColDef } from 'ag-grid-community';
-import { 
-  BarChart3, 
-  DollarSign, 
-  Calendar, 
+import {
+  BarChart3,
+  DollarSign,
+  Calendar,
   FileText,
   Copy,
   Eraser,
@@ -110,7 +110,7 @@ export const BulkActionsPanel: React.FC = () => {
   // Copy settings from source column to selected columns
   const copySettingsFromColumn = useCallback(() => {
     if (!sourceColumnId) return;
-    
+
     const sourceColumn = columnDefinitions.get(sourceColumnId);
     if (!sourceColumn) return;
 
@@ -153,13 +153,13 @@ export const BulkActionsPanel: React.FC = () => {
       .filter(([colId, colDef]) => {
         // Exclude selected columns
         if (selectedColumns.has(colId)) return false;
-        
+
         // Get pending changes for this column
         const pendingChange = pendingChanges.get(colId);
-        
+
         // Combine original column definition with pending changes
         const effectiveColDef = { ...colDef, ...pendingChange };
-        
+
         // Only include columns that have styling properties applied
         const hasStyles = !!(
           effectiveColDef.cellStyle ||
@@ -179,32 +179,34 @@ export const BulkActionsPanel: React.FC = () => {
           effectiveColDef.initialPinned ||
           effectiveColDef.initialHide
         );
-        
+
         return hasStyles;
       });
   }, [columnDefinitions, selectedColumns, pendingChanges]);
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="px-3 py-2.5 border-b border-border/50 bg-muted/5">
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">Quick Actions</span>
+      {/* Modern Header */}
+      <div className="px-4 py-3 border-b border-border/40 bg-gradient-to-r from-muted/15 to-muted/5 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded-md bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
+            <Zap className="h-4 w-4 text-primary" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">Quick Actions</span>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col p-3">
-        {/* Compact Quick Templates */}
-        <div className="mb-4">
-          <h3 className="text-xs font-medium mb-2 text-muted-foreground uppercase tracking-wide">Templates</h3>
-          <div className="grid grid-cols-2 gap-1.5">
+      <div className="flex-1 flex flex-col p-4">
+        {/* Modern Quick Templates */}
+        <div className="mb-5">
+          <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Templates</h3>
+          <div className="grid grid-cols-2 gap-2">
             {templates.map((template) => (
               <Button
                 key={template.id}
                 variant="outline"
                 size="sm"
-                className="justify-start gap-1.5 h-8 text-xs"
+                className="justify-start gap-2 h-9 text-xs rounded-lg border-border/60 bg-background/80 backdrop-blur-sm hover:bg-muted/50 transition-all duration-200"
                 onClick={() => applyTemplate(template.id)}
                 disabled={selectedColumns.size === 0}
               >
@@ -213,17 +215,17 @@ export const BulkActionsPanel: React.FC = () => {
               </Button>
             ))}
           </div>
-          
-          {/* Compact Quick Actions */}
-          <div className="mt-3">
-            <h4 className="text-xs font-medium mb-2 text-muted-foreground uppercase tracking-wide">Actions</h4>
-            <div className="grid grid-cols-1 gap-1.5">
+
+          {/* Modern Quick Actions */}
+          <div className="mt-4">
+            <h4 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Actions</h4>
+            <div className="grid grid-cols-1 gap-2">
               {quickActions.map((action) => (
                 <Button
                   key={action.id}
                   variant="outline"
                   size="sm"
-                  className="justify-start gap-1.5 h-8 text-xs"
+                  className="justify-start gap-2 h-9 text-xs rounded-lg border-border/60 bg-background/80 backdrop-blur-sm hover:bg-muted/50 transition-all duration-200"
                   onClick={action.action}
                   disabled={selectedColumns.size === 0}
                 >
@@ -235,45 +237,45 @@ export const BulkActionsPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Compact Bulk Apply Mode */}
-        <div className="mb-4">
-          <h3 className="text-xs font-medium mb-2 text-muted-foreground uppercase tracking-wide">Apply Mode</h3>
-          <RadioGroup 
-            value={applyMode} 
+        {/* Modern Bulk Apply Mode */}
+        <div className="mb-5">
+          <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Apply Mode</h3>
+          <RadioGroup
+            value={applyMode}
             onValueChange={(value: 'immediate' | 'onSave') => setApplyMode(value)}
-            className="space-y-2"
+            className="space-y-2.5"
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="immediate" id="immediate" className="h-3.5 w-3.5" />
-              <Label htmlFor="immediate" className="text-xs font-normal cursor-pointer">
+            <div className="flex items-center space-x-2.5">
+              <RadioGroupItem value="immediate" id="immediate" className="h-4 w-4 border-border/60" />
+              <Label htmlFor="immediate" className="text-xs font-medium cursor-pointer">
                 Immediate
               </Label>
             </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="onSave" id="onSave" className="h-3.5 w-3.5" />
-              <Label htmlFor="onSave" className="text-xs font-normal cursor-pointer">
+            <div className="flex items-center space-x-2.5">
+              <RadioGroupItem value="onSave" id="onSave" className="h-4 w-4 border-border/60" />
+              <Label htmlFor="onSave" className="text-xs font-medium cursor-pointer">
                 On Save
               </Label>
             </div>
           </RadioGroup>
         </div>
 
-        {/* Compact Copy Settings From */}
-        <div className="mb-4">
-          <h3 className="text-xs font-medium mb-2 text-muted-foreground uppercase tracking-wide">Copy From</h3>
-          <Select 
-            value={sourceColumnId} 
+        {/* Modern Copy Settings From */}
+        <div className="mb-5">
+          <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Copy From</h3>
+          <Select
+            value={sourceColumnId}
             onValueChange={setSourceColumnId}
             disabled={selectedColumns.size === 0 || availableSourceColumns.length === 0}
           >
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-9 text-xs rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
               <SelectValue placeholder={
-                availableSourceColumns.length === 0 
-                  ? "No styled columns" 
+                availableSourceColumns.length === 0
+                  ? "No styled columns"
                   : "Select styled column"
               } />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
               {availableSourceColumns.map(([colId, col]) => (
                 <SelectItem key={colId} value={colId} className="text-xs">
                   {col.headerName || col.field}
@@ -281,54 +283,54 @@ export const BulkActionsPanel: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full mt-2 gap-1.5 h-8 text-xs"
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-3 gap-2 h-9 text-xs rounded-lg border-border/60 bg-background/80 backdrop-blur-sm hover:bg-muted/50 transition-all duration-200"
             disabled={selectedColumns.size === 0 || !sourceColumnId || availableSourceColumns.length === 0}
             onClick={copySettingsFromColumn}
           >
-            <Copy className="h-3.5 w-3.5" />
+            <Copy className="h-4 w-4" />
             Apply to Selected
           </Button>
         </div>
 
-        {/* Compact Changes Preview */}
+        {/* Modern Changes Preview */}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Changes</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Changes</h3>
             {totalChanges > 0 && (
-              <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+              <Badge variant="secondary" className="text-xs px-2 py-1 font-medium rounded-md bg-secondary/80 border border-secondary/40">
                 {totalChanges}
               </Badge>
             )}
           </div>
-          
-          <ScrollArea className="flex-1 border rounded-md bg-muted/20">
-            <div className="p-2">
+
+          <ScrollArea className="flex-1 border border-border/40 rounded-lg bg-gradient-to-b from-muted/20 to-muted/10 backdrop-blur-sm">
+            <div className="p-3">
               {changesPreview.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-6">
+                <p className="text-xs text-muted-foreground text-center py-8">
                   No changes
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {changesPreview.map(({ colId, changes }) => {
                     const col = columnDefinitions.get(colId);
                     return (
-                      <div key={colId} className="text-xs">
-                        <div className="font-medium mb-1 text-foreground truncate">
+                      <div key={colId} className="text-xs bg-background/50 rounded-lg p-2.5 border border-border/30">
+                        <div className="font-semibold mb-2 text-foreground truncate">
                           {col?.headerName || col?.field || colId}
                         </div>
-                        <div className="space-y-0.5">
+                        <div className="space-y-1">
                           {changes.map(({ property, value }, idx) => (
-                            <div 
-                              key={`${property}-${idx}`} 
-                              className="ml-2 text-xs text-muted-foreground flex items-center gap-1"
+                            <div
+                              key={`${property}-${idx}`}
+                              className="ml-2 text-xs text-muted-foreground flex items-center gap-1.5"
                             >
                               <span className="text-primary text-xs">•</span>
-                              <span className="font-mono text-xs">{property}</span>
+                              <span className="font-mono text-xs font-medium">{property}</span>
                               <span className="text-xs">→</span>
-                              <span className="text-foreground truncate max-w-[80px] text-xs" title={JSON.stringify(value)}>
+                              <span className="text-foreground truncate max-w-[80px] text-xs font-medium" title={JSON.stringify(value)}>
                                 {typeof value === 'function' ? '[Fn]' : JSON.stringify(value)}
                               </span>
                             </div>
@@ -341,9 +343,9 @@ export const BulkActionsPanel: React.FC = () => {
               )}
             </div>
           </ScrollArea>
-          
+
           {selectedColumns.size > 0 && (
-            <div className="mt-2 text-xs text-muted-foreground text-center">
+            <div className="mt-3 text-xs text-muted-foreground text-center font-medium">
               {selectedColumns.size} column{selectedColumns.size !== 1 ? 's' : ''} selected
             </div>
           )}
