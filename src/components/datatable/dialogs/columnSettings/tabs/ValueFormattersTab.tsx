@@ -6,17 +6,44 @@ export const ValueFormattersTab: React.FC = () => {
   const { selectedColumns } = useColumnCustomizationStore();
   
   return (
-    <div className="p-6 space-y-6">
-      <PropertyGroup title="Value Formatters">
-        <div className="text-sm text-muted-foreground">
-          Value formatters configuration will be implemented here.
-          {selectedColumns.size > 0 && (
-            <div className="mt-2">
-              Selected columns: {selectedColumns.size}
+    <div className="p-4 space-y-4">
+      {/* Two-column layout for better space utilization */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-4">
+          <PropertyGroup title="Number Formatters">
+            <div className="text-xs text-muted-foreground">
+              Number formatting options will be implemented here.
+              {selectedColumns.size > 0 && (
+                <div className="mt-2">
+                  Selected columns: {selectedColumns.size}
+                </div>
+              )}
             </div>
-          )}
+          </PropertyGroup>
+          
+          <PropertyGroup title="Date Formatters">
+            <div className="text-xs text-muted-foreground">
+              Date formatting options will be implemented here.
+            </div>
+          </PropertyGroup>
         </div>
-      </PropertyGroup>
+
+        {/* Right Column */}
+        <div className="space-y-4">
+          <PropertyGroup title="Text Formatters">
+            <div className="text-xs text-muted-foreground">
+              Text formatting options will be implemented here.
+            </div>
+          </PropertyGroup>
+          
+          <PropertyGroup title="Custom Formatters">
+            <div className="text-xs text-muted-foreground">
+              Custom formatter functions will be implemented here.
+            </div>
+          </PropertyGroup>
+        </div>
+      </div>
     </div>
   );
 };

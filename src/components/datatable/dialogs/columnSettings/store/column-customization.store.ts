@@ -30,7 +30,7 @@ export interface DialogActions {
   // Column management
   setSelectedColumns: (columns: Set<string>) => void;
   setColumnDefinitions: (columns: Map<string, AgColDef>) => void;
-  updateBulkProperty: (property: string, value: any) => void;
+  updateBulkProperty: (property: string, value: unknown) => void;
   applyChanges: () => AgColDef[];
   resetChanges: () => void;
   

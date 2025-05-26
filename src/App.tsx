@@ -16,7 +16,7 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   const keys = Object.keys(data[0]);
 
   // Improved type inference: handle null/undefined, mixed types
-  const inferType = (values: any[]): string => {
+  const inferType = (values: unknown[]): string => {
     let hasNumber = false, hasDate = false, hasBoolean = false, hasString = false;
     for (const value of values) {
       if (value === null || value === undefined) continue;
@@ -37,12 +37,12 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   return keys.map(key => {
     const sampleValues = sampleData.map(row => row[key]);
     const inferredType = inferType(sampleValues);
-    let columnDataType: 'text' | 'number' | 'date' | 'boolean' = 'text';
+    let cellDataType: 'text' | 'number' | 'date' | 'boolean' = 'text';
     switch (inferredType) {
-      case 'number': columnDataType = 'number'; break;
-      case 'date': columnDataType = 'date'; break;
-      case 'boolean': columnDataType = 'boolean'; break;
-      default: columnDataType = 'text';
+      case 'number': cellDataType = 'number'; break;
+      case 'date': cellDataType = 'date'; break;
+      case 'boolean': cellDataType = 'boolean'; break;
+      default: cellDataType = 'text';
     }
     return {
       field: key,
@@ -50,7 +50,7 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, str => str.toUpperCase())
         .trim(),
-      columnDataType,
+      cellDataType,
     };
   });
 }
@@ -59,7 +59,8 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
 function App() {
   // Memoize data and columns for stable references (prevent unnecessary re-renders)
   const data = useMemo(() => generateFixedIncomeData(10000), []);
-  const columns = useMemo(() => inferColumnDefinitions(data), [data && data[0] ? Object.keys(data[0]).join(',') : '']);
+  
+  const columns = useMemo(() => inferColumnDefinitions(data), [data]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

@@ -134,7 +134,7 @@ function randomElement<T>(array: T[]): T {
 /**
  * Creates a single fixed income position with 320+ attributes
  */
-function createPosition(_index: number): FixedIncomePosition {
+function createPosition(): FixedIncomePosition {
   // Generate basic identifiers
   const positionId = `POS-${randomString(8)}`;
   const traderId = `TR${randomString(4)}`;
@@ -410,7 +410,7 @@ export function generateFixedIncomeData(rowCount: number = 100): FixedIncomePosi
   
   for (let i = 0; i < rowCount; i += batchSize) {
     const currentBatchSize = Math.min(batchSize, rowCount - i);
-    const batch = Array.from({ length: currentBatchSize }, (_, index) => createPosition(i + index));
+    const batch = Array.from({ length: currentBatchSize }, () => createPosition());
     result.push(...batch);
     
     // Log progress for large datasets

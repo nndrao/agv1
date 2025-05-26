@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ModuleRegistry, themeQuartz, GridApi, ColDef as AgColDef, GetContextMenuItemsParams } from 'ag-grid-community';
+import { ModuleRegistry, themeQuartz, GridApi, ColDef as AgColDef } from 'ag-grid-community';
 import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
 import { DataTableToolbar } from './data-table-toolbar';
@@ -13,7 +13,7 @@ export interface ColumnDef extends Omit<AgColDef, 'field' | 'headerName' | 'type
   field: string;
   headerName: string;
   type?: string | string[]; // For legacy/custom use, matching ag-grid's type
-  columnDataType?: 'text' | 'number' | 'date' | 'boolean'; // ag-Grid v33+ optimization
+  cellDataType?: 'text' | 'number' | 'date' | 'boolean'; // ag-Grid v33+ optimization
 }
 
 interface DataTableProps {
@@ -110,7 +110,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     sortable: true,
   }), []);
 
-  const getContextMenuItems = useCallback((_params: GetContextMenuItemsParams) => {
+  const getContextMenuItems = useCallback(() => {
     return [
       "autoSizeAll",
       "resetColumns",
@@ -135,8 +135,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     const convertedColumns: ColumnDef[] = updatedColumns.map(col => ({
       ...col,
       field: col.field || '',
-      headerName: col.headerName || col.field || '',
-      columnDataType: col.cellDataType as 'text' | 'number' | 'date' | 'boolean' | undefined
+      headerName: col.headerName || col.field || ''
     }));
     setCurrentColumnDefs(convertedColumns);
     if (gridApiRef.current) {
@@ -158,8 +157,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           rowData={dataRow}
           columnDefs={currentColumnDefs}
           defaultColDef={defaultColDef}
-          enableRangeSelection={true}
-          enableFillHandle={true}
+          cellSelection={true}
           suppressMenuHide={true}
           sideBar={{
             toolPanels: [
@@ -179,7 +177,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
               },
             ],
           }}
-          getContextMenuItems={getContextMenuItems as any}
+          getContextMenuItems={getContextMenuItems}
           onGridReady={(params) => {
             gridApiRef.current = params.api;
           }}
