@@ -17,6 +17,7 @@ export interface DialogState {
   showOnlyCommon: boolean;
   compareMode: boolean;
   searchTerm: string;
+  cellDataTypeFilter: string;
 
   // Panel states
   bulkActionsPanelCollapsed: boolean;
@@ -39,6 +40,7 @@ export interface DialogActions {
   setShowOnlyCommon: (show: boolean) => void;
   setCompareMode: (compare: boolean) => void;
   setSearchTerm: (term: string) => void;
+  setCellDataTypeFilter: (filter: string) => void;
 
   // Panel actions
   setBulkActionsPanelCollapsed: (collapsed: boolean) => void;
@@ -59,6 +61,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       showOnlyCommon: false,
       compareMode: false,
       searchTerm: '',
+      cellDataTypeFilter: 'all',
       bulkActionsPanelCollapsed: false,
 
       // Actions
@@ -106,6 +109,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       setShowOnlyCommon: (show) => set({ showOnlyCommon: show }),
       setCompareMode: (compare) => set({ compareMode: compare }),
       setSearchTerm: (term) => set({ searchTerm: term }),
+      setCellDataTypeFilter: (filter) => set({ cellDataTypeFilter: filter }),
       setBulkActionsPanelCollapsed: (collapsed) => set({ bulkActionsPanelCollapsed: collapsed }),
     }),
     {
@@ -116,6 +120,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         activeTab: state.activeTab,
         showOnlyCommon: state.showOnlyCommon,
         compareMode: state.compareMode,
+        cellDataTypeFilter: state.cellDataTypeFilter,
         bulkActionsPanelCollapsed: state.bulkActionsPanelCollapsed,
       }),
     }

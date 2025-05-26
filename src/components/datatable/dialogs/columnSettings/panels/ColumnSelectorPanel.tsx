@@ -3,7 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Search, Save, Columns3 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, Save, Columns3, Filter } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { COLUMN_ICONS } from '../types';
@@ -15,8 +16,10 @@ export const ColumnSelectorPanel: React.FC = () => {
     selectedColumns,
     columnDefinitions,
     searchTerm,
+    cellDataTypeFilter,
     setSelectedColumns,
-    setSearchTerm
+    setSearchTerm,
+    setCellDataTypeFilter
   } = useColumnCustomizationStore();
 
   const parentRef = useRef<HTMLDivElement>(null);
@@ -26,16 +29,37 @@ export const ColumnSelectorPanel: React.FC = () => {
     return Array.from(columnDefinitions.values());
   }, [columnDefinitions]);
 
-  // Filter columns based on search
-  const filteredColumns = useMemo(() => {
-    if (!searchTerm) return allColumns;
+  // Get available cellDataType options
+  const availableCellDataTypes = useMemo(() => {
+    const types = new Set<string>();
+    allColumns.forEach(col => {
+      if (col.cellDataType) {
+        types.add(col.cellDataType);
+      }
+    });
+    return Array.from(types).sort();
+  }, [allColumns]);
 
-    const term = searchTerm.toLowerCase();
-    return allColumns.filter(col =>
-      col.field?.toLowerCase().includes(term) ||
-      col.headerName?.toLowerCase().includes(term)
-    );
-  }, [allColumns, searchTerm]);
+  // Filter columns based on search and cellDataType
+  const filteredColumns = useMemo(() => {
+    let filtered = allColumns;
+
+    // Filter by search term
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(col =>
+        col.field?.toLowerCase().includes(term) ||
+        col.headerName?.toLowerCase().includes(term)
+      );
+    }
+
+    // Filter by cellDataType
+    if (cellDataTypeFilter && cellDataTypeFilter !== 'all') {
+      filtered = filtered.filter(col => col.cellDataType === cellDataTypeFilter);
+    }
+
+    return filtered;
+  }, [allColumns, searchTerm, cellDataTypeFilter]);
 
   // Prepare items for virtual scrolling (simple flat list)
   const flatItems = useMemo(() => {
@@ -109,7 +133,7 @@ export const ColumnSelectorPanel: React.FC = () => {
 
       <div className="flex-1 flex flex-col p-4">
         {/* Modern Search Bar */}
-        <div className="relative mb-4">
+        <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search columns..."
@@ -117,6 +141,30 @@ export const ColumnSelectorPanel: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm focus:border-primary/60 focus:ring-primary/20 transition-all duration-200"
           />
+        </div>
+
+        {/* CellDataType Filter */}
+        <div className="mb-4">
+          <Select
+            value={cellDataTypeFilter}
+            onValueChange={setCellDataTypeFilter}
+          >
+            <SelectTrigger className="h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Filter by data type" />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
+              <SelectItem value="all" className="text-sm">All Data Types</SelectItem>
+              {availableCellDataTypes.map(type => (
+                <SelectItem key={type} value={type} className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <span>{COLUMN_ICONS[type] || COLUMN_ICONS.default}</span>
+                    <span className="capitalize">{type}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Modern Selection Controls */}
@@ -133,7 +181,7 @@ export const ColumnSelectorPanel: React.FC = () => {
             className={`checkbox-enhanced h-4 w-4 rounded ${isIndeterminate ? 'data-[state=checked]:bg-primary/50' : ''}`}
           />
           <span className="text-xs font-medium text-foreground">
-            {searchTerm ? 'All Filtered' : 'All'}
+            {(searchTerm || cellDataTypeFilter !== 'all') ? 'All Filtered' : 'All'}
           </span>
           {filteredSelectedCount > 0 && (
             <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium rounded-md bg-secondary/80 border border-secondary/40">
