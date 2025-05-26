@@ -37,6 +37,7 @@ export interface DialogActions {
   setSelectedColumns: (columns: Set<string>) => void;
   setColumnDefinitions: (columns: Map<string, AgColDef>) => void;
   updateBulkProperty: (property: string, value: unknown) => void;
+  updateBulkProperties: (properties: Record<string, unknown>) => void;
   applyChanges: () => AgColDef[];
   resetChanges: () => void;
   setOnImmediateApply: (callback?: (columns: AgColDef[]) => void) => void;
@@ -121,6 +122,57 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         set({ pendingChanges: newPendingChanges });
 
         // Apply immediately if in immediate mode
+        if (applyMode === 'immediate' && onImmediateApply) {
+          const updatedColumns: AgColDef[] = [];
+          columnDefinitions.forEach((colDef, colId) => {
+            const changes = newPendingChanges.get(colId);
+            if (changes) {
+              updatedColumns.push({ ...colDef, ...changes });
+            } else {
+              updatedColumns.push(colDef);
+            }
+          });
+          onImmediateApply(updatedColumns);
+        }
+      },
+
+      updateBulkProperties: (properties) => {
+        const { selectedColumns, pendingChanges, applyMode, onImmediateApply, columnDefinitions } = get();
+        const newPendingChanges = new Map(pendingChanges);
+
+        selectedColumns.forEach(colId => {
+          const existing = newPendingChanges.get(colId) || {};
+          const updated = { ...existing };
+
+          Object.entries(properties).forEach(([property, value]) => {
+            if (value === undefined) {
+              delete updated[property as keyof AgColDef];
+            } else {
+              // Special handling for headerStyle to prevent floating filter contamination
+              if (property === 'headerStyle' && typeof value === 'object') {
+                const styleObject = value as React.CSSProperties;
+                updated[property as keyof AgColDef] = ((params: any) => {
+                  if (!params.floatingFilter) {
+                    return styleObject;
+                  }
+                  return null;
+                }) as any;
+              } else {
+                updated[property as keyof AgColDef] = value as any;
+              }
+            }
+          });
+
+          if (Object.keys(updated).length === 0) {
+            newPendingChanges.delete(colId);
+          } else {
+            newPendingChanges.set(colId, updated);
+          }
+        });
+
+        set({ pendingChanges: newPendingChanges });
+
+        // Apply immediately if in immediate mode - do it once for all properties
         if (applyMode === 'immediate' && onImmediateApply) {
           const updatedColumns: AgColDef[] = [];
           columnDefinitions.forEach((colDef, colId) => {

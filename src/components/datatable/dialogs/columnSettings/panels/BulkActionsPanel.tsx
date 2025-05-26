@@ -20,7 +20,8 @@ export const BulkActionsPanel: React.FC = () => {
     columnDefinitions,
     pendingChanges,
     templateColumns,
-    updateBulkProperty
+    updateBulkProperty,
+    updateBulkProperties
   } = useColumnCustomizationStore();
 
   const [sourceColumnId, setSourceColumnId] = useState<string>('');
@@ -74,10 +75,9 @@ export const BulkActionsPanel: React.FC = () => {
     const template = templates[templateId];
     if (!template) return;
 
-    Object.entries(template.config).forEach(([property, value]) => {
-      updateBulkProperty(property, value);
-    });
-  }, [updateBulkProperty]);
+    // Batch update all template properties at once
+    updateBulkProperties(template.config);
+  }, [updateBulkProperties]);
 
   // Clear all customizations
   const clearAllCustomizations = useCallback(() => {
@@ -87,10 +87,15 @@ export const BulkActionsPanel: React.FC = () => {
       'filter', 'aggFunc', 'wrapText', 'autoHeight'
     ];
     
+    // Build object with all properties set to undefined
+    const clearProperties: Record<string, undefined> = {};
     propertiesToClear.forEach(property => {
-      updateBulkProperty(property, undefined);
+      clearProperties[property] = undefined;
     });
-  }, [updateBulkProperty]);
+    
+    // Batch clear all properties at once
+    updateBulkProperties(clearProperties);
+  }, [updateBulkProperties]);
 
   // Copy from another column
   const copyFromColumn = useCallback(() => {
@@ -107,6 +112,9 @@ export const BulkActionsPanel: React.FC = () => {
       'wrapText', 'autoHeight'
     ];
 
+    // Build properties object for batch update
+    const propertiesToUpdate: Record<string, any> = {};
+    
     propertiesToCopy.forEach(property => {
       const value = sourceColumn[property as keyof ColDef];
       if (value !== undefined) {
@@ -115,17 +123,21 @@ export const BulkActionsPanel: React.FC = () => {
           // Extract the style from the function by calling it with a non-floating filter context
           const extractedStyle = value({ floatingFilter: false });
           if (extractedStyle && typeof extractedStyle === 'object') {
-            // Pass the extracted style object, which will be converted back to a function in the store
-            updateBulkProperty(property, extractedStyle);
+            propertiesToUpdate[property] = extractedStyle;
           }
         } else {
-          updateBulkProperty(property, value);
+          propertiesToUpdate[property] = value;
         }
       }
     });
 
+    // Batch update all properties at once
+    if (Object.keys(propertiesToUpdate).length > 0) {
+      updateBulkProperties(propertiesToUpdate);
+    }
+
     setSourceColumnId(''); // Clear selection after copying
-  }, [sourceColumnId, columnDefinitions, updateBulkProperty]);
+  }, [sourceColumnId, columnDefinitions, updateBulkProperties]);
 
   // Get template columns available for copying
   const templateColumnsList = useMemo(() => {
