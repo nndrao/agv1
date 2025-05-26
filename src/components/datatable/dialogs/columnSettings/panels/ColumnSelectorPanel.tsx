@@ -3,8 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, Save, Columns3, Filter } from 'lucide-react';
+import { Search, Save, Columns3 } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { COLUMN_ICONS } from '../types';
@@ -16,13 +15,10 @@ export const ColumnSelectorPanel: React.FC = () => {
     selectedColumns,
     columnDefinitions,
     searchTerm,
-    groupBy,
     setSelectedColumns,
-    setSearchTerm,
-    setGroupBy
+    setSearchTerm
   } = useColumnCustomizationStore();
 
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['All Columns']));
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Get all columns as array
@@ -41,53 +37,10 @@ export const ColumnSelectorPanel: React.FC = () => {
     );
   }, [allColumns, searchTerm]);
 
-  // Group columns and flatten for virtual scrolling
-  const { groupedColumns, flatItems } = useMemo(() => {
-    let groups;
-    if (groupBy === 'none') {
-      groups = [{ name: 'All Columns', columns: filteredColumns, icon: '📋' }];
-    } else {
-      // Group by type or dataType
-      const groupsMap = new Map<string, ColDef[]>();
-
-      filteredColumns.forEach(col => {
-        let groupKey = 'default';
-        if (groupBy === 'type' && col.type) {
-          groupKey = col.type as string;
-        } else if (groupBy === 'category' && col.cellDataType) {
-          groupKey = col.cellDataType as string;
-        }
-
-        if (!groupsMap.has(groupKey)) {
-          groupsMap.set(groupKey, []);
-        }
-        groupsMap.get(groupKey)!.push(col);
-      });
-
-      groups = Array.from(groupsMap.entries()).map(([key, cols]) => ({
-        name: key,
-        columns: cols,
-        icon: COLUMN_ICONS[key] || COLUMN_ICONS.default
-      }));
-    }
-
-    // Flatten items for virtual scrolling
-    const items: Array<{ type: 'group' | 'column'; group?: string; column?: ColDef; icon?: string }> = [];
-
-    groups.forEach(group => {
-      if (groupBy !== 'none') {
-        items.push({ type: 'group', group: group.name, icon: group.icon });
-      }
-
-      if (groupBy === 'none' || expandedGroups.has(group.name)) {
-        group.columns.forEach(column => {
-          items.push({ type: 'column', column, group: group.name });
-        });
-      }
-    });
-
-    return { groupedColumns: groups, flatItems: items };
-  }, [filteredColumns, groupBy, expandedGroups]);
+  // Prepare items for virtual scrolling (simple flat list)
+  const flatItems = useMemo(() => {
+    return filteredColumns.map(column => ({ type: 'column' as const, column }));
+  }, [filteredColumns]);
 
   // Virtual scrolling setup
   const virtualizer = useVirtualizer({
@@ -96,16 +49,6 @@ export const ColumnSelectorPanel: React.FC = () => {
     estimateSize: () => 40, // Estimated height per item
     overscan: 5
   });
-
-  const toggleGroup = (groupName: string) => {
-    const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(groupName)) {
-      newExpanded.delete(groupName);
-    } else {
-      newExpanded.add(groupName);
-    }
-    setExpandedGroups(newExpanded);
-  };
 
   const toggleColumnSelection = (columnId: string) => {
     const newSelected = new Set(selectedColumns);
@@ -177,43 +120,26 @@ export const ColumnSelectorPanel: React.FC = () => {
         </div>
 
         {/* Modern Selection Controls */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <Checkbox
-              checked={isAllSelected || isIndeterminate}
-              onCheckedChange={(checked) => {
-                if (checked && !isAllSelected) {
-                  selectAllFilteredColumns();
-                } else {
-                  deselectAllFilteredColumns();
-                }
-              }}
-              className={`checkbox-enhanced h-4 w-4 rounded ${isIndeterminate ? 'data-[state=checked]:bg-primary/50' : ''}`}
-            />
-            <span className="text-xs font-medium text-foreground">
-              {searchTerm ? 'All Filtered' : 'All'}
-            </span>
-            {filteredSelectedCount > 0 && (
-              <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium rounded-md bg-secondary/80 border border-secondary/40">
-                {filteredSelectedCount}/{filteredColumns.length}
-              </Badge>
-            )}
-          </div>
-
-          <Select
-            value={groupBy}
-            onValueChange={(value: 'none' | 'type' | 'category') => setGroupBy(value)}
-          >
-            <SelectTrigger className="w-[110px] h-8 text-xs rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
-              <Filter className="h-3.5 w-3.5 mr-1.5" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
-              <SelectItem value="none" className="text-xs">None</SelectItem>
-              <SelectItem value="type" className="text-xs">Type</SelectItem>
-              <SelectItem value="category" className="text-xs">Category</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-2.5 mb-4">
+          <Checkbox
+            checked={isAllSelected || isIndeterminate}
+            onCheckedChange={(checked) => {
+              if (checked && !isAllSelected) {
+                selectAllFilteredColumns();
+              } else {
+                deselectAllFilteredColumns();
+              }
+            }}
+            className={`checkbox-enhanced h-4 w-4 rounded ${isIndeterminate ? 'data-[state=checked]:bg-primary/50' : ''}`}
+          />
+          <span className="text-xs font-medium text-foreground">
+            {searchTerm ? 'All Filtered' : 'All'}
+          </span>
+          {filteredSelectedCount > 0 && (
+            <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium rounded-md bg-secondary/80 border border-secondary/40">
+              {filteredSelectedCount}/{filteredColumns.length}
+            </Badge>
+          )}
         </div>
 
         {/* Virtual Column List */}
@@ -245,31 +171,11 @@ export const ColumnSelectorPanel: React.FC = () => {
                       transform: `translateY(${virtualItem.start}px)`,
                     }}
                   >
-                    {item.type === 'group' ? (
-                      <button
-                        onClick={() => toggleGroup(item.group!)}
-                        className="flex items-center gap-2 w-full p-1.5 hover:bg-accent rounded-md transition-colors"
-                      >
-                        {expandedGroups.has(item.group!) ?
-                          <ChevronDown className="h-3.5 w-3.5" /> :
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        }
-                        <span className="text-xs font-medium flex-1 text-left">
-                          {item.icon} {item.group}
-                        </span>
-                        <Badge variant="outline" className="text-xs px-1 py-0">
-                          {groupedColumns.find(g => g.name === item.group)?.columns.length || 0}
-                        </Badge>
-                      </button>
-                    ) : (
-                      <div className={groupBy !== 'none' ? "ml-4" : ""}>
-                        <ColumnItem
-                          column={item.column!}
-                          selected={selectedColumns.has(item.column!.field || item.column!.colId || '')}
-                          onToggle={() => toggleColumnSelection(item.column!.field || item.column!.colId || '')}
-                        />
-                      </div>
-                    )}
+                    <ColumnItem
+                      column={item.column}
+                      selected={selectedColumns.has(item.column.field || item.column.colId || '')}
+                      onToggle={() => toggleColumnSelection(item.column.field || item.column.colId || '')}
+                    />
                   </div>
                 );
               })}

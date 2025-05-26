@@ -5,20 +5,19 @@ import { ColDef as AgColDef } from 'ag-grid-community';
 export interface DialogState {
   // Dialog state
   open: boolean;
-  
+
   // Column management
   selectedColumns: Set<string>;
   columnDefinitions: Map<string, AgColDef>;
   pendingChanges: Map<string, Partial<AgColDef>>;
-  
+
   // UI state
   activeTab: string;
   applyMode: 'immediate' | 'onSave';
-  groupBy: 'none' | 'type' | 'category';
   showOnlyCommon: boolean;
   compareMode: boolean;
   searchTerm: string;
-  
+
   // Panel states
   bulkActionsPanelCollapsed: boolean;
 }
@@ -26,22 +25,21 @@ export interface DialogState {
 export interface DialogActions {
   // Dialog actions
   setOpen: (open: boolean) => void;
-  
+
   // Column management
   setSelectedColumns: (columns: Set<string>) => void;
   setColumnDefinitions: (columns: Map<string, AgColDef>) => void;
   updateBulkProperty: (property: string, value: unknown) => void;
   applyChanges: () => AgColDef[];
   resetChanges: () => void;
-  
+
   // UI actions
   setActiveTab: (tab: string) => void;
   setApplyMode: (mode: 'immediate' | 'onSave') => void;
-  setGroupBy: (groupBy: 'none' | 'type' | 'category') => void;
   setShowOnlyCommon: (show: boolean) => void;
   setCompareMode: (compare: boolean) => void;
   setSearchTerm: (term: string) => void;
-  
+
   // Panel actions
   setBulkActionsPanelCollapsed: (collapsed: boolean) => void;
 }
@@ -58,7 +56,6 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       pendingChanges: new Map<string, Partial<AgColDef>>(),
       activeTab: 'general',
       applyMode: 'onSave',
-      groupBy: 'none',
       showOnlyCommon: false,
       compareMode: false,
       searchTerm: '',
@@ -66,27 +63,27 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
       // Actions
       setOpen: (open) => set({ open }),
-      
+
       setSelectedColumns: (columns) => set({ selectedColumns: columns }),
-      
+
       setColumnDefinitions: (columns) => set({ columnDefinitions: columns }),
-      
+
       updateBulkProperty: (property, value) => {
         const { selectedColumns, pendingChanges } = get();
         const newPendingChanges = new Map(pendingChanges);
-        
+
         selectedColumns.forEach(colId => {
           const existing = newPendingChanges.get(colId) || {};
           newPendingChanges.set(colId, { ...existing, [property]: value });
         });
-        
+
         set({ pendingChanges: newPendingChanges });
       },
-      
+
       applyChanges: () => {
         const { columnDefinitions, pendingChanges } = get();
         const updatedColumns: AgColDef[] = [];
-        
+
         columnDefinitions.forEach((colDef, colId) => {
           const changes = pendingChanges.get(colId);
           if (changes) {
@@ -95,18 +92,17 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
             updatedColumns.push(colDef);
           }
         });
-        
+
         // Clear pending changes after applying
         set({ pendingChanges: new Map() });
-        
+
         return updatedColumns;
       },
-      
+
       resetChanges: () => set({ pendingChanges: new Map() }),
-      
+
       setActiveTab: (tab) => set({ activeTab: tab }),
       setApplyMode: (mode) => set({ applyMode: mode }),
-      setGroupBy: (groupBy) => set({ groupBy }),
       setShowOnlyCommon: (show) => set({ showOnlyCommon: show }),
       setCompareMode: (compare) => set({ compareMode: compare }),
       setSearchTerm: (term) => set({ searchTerm: term }),
@@ -118,11 +114,10 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         // Only persist UI preferences, not data
         applyMode: state.applyMode,
         activeTab: state.activeTab,
-        groupBy: state.groupBy,
         showOnlyCommon: state.showOnlyCommon,
         compareMode: state.compareMode,
         bulkActionsPanelCollapsed: state.bulkActionsPanelCollapsed,
       }),
     }
   )
-); 
+);
