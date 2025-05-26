@@ -144,14 +144,14 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   };
 
   return (
-    <div className="h-full w-full flex flex-col box-border overflow-hidden">
-      <DataTableToolbar 
-        onFontChange={handleFontChange} 
+    <div className="h-full w-full flex flex-col overflow-hidden">
+      <DataTableToolbar
+        onFontChange={handleFontChange}
         onSpacingChange={() => {}} // Empty function to satisfy prop requirements
         onOpenColumnSettings={() => setShowColumnDialog(true)}
       />
-      
-      <div className="flex-1 overflow-hidden">
+
+      <div className="flex-1 min-h-0 overflow-hidden">
         <AgGridReact
           ref={gridRef}
           rowData={dataRow}
@@ -159,6 +159,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           defaultColDef={defaultColDef}
           cellSelection={true}
           suppressMenuHide={true}
+          suppressHorizontalScroll={false}
+          suppressVerticalScroll={false}
           sideBar={{
             toolPanels: [
               {
@@ -184,7 +186,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           theme={theme}
         />
       </div>
-      
+
       <ColumnCustomizationDialog
         open={showColumnDialog}
         onOpenChange={setShowColumnDialog}

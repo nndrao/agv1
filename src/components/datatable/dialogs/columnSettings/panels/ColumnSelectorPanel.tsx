@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Save, Columns3, Filter } from 'lucide-react';
+import { Search, Columns3, Filter } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { COLUMN_ICONS } from '../types';
@@ -231,11 +231,7 @@ export const ColumnSelectorPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Modern Save Selection Set */}
-        <Button variant="outline" className="mt-4 w-full gap-2 h-9 rounded-lg border-border/60 bg-background/80 backdrop-blur-sm hover:bg-muted/50 transition-all duration-200" size="sm">
-          <Save className="h-4 w-4" />
-          <span className="text-sm font-medium">Save Set</span>
-        </Button>
+
       </div>
     </div>
   );

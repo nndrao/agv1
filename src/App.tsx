@@ -59,14 +59,14 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
 function App() {
   // Memoize data and columns for stable references (prevent unnecessary re-renders)
   const data = useMemo(() => generateFixedIncomeData(10000), []);
-  
+
   const columns = useMemo(() => inferColumnDefinitions(data), [data]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+      <header className="flex-shrink-0 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Menu className="h-6 w-6" />
             <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
@@ -75,22 +75,20 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        <div className="container py-6">
-          <div className="rounded-lg border bg-card shadow-sm">
-            <div className="h-[calc(100vh-10rem)]">
-              {/* DataTable receives stable, memoized props */}
-              <DataTable columnDefs={columns} dataRow={data} />
-            </div>
+      {/* Main Content - Centered DataTable */}
+      <main className="flex-1 flex items-center justify-center p-6 min-h-0">
+        <div className="w-full h-full max-w-7xl mx-auto">
+          <div className="h-full rounded-lg border bg-card shadow-sm overflow-hidden">
+            {/* DataTable receives stable, memoized props */}
+            <DataTable columnDefs={columns} dataRow={data} />
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t">
-        <div className="container flex h-16 items-center justify-center">
-          <p className="text-sm text-muted-foreground">
+      <footer className="flex-shrink-0 border-t">
+        <div className="flex h-12 items-center justify-center px-6">
+          <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Your Company. All rights reserved.
           </p>
         </div>

@@ -25,63 +25,90 @@
   text-align: right !important;
 }
 
-/* Vertical Header Alignment - Only target actual column headers */
-.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-label {
-  align-items: flex-start !important;
+/* Vertical Header Alignment - Only target text, not icons */
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: flex-start !important;
 }
 
-.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-label {
-  align-items: center !important;
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: center !important;
 }
 
-.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-label {
-  align-items: flex-end !important;
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: flex-end !important;
 }
 
-/* Combined Header Alignment Classes */
+/* Combined Header Alignment Classes - Target text positioning within label */
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-label {
   justify-content: flex-start !important;
-  align-items: flex-start !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: flex-start !important;
 }
 
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-label {
   justify-content: center !important;
-  align-items: flex-start !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: flex-start !important;
 }
 
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-label {
   justify-content: flex-end !important;
-  align-items: flex-start !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: flex-start !important;
 }
 
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-label {
   justify-content: flex-start !important;
-  align-items: center !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: center !important;
 }
 
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-label {
   justify-content: center !important;
-  align-items: center !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: center !important;
 }
 
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-label {
   justify-content: flex-end !important;
-  align-items: center !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: center !important;
 }
 
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-label {
   justify-content: flex-start !important;
-  align-items: flex-end !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: flex-end !important;
 }
 
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-label {
   justify-content: center !important;
-  align-items: flex-end !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: flex-end !important;
 }
 
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-label {
   justify-content: flex-end !important;
-  align-items: flex-end !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  align-self: flex-end !important;
 }
 
 /* Explicitly exclude floating filter elements from any header styling */
@@ -195,25 +222,37 @@
 }
 
 /* Ensure proper flex structure for alignment to work - Only for actual column headers */
+/* Fix filter icon alignment - ensure icons are always centered vertically */
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) {
   display: flex !important;
+  align-items: center !important; /* Center the entire header cell content */
 }
 
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) .ag-header-cell-comp-wrapper {
   display: flex !important;
-  flex-direction: column !important;
-  height: 100% !important;
+  align-items: center !important; /* Center wrapper content */
   width: 100% !important;
 }
 
 .ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) .ag-header-cell-label {
   display: flex !important;
-  height: 100% !important;
+  align-items: center !important; /* Center label content including icons */
   width: 100% !important;
+}
+
+/* Ensure filter icons specifically are centered */
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) .ag-header-icon {
+  align-self: center !important;
+}
+
+/* Override any vertical alignment that might affect icons */
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-icon,
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-icon {
+  align-self: center !important; /* Force icons to center regardless of text alignment */
 }
 
 /* Cell structure remains the same */
 .ag-cell {
   display: flex !important;
   align-items: center !important;
-} 
+}
