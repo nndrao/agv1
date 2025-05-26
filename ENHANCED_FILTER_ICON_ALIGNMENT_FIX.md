@@ -82,18 +82,18 @@ Changed all vertical alignment rules to target only text:
 ### **Header Structure Setup**
 ```css
 /* Ensure proper flex structure at all levels */
-.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) {
+.ag-header-row.ag-header-cell{
   display: flex !important;
   align-items: center !important;
 }
 
-.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) .ag-header-cell-comp-wrapper {
+.ag-header-row.ag-header-cell.ag-header-cell-comp-wrapper {
   display: flex !important;
   align-items: center !important;
   width: 100% !important;
 }
 
-.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+.ag-header-row.ag-header-cell.ag-header-cell-label {
   display: flex !important;
   align-items: center !important;
   width: 100% !important;
@@ -103,13 +103,13 @@ Changed all vertical alignment rules to target only text:
 ### **Icon-Specific Centering**
 ```css
 /* Target icons specifically */
-.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) .ag-header-icon {
+.ag-header-row.ag-header-cell.ag-header-icon {
   align-self: center !important;
 }
 
 /* Override any alignment that might affect icons */
-.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-icon,
-.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-icon {
+.ag-header-row.ag-header-cell.header-valign-top.ag-header-icon,
+.ag-header-row.ag-header-cell.header-valign-bottom.ag-header-icon {
   align-self: center !important;
 }
 ```

@@ -85,8 +85,8 @@ The filter icons (hamburger menu icons) in the AG-Grid header were aligned to th
 
 ### **CSS Specificity**
 ```css
-.ag-header-row:not(.ag-header-row-floating-filter) 
-.ag-header-cell:not(.ag-floating-filter-full-body) 
+.ag-header-row
+.ag-header-cell
 .ag-header-cell-label
 ```
 

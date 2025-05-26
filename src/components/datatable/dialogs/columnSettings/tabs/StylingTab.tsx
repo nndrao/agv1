@@ -99,6 +99,15 @@ export const StylingTab: React.FC = () => {
   // Get current cell style (if consistent across selected columns)
   const currentCellStyle = getMixedValue('cellStyle');
   const currentHeaderStyle = getMixedValue('headerStyle');
+  
+  // Extract style object from headerStyle if it's a function
+  const getHeaderStyleObject = () => {
+    if (currentHeaderStyle.value && typeof currentHeaderStyle.value === 'function') {
+      // Call the function with non-floating filter context to get the style object
+      return currentHeaderStyle.value({ floatingFilter: false });
+    }
+    return currentHeaderStyle.value;
+  };
 
   // Handle header alignment changes using headerClass (separate from headerStyle)
   const handleHeaderAlignmentChange = (alignment: string, type: 'horizontal' | 'vertical') => {
@@ -389,7 +398,7 @@ export const StylingTab: React.FC = () => {
         open={showHeaderStyleEditor}
         onOpenChange={setShowHeaderStyleEditor}
         title="Header Style Editor"
-        initialStyle={currentHeaderStyle.isMixed ? {} : (currentHeaderStyle.value as React.CSSProperties || {})}
+        initialStyle={currentHeaderStyle.isMixed ? {} : (getHeaderStyleObject() as React.CSSProperties || {})}
         onSave={handleHeaderStyleSave}
         isHeaderStyle={true}
       />

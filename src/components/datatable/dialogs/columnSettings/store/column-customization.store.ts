@@ -80,6 +80,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         const { selectedColumns, pendingChanges, applyMode, onImmediateApply, columnDefinitions } = get();
         const newPendingChanges = new Map(pendingChanges);
 
+
         selectedColumns.forEach(colId => {
           const existing = newPendingChanges.get(colId) || {};
           if (value === undefined) {
@@ -92,6 +93,19 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
               newPendingChanges.set(colId, updatedExisting);
             }
           } else {
+            // Special handling for headerStyle to prevent floating filter contamination
+            if (property === 'headerStyle' && typeof value === 'object') {
+              // Convert static style object to a callback function that only applies to headers
+              const styleObject = value as React.CSSProperties;
+              value = (params: any) => {
+                // Only apply styles to the actual header, not floating filters
+                if (!params.floatingFilter) {
+                  return styleObject;
+                }
+                // Return null for floating filters to keep them unstyled
+                return null;
+              };
+            }
             newPendingChanges.set(colId, { ...existing, [property]: value });
           }
         });

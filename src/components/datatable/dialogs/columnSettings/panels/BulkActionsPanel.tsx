@@ -109,7 +109,17 @@ export const BulkActionsPanel: React.FC = () => {
     propertiesToCopy.forEach(property => {
       const value = sourceColumn[property as keyof ColDef];
       if (value !== undefined) {
-        updateBulkProperty(property, value);
+        // Special handling for headerStyle functions
+        if (property === 'headerStyle' && typeof value === 'function') {
+          // Extract the style from the function by calling it with a non-floating filter context
+          const extractedStyle = value({ floatingFilter: false });
+          if (extractedStyle && typeof extractedStyle === 'object') {
+            // Pass the extracted style object, which will be converted back to a function in the store
+            updateBulkProperty(property, extractedStyle);
+          }
+        } else {
+          updateBulkProperty(property, value);
+        }
       }
     });
 

@@ -63,15 +63,6 @@
   }
 }
 
-/* AG Grid Styles */
-.ag-theme-quartz,
-.ag-theme-quartz-dark {
-  --ag-font-family: inherit;
-  --ag-font-size: 14px;
-  --ag-grid-size: 6px;
-  --ag-list-item-height: 30px;
-  height: 100%;
-}
 
 /* Additional styles to match AG-Grid appearance */
 @layer components {
