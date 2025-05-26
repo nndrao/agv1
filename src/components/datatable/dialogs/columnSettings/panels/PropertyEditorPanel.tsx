@@ -2,7 +2,7 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { DialogState } from '../types';
+import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { GeneralTab } from '../tabs/GeneralTab';
 import { StylingTab } from '../tabs/StylingTab';
 import { ValueFormattersTab } from '../tabs/ValueFormattersTab';
@@ -10,20 +10,16 @@ import { FiltersTab } from '../tabs/FiltersTab';
 import { EditorsTab } from '../tabs/EditorsTab';
 import { AdvancedTab } from '../tabs/AdvancedTab';
 
-interface PropertyEditorPanelProps {
-  state: DialogState;
-  updateBulkProperty: (property: string, value: unknown) => void;
-  setState: React.Dispatch<React.SetStateAction<DialogState>>;
-}
+export const PropertyEditorPanel: React.FC = () => {
+  const {
+    selectedColumns,
+    activeTab,
+    setActiveTab
+  } = useColumnCustomizationStore();
 
-export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({ 
-  state, 
-  updateBulkProperty,
-  setState
-}) => {
-  const selectedCount = state.selectedColumns.size;
-  const selectedColumnNames = Array.from(state.selectedColumns).slice(0, 3).join(', ');
-  const hasMoreColumns = state.selectedColumns.size > 3;
+  const selectedCount = selectedColumns.size;
+  const selectedColumnNames = Array.from(selectedColumns).slice(0, 3).join(', ');
+  const hasMoreColumns = selectedColumns.size > 3;
 
   return (
     <div className="h-full flex flex-col">
@@ -32,7 +28,7 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({
         <h3 className="font-medium text-sm text-muted-foreground">
           {selectedCount === 0 ? 'No columns selected' : 
            selectedCount === 1 ? `Selected: ${selectedColumnNames}` : 
-           `Selected: ${selectedColumnNames}${hasMoreColumns ? ` +${state.selectedColumns.size - 3} more` : ''}`}
+           `Selected: ${selectedColumnNames}${hasMoreColumns ? ` +${selectedColumns.size - 3} more` : ''}`}
         </h3>
       </div>
 
@@ -48,8 +44,8 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({
 
       {/* Property Tabs */}
       <Tabs 
-        value={state.activeTab} 
-        onValueChange={(value) => setState(prev => ({ ...prev, activeTab: value }))} 
+        value={activeTab} 
+        onValueChange={setActiveTab} 
         className="flex-1 flex flex-col overflow-hidden"
       >
         <TabsList className="mx-6 mt-4 mb-4 grid w-fit grid-cols-6 shrink-0">
@@ -63,40 +59,22 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({
 
         <div className="flex-1 overflow-auto">
           <TabsContent value="general" className="h-full mt-0">
-            <GeneralTab 
-              state={state} 
-              updateBulkProperty={updateBulkProperty}
-            />
+            <GeneralTab />
           </TabsContent>
           <TabsContent value="styling" className="h-full mt-0">
-            <StylingTab 
-              state={state} 
-              updateBulkProperty={updateBulkProperty}
-            />
+            <StylingTab />
           </TabsContent>
           <TabsContent value="formatters" className="h-full mt-0">
-            <ValueFormattersTab 
-              state={state} 
-              updateBulkProperty={updateBulkProperty}
-            />
+            <ValueFormattersTab />
           </TabsContent>
           <TabsContent value="filters" className="h-full mt-0">
-            <FiltersTab 
-              state={state} 
-              updateBulkProperty={updateBulkProperty}
-            />
+            <FiltersTab />
           </TabsContent>
           <TabsContent value="editors" className="h-full mt-0">
-            <EditorsTab 
-              state={state} 
-              updateBulkProperty={updateBulkProperty}
-            />
+            <EditorsTab />
           </TabsContent>
           <TabsContent value="advanced" className="h-full mt-0">
-            <AdvancedTab 
-              state={state} 
-              updateBulkProperty={updateBulkProperty}
-            />
+            <AdvancedTab />
           </TabsContent>
         </div>
       </Tabs>

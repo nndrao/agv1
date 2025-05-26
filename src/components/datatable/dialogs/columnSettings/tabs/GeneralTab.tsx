@@ -2,36 +2,45 @@ import React, { useMemo, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { DialogState } from '../types';
+import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { PropertyGroup } from '../components/PropertyGroup';
 import { MixedValueInput } from '../components/MixedValueInput';
 import { NumericInput } from '../components/NumericInput';
 import { ThreeStateCheckbox } from '../components/ThreeStateCheckbox';
 
-interface GeneralTabProps {
-  state: DialogState;
-  updateBulkProperty: (property: string, value: unknown) => void;
-}
+export const GeneralTab: React.FC = () => {
+  const {
+    selectedColumns,
+    columnDefinitions,
+    pendingChanges,
+    updateBulkProperty
+  } = useColumnCustomizationStore();
 
-export const GeneralTab: React.FC<GeneralTabProps> = ({ state, updateBulkProperty }) => {
   // Memoized function to get mixed values for properties
   const getMixedValue = useCallback((property: string) => {
     const values = new Set();
     const allValues: unknown[] = [];
     
-    state.selectedColumns.forEach(colId => {
-      const colDef = state.columnDefinitions.get(colId);
-      if (colDef) {
-        const value = colDef[property as keyof typeof colDef];
-        values.add(value);
-        allValues.push(value);
+    selectedColumns.forEach(colId => {
+      const colDef = columnDefinitions.get(colId);
+      const pendingChange = pendingChanges.get(colId);
+      
+      // Check pending changes first, then fall back to column definition
+      let value;
+      if (pendingChange && property in pendingChange) {
+        value = pendingChange[property as keyof typeof pendingChange];
+      } else if (colDef) {
+        value = colDef[property as keyof typeof colDef];
       }
+      
+      values.add(value);
+      allValues.push(value);
     });
     
     if (values.size === 0) return { value: undefined, isMixed: false };
     if (values.size === 1) return { value: Array.from(values)[0], isMixed: false };
     return { value: undefined, isMixed: true, values: allValues };
-  }, [state.selectedColumns, state.columnDefinitions]);
+  }, [selectedColumns, columnDefinitions, pendingChanges]);
 
   // Pre-compute mixed values for all properties to avoid recalculation
   const mixedValues = useMemo(() => {
@@ -45,7 +54,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ state, updateBulkPropert
     return values;
   }, [getMixedValue]);
 
-  const isDisabled = state.selectedColumns.size === 0;
+  const isDisabled = selectedColumns.size === 0;
 
   return (
     <div className="p-6 space-y-6">

@@ -5,6 +5,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { DataTableToolbar } from './data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
+import './alignment-styles.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 

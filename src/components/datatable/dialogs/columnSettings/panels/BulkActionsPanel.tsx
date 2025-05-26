@@ -1,11 +1,11 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { DialogState } from '../types';
+import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { ColDef } from 'ag-grid-community';
 import { 
   BarChart3, 
@@ -15,12 +15,25 @@ import {
   Copy
 } from 'lucide-react';
 
-interface BulkActionsPanelProps {
-  state: DialogState;
-  setState: React.Dispatch<React.SetStateAction<DialogState>>;
-}
+export const BulkActionsPanel: React.FC = () => {
+  const {
+    selectedColumns,
+    columnDefinitions,
+    pendingChanges,
+    applyMode,
+    setApplyMode,
+    updateBulkProperty
+  } = useColumnCustomizationStore();
 
-export const BulkActionsPanel: React.FC<BulkActionsPanelProps> = ({ state, setState }) => {
+  const [sourceColumnId, setSourceColumnId] = useState<string>('');
+
+  // Reset source column if it becomes selected or invalid
+  useEffect(() => {
+    if (sourceColumnId && (selectedColumns.has(sourceColumnId) || !columnDefinitions.has(sourceColumnId))) {
+      setSourceColumnId('');
+    }
+  }, [selectedColumns, sourceColumnId, columnDefinitions]);
+
   // Quick templates
   const templates = [
     { id: 'numeric', label: 'Numeric', icon: <BarChart3 className="h-4 w-4" />, color: 'blue' },
@@ -73,32 +86,57 @@ export const BulkActionsPanel: React.FC<BulkActionsPanelProps> = ({ state, setSt
   const applyTemplate = useCallback((templateId: string) => {
     const config = templateConfigs[templateId];
     if (config) {
-      setState(prev => {
-        const newPendingChanges = new Map(prev.pendingChanges);
-        prev.selectedColumns.forEach(colId => {
-          const existingChanges = newPendingChanges.get(colId) || {};
-          newPendingChanges.set(colId, { ...existingChanges, ...config });
-        });
-        
-        return { ...prev, pendingChanges: newPendingChanges };
+      Object.entries(config).forEach(([property, value]) => {
+        updateBulkProperty(property, value);
       });
     }
-  }, [templateConfigs, setState]);
+  }, [templateConfigs, updateBulkProperty]);
+
+  // Copy settings from source column to selected columns
+  const copySettingsFromColumn = useCallback(() => {
+    if (!sourceColumnId) return;
+    
+    const sourceColumn = columnDefinitions.get(sourceColumnId);
+    if (!sourceColumn) return;
+
+    // Properties to copy (excluding field and headerName which should be unique)
+    const propertiesToCopy = [
+      'type', 'cellDataType', 'sortable', 'resizable', 'editable', 'filter',
+      'initialWidth', 'minWidth', 'maxWidth', 'initialHide', 'initialPinned',
+      'cellStyle', 'headerStyle', 'cellClass', 'headerClass',
+      'wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight',
+      'valueFormatter', 'valueParser', 'cellRenderer', 'cellEditor',
+      'aggFunc', 'enableValue', 'enableRowGroup', 'enablePivot'
+    ];
+
+    propertiesToCopy.forEach(property => {
+      const value = sourceColumn[property as keyof typeof sourceColumn];
+      if (value !== undefined) {
+        updateBulkProperty(property, value);
+      }
+    });
+  }, [sourceColumnId, columnDefinitions, updateBulkProperty]);
 
   // Calculate changes preview - memoized to prevent recalculation
   const changesPreview = useMemo(() => {
-    return Array.from(state.pendingChanges.entries()).map(([colId, changes]) => ({
+    return Array.from(pendingChanges.entries()).map(([colId, changes]) => ({
       colId,
       changes: Object.entries(changes).map(([key, value]) => ({
         property: key,
         value: value
       }))
     }));
-  }, [state.pendingChanges]);
+  }, [pendingChanges]);
 
   const totalChanges = useMemo(() => {
     return changesPreview.reduce((acc, item) => acc + item.changes.length, 0);
   }, [changesPreview]);
+
+  // Available columns to copy from (excluding selected ones)
+  const availableSourceColumns = useMemo(() => {
+    return Array.from(columnDefinitions.entries())
+      .filter(([colId]) => !selectedColumns.has(colId));
+  }, [columnDefinitions, selectedColumns]);
 
   return (
     <div className="h-full flex flex-col p-4">
@@ -113,7 +151,7 @@ export const BulkActionsPanel: React.FC<BulkActionsPanelProps> = ({ state, setSt
               size="sm"
               className="justify-start gap-2 h-9"
               onClick={() => applyTemplate(template.id)}
-              disabled={state.selectedColumns.size === 0}
+              disabled={selectedColumns.size === 0}
             >
               {template.icon}
               {template.label}
@@ -126,31 +164,22 @@ export const BulkActionsPanel: React.FC<BulkActionsPanelProps> = ({ state, setSt
       <div className="mb-6">
         <h3 className="text-sm font-medium mb-3">Bulk Apply Mode</h3>
         <RadioGroup 
-          value={state.applyMode} 
-          onValueChange={(value: 'override' | 'merge' | 'empty') => 
-            setState(prev => ({ ...prev, applyMode: value }))
-          }
+          value={applyMode} 
+          onValueChange={(value: 'immediate' | 'onSave') => setApplyMode(value)}
         >
           <div className="space-y-3">
             <div className="flex items-start space-x-2">
-              <RadioGroupItem value="override" id="override" className="mt-1" />
-              <Label htmlFor="override" className="text-sm font-normal cursor-pointer">
-                <div>Override All</div>
-                <div className="text-xs text-muted-foreground">Replace all values</div>
+              <RadioGroupItem value="immediate" id="immediate" className="mt-1" />
+              <Label htmlFor="immediate" className="text-sm font-normal cursor-pointer">
+                <div>Apply Immediately</div>
+                <div className="text-xs text-muted-foreground">Changes apply instantly</div>
               </Label>
             </div>
             <div className="flex items-start space-x-2">
-              <RadioGroupItem value="merge" id="merge" className="mt-1" />
-              <Label htmlFor="merge" className="text-sm font-normal cursor-pointer">
-                <div>Merge Changes</div>
-                <div className="text-xs text-muted-foreground">Only update modified properties</div>
-              </Label>
-            </div>
-            <div className="flex items-start space-x-2">
-              <RadioGroupItem value="empty" id="empty" className="mt-1" />
-              <Label htmlFor="empty" className="text-sm font-normal cursor-pointer">
-                <div>Only Empty</div>
-                <div className="text-xs text-muted-foreground">Only set undefined properties</div>
+              <RadioGroupItem value="onSave" id="onSave" className="mt-1" />
+              <Label htmlFor="onSave" className="text-sm font-normal cursor-pointer">
+                <div>Apply on Save</div>
+                <div className="text-xs text-muted-foreground">Changes apply when dialog is saved</div>
               </Label>
             </div>
           </div>
@@ -160,12 +189,23 @@ export const BulkActionsPanel: React.FC<BulkActionsPanelProps> = ({ state, setSt
       {/* Copy Settings From */}
       <div className="mb-6">
         <h3 className="text-sm font-medium mb-3">Copy Settings From</h3>
-        <Select disabled={state.selectedColumns.size === 0}>
+        <p className="text-xs text-muted-foreground mb-2">
+          Copy all properties from another column to the selected columns
+        </p>
+        <Select 
+          value={sourceColumnId} 
+          onValueChange={setSourceColumnId}
+          disabled={selectedColumns.size === 0 || availableSourceColumns.length === 0}
+        >
           <SelectTrigger className="h-9">
-            <SelectValue placeholder="Select a column" />
+            <SelectValue placeholder={
+              availableSourceColumns.length === 0 
+                ? "No columns available" 
+                : "Select a column"
+            } />
           </SelectTrigger>
           <SelectContent>
-            {Array.from(state.columnDefinitions.entries()).map(([colId, col]) => (
+            {availableSourceColumns.map(([colId, col]) => (
               <SelectItem key={colId} value={colId}>
                 {col.headerName || col.field}
               </SelectItem>
@@ -176,7 +216,8 @@ export const BulkActionsPanel: React.FC<BulkActionsPanelProps> = ({ state, setSt
           variant="outline" 
           size="sm" 
           className="w-full mt-2 gap-2"
-          disabled={state.selectedColumns.size === 0}
+          disabled={selectedColumns.size === 0 || !sourceColumnId || availableSourceColumns.length === 0}
+          onClick={copySettingsFromColumn}
         >
           <Copy className="h-4 w-4" />
           Apply to Selected
@@ -203,7 +244,7 @@ export const BulkActionsPanel: React.FC<BulkActionsPanelProps> = ({ state, setSt
             ) : (
               <div className="space-y-3">
                 {changesPreview.map(({ colId, changes }) => {
-                  const col = state.columnDefinitions.get(colId);
+                  const col = columnDefinitions.get(colId);
                   return (
                     <div key={colId} className="text-sm">
                       <div className="font-medium mb-1 text-foreground">
@@ -232,9 +273,9 @@ export const BulkActionsPanel: React.FC<BulkActionsPanelProps> = ({ state, setSt
           </div>
         </ScrollArea>
         
-        {state.selectedColumns.size > 0 && (
+        {selectedColumns.size > 0 && (
           <div className="mt-3 text-sm text-muted-foreground text-center">
-            {state.selectedColumns.size} column{state.selectedColumns.size !== 1 ? 's' : ''} affected
+            {selectedColumns.size} column{selectedColumns.size !== 1 ? 's' : ''} affected
           </div>
         )}
       </div>

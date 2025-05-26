@@ -5,38 +5,44 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, ChevronDown, ChevronRight, Save } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
-import { DialogState, COLUMN_ICONS } from '../types';
+import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { COLUMN_ICONS } from '../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
-interface ColumnSelectorPanelProps {
-  state: DialogState;
-  setState: React.Dispatch<React.SetStateAction<DialogState>>;
-}
+export const ColumnSelectorPanel: React.FC = () => {
+  const {
+    selectedColumns,
+    columnDefinitions,
+    searchTerm,
+    groupBy,
+    setSelectedColumns,
+    setSearchTerm,
+    setGroupBy
+  } = useColumnCustomizationStore();
 
-export const ColumnSelectorPanel: React.FC<ColumnSelectorPanelProps> = ({ state, setState }) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['All Columns']));
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Get all columns as array
   const allColumns = useMemo(() => {
-    return Array.from(state.columnDefinitions.values());
-  }, [state.columnDefinitions]);
+    return Array.from(columnDefinitions.values());
+  }, [columnDefinitions]);
 
   // Filter columns based on search
   const filteredColumns = useMemo(() => {
-    if (!state.searchTerm) return allColumns;
+    if (!searchTerm) return allColumns;
     
-    const term = state.searchTerm.toLowerCase();
+    const term = searchTerm.toLowerCase();
     return allColumns.filter(col => 
       col.field?.toLowerCase().includes(term) ||
       col.headerName?.toLowerCase().includes(term)
     );
-  }, [allColumns, state.searchTerm]);
+  }, [allColumns, searchTerm]);
 
   // Group columns and flatten for virtual scrolling
   const { groupedColumns, flatItems } = useMemo(() => {
     let groups;
-    if (state.groupBy === 'none') {
+    if (groupBy === 'none') {
       groups = [{ name: 'All Columns', columns: filteredColumns, icon: '📋' }];
     } else {
       // Group by type or dataType
@@ -44,9 +50,9 @@ export const ColumnSelectorPanel: React.FC<ColumnSelectorPanelProps> = ({ state,
       
       filteredColumns.forEach(col => {
         let groupKey = 'default';
-        if (state.groupBy === 'type' && col.type) {
+        if (groupBy === 'type' && col.type) {
           groupKey = col.type as string;
-        } else if (state.groupBy === 'dataType' && col.cellDataType) {
+        } else if (groupBy === 'category' && col.cellDataType) {
           groupKey = col.cellDataType as string;
         }
         
@@ -67,11 +73,11 @@ export const ColumnSelectorPanel: React.FC<ColumnSelectorPanelProps> = ({ state,
     const items: Array<{ type: 'group' | 'column'; group?: string; column?: ColDef; icon?: string }> = [];
     
     groups.forEach(group => {
-      if (state.groupBy !== 'none') {
+      if (groupBy !== 'none') {
         items.push({ type: 'group', group: group.name, icon: group.icon });
       }
       
-      if (state.groupBy === 'none' || expandedGroups.has(group.name)) {
+      if (groupBy === 'none' || expandedGroups.has(group.name)) {
         group.columns.forEach(column => {
           items.push({ type: 'column', column, group: group.name });
         });
@@ -79,7 +85,7 @@ export const ColumnSelectorPanel: React.FC<ColumnSelectorPanelProps> = ({ state,
     });
 
     return { groupedColumns: groups, flatItems: items };
-  }, [filteredColumns, state.groupBy, expandedGroups]);
+  }, [filteredColumns, groupBy, expandedGroups]);
 
   // Virtual scrolling setup
   const virtualizer = useVirtualizer({
@@ -100,34 +106,26 @@ export const ColumnSelectorPanel: React.FC<ColumnSelectorPanelProps> = ({ state,
   };
 
   const toggleColumnSelection = (columnId: string) => {
-    setState(prev => {
-      const newSelected = new Set(prev.selectedColumns);
-      if (newSelected.has(columnId)) {
-        newSelected.delete(columnId);
-      } else {
-        newSelected.add(columnId);
-      }
-      return { ...prev, selectedColumns: newSelected };
-    });
+    const newSelected = new Set(selectedColumns);
+    if (newSelected.has(columnId)) {
+      newSelected.delete(columnId);
+    } else {
+      newSelected.add(columnId);
+    }
+    setSelectedColumns(newSelected);
   };
 
   const selectAllColumns = () => {
-    setState(prev => ({
-      ...prev,
-      selectedColumns: new Set(filteredColumns.map(col => col.field || col.colId || ''))
-    }));
+    setSelectedColumns(new Set(filteredColumns.map(col => col.field || col.colId || '')));
   };
 
   const deselectAllColumns = () => {
-    setState(prev => ({
-      ...prev,
-      selectedColumns: new Set()
-    }));
+    setSelectedColumns(new Set());
   };
 
   const isAllSelected = filteredColumns.length > 0 && 
-    filteredColumns.every(col => state.selectedColumns.has(col.field || col.colId || ''));
-  const isIndeterminate = filteredColumns.some(col => state.selectedColumns.has(col.field || col.colId || '')) && 
+    filteredColumns.every(col => selectedColumns.has(col.field || col.colId || ''));
+  const isIndeterminate = filteredColumns.some(col => selectedColumns.has(col.field || col.colId || '')) && 
     !isAllSelected;
 
   return (
@@ -137,8 +135,8 @@ export const ColumnSelectorPanel: React.FC<ColumnSelectorPanelProps> = ({ state,
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
           placeholder="Search columns..."
-          value={state.searchTerm}
-          onChange={(e) => setState(prev => ({ ...prev, searchTerm: e.target.value }))}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10 h-9"
         />
       </div>
@@ -161,10 +159,8 @@ export const ColumnSelectorPanel: React.FC<ColumnSelectorPanelProps> = ({ state,
         </div>
         
         <Select 
-          value={state.groupBy} 
-          onValueChange={(value: 'none' | 'type' | 'dataType') => 
-            setState(prev => ({ ...prev, groupBy: value }))
-          }
+          value={groupBy} 
+          onValueChange={(value: 'none' | 'type' | 'category') => setGroupBy(value)}
         >
           <SelectTrigger className="w-[140px] h-8">
             <SelectValue />
@@ -172,7 +168,7 @@ export const ColumnSelectorPanel: React.FC<ColumnSelectorPanelProps> = ({ state,
           <SelectContent>
             <SelectItem value="none">No Grouping</SelectItem>
             <SelectItem value="type">Group by Type</SelectItem>
-            <SelectItem value="dataType">Group by Data Type</SelectItem>
+            <SelectItem value="category">Group by Category</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -220,10 +216,10 @@ export const ColumnSelectorPanel: React.FC<ColumnSelectorPanelProps> = ({ state,
                       </span>
                     </button>
                   ) : (
-                    <div className={state.groupBy !== 'none' ? "ml-6" : ""}>
+                    <div className={groupBy !== 'none' ? "ml-6" : ""}>
                       <ColumnItem
                         column={item.column!}
-                        selected={state.selectedColumns.has(item.column!.field || item.column!.colId || '')}
+                        selected={selectedColumns.has(item.column!.field || item.column!.colId || '')}
                         onToggle={() => toggleColumnSelection(item.column!.field || item.column!.colId || '')}
                       />
                     </div>

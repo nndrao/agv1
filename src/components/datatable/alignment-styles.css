@@ -1,0 +1,219 @@
+/* Header Alignment Classes - Only for text alignment using headerClass */
+
+/* Horizontal Header Alignment - Only target actual column headers, never floating filters */
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: flex-start !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  text-align: left !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: center !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  text-align: center !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: flex-end !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right:not(.ag-floating-filter-full-body) .ag-header-cell-text {
+  text-align: right !important;
+}
+
+/* Vertical Header Alignment - Only target actual column headers */
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  align-items: flex-start !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  align-items: center !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  align-items: flex-end !important;
+}
+
+/* Combined Header Alignment Classes */
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: center !important;
+  align-items: flex-start !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right.header-valign-top:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: flex-end !important;
+  align-items: flex-start !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: flex-start !important;
+  align-items: center !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right.header-valign-middle:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-left.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: flex-start !important;
+  align-items: flex-end !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-center.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: center !important;
+  align-items: flex-end !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell.header-align-right.header-valign-bottom:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  justify-content: flex-end !important;
+  align-items: flex-end !important;
+}
+
+/* Explicitly exclude floating filter elements from any header styling */
+.ag-floating-filter,
+.ag-floating-filter-full-body,
+.ag-floating-filter-body,
+.ag-header-row-floating-filter,
+.ag-header-row-floating-filter .ag-header-cell {
+  /* Reset any inherited alignment styles */
+  text-align: initial !important;
+  justify-content: initial !important;
+  align-items: initial !important;
+}
+
+/* Cell Alignment Classes using cellClass */
+
+/* Horizontal Cell Alignment */
+.cell-align-left {
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+.cell-align-center {
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+.cell-align-right {
+  text-align: right !important;
+  justify-content: flex-end !important;
+}
+
+/* Vertical Cell Alignment */
+.cell-valign-top {
+  vertical-align: top !important;
+  align-items: flex-start !important;
+}
+
+.cell-valign-middle {
+  vertical-align: middle !important;
+  align-items: center !important;
+}
+
+.cell-valign-bottom {
+  vertical-align: bottom !important;
+  align-items: flex-end !important;
+}
+
+/* Combined Cell Alignment Classes */
+.cell-align-left.cell-valign-top {
+  text-align: left !important;
+  vertical-align: top !important;
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+}
+
+.cell-align-center.cell-valign-top {
+  text-align: center !important;
+  vertical-align: top !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+}
+
+.cell-align-right.cell-valign-top {
+  text-align: right !important;
+  vertical-align: top !important;
+  justify-content: flex-end !important;
+  align-items: flex-start !important;
+}
+
+.cell-align-left.cell-valign-middle {
+  text-align: left !important;
+  vertical-align: middle !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+}
+
+.cell-align-center.cell-valign-middle {
+  text-align: center !important;
+  vertical-align: middle !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.cell-align-right.cell-valign-middle {
+  text-align: right !important;
+  vertical-align: middle !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.cell-align-left.cell-valign-bottom {
+  text-align: left !important;
+  vertical-align: bottom !important;
+  justify-content: flex-start !important;
+  align-items: flex-end !important;
+}
+
+.cell-align-center.cell-valign-bottom {
+  text-align: center !important;
+  vertical-align: bottom !important;
+  justify-content: center !important;
+  align-items: flex-end !important;
+}
+
+.cell-align-right.cell-valign-bottom {
+  text-align: right !important;
+  vertical-align: bottom !important;
+  justify-content: flex-end !important;
+  align-items: flex-end !important;
+}
+
+/* Ensure proper flex structure for alignment to work - Only for actual column headers */
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) {
+  display: flex !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) .ag-header-cell-comp-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.ag-header-row:not(.ag-header-row-floating-filter) .ag-header-cell:not(.ag-floating-filter-full-body) .ag-header-cell-label {
+  display: flex !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Cell structure remains the same */
+.ag-cell {
+  display: flex !important;
+  align-items: center !important;
+} 
