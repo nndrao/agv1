@@ -9,7 +9,7 @@
 
 /* Enhanced dialog content with modern shadows */
 .column-dialog-content {
-  box-shadow: 
+  box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.25),
     0 0 0 1px rgba(255, 255, 255, 0.05);
   border-radius: 12px;
@@ -107,13 +107,52 @@
   border-radius: 6px;
 }
 
-/* Improved checkbox styling */
+/* Improved checkbox styling for better visibility */
 .modern-checkbox {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid hsl(var(--border));
+  background: hsl(var(--background));
 }
 
 .modern-checkbox:checked {
   transform: scale(1.05);
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+
+.modern-checkbox:hover {
+  border-color: hsl(var(--border) / 0.8);
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.1);
+}
+
+/* Enhanced checkbox visibility for unchecked state */
+.checkbox-enhanced {
+  border: 2px solid hsl(var(--border)) !important;
+  background: hsl(var(--background) / 0.9) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.checkbox-enhanced:hover {
+  border-color: hsl(var(--border) / 0.8) !important;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.checkbox-enhanced[data-state="checked"] {
+  background: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode checkbox enhancements */
+.dark .checkbox-enhanced {
+  border: 2px solid hsl(var(--border)) !important;
+  background: hsl(var(--background) / 0.9) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .checkbox-enhanced:hover {
+  border-color: hsl(var(--border) / 0.8) !important;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2), 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* Badge enhancements */
@@ -196,7 +235,7 @@
     background: hsl(var(--background));
     border: 2px solid hsl(var(--border));
   }
-  
+
   .modern-badge {
     border: 2px solid hsl(var(--border));
   }
@@ -211,7 +250,7 @@
     animation: none;
     transition: none;
   }
-  
+
   .modern-button::before {
     display: none;
   }

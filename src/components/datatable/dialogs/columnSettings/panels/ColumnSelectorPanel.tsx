@@ -9,6 +9,7 @@ import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { COLUMN_ICONS } from '../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import '../column-customization-dialog.css';
 
 export const ColumnSelectorPanel: React.FC = () => {
   const {
@@ -116,18 +117,37 @@ export const ColumnSelectorPanel: React.FC = () => {
     setSelectedColumns(newSelected);
   };
 
-  const selectAllColumns = () => {
-    setSelectedColumns(new Set(filteredColumns.map(col => col.field || col.colId || '')));
+  const selectAllFilteredColumns = () => {
+    const newSelected = new Set(selectedColumns);
+    filteredColumns.forEach(col => {
+      const colId = col.field || col.colId || '';
+      if (colId) {
+        newSelected.add(colId);
+      }
+    });
+    setSelectedColumns(newSelected);
   };
 
-  const deselectAllColumns = () => {
-    setSelectedColumns(new Set());
+  const deselectAllFilteredColumns = () => {
+    const newSelected = new Set(selectedColumns);
+    filteredColumns.forEach(col => {
+      const colId = col.field || col.colId || '';
+      if (colId) {
+        newSelected.delete(colId);
+      }
+    });
+    setSelectedColumns(newSelected);
   };
 
   const isAllSelected = filteredColumns.length > 0 &&
     filteredColumns.every(col => selectedColumns.has(col.field || col.colId || ''));
   const isIndeterminate = filteredColumns.some(col => selectedColumns.has(col.field || col.colId || '')) &&
     !isAllSelected;
+
+  // Count of filtered columns that are selected
+  const filteredSelectedCount = filteredColumns.filter(col =>
+    selectedColumns.has(col.field || col.colId || '')
+  ).length;
 
   return (
     <div className="h-full flex flex-col">
@@ -163,17 +183,19 @@ export const ColumnSelectorPanel: React.FC = () => {
               checked={isAllSelected || isIndeterminate}
               onCheckedChange={(checked) => {
                 if (checked && !isAllSelected) {
-                  selectAllColumns();
+                  selectAllFilteredColumns();
                 } else {
-                  deselectAllColumns();
+                  deselectAllFilteredColumns();
                 }
               }}
-              className={`h-4 w-4 rounded border-border/60 data-[state=checked]:bg-primary data-[state=checked]:border-primary ${isIndeterminate ? 'data-[state=checked]:bg-primary/50' : ''}`}
+              className={`checkbox-enhanced h-4 w-4 rounded ${isIndeterminate ? 'data-[state=checked]:bg-primary/50' : ''}`}
             />
-            <span className="text-xs font-medium text-foreground">All</span>
-            {selectedColumns.size > 0 && (
+            <span className="text-xs font-medium text-foreground">
+              {searchTerm ? 'All Filtered' : 'All'}
+            </span>
+            {filteredSelectedCount > 0 && (
               <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium rounded-md bg-secondary/80 border border-secondary/40">
-                {selectedColumns.size}
+                {filteredSelectedCount}/{filteredColumns.length}
               </Badge>
             )}
           </div>
@@ -279,7 +301,7 @@ const ColumnItem: React.FC<{
       <Checkbox
         checked={selected}
         onCheckedChange={onToggle}
-        className="h-4 w-4 rounded border-border/60 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+        className="checkbox-enhanced h-4 w-4 rounded"
       />
       <span className="text-xs flex-1 truncate font-medium text-foreground group-hover:text-foreground">
         {column.headerName || column.field}

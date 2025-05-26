@@ -19,11 +19,11 @@ export const GeneralTab: React.FC = () => {
   const getMixedValue = useCallback((property: string) => {
     const values = new Set();
     const allValues: unknown[] = [];
-    
+
     selectedColumns.forEach(colId => {
       const colDef = columnDefinitions.get(colId);
       const pendingChange = pendingChanges.get(colId);
-      
+
       // Check pending changes first, then fall back to column definition
       let value;
       if (pendingChange && property in pendingChange) {
@@ -31,11 +31,11 @@ export const GeneralTab: React.FC = () => {
       } else if (colDef) {
         value = colDef[property as keyof typeof colDef];
       }
-      
+
       values.add(value);
       allValues.push(value);
     });
-    
+
     if (values.size === 0) return { value: undefined, isMixed: false };
     if (values.size === 1) return { value: Array.from(values)[0], isMixed: false };
     return { value: undefined, isMixed: true, values: allValues };
@@ -43,9 +43,9 @@ export const GeneralTab: React.FC = () => {
 
   // Pre-compute mixed values for all properties to avoid recalculation
   const mixedValues = useMemo(() => {
-    const properties = ['field', 'headerName', 'type', 'cellDataType', 'sortable', 'resizable', 
+    const properties = ['field', 'headerName', 'type', 'cellDataType', 'sortable', 'resizable',
                        'editable', 'filter', 'initialWidth', 'minWidth', 'maxWidth', 'initialHide', 'initialPinned'];
-    
+
     const values: Record<string, { value: unknown; isMixed: boolean; values?: unknown[] }> = {};
     properties.forEach(property => {
       values[property] = getMixedValue(property);
@@ -54,6 +54,7 @@ export const GeneralTab: React.FC = () => {
   }, [getMixedValue]);
 
   const isDisabled = selectedColumns.size === 0;
+  const isMultipleSelection = selectedColumns.size > 1;
 
   return (
     <div className="p-4 space-y-4">
@@ -70,28 +71,28 @@ export const GeneralTab: React.FC = () => {
                   id="field"
                   mixedValue={mixedValues.field}
                   onChange={(value) => updateBulkProperty('field', value)}
-                  disabled={isDisabled}
+                  disabled={isDisabled || (isMultipleSelection && mixedValues.field.isMixed)}
                   placeholder="Column field name"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="headerName" className="text-xs font-medium">Header Name</Label>
                 <MixedValueInput
                   id="headerName"
                   mixedValue={mixedValues.headerName}
                   onChange={(value) => updateBulkProperty('headerName', value)}
-                  disabled={isDisabled}
+                  disabled={isDisabled || (isMultipleSelection && mixedValues.headerName.isMixed)}
                   placeholder="Display name"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="type" className="text-xs font-medium">Column Type</Label>
                 <Select
                   value={mixedValues.type.value as string || ''}
                   onValueChange={(value) => updateBulkProperty('type', value)}
-                  disabled={isDisabled}
+                  disabled={isDisabled || (isMultipleSelection && mixedValues.type.isMixed)}
                 >
                   <SelectTrigger id="type" className={`h-8 text-sm ${mixedValues.type.isMixed ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
                     <SelectValue placeholder={mixedValues.type.isMixed ? '~Mixed~' : 'Select type'} />
@@ -104,13 +105,13 @@ export const GeneralTab: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="cellDataType" className="text-xs font-medium">Cell Data Type</Label>
                 <Select
                   value={mixedValues.cellDataType.value as string || ''}
                   onValueChange={(value) => updateBulkProperty('cellDataType', value)}
-                  disabled={isDisabled}
+                  disabled={isDisabled || (isMultipleSelection && mixedValues.cellDataType.isMixed)}
                 >
                   <SelectTrigger id="cellDataType" className={`h-8 text-sm ${mixedValues.cellDataType.isMixed ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
                     <SelectValue placeholder={mixedValues.cellDataType.isMixed ? '~Mixed~' : 'Select data type'} />
@@ -140,10 +141,10 @@ export const GeneralTab: React.FC = () => {
                   min={50}
                   max={500}
                   step={10}
-                  disabled={isDisabled}
+                  disabled={isDisabled || (isMultipleSelection && mixedValues.initialWidth.isMixed)}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-2">
                   <Label htmlFor="minWidth" className="text-xs font-medium">Min Width</Label>
@@ -154,10 +155,10 @@ export const GeneralTab: React.FC = () => {
                     min={10}
                     max={300}
                     step={10}
-                    disabled={isDisabled}
+                    disabled={isDisabled || (isMultipleSelection && mixedValues.minWidth.isMixed)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="maxWidth" className="text-xs font-medium">Max Width</Label>
                   <NumericInput
@@ -167,7 +168,7 @@ export const GeneralTab: React.FC = () => {
                     min={50}
                     max={1000}
                     step={10}
-                    disabled={isDisabled}
+                    disabled={isDisabled || (isMultipleSelection && mixedValues.maxWidth.isMixed)}
                   />
                 </div>
               </div>
@@ -185,34 +186,34 @@ export const GeneralTab: React.FC = () => {
                 property="sortable"
                 mixedValue={mixedValues.sortable}
                 onChange={(value) => updateBulkProperty('sortable', value)}
-                disabled={isDisabled}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.sortable.isMixed)}
                 description="Allow sorting by clicking column header"
               />
-              
+
               <ThreeStateCheckbox
                 label="Resizable"
                 property="resizable"
                 mixedValue={mixedValues.resizable}
                 onChange={(value) => updateBulkProperty('resizable', value)}
-                disabled={isDisabled}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.resizable.isMixed)}
                 description="Allow resizing column width by dragging"
               />
-              
+
               <ThreeStateCheckbox
                 label="Editable"
                 property="editable"
                 mixedValue={mixedValues.editable}
                 onChange={(value) => updateBulkProperty('editable', value)}
-                disabled={isDisabled}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.editable.isMixed)}
                 description="Allow cell editing"
               />
-              
+
               <ThreeStateCheckbox
                 label="Enable Filtering"
                 property="filter"
                 mixedValue={mixedValues.filter}
                 onChange={(value) => updateBulkProperty('filter', value)}
-                disabled={isDisabled}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.filter.isMixed)}
                 description="Show filter in column menu"
               />
             </div>
@@ -226,16 +227,16 @@ export const GeneralTab: React.FC = () => {
                 property="initialHide"
                 mixedValue={mixedValues.initialHide}
                 onChange={(value) => updateBulkProperty('initialHide', value)}
-                disabled={isDisabled}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.initialHide.isMixed)}
                 description="Hide column on initial load"
               />
-              
+
               <div className="space-y-2">
                 <Label htmlFor="initialPinned" className="text-xs font-medium">Initial Pinned</Label>
                 <Select
                   value={mixedValues.initialPinned.value as string || 'none'}
                   onValueChange={(value) => updateBulkProperty('initialPinned', value === 'none' ? null : value)}
-                  disabled={isDisabled}
+                  disabled={isDisabled || (isMultipleSelection && mixedValues.initialPinned.isMixed)}
                 >
                   <SelectTrigger id="initialPinned" className={`h-8 text-sm ${mixedValues.initialPinned.isMixed ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
                     <SelectValue placeholder={mixedValues.initialPinned.isMixed ? '~Mixed~' : 'Not pinned'} />

@@ -2,6 +2,7 @@ import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import '../column-customization-dialog.css';
 
 interface ThreeStateCheckboxProps {
   label: string;
@@ -16,16 +17,16 @@ interface ThreeStateCheckboxProps {
   description?: string;
 }
 
-export const ThreeStateCheckbox: React.FC<ThreeStateCheckboxProps> = ({ 
-  label, 
-  property, 
-  mixedValue, 
-  onChange, 
+export const ThreeStateCheckbox: React.FC<ThreeStateCheckboxProps> = ({
+  label,
+  property,
+  mixedValue,
+  onChange,
   disabled,
   description
 }) => {
   const isChecked = mixedValue.isMixed ? 'indeterminate' : mixedValue.value;
-  
+
   const checkbox = (
     <div className="flex items-center space-x-2">
       <Checkbox
@@ -33,10 +34,10 @@ export const ThreeStateCheckbox: React.FC<ThreeStateCheckboxProps> = ({
         checked={isChecked === true ? true : false}
         onCheckedChange={(checked) => onChange(!!checked)}
         disabled={disabled}
-        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+        className="checkbox-enhanced h-4 w-4 rounded"
       />
-      <Label 
-        htmlFor={property} 
+      <Label
+        htmlFor={property}
         className="text-sm font-normal cursor-pointer select-none"
       >
         {label}
