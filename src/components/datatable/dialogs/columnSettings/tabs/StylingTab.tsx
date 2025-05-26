@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { PropertyGroup } from '../components/PropertyGroup';
 import { ThreeStateCheckbox } from '../components/ThreeStateCheckbox';
+import { AlignmentIconPicker } from '../components/AlignmentIconPicker';
 import { Button } from '@/components/ui/button';
 import { Palette, Eraser } from 'lucide-react';
 import { StyleEditor } from '../editors/StyleEditor';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 
 export const StylingTab: React.FC = () => {
@@ -206,43 +205,23 @@ export const StylingTab: React.FC = () => {
           {/* Header Alignment */}
           <PropertyGroup title="Header Alignment">
             <div className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="headerHAlign" className="text-xs font-medium">Horizontal</Label>
-                <Select
-                  value={getCurrentHeaderAlignment('horizontal')}
-                  onValueChange={(value) => handleHeaderAlignmentChange(value, 'horizontal')}
-                  disabled={isDisabled || (isMultipleSelection && isHeaderAlignmentMixed('horizontal'))}
-                >
-                  <SelectTrigger id="headerHAlign" className="h-8 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default</SelectItem>
-                    <SelectItem value="left">Left</SelectItem>
-                    <SelectItem value="center">Center</SelectItem>
-                    <SelectItem value="right">Right</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <AlignmentIconPicker
+                label="Horizontal"
+                type="horizontal"
+                value={getCurrentHeaderAlignment('horizontal')}
+                onChange={(value) => handleHeaderAlignmentChange(value, 'horizontal')}
+                disabled={isDisabled || (isMultipleSelection && isHeaderAlignmentMixed('horizontal'))}
+                isMixed={isMultipleSelection && isHeaderAlignmentMixed('horizontal')}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="headerVAlign" className="text-xs font-medium">Vertical</Label>
-                <Select
-                  value={getCurrentHeaderAlignment('vertical')}
-                  onValueChange={(value) => handleHeaderAlignmentChange(value, 'vertical')}
-                  disabled={isDisabled || (isMultipleSelection && isHeaderAlignmentMixed('vertical'))}
-                >
-                  <SelectTrigger id="headerVAlign" className="h-8 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default</SelectItem>
-                    <SelectItem value="top">Top</SelectItem>
-                    <SelectItem value="middle">Middle</SelectItem>
-                    <SelectItem value="bottom">Bottom</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <AlignmentIconPicker
+                label="Vertical"
+                type="vertical"
+                value={getCurrentHeaderAlignment('vertical')}
+                onChange={(value) => handleHeaderAlignmentChange(value, 'vertical')}
+                disabled={isDisabled || (isMultipleSelection && isHeaderAlignmentMixed('vertical'))}
+                isMixed={isMultipleSelection && isHeaderAlignmentMixed('vertical')}
+              />
             </div>
           </PropertyGroup>
 
@@ -301,43 +280,23 @@ export const StylingTab: React.FC = () => {
           {/* Cell Alignment */}
           <PropertyGroup title="Cell Alignment">
             <div className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="cellHAlign" className="text-xs font-medium">Horizontal</Label>
-                <Select
-                  value={getCurrentCellAlignment('horizontal')}
-                  onValueChange={(value) => handleCellAlignmentChange(value, 'horizontal')}
-                  disabled={isDisabled || (isMultipleSelection && isCellAlignmentMixed('horizontal'))}
-                >
-                  <SelectTrigger id="cellHAlign" className="h-8 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default</SelectItem>
-                    <SelectItem value="left">Left</SelectItem>
-                    <SelectItem value="center">Center</SelectItem>
-                    <SelectItem value="right">Right</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <AlignmentIconPicker
+                label="Horizontal"
+                type="horizontal"
+                value={getCurrentCellAlignment('horizontal')}
+                onChange={(value) => handleCellAlignmentChange(value, 'horizontal')}
+                disabled={isDisabled || (isMultipleSelection && isCellAlignmentMixed('horizontal'))}
+                isMixed={isMultipleSelection && isCellAlignmentMixed('horizontal')}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="cellVAlign" className="text-xs font-medium">Vertical</Label>
-                <Select
-                  value={getCurrentCellAlignment('vertical')}
-                  onValueChange={(value) => handleCellAlignmentChange(value, 'vertical')}
-                  disabled={isDisabled || (isMultipleSelection && isCellAlignmentMixed('vertical'))}
-                >
-                  <SelectTrigger id="cellVAlign" className="h-8 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default</SelectItem>
-                    <SelectItem value="top">Top</SelectItem>
-                    <SelectItem value="middle">Middle</SelectItem>
-                    <SelectItem value="bottom">Bottom</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <AlignmentIconPicker
+                label="Vertical"
+                type="vertical"
+                value={getCurrentCellAlignment('vertical')}
+                onChange={(value) => handleCellAlignmentChange(value, 'vertical')}
+                disabled={isDisabled || (isMultipleSelection && isCellAlignmentMixed('vertical'))}
+                isMixed={isMultipleSelection && isCellAlignmentMixed('vertical')}
+              />
             </div>
           </PropertyGroup>
 
