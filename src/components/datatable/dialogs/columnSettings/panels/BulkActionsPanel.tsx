@@ -1,10 +1,7 @@
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { ColDef } from 'ag-grid-community';
 import {
@@ -22,335 +19,234 @@ export const BulkActionsPanel: React.FC = () => {
     selectedColumns,
     columnDefinitions,
     pendingChanges,
-    applyMode,
-    setApplyMode,
     updateBulkProperty
   } = useColumnCustomizationStore();
 
   const [sourceColumnId, setSourceColumnId] = useState<string>('');
 
-  // Reset source column if it becomes selected or invalid
-  useEffect(() => {
-    if (sourceColumnId && (selectedColumns.has(sourceColumnId) || !columnDefinitions.has(sourceColumnId))) {
-      setSourceColumnId('');
-    }
-  }, [selectedColumns, sourceColumnId, columnDefinitions]);
-
-  // Clear all styles from selected columns
-  const clearAllStyles = useCallback(() => {
-    updateBulkProperty('cellStyle', undefined);
-    updateBulkProperty('headerStyle', undefined);
-    updateBulkProperty('cellClass', undefined);
-    updateBulkProperty('headerClass', undefined);
-  }, [updateBulkProperty]);
-
-  // Quick templates
-  const templates = [
-    { id: 'numeric', label: 'Numeric', icon: <BarChart3 className="h-4 w-4" />, color: 'blue' },
-    { id: 'currency', label: 'Currency', icon: <DollarSign className="h-4 w-4" />, color: 'green' },
-    { id: 'date', label: 'Date', icon: <Calendar className="h-4 w-4" />, color: 'orange' },
-    { id: 'text', label: 'Text', icon: <FileText className="h-4 w-4" />, color: 'purple' },
-  ];
-
-  // Quick actions
-  const quickActions = [
-    { id: 'clearStyles', label: 'Clear Styles', icon: <Eraser className="h-4 w-4" />, action: clearAllStyles },
-  ];
-
-  // Template configurations
-  const templateConfigs: Record<string, Partial<ColDef>> = useMemo(() => ({
+  // Simple template configurations
+  const templates = {
     numeric: {
-      cellDataType: 'number',
-      type: 'numericColumn',
-      filter: 'agNumberColumnFilter',
-      sortable: true,
-      resizable: true,
-      aggFunc: 'sum'
+      label: 'Numeric',
+      icon: <BarChart3 className="h-4 w-4" />,
+      config: {
+        cellDataType: 'number',
+        type: 'numericColumn',
+        filter: 'agNumberColumnFilter'
+      }
     },
     currency: {
-      cellDataType: 'number',
-      type: 'numericColumn',
-      filter: 'agNumberColumnFilter',
-      sortable: true,
-      resizable: true,
-      aggFunc: 'sum',
-      valueFormatter: (params: { value: number | null }) => {
-        if (params.value == null) return '';
-        return '$' + params.value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      label: 'Currency',
+      icon: <DollarSign className="h-4 w-4" />,
+      config: {
+        cellDataType: 'number',
+        type: 'numericColumn',
+        filter: 'agNumberColumnFilter',
+        valueFormatter: (params: any) => {
+          if (params.value == null) return '';
+          return `$${params.value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+        }
       }
     },
     date: {
-      cellDataType: 'date',
-      type: 'dateColumn',
-      filter: 'agDateColumnFilter',
-      sortable: true,
-      resizable: true
+      label: 'Date',
+      icon: <Calendar className="h-4 w-4" />,
+      config: {
+        cellDataType: 'date',
+        type: 'dateColumn',
+        filter: 'agDateColumnFilter'
+      }
     },
     text: {
-      cellDataType: 'text',
-      type: 'textColumn',
-      filter: 'agTextColumnFilter',
-      sortable: true,
-      resizable: true,
-      wrapText: false,
-      autoHeight: false
+      label: 'Text',
+      icon: <FileText className="h-4 w-4" />,
+      config: {
+        cellDataType: 'text',
+        type: 'textColumn',
+        filter: 'agTextColumnFilter'
+      }
     }
-  }), []);
+  };
 
-  // Apply template
-  const applyTemplate = useCallback((templateId: string) => {
-    const config = templateConfigs[templateId];
-    if (config) {
-      Object.entries(config).forEach(([property, value]) => {
-        updateBulkProperty(property, value);
-      });
-    }
-  }, [templateConfigs, updateBulkProperty]);
+  // Apply template to selected columns
+  const applyTemplate = useCallback((templateId: keyof typeof templates) => {
+    const template = templates[templateId];
+    if (!template) return;
 
-  // Copy settings from source column to selected columns
-  const copySettingsFromColumn = useCallback(() => {
+    Object.entries(template.config).forEach(([property, value]) => {
+      updateBulkProperty(property, value);
+    });
+  }, [updateBulkProperty]);
+
+  // Clear all customizations
+  const clearAllCustomizations = useCallback(() => {
+    const propertiesToClear = [
+      'cellStyle', 'headerStyle', 'cellClass', 'headerClass',
+      'valueFormatter', 'cellRenderer', 'type', 'cellDataType',
+      'filter', 'aggFunc', 'wrapText', 'autoHeight'
+    ];
+    
+    propertiesToClear.forEach(property => {
+      updateBulkProperty(property, undefined);
+    });
+  }, [updateBulkProperty]);
+
+  // Copy from another column
+  const copyFromColumn = useCallback(() => {
     if (!sourceColumnId) return;
-
+    
     const sourceColumn = columnDefinitions.get(sourceColumnId);
     if (!sourceColumn) return;
 
-    // Properties to copy (excluding field and headerName which should be unique)
+    // Only copy formatting-related properties
     const propertiesToCopy = [
-      'type', 'cellDataType', 'sortable', 'resizable', 'editable', 'filter',
-      'initialWidth', 'minWidth', 'maxWidth', 'initialHide', 'initialPinned',
+      'cellDataType', 'type', 'filter',
       'cellStyle', 'headerStyle', 'cellClass', 'headerClass',
-      'wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight',
-      'valueFormatter', 'valueParser', 'cellRenderer', 'cellEditor',
-      'aggFunc', 'enableValue', 'enableRowGroup', 'enablePivot'
+      'valueFormatter', 'cellRenderer',
+      'wrapText', 'autoHeight'
     ];
 
     propertiesToCopy.forEach(property => {
-      const value = sourceColumn[property as keyof typeof sourceColumn];
+      const value = sourceColumn[property as keyof ColDef];
       if (value !== undefined) {
         updateBulkProperty(property, value);
       }
     });
+
+    setSourceColumnId(''); // Clear selection after copying
   }, [sourceColumnId, columnDefinitions, updateBulkProperty]);
 
-  // Calculate changes preview - memoized to prevent recalculation
-  const changesPreview = useMemo(() => {
-    return Array.from(pendingChanges.entries()).map(([colId, changes]) => ({
-      colId,
-      changes: Object.entries(changes).map(([key, value]) => ({
-        property: key,
-        value: value
-      }))
-    }));
+  // Get columns available for copying (those with customizations)
+  const customizedColumns = useMemo(() => {
+    return Array.from(columnDefinitions.entries())
+      .filter(([colId]) => !selectedColumns.has(colId))
+      .filter(([, colDef]) => {
+        // Check if column has any customizations
+        return colDef.cellStyle || colDef.headerStyle || 
+               colDef.valueFormatter || colDef.cellRenderer ||
+               (colDef.type && colDef.type !== 'textColumn') ||
+               (colDef.cellDataType && colDef.cellDataType !== 'text');
+      })
+      .sort((a, b) => {
+        const nameA = a[1].headerName || a[1].field || '';
+        const nameB = b[1].headerName || b[1].field || '';
+        return nameA.localeCompare(nameB);
+      });
+  }, [columnDefinitions, selectedColumns]);
+
+  // Count pending changes
+  const changeCount = useMemo(() => {
+    let count = 0;
+    pendingChanges.forEach((changes) => {
+      count += Object.keys(changes).length;
+    });
+    return count;
   }, [pendingChanges]);
 
-  const totalChanges = useMemo(() => {
-    return changesPreview.reduce((acc, item) => acc + item.changes.length, 0);
-  }, [changesPreview]);
-
-  // Available columns to copy from (excluding selected ones and only those with styles)
-  const availableSourceColumns = useMemo(() => {
-    return Array.from(columnDefinitions.entries())
-      .filter(([colId, colDef]) => {
-        // Exclude selected columns
-        if (selectedColumns.has(colId)) return false;
-
-        // Get pending changes for this column
-        const pendingChange = pendingChanges.get(colId);
-
-        // Combine original column definition with pending changes
-        const effectiveColDef = { ...colDef, ...pendingChange };
-
-        // Only include columns that have styling properties applied
-        const hasStyles = !!(
-          effectiveColDef.cellStyle ||
-          effectiveColDef.headerStyle ||
-          effectiveColDef.cellClass ||
-          effectiveColDef.headerClass ||
-          effectiveColDef.wrapText ||
-          effectiveColDef.autoHeight ||
-          effectiveColDef.wrapHeaderText ||
-          effectiveColDef.autoHeaderHeight ||
-          effectiveColDef.valueFormatter ||
-          effectiveColDef.cellRenderer ||
-          effectiveColDef.cellEditor ||
-          (effectiveColDef.initialWidth && effectiveColDef.initialWidth !== 200) || // Default width is usually 200
-          effectiveColDef.minWidth ||
-          effectiveColDef.maxWidth ||
-          effectiveColDef.initialPinned ||
-          effectiveColDef.initialHide
-        );
-
-        return hasStyles;
-      });
-  }, [columnDefinitions, selectedColumns, pendingChanges]);
+  const isDisabled = selectedColumns.size === 0;
 
   return (
     <div className="h-full flex flex-col">
-      {/* Modern Header */}
-      <div className="px-4 py-3 border-b border-border/40 bg-gradient-to-r from-muted/15 to-muted/5 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 rounded-md bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
-            <Zap className="h-4 w-4 text-primary" />
-          </div>
-          <span className="text-sm font-semibold tracking-tight">Quick Actions</span>
+      <div className="px-4 py-3 border-b">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Bulk Actions</span>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col p-4">
-        {/* Modern Quick Templates */}
-        <div className="mb-5">
-          <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Templates</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {templates.map((template) => (
-              <Button
-                key={template.id}
-                variant="outline"
-                size="sm"
-                className="justify-start gap-2 h-9 text-xs rounded-lg border-border/60 bg-background/80 backdrop-blur-sm hover:bg-muted/50 transition-all duration-200"
-                onClick={() => applyTemplate(template.id)}
-                disabled={selectedColumns.size === 0}
-              >
-                {template.icon}
-                {template.label}
-              </Button>
-            ))}
-          </div>
-
-          {/* Modern Quick Actions */}
-          <div className="mt-4">
-            <h4 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Actions</h4>
-            <div className="grid grid-cols-1 gap-2">
-              {quickActions.map((action) => (
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-6">
+          {/* Quick Templates */}
+          <div>
+            <h3 className="text-xs font-semibold mb-3 uppercase text-muted-foreground">
+              Quick Templates
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(templates).map(([id, template]) => (
                 <Button
-                  key={action.id}
+                  key={id}
                   variant="outline"
                   size="sm"
-                  className="justify-start gap-2 h-9 text-xs rounded-lg border-border/60 bg-background/80 backdrop-blur-sm hover:bg-muted/50 transition-all duration-200"
-                  onClick={action.action}
-                  disabled={selectedColumns.size === 0}
+                  className="justify-start gap-2"
+                  onClick={() => applyTemplate(id as keyof typeof templates)}
+                  disabled={isDisabled}
                 >
-                  {action.icon}
-                  {action.label}
+                  {template.icon}
+                  {template.label}
                 </Button>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Modern Bulk Apply Mode */}
-        <div className="mb-5">
-          <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Apply Mode</h3>
-          <RadioGroup
-            value={applyMode}
-            onValueChange={(value: 'immediate' | 'onSave') => setApplyMode(value)}
-            className="space-y-2.5"
-          >
-            <div className="flex items-center space-x-2.5">
-              <RadioGroupItem value="immediate" id="immediate" className="h-4 w-4 border-border/60" />
-              <Label htmlFor="immediate" className="text-xs font-medium cursor-pointer">
-                Immediate
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2.5">
-              <RadioGroupItem value="onSave" id="onSave" className="h-4 w-4 border-border/60" />
-              <Label htmlFor="onSave" className="text-xs font-medium cursor-pointer">
-                On Save
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        {/* Modern Copy Settings From */}
-        <div className="mb-5">
-          <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Copy From</h3>
-          <Select
-            value={sourceColumnId}
-            onValueChange={setSourceColumnId}
-            disabled={selectedColumns.size === 0 || availableSourceColumns.length === 0}
-          >
-            <SelectTrigger className="h-9 text-xs rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
-              <SelectValue placeholder={
-                availableSourceColumns.length === 0
-                  ? "No styled columns"
-                  : "Select styled column"
-              } />
-            </SelectTrigger>
-            <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
-              {availableSourceColumns.map(([colId, col]) => (
-                <SelectItem key={colId} value={colId} className="text-xs">
-                  {col.headerName || col.field}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full mt-3 gap-2 h-9 text-xs rounded-lg border-border/60 bg-background/80 backdrop-blur-sm hover:bg-muted/50 transition-all duration-200"
-            disabled={selectedColumns.size === 0 || !sourceColumnId || availableSourceColumns.length === 0}
-            onClick={copySettingsFromColumn}
-          >
-            <Copy className="h-4 w-4" />
-            Apply to Selected
-          </Button>
-        </div>
-
-        {/* Modern Changes Preview */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Changes</h3>
-            {totalChanges > 0 && (
-              <Badge variant="secondary" className="text-xs px-2 py-1 font-medium rounded-md bg-secondary/80 border border-secondary/40">
-                {totalChanges}
-              </Badge>
-            )}
+          {/* Copy From Column */}
+          <div>
+            <h3 className="text-xs font-semibold mb-3 uppercase text-muted-foreground">
+              Copy From Column
+            </h3>
+            <Select
+              value={sourceColumnId}
+              onValueChange={setSourceColumnId}
+              disabled={isDisabled || customizedColumns.length === 0}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={
+                  customizedColumns.length === 0
+                    ? "No customized columns available"
+                    : "Select a column to copy from"
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {customizedColumns.map(([colId, col]) => (
+                  <SelectItem key={colId} value={colId}>
+                    {col.headerName || col.field}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+              onClick={copyFromColumn}
+              disabled={isDisabled || !sourceColumnId}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy to Selected
+            </Button>
           </div>
 
-          <ScrollArea className="flex-1 border border-border/40 rounded-lg bg-gradient-to-b from-muted/20 to-muted/10 backdrop-blur-sm">
-            <div className="p-3">
-              {changesPreview.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">
-                  No changes
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {changesPreview.map(({ colId, changes }) => {
-                    const col = columnDefinitions.get(colId);
-                    return (
-                      <div key={colId} className="text-xs bg-background/50 rounded-lg p-2.5 border border-border/30">
-                        <div className="font-semibold mb-2 text-foreground truncate">
-                          {col?.headerName || col?.field || colId}
-                        </div>
-                        <div className="space-y-1">
-                          {changes.map(({ property, value }, idx) => (
-                            <div
-                              key={`${property}-${idx}`}
-                              className="ml-2 text-xs text-muted-foreground flex items-center gap-1.5"
-                            >
-                              <span className="text-primary text-xs">•</span>
-                              <span className="font-mono text-xs font-medium">{property}</span>
-                              <span className="text-xs">→</span>
-                              <span className="text-foreground truncate max-w-[80px] text-xs font-medium" title={JSON.stringify(value)}>
-                                {typeof value === 'function' ? '[Fn]' : JSON.stringify(value)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </ScrollArea>
+          {/* Clear All */}
+          <div>
+            <h3 className="text-xs font-semibold mb-3 uppercase text-muted-foreground">
+              Reset
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={clearAllCustomizations}
+              disabled={isDisabled}
+            >
+              <Eraser className="h-4 w-4 mr-2" />
+              Clear All Customizations
+            </Button>
+          </div>
 
+          {/* Status */}
           {selectedColumns.size > 0 && (
-            <div className="mt-3 text-xs text-muted-foreground text-center font-medium">
-              {selectedColumns.size} column{selectedColumns.size !== 1 ? 's' : ''} selected
+            <div className="pt-4 border-t text-center">
+              <p className="text-sm text-muted-foreground">
+                {selectedColumns.size} column{selectedColumns.size !== 1 ? 's' : ''} selected
+              </p>
+              {changeCount > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {changeCount} pending change{changeCount !== 1 ? 's' : ''}
+                </p>
+              )}
             </div>
           )}
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 };

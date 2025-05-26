@@ -21,6 +21,9 @@ export interface DialogState {
 
   // Panel states
   bulkActionsPanelCollapsed: boolean;
+
+  // Immediate apply callback
+  onImmediateApply?: (columns: AgColDef[]) => void;
 }
 
 export interface DialogActions {
@@ -33,6 +36,7 @@ export interface DialogActions {
   updateBulkProperty: (property: string, value: unknown) => void;
   applyChanges: () => AgColDef[];
   resetChanges: () => void;
+  setOnImmediateApply: (callback?: (columns: AgColDef[]) => void) => void;
 
   // UI actions
   setActiveTab: (tab: string) => void;
@@ -63,6 +67,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       searchTerm: '',
       cellDataTypeFilter: 'all',
       bulkActionsPanelCollapsed: false,
+      onImmediateApply: undefined,
 
       // Actions
       setOpen: (open) => set({ open }),
@@ -72,15 +77,40 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       setColumnDefinitions: (columns) => set({ columnDefinitions: columns }),
 
       updateBulkProperty: (property, value) => {
-        const { selectedColumns, pendingChanges } = get();
+        const { selectedColumns, pendingChanges, applyMode, onImmediateApply, columnDefinitions } = get();
         const newPendingChanges = new Map(pendingChanges);
 
         selectedColumns.forEach(colId => {
           const existing = newPendingChanges.get(colId) || {};
-          newPendingChanges.set(colId, { ...existing, [property]: value });
+          if (value === undefined) {
+            // Remove the property if value is undefined
+            const updatedExisting = { ...existing };
+            delete updatedExisting[property as keyof AgColDef];
+            if (Object.keys(updatedExisting).length === 0) {
+              newPendingChanges.delete(colId);
+            } else {
+              newPendingChanges.set(colId, updatedExisting);
+            }
+          } else {
+            newPendingChanges.set(colId, { ...existing, [property]: value });
+          }
         });
 
         set({ pendingChanges: newPendingChanges });
+
+        // Apply immediately if in immediate mode
+        if (applyMode === 'immediate' && onImmediateApply) {
+          const updatedColumns: AgColDef[] = [];
+          columnDefinitions.forEach((colDef, colId) => {
+            const changes = newPendingChanges.get(colId);
+            if (changes) {
+              updatedColumns.push({ ...colDef, ...changes });
+            } else {
+              updatedColumns.push(colDef);
+            }
+          });
+          onImmediateApply(updatedColumns);
+        }
       },
 
       applyChanges: () => {
@@ -103,6 +133,8 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       },
 
       resetChanges: () => set({ pendingChanges: new Map() }),
+
+      setOnImmediateApply: (callback) => set({ onImmediateApply: callback }),
 
       setActiveTab: (tab) => set({ activeTab: tab }),
       setApplyMode: (mode) => set({ applyMode: mode }),

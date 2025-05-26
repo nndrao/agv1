@@ -31,7 +31,8 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     setOpen,
     setColumnDefinitions,
     applyChanges,
-    resetChanges
+    resetChanges,
+    setOnImmediateApply
   } = useColumnCustomizationStore();
 
   // Initialize column definitions when dialog opens
@@ -45,9 +46,17 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
         }
       });
       setColumnDefinitions(columnMap);
+      setOnImmediateApply(onApply);
     }
     setOpen(open);
-  }, [open, columnDefs, setColumnDefinitions, setOpen]);
+    
+    // Cleanup on unmount
+    return () => {
+      if (!open) {
+        setOnImmediateApply(undefined);
+      }
+    };
+  }, [open, columnDefs, setColumnDefinitions, setOpen, setOnImmediateApply, onApply]);
 
   const selectedCount = selectedColumns.size;
   const totalColumns = columnDefinitions.size;
