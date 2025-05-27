@@ -103,12 +103,20 @@ export const BulkActionsPanel: React.FC = () => {
     const sourceColumn = columnDefinitions.get(sourceColumnId);
     if (!sourceColumn) return;
 
-    // Only copy formatting-related properties
+    // Copy formatting, filter, editor, and style properties
     const propertiesToCopy = [
-      'cellDataType', 'type', 'filter',
+      // Data type and basic properties
+      'cellDataType', 'type',
+      // Filter configurations
+      'filter', 'filterParams', 'floatingFilter', 'suppressMenu', 'suppressFiltersToolPanel',
+      // Editor configurations
+      'editable', 'cellEditor', 'cellEditorParams', 'cellEditorPopup', 'cellEditorPopupPosition',
+      'singleClickEdit', 'stopEditingWhenCellsLoseFocus',
+      // Format configurations
+      'valueFormat', 'valueFormatter',
+      // Style properties
       'cellStyle', 'headerStyle', 'cellClass', 'headerClass',
-      'valueFormatter', 'cellRenderer',
-      'wrapText', 'autoHeight'
+      'cellRenderer', 'wrapText', 'autoHeight'
     ];
 
     // Build properties object for batch update
@@ -202,6 +210,9 @@ export const BulkActionsPanel: React.FC = () => {
             <h3 className="section-header">
               Copy From Column
             </h3>
+            <p className="text-xs text-muted-foreground mb-2">
+              Copies styles, format, filters, and editor settings
+            </p>
             <Select
               value={sourceColumnId}
               onValueChange={setSourceColumnId}
@@ -235,9 +246,10 @@ export const BulkActionsPanel: React.FC = () => {
               className="w-full mt-2 h-8 text-sm gap-2"
               onClick={copyFromColumn}
               disabled={isDisabled || !sourceColumnId}
+              title="Copy styles, format, filters, and editor settings"
             >
               <Copy className="h-3.5 w-3.5" />
-              Copy Properties
+              Copy All Settings
             </Button>
           </div>
 
