@@ -7,8 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
@@ -24,7 +23,8 @@ import {
   FileText,
   Code,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  Lightbulb
 } from 'lucide-react';
 
 // Cell editor types based on AG-Grid documentation
@@ -89,7 +89,7 @@ export const EditorsTab: React.FC = () => {
     updateBulkProperties,
   } = useColumnCustomizationStore();
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [activeSection, setActiveSection] = useState<'basic' | 'advanced'>('basic');
 
   // Get current editor configuration
   const currentEditorConfig = useMemo(() => {
@@ -236,160 +236,226 @@ export const EditorsTab: React.FC = () => {
 
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-6 p-5">
-        {/* Editable Configuration */}
-        <div className="space-y-4">
-          <h4 className="text-sm font-medium">Edit Configuration</h4>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="editable" className="text-sm">
-              Enable Editing
-            </Label>
-            <Switch
-              id="editable"
-              checked={currentEditorConfig?.editable ?? true}
-              onCheckedChange={(checked) => updateBulkProperty('editable', checked)}
-              disabled={isDisabled}
-            />
-          </div>
-
-          {currentEditorConfig?.editable !== false && (
-            <>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="single-click" className="text-sm">
-                  Single Click Edit
-                  <span className="block text-xs text-muted-foreground font-normal">
-                    Start editing with single click instead of double click
-                  </span>
-                </Label>
-                <Switch
-                  id="single-click"
-                  checked={currentEditorConfig?.singleClickEdit ?? false}
-                  onCheckedChange={(checked) => updateBulkProperty('singleClickEdit', checked)}
-                  disabled={isDisabled}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label htmlFor="stop-editing" className="text-sm">
-                  Stop Editing When Focus Lost
-                  <span className="block text-xs text-muted-foreground font-normal">
-                    Automatically stop editing when clicking outside
-                  </span>
-                </Label>
-                <Switch
-                  id="stop-editing"
-                  checked={currentEditorConfig?.stopEditingWhenCellsLoseFocus ?? true}
-                  onCheckedChange={(checked) => updateBulkProperty('stopEditingWhenCellsLoseFocus', checked)}
-                  disabled={isDisabled}
-                />
-              </div>
-            </>
-          )}
+      <div className="p-6 space-y-6">
+        {/* Header with description */}
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold">Cell Editors</h3>
+          <p className="text-sm text-muted-foreground">
+            Configure how cells can be edited. Choose editor types and customize their behavior.
+          </p>
         </div>
 
-        <Separator />
+        {/* Edit Configuration */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Edit Configuration</CardTitle>
+            <CardDescription className="text-sm">
+              Control how cells enter and exit edit mode
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="editable" className="text-sm font-medium">
+                    Enable Editing
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Allow cells to be edited
+                  </p>
+                </div>
+                <Switch
+                  id="editable"
+                  checked={currentEditorConfig?.editable ?? true}
+                  onCheckedChange={(checked) => updateBulkProperty('editable', checked)}
+                  disabled={isDisabled}
+                />
+              </div>
+
+              {currentEditorConfig?.editable !== false && (
+                <>
+                  <Separator />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="single-click" className="text-sm font-medium">
+                        Single Click Edit
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Start editing with single click instead of double click
+                      </p>
+                    </div>
+                    <Switch
+                      id="single-click"
+                      checked={currentEditorConfig?.singleClickEdit ?? false}
+                      onCheckedChange={(checked) => updateBulkProperty('singleClickEdit', checked)}
+                      disabled={isDisabled}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="stop-editing" className="text-sm font-medium">
+                        Stop Editing on Focus Lost
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Automatically stop editing when clicking outside
+                      </p>
+                    </div>
+                    <Switch
+                      id="stop-editing"
+                      checked={currentEditorConfig?.stopEditingWhenCellsLoseFocus ?? true}
+                      onCheckedChange={(checked) => updateBulkProperty('stopEditingWhenCellsLoseFocus', checked)}
+                      disabled={isDisabled}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Cell Editor Selection */}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Cell Editor Type</Label>
-            <Select
-              value={currentEditor}
-              onValueChange={handleEditorTypeChange}
-              disabled={isDisabled || currentEditorConfig?.editable === false}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select an editor type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Default (Auto)</SelectItem>
-                {Object.entries(CELL_EDITORS).map(([key, editor]) => {
-                  const Icon = editor.icon;
-                  return (
-                    <SelectItem key={key} value={editor.value}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        <span>{editor.label}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-                <SelectItem value="custom">Custom Editor</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {currentEditor && currentEditor !== 'none' && (
-              <p className="text-xs text-muted-foreground">
-                {CELL_EDITORS[Object.keys(CELL_EDITORS).find(k => CELL_EDITORS[k as keyof typeof CELL_EDITORS].value === currentEditor) as keyof typeof CELL_EDITORS]?.description}
-              </p>
-            )}
-            
-            {recommendedEditor && currentEditor !== recommendedEditor && currentEditor === 'none' && (
-              <Alert className="mt-2">
-                <Info className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  Based on your column data type, we recommend using{' '}
-                  <strong>{CELL_EDITORS[Object.keys(CELL_EDITORS).find(k => CELL_EDITORS[k as keyof typeof CELL_EDITORS].value === recommendedEditor) as keyof typeof CELL_EDITORS]?.label}</strong>
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
-
-          {/* Popup Configuration */}
-          {currentEditor && currentEditor !== 'none' && (
-            <>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="popup-editor" className="text-sm">
-                  Popup Editor
-                  <span className="block text-xs text-muted-foreground font-normal">
-                    Show editor in a popup instead of inline
-                  </span>
-                </Label>
-                <Switch
-                  id="popup-editor"
-                  checked={currentEditorConfig?.cellEditorPopup ?? false}
-                  onCheckedChange={(checked) => updateBulkProperty('cellEditorPopup', checked)}
-                  disabled={isDisabled}
-                />
-              </div>
-
-              {currentEditorConfig?.cellEditorPopup && (
-                <div className="space-y-2">
-                  <Label>Popup Position</Label>
-                  <Select
-                    value={currentEditorConfig?.cellEditorPopupPosition || 'over'}
-                    onValueChange={(value) => updateBulkProperty('cellEditorPopupPosition', value)}
-                    disabled={isDisabled}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="over">Over Cell</SelectItem>
-                      <SelectItem value="under">Under Cell</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        {currentEditorConfig?.editable !== false && (
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Editor Type</CardTitle>
+              <CardDescription className="text-sm">
+                Select the appropriate editor for your data
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Select
+                value={currentEditor}
+                onValueChange={handleEditorTypeChange}
+                disabled={isDisabled}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select an editor type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Default (Auto)</SelectItem>
+                  <Separator className="my-1" />
+                  {Object.entries(CELL_EDITORS).map(([key, editor]) => {
+                    const Icon = editor.icon;
+                    return (
+                      <SelectItem key={key} value={editor.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          <span>{editor.label}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                  <Separator className="my-1" />
+                  <SelectItem value="custom">Custom Editor</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && (
+                <Alert className="border-muted">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    {CELL_EDITORS[Object.keys(CELL_EDITORS).find(k => CELL_EDITORS[k as keyof typeof CELL_EDITORS].value === currentEditor) as keyof typeof CELL_EDITORS]?.description}
+                  </AlertDescription>
+                </Alert>
               )}
-            </>
-          )}
-        </div>
+              
+              {recommendedEditor && currentEditor !== recommendedEditor && currentEditor === 'none' && (
+                <Alert>
+                  <Lightbulb className="h-4 w-4" />
+                  <AlertTitle className="text-sm">Recommendation</AlertTitle>
+                  <AlertDescription className="text-sm">
+                    Based on your column data type, we recommend using{' '}
+                    <strong>{CELL_EDITORS[Object.keys(CELL_EDITORS).find(k => CELL_EDITORS[k as keyof typeof CELL_EDITORS].value === recommendedEditor) as keyof typeof CELL_EDITORS]?.label}</strong>
+                  </AlertDescription>
+                </Alert>
+              )}
 
-        {/* Editor-specific Parameters */}
-        {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && (
-          <>
-            <Separator />
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium">Editor Parameters</h4>
+              {/* Popup Configuration */}
+              {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && (
+                <>
+                  <Separator />
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="popup-editor" className="text-sm font-medium">
+                          Popup Editor
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Show editor in a popup instead of inline
+                        </p>
+                      </div>
+                      <Switch
+                        id="popup-editor"
+                        checked={currentEditorConfig?.cellEditorPopup ?? false}
+                        onCheckedChange={(checked) => updateBulkProperty('cellEditorPopup', checked)}
+                        disabled={isDisabled}
+                      />
+                    </div>
 
-              <Tabs defaultValue="basic" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="basic">Basic</TabsTrigger>
-                  <TabsTrigger value="advanced">Advanced</TabsTrigger>
-                </TabsList>
+                    {currentEditorConfig?.cellEditorPopup && (
+                      <div className="space-y-2">
+                        <Label htmlFor="popup-position" className="text-sm">Popup Position</Label>
+                        <Select
+                          value={currentEditorConfig?.cellEditorPopupPosition || 'over'}
+                          onValueChange={(value) => updateBulkProperty('cellEditorPopupPosition', value)}
+                          disabled={isDisabled}
+                        >
+                          <SelectTrigger id="popup-position" className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="over">Over Cell</SelectItem>
+                            <SelectItem value="under">Under Cell</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-                <TabsContent value="basic" className="space-y-4 mt-4">
+        {/* Editor Parameters */}
+        {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && currentEditorConfig?.editable !== false && (
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">Editor Parameters</CardTitle>
+                  <CardDescription className="text-sm">
+                    Customize editor behavior and options
+                  </CardDescription>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant={activeSection === 'basic' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setActiveSection('basic')}
+                    className="h-7 px-3"
+                  >
+                    Basic
+                  </Button>
+                  <Button
+                    variant={activeSection === 'advanced' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setActiveSection('advanced')}
+                    className="h-7 px-3"
+                  >
+                    Advanced
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {activeSection === 'basic' ? (
+                <div className="space-y-4">
                   {currentEditor === 'agTextCellEditor' && (
                     <TextEditorParams
                       editorParams={currentEditorConfig?.cellEditorParams || {}}
@@ -430,44 +496,47 @@ export const EditorsTab: React.FC = () => {
                       disabled={isDisabled}
                     />
                   )}
-                </TabsContent>
-
-                <TabsContent value="advanced" className="space-y-4 mt-4">
-                  <AdvancedEditorParams
-                    editorType={currentEditor}
-                    editorParams={currentEditorConfig?.cellEditorParams || {}}
-                    onParamChange={handleEditorParamChange}
-                    disabled={isDisabled}
-                  />
-                </TabsContent>
-              </Tabs>
-            </div>
-          </>
+                </div>
+              ) : (
+                <AdvancedEditorParams
+                  editorType={currentEditor}
+                  editorParams={currentEditorConfig?.cellEditorParams || {}}
+                  onParamChange={handleEditorParamChange}
+                  disabled={isDisabled}
+                />
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Custom Editor Configuration */}
         {currentEditor === 'custom' && (
-          <>
-            <Separator />
-            <CustomEditorConfig
-              disabled={isDisabled}
-            />
-          </>
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Custom Editor Setup</CardTitle>
+              <CardDescription className="text-sm">
+                Steps to implement a custom cell editor
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CustomEditorConfig disabled={isDisabled} />
+            </CardContent>
+          </Card>
         )}
 
         {/* Quick Actions */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Quick Actions</CardTitle>
-            <CardDescription className="text-xs">
-              Apply common editor configurations
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Quick Actions</CardTitle>
+            <CardDescription className="text-sm">
+              Apply common editor configurations with one click
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <Button
               variant="outline"
               size="sm"
-              className="w-full justify-start"
+              className="w-full justify-start h-9"
               onClick={() => handleBulkUpdate({
                 editable: true,
                 cellEditor: recommendedEditor || 'agTextCellEditor',
@@ -483,7 +552,7 @@ export const EditorsTab: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              className="w-full justify-start"
+              className="w-full justify-start h-9"
               onClick={() => handleBulkUpdate({
                 editable: false,
                 cellEditor: undefined,
@@ -498,7 +567,7 @@ export const EditorsTab: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              className="w-full justify-start"
+              className="w-full justify-start h-9"
               onClick={() => handleBulkUpdate({
                 editable: true,
                 cellEditor: undefined,
@@ -514,6 +583,18 @@ export const EditorsTab: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Tips */}
+        <Alert>
+          <Lightbulb className="h-4 w-4" />
+          <AlertTitle className="text-sm">Quick Tips</AlertTitle>
+          <AlertDescription className="text-xs space-y-1">
+            <p>• Text editors work best for general text input</p>
+            <p>• Use select editors when users should choose from predefined options</p>
+            <p>• Number editors provide validation and step controls</p>
+            <p>• Date editors ensure consistent date formatting</p>
+          </AlertDescription>
+        </Alert>
       </div>
     </ScrollArea>
   );
@@ -526,9 +607,9 @@ const TextEditorParams: React.FC<{
   disabled: boolean;
 }> = ({ editorParams, onParamChange, disabled }) => {
   return (
-    <>
+    <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="max-length">Max Length</Label>
+        <Label htmlFor="max-length" className="text-sm">Max Length</Label>
         <Input
           id="max-length"
           type="number"
@@ -536,15 +617,13 @@ const TextEditorParams: React.FC<{
           onChange={(e) => onParamChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined)}
           placeholder="No limit"
           disabled={disabled}
+          className="h-8"
         />
       </div>
 
       <div className="flex items-center justify-between">
         <Label htmlFor="use-formatter" className="text-sm">
           Use Value Formatter
-          <span className="block text-xs text-muted-foreground font-normal">
-            Format value while editing
-          </span>
         </Label>
         <Switch
           id="use-formatter"
@@ -553,7 +632,7 @@ const TextEditorParams: React.FC<{
           disabled={disabled}
         />
       </div>
-    </>
+    </div>
   );
 };
 
@@ -564,10 +643,10 @@ const LargeTextEditorParams: React.FC<{
   disabled: boolean;
 }> = ({ editorParams, onParamChange, disabled }) => {
   return (
-    <>
+    <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="rows">Rows</Label>
+          <Label htmlFor="rows" className="text-sm">Rows</Label>
           <Input
             id="rows"
             type="number"
@@ -575,11 +654,12 @@ const LargeTextEditorParams: React.FC<{
             onChange={(e) => onParamChange('rows', parseInt(e.target.value))}
             min={1}
             disabled={disabled}
+            className="h-8"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="cols">Columns</Label>
+          <Label htmlFor="cols" className="text-sm">Columns</Label>
           <Input
             id="cols"
             type="number"
@@ -587,12 +667,13 @@ const LargeTextEditorParams: React.FC<{
             onChange={(e) => onParamChange('cols', parseInt(e.target.value))}
             min={1}
             disabled={disabled}
+            className="h-8"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="max-length-large">Max Length</Label>
+        <Label htmlFor="max-length-large" className="text-sm">Max Length</Label>
         <Input
           id="max-length-large"
           type="number"
@@ -600,9 +681,10 @@ const LargeTextEditorParams: React.FC<{
           onChange={(e) => onParamChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined)}
           placeholder="No limit"
           disabled={disabled}
+          className="h-8"
         />
       </div>
-    </>
+    </div>
   );
 };
 
@@ -624,15 +706,16 @@ const SelectEditorParams: React.FC<{
   };
 
   return (
-    <>
+    <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Options (one per line)</Label>
+        <Label className="text-sm">Options (one per line)</Label>
         <Textarea
           value={valuesInput}
           onChange={(e) => handleValuesChange(e.target.value)}
           placeholder="Option 1&#10;Option 2&#10;Option 3"
           rows={5}
           disabled={disabled}
+          className="resize-none"
         />
         <p className="text-xs text-muted-foreground">
           Enter each option on a new line
@@ -642,13 +725,13 @@ const SelectEditorParams: React.FC<{
       {editorType === 'agRichSelectCellEditor' && (
         <>
           <div className="space-y-2">
-            <Label>Search Type</Label>
+            <Label className="text-sm">Search Type</Label>
             <Select
               value={editorParams.searchType || 'fuzzy'}
               onValueChange={(value) => onParamChange('searchType', value)}
               disabled={disabled}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -658,47 +741,49 @@ const SelectEditorParams: React.FC<{
             </Select>
           </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="allow-typing" className="text-sm">
-              Allow Typing
-            </Label>
-            <Switch
-              id="allow-typing"
-              checked={editorParams.allowTyping ?? true}
-              onCheckedChange={(checked) => onParamChange('allowTyping', checked)}
-              disabled={disabled}
-            />
-          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="allow-typing" className="text-sm">
+                Allow Typing
+              </Label>
+              <Switch
+                id="allow-typing"
+                checked={editorParams.allowTyping ?? true}
+                onCheckedChange={(checked) => onParamChange('allowTyping', checked)}
+                disabled={disabled}
+              />
+            </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="filter-list" className="text-sm">
-              Filter List
-            </Label>
-            <Switch
-              id="filter-list"
-              checked={editorParams.filterList ?? true}
-              onCheckedChange={(checked) => onParamChange('filterList', checked)}
-              disabled={disabled}
-            />
-          </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="filter-list" className="text-sm">
+                Filter List
+              </Label>
+              <Switch
+                id="filter-list"
+                checked={editorParams.filterList ?? true}
+                onCheckedChange={(checked) => onParamChange('filterList', checked)}
+                disabled={disabled}
+              />
+            </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="highlight-match" className="text-sm">
-              Highlight Match
-            </Label>
-            <Switch
-              id="highlight-match"
-              checked={editorParams.highlightMatch ?? true}
-              onCheckedChange={(checked) => onParamChange('highlightMatch', checked)}
-              disabled={disabled}
-            />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="highlight-match" className="text-sm">
+                Highlight Match
+              </Label>
+              <Switch
+                id="highlight-match"
+                checked={editorParams.highlightMatch ?? true}
+                onCheckedChange={(checked) => onParamChange('highlightMatch', checked)}
+                disabled={disabled}
+              />
+            </div>
           </div>
         </>
       )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="value-list-gap">List Gap (px)</Label>
+          <Label htmlFor="value-list-gap" className="text-sm">List Gap (px)</Label>
           <Input
             id="value-list-gap"
             type="number"
@@ -706,22 +791,26 @@ const SelectEditorParams: React.FC<{
             onChange={(e) => onParamChange('valueListGap', parseInt(e.target.value))}
             min={0}
             disabled={disabled}
+            className="h-8"
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="cell-height">Cell Height (px)</Label>
-          <Input
-            id="cell-height"
-            type="number"
-            value={editorParams.cellHeight || 30}
-            onChange={(e) => onParamChange('cellHeight', parseInt(e.target.value))}
-            min={20}
-            disabled={disabled}
-          />
-        </div>
+        {editorType === 'agRichSelectCellEditor' && (
+          <div className="space-y-2">
+            <Label htmlFor="cell-height" className="text-sm">Cell Height (px)</Label>
+            <Input
+              id="cell-height"
+              type="number"
+              value={editorParams.cellHeight || 30}
+              onChange={(e) => onParamChange('cellHeight', parseInt(e.target.value))}
+              min={20}
+              disabled={disabled}
+              className="h-8"
+            />
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 
@@ -732,10 +821,10 @@ const NumberEditorParams: React.FC<{
   disabled: boolean;
 }> = ({ editorParams, onParamChange, disabled }) => {
   return (
-    <>
+    <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="min">Min Value</Label>
+          <Label htmlFor="min" className="text-sm">Min Value</Label>
           <Input
             id="min"
             type="number"
@@ -743,11 +832,12 @@ const NumberEditorParams: React.FC<{
             onChange={(e) => onParamChange('min', e.target.value ? parseFloat(e.target.value) : undefined)}
             placeholder="No minimum"
             disabled={disabled}
+            className="h-8"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="max">Max Value</Label>
+          <Label htmlFor="max" className="text-sm">Max Value</Label>
           <Input
             id="max"
             type="number"
@@ -755,13 +845,14 @@ const NumberEditorParams: React.FC<{
             onChange={(e) => onParamChange('max', e.target.value ? parseFloat(e.target.value) : undefined)}
             placeholder="No maximum"
             disabled={disabled}
+            className="h-8"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="precision">Decimal Places</Label>
+          <Label htmlFor="precision" className="text-sm">Decimal Places</Label>
           <Input
             id="precision"
             type="number"
@@ -770,11 +861,12 @@ const NumberEditorParams: React.FC<{
             placeholder="Any"
             min={0}
             disabled={disabled}
+            className="h-8"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="step">Step</Label>
+          <Label htmlFor="step" className="text-sm">Step</Label>
           <Input
             id="step"
             type="number"
@@ -783,6 +875,7 @@ const NumberEditorParams: React.FC<{
             min={0}
             step="any"
             disabled={disabled}
+            className="h-8"
           />
         </div>
       </div>
@@ -790,9 +883,6 @@ const NumberEditorParams: React.FC<{
       <div className="flex items-center justify-between">
         <Label htmlFor="stepper-buttons" className="text-sm">
           Show Stepper Buttons
-          <span className="block text-xs text-muted-foreground font-normal">
-            Show increment/decrement buttons
-          </span>
         </Label>
         <Switch
           id="stepper-buttons"
@@ -801,7 +891,7 @@ const NumberEditorParams: React.FC<{
           disabled={disabled}
         />
       </div>
-    </>
+    </div>
   );
 };
 
@@ -812,15 +902,16 @@ const DateEditorParams: React.FC<{
   disabled: boolean;
 }> = ({ editorParams, onParamChange, disabled }) => {
   return (
-    <>
+    <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="date-format">Date Format</Label>
+        <Label htmlFor="date-format" className="text-sm">Date Format</Label>
         <Input
           id="date-format"
           value={editorParams.format || ''}
           onChange={(e) => onParamChange('format', e.target.value)}
           placeholder="e.g., YYYY-MM-DD"
           disabled={disabled}
+          className="h-8"
         />
         <p className="text-xs text-muted-foreground">
           Format string for displaying dates
@@ -829,28 +920,30 @@ const DateEditorParams: React.FC<{
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="min-date">Min Date</Label>
+          <Label htmlFor="min-date" className="text-sm">Min Date</Label>
           <Input
             id="min-date"
             type="date"
             value={editorParams.min || ''}
             onChange={(e) => onParamChange('min', e.target.value)}
             disabled={disabled}
+            className="h-8"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="max-date">Max Date</Label>
+          <Label htmlFor="max-date" className="text-sm">Max Date</Label>
           <Input
             id="max-date"
             type="date"
             value={editorParams.max || ''}
             onChange={(e) => onParamChange('max', e.target.value)}
             disabled={disabled}
+            className="h-8"
           />
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
@@ -863,45 +956,45 @@ const AdvancedEditorParams: React.FC<{
 }> = ({ editorType, editorParams, onParamChange, disabled }) => {
   return (
     <div className="space-y-4">
-      <Alert>
+      <Alert className="border-muted">
         <Info className="h-4 w-4" />
-        <AlertDescription className="text-xs">
+        <AlertDescription className="text-sm">
           Advanced parameters for fine-tuning editor behavior
         </AlertDescription>
       </Alert>
 
       {(editorType === 'agSelectCellEditor' || editorType === 'agRichSelectCellEditor') && (
-        <>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="list-max-height">Max Height (px)</Label>
-              <Input
-                id="list-max-height"
-                type="number"
-                value={editorParams.valueListMaxHeight || ''}
-                onChange={(e) => onParamChange('valueListMaxHeight', e.target.value ? parseInt(e.target.value) : undefined)}
-                placeholder="Auto"
-                disabled={disabled}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="list-max-width">Max Width (px)</Label>
-              <Input
-                id="list-max-width"
-                type="number"
-                value={editorParams.valueListMaxWidth || ''}
-                onChange={(e) => onParamChange('valueListMaxWidth', e.target.value ? parseInt(e.target.value) : undefined)}
-                placeholder="Auto"
-                disabled={disabled}
-              />
-            </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="list-max-height" className="text-sm">Max Height (px)</Label>
+            <Input
+              id="list-max-height"
+              type="number"
+              value={editorParams.valueListMaxHeight || ''}
+              onChange={(e) => onParamChange('valueListMaxHeight', e.target.value ? parseInt(e.target.value) : undefined)}
+              placeholder="Auto"
+              disabled={disabled}
+              className="h-8"
+            />
           </div>
-        </>
+
+          <div className="space-y-2">
+            <Label htmlFor="list-max-width" className="text-sm">Max Width (px)</Label>
+            <Input
+              id="list-max-width"
+              type="number"
+              value={editorParams.valueListMaxWidth || ''}
+              onChange={(e) => onParamChange('valueListMaxWidth', e.target.value ? parseInt(e.target.value) : undefined)}
+              placeholder="Auto"
+              disabled={disabled}
+              className="h-8"
+            />
+          </div>
+        </div>
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="char-press">Start Editing Key</Label>
+        <Label htmlFor="char-press" className="text-sm">Start Editing Key</Label>
         <Input
           id="char-press"
           value={editorParams.charPress || ''}
@@ -909,6 +1002,7 @@ const AdvancedEditorParams: React.FC<{
           placeholder="Any key"
           maxLength={1}
           disabled={disabled}
+          className="h-8"
         />
         <p className="text-xs text-muted-foreground">
           Specific key that starts editing (leave empty for any key)
@@ -918,9 +1012,6 @@ const AdvancedEditorParams: React.FC<{
       <div className="flex items-center justify-between">
         <Label htmlFor="format-after-edit" className="text-sm">
           Format After Edit
-          <span className="block text-xs text-muted-foreground font-normal">
-            Apply value formatter after editing completes
-          </span>
         </Label>
         <Switch
           id="format-after-edit"
@@ -939,59 +1030,52 @@ const CustomEditorConfig: React.FC<{
 }> = ({ disabled }) => {
   return (
     <div className="space-y-4">
-      <Alert>
+      <Alert className="border-muted">
         <Code className="h-4 w-4" />
-        <AlertDescription className="text-xs">
+        <AlertDescription className="text-sm">
           Custom editors require implementing a cell editor component
         </AlertDescription>
       </Alert>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Custom Editor Setup</CardTitle>
-          <CardDescription className="text-xs">
-            Steps to implement a custom cell editor
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-start gap-2">
-            <ChevronRight className="h-4 w-4 mt-0.5 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="text-sm">1. Create Editor Component</p>
-              <code className="text-xs bg-muted px-2 py-1 rounded">
-                class CustomEditor implements ICellEditorComp
-              </code>
-            </div>
+      <div className="space-y-3">
+        <div className="flex items-start gap-2">
+          <Badge variant="secondary" className="text-xs">1</Badge>
+          <div className="space-y-1 flex-1">
+            <p className="text-sm font-medium">Create Editor Component</p>
+            <code className="text-xs bg-muted px-2 py-1 rounded block">
+              class CustomEditor implements ICellEditorComp
+            </code>
           </div>
+        </div>
 
-          <div className="flex items-start gap-2">
-            <ChevronRight className="h-4 w-4 mt-0.5 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="text-sm">2. Implement Required Methods</p>
-              <code className="text-xs bg-muted px-2 py-1 rounded">
-                getValue(), isPopup(), getGui()
-              </code>
-            </div>
+        <div className="flex items-start gap-2">
+          <Badge variant="secondary" className="text-xs">2</Badge>
+          <div className="space-y-1 flex-1">
+            <p className="text-sm font-medium">Implement Required Methods</p>
+            <code className="text-xs bg-muted px-2 py-1 rounded block">
+              getValue(), isPopup(), getGui()
+            </code>
           </div>
+        </div>
 
-          <div className="flex items-start gap-2">
-            <ChevronRight className="h-4 w-4 mt-0.5 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="text-sm">3. Register the Component</p>
-              <code className="text-xs bg-muted px-2 py-1 rounded">
-                cellEditor: CustomEditor
-              </code>
-            </div>
+        <div className="flex items-start gap-2">
+          <Badge variant="secondary" className="text-xs">3</Badge>
+          <div className="space-y-1 flex-1">
+            <p className="text-sm font-medium">Register the Component</p>
+            <code className="text-xs bg-muted px-2 py-1 rounded block">
+              cellEditor: CustomEditor
+            </code>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <div className="space-y-2">
-        <Label htmlFor="component-name">Component Name</Label>
+        <Label htmlFor="component-name" className="text-sm">Component Name</Label>
         <Input
           id="component-name"
           placeholder="e.g., MyCustomEditor"
           disabled={disabled}
+          className="h-8"
         />
         <p className="text-xs text-muted-foreground">
           Enter the name of your custom editor component

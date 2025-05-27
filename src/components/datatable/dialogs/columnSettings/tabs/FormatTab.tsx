@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,7 +54,6 @@ const PREDEFINED_FORMATTERS = {
       { value: 'YYYY-MM-DD', label: 'ISO Date (2024-12-31)', preview: '2024-12-31' },
       { value: 'MMM DD, YYYY', label: 'Medium Date (Dec 31, 2024)', preview: 'Dec 31, 2024' },
       { value: 'MMMM DD, YYYY', label: 'Long Date (December 31, 2024)', preview: 'December 31, 2024' },
-      { value: 'DDD, MMM DD', label: 'Short with Day (Mon, Dec 31)', preview: 'Mon, Dec 31' },
     ]
   },
   time: {
@@ -67,62 +66,52 @@ const PREDEFINED_FORMATTERS = {
     ]
   },
   scientific: {
-    label: 'Scientific',
+    label: 'Scientific & Special',
     options: [
       { value: '0.00E+00', label: 'Scientific (1.23E+03)', preview: '1.23E+03' },
-      { value: '0.000E+00', label: '3 Decimals (1.234E+03)', preview: '1.234E+03' },
-      { value: '#.##E+0', label: 'Compact (1.23E+3)', preview: '1.23E+3' },
-    ]
-  },
-  special: {
-    label: 'Special',
-    options: [
-      { value: '[>=1000000]#,##0,,"M";[>=1000]#,##0,"K";#,##0', label: 'Abbreviated (1.2M, 450K)', preview: '1.2M' },
-      { value: '"("0")"', label: 'Parentheses ((1234))', preview: '(1234)' },
-      { value: '0;[Red]-0', label: 'Negative in Red', preview: '1234' },
-      { value: '"+"0;"-"0;0', label: 'Show +/- Signs (+1234)', preview: '+1234' },
-      { value: '0.0,', label: 'Thousands (divide by 1000)', preview: '1.2' },
-      { value: '0.0,,', label: 'Millions (divide by million)', preview: '0.0' },
+      { value: '0.0E+0', label: 'Scientific Short (1.2E+3)', preview: '1.2E+3' },
+      { value: '[>999999]#,,"M";[>999]#,"K";#', label: 'Abbreviated (1.2M, 450K)', preview: '1.2M' },
+      { value: '+0;-0;0', label: 'Show +/- signs', preview: '+123' },
+      { value: '(0)', label: 'Parentheses for negative', preview: '(123)' },
     ]
   }
 };
 
-// Format guide examples
+// Format string examples for the guide
 const FORMAT_EXAMPLES = {
   basic: [
-    { format: '0', description: 'Integer with no decimal places', example: '1234' },
-    { format: '0.00', description: 'Number with 2 decimal places', example: '1234.50' },
-    { format: '#,##0', description: 'Number with thousands separator', example: '1,234' },
-    { format: '0%', description: 'Percentage', example: '12%' },
-    { format: '$0.00', description: 'Currency', example: '$12.34' },
+    { pattern: '0', desc: 'Display as integer', example: '1234' },
+    { pattern: '0.00', desc: 'Two decimal places', example: '1234.50' },
+    { pattern: '#,##0', desc: 'Thousands separator', example: '1,234' },
+    { pattern: '#,##0.00', desc: 'Thousands with decimals', example: '1,234.50' },
+    { pattern: '0%', desc: 'Percentage', example: '75%' },
+    { pattern: '0.0%', desc: 'Percentage with decimal', example: '75.5%' },
   ],
   conditional: [
-    { format: '[>1000]"High";[<100]"Low";"Medium"', description: 'Conditional text based on value', example: 'High' },
-    { format: '[Red][<0]0;[Blue][>0]0;0', description: 'Color negative red, positive blue', example: '-123' },
-    { format: '[>=1000000]0.0,,"M";[>=1000]0.0,"K";0', description: 'Format large numbers as K/M', example: '1.2M' },
+    { pattern: '[Red]0', desc: 'Color formatting', example: '1234 (in red)' },
+    { pattern: '[>100]"High";[<50]"Low";"Medium"', desc: 'Conditional text', example: 'High' },
+    { pattern: '[Green]0;[Red]-0', desc: 'Color positive/negative', example: '123 / -123' },
   ],
   prefixSuffix: [
-    { format: '"$"0.00', description: 'Prefix with dollar sign', example: '$123.45' },
-    { format: '0" USD"', description: 'Suffix with currency code', example: '123 USD' },
-    { format: '"("0")"', description: 'Wrap in parentheses', example: '(123)' },
-    { format: '"+"0;"-"0;0', description: 'Show +/- signs', example: '+123' },
+    { pattern: '"$"0', desc: 'Currency prefix', example: '$100' },
+    { pattern: '0" USD"', desc: 'Currency suffix', example: '100 USD' },
+    { pattern: '"("0")"', desc: 'Wrap in parentheses', example: '(100)' },
+    { pattern: '0" units"', desc: 'Unit suffix', example: '50 units' },
   ],
   advanced: [
-    { format: '0.0E+00', description: 'Scientific notation', example: '1.2E+02' },
-    { format: '# ?/?', description: 'Fraction', example: '1 1/4' },
-    { format: '@', description: 'Text placeholder', example: 'Hello' },
-    { format: '00000', description: 'Pad with zeros', example: '00123' },
+    { pattern: '0.00E+00', desc: 'Scientific notation', example: '1.23E+03' },
+    { pattern: '# ?/?', desc: 'Fractions', example: '1 1/2' },
+    { pattern: '00000', desc: 'Leading zeros', example: '00123' },
+    { pattern: '@', desc: 'Text placeholder', example: 'Hello' },
   ]
 };
 
 export const FormatTab: React.FC = () => {
   const {
     selectedColumns,
-    pendingChanges,
     columnDefinitions,
-    updateBulkProperty,
-    showOnlyCommon,
-    compareMode
+    pendingChanges,
+    updateBulkProperty
   } = useColumnCustomizationStore();
 
   const [selectedFormat, setSelectedFormat] = useState<string>('default');
@@ -130,43 +119,43 @@ export const FormatTab: React.FC = () => {
   const [showGuide, setShowGuide] = useState(false);
   const [copiedExample, setCopiedExample] = useState<string | null>(null);
 
-  // Get current format value
+  // Get current format from selected columns
   const currentFormat = useMemo(() => {
     if (selectedColumns.size === 0) return null;
-
+    
     const formats = new Set<string>();
     selectedColumns.forEach(colId => {
-      const changes = pendingChanges.get(colId);
       const colDef = columnDefinitions.get(colId);
-      const format = changes?.valueFormat || colDef?.valueFormat || '';
+      const changes = pendingChanges.get(colId);
+      const format = changes?.valueFormat || colDef?.valueFormat || 'default';
       formats.add(format);
     });
 
-    return formats.size === 1 ? Array.from(formats)[0] : '';
-  }, [selectedColumns, pendingChanges, columnDefinitions]);
+    return formats.size === 1 ? Array.from(formats)[0] : null;
+  }, [selectedColumns, columnDefinitions, pendingChanges]);
 
-  // Check if selected format matches any predefined
+  // Find matching predefined format
   const matchedFormat = useMemo(() => {
-    if (!currentFormat) return 'default';
+    if (!currentFormat || currentFormat === 'default') return null;
     
-    for (const category of Object.values(PREDEFINED_FORMATTERS)) {
-      for (const option of category.options) {
-        if (option.value === currentFormat) {
-          return option.value;
-        }
-      }
+    for (const [, category] of Object.entries(PREDEFINED_FORMATTERS)) {
+      const match = category.options.find(opt => opt.value === currentFormat);
+      if (match) return match;
     }
-    
-    return 'custom';
+    return null;
   }, [currentFormat]);
 
-  // Update selection when current format changes
+  // Sync selected format with current format
   React.useEffect(() => {
-    if (matchedFormat === 'custom' && currentFormat) {
-      setCustomFormat(currentFormat);
-      setSelectedFormat('custom');
-    } else {
-      setSelectedFormat(matchedFormat);
+    if (currentFormat) {
+      if (matchedFormat) {
+        setSelectedFormat(currentFormat);
+      } else if (currentFormat !== 'default') {
+        setSelectedFormat('custom');
+        setCustomFormat(currentFormat);
+      } else {
+        setSelectedFormat('default');
+      }
     }
   }, [matchedFormat, currentFormat]);
 
@@ -200,8 +189,8 @@ export const FormatTab: React.FC = () => {
   };
 
   // Create a formatter function from format string
-  const createFormatterFunction = (format: string): ((params: any) => string) => {
-    return (params: any) => {
+  const createFormatterFunction = (format: string): ((params: { value: number | null | undefined }) => string) => {
+    return (params: { value: number | null | undefined }) => {
       if (params.value == null) return '';
       
       // This is a simplified formatter - in production, you'd use a library like numeral.js
@@ -232,70 +221,107 @@ export const FormatTab: React.FC = () => {
   const isDisabled = selectedColumns.size === 0;
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label>Number Format</Label>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowGuide(true)}
-            className="h-8 px-2"
-          >
-            <HelpCircle className="h-4 w-4 mr-1" />
-            Format Guide
-          </Button>
-        </div>
-
-        <Select
-          value={selectedFormat}
-          onValueChange={handleFormatChange}
-          disabled={isDisabled}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a format" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="default">Default</SelectItem>
-            {Object.entries(PREDEFINED_FORMATTERS).map(([key, category]) => (
-              <SelectGroup key={key}>
-                <SelectLabel>{category.label}</SelectLabel>
-                {category.options.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center justify-between w-full">
-                      <span>{option.label}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">{option.preview}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            ))}
-            <SelectItem value="custom">Custom Format...</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {selectedFormat === 'custom' && (
-          <div className="space-y-2">
-            <Label htmlFor="custom-format">Custom Format String</Label>
-            <Input
-              id="custom-format"
-              value={customFormat}
-              onChange={(e) => handleCustomFormatChange(e.target.value)}
-              placeholder='e.g., #,##0.00 or "USD" 0.00'
-              disabled={isDisabled}
-            />
+    <ScrollArea className="h-full">
+      <div className="p-6">
+        <div className="space-y-6">
+          {/* Header Section */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">Value Formatting</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowGuide(true)}
+                className="h-7 text-xs gap-1"
+              >
+                <HelpCircle className="h-3 w-3" />
+                Format Guide
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Enter an Excel-style format string. Click the guide for examples.
+              Apply number, currency, date, or custom formats to cell values
             </p>
           </div>
-        )}
 
-        {currentFormat && (
-          <div className="p-3 bg-muted/50 rounded-md">
-            <p className="text-sm font-medium mb-1">Current Format</p>
-            <code className="text-xs bg-background px-2 py-1 rounded">{currentFormat}</code>
+          {/* Format Selection */}
+          <div className="space-y-2">
+            <Label className="text-sm">Select Format</Label>
+            <Select
+              value={selectedFormat}
+              onValueChange={handleFormatChange}
+              disabled={isDisabled}
+            >
+              <SelectTrigger className="w-full h-9">
+                <SelectValue placeholder="Select format" />
+              </SelectTrigger>
+              <SelectContent className="max-h-96">
+                <SelectItem value="default">Default (No formatting)</SelectItem>
+                
+                {Object.entries(PREDEFINED_FORMATTERS).map(([category, { label, options }]) => (
+                  <SelectGroup key={category}>
+                    <SelectLabel className="font-semibold text-xs px-2">{label}</SelectLabel>
+                    {options.map(option => (
+                      <SelectItem key={option.value} value={option.value} className="text-sm">
+                        <div className="flex items-center justify-between w-full">
+                          <span>{option.label}</span>
+                          <span className="ml-4 text-muted-foreground text-xs font-mono">
+                            {option.preview}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+                
+                <SelectItem value="custom">Custom Format...</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
+
+          {/* Custom format input */}
+          {selectedFormat === 'custom' && (
+            <div className="space-y-2 p-4 bg-muted/30 rounded-lg border">
+              <Label htmlFor="custom-format" className="text-sm">Custom Format String</Label>
+              <Input
+                id="custom-format"
+                value={customFormat}
+                onChange={(e) => handleCustomFormatChange(e.target.value)}
+                placeholder="Enter format string (e.g., #,##0.00)"
+                disabled={isDisabled}
+                className="h-9 font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Use Excel-style format strings. Click "Format Guide" for examples.
+              </p>
+            </div>
+          )}
+
+          {/* Current format display */}
+          {currentFormat && currentFormat !== 'default' && (
+            <div className="p-4 bg-muted/20 rounded-lg border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase text-muted-foreground mb-1">Current Format</p>
+                  <p className="text-sm font-mono">{currentFormat}</p>
+                </div>
+                {matchedFormat && (
+                  <Badge variant="secondary" className="text-xs">{matchedFormat.label}</Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Tips */}
+          <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+            <h4 className="text-xs font-medium mb-2">Quick Tips</h4>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>• Use # for optional digits, 0 for required digits</li>
+              <li>• Add commas for thousands separators (#,##0)</li>
+              <li>• Use % for percentages (values will be multiplied by 100)</li>
+              <li>• Wrap text in quotes for prefixes/suffixes ("$"0.00)</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       {/* Format Guide Dialog */}
@@ -328,18 +354,19 @@ export const FormatTab: React.FC = () => {
                       {FORMAT_EXAMPLES.basic.map((example, i) => (
                         <div key={i} className="flex items-center justify-between p-2 rounded hover:bg-muted/50">
                           <div className="flex-1">
-                            <code className="text-sm bg-muted px-2 py-1 rounded">{example.format}</code>
-                            <p className="text-xs text-muted-foreground mt-1">{example.description}</p>
+                            <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{example.pattern}</code>
+                            <p className="text-xs text-muted-foreground mt-1">{example.desc}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">{example.example}</Badge>
+                            <span className="text-sm text-muted-foreground">{example.example}</span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(example.format)}
+                              onClick={() => copyToClipboard(example.pattern)}
+                              className="h-6 w-6 p-0"
                             >
-                              {copiedExample === example.format ? (
-                                <Check className="h-3 w-3" />
+                              {copiedExample === example.pattern ? (
+                                <Check className="h-3 w-3 text-green-500" />
                               ) : (
                                 <Copy className="h-3 w-3" />
                               )}
@@ -363,18 +390,19 @@ export const FormatTab: React.FC = () => {
                       {FORMAT_EXAMPLES.conditional.map((example, i) => (
                         <div key={i} className="flex items-center justify-between p-2 rounded hover:bg-muted/50">
                           <div className="flex-1">
-                            <code className="text-sm bg-muted px-2 py-1 rounded">{example.format}</code>
-                            <p className="text-xs text-muted-foreground mt-1">{example.description}</p>
+                            <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{example.pattern}</code>
+                            <p className="text-xs text-muted-foreground mt-1">{example.desc}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">{example.example}</Badge>
+                            <span className="text-sm text-muted-foreground">{example.example}</span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(example.format)}
+                              onClick={() => copyToClipboard(example.pattern)}
+                              className="h-6 w-6 p-0"
                             >
-                              {copiedExample === example.format ? (
-                                <Check className="h-3 w-3" />
+                              {copiedExample === example.pattern ? (
+                                <Check className="h-3 w-3 text-green-500" />
                               ) : (
                                 <Copy className="h-3 w-3" />
                               )}
@@ -391,25 +419,26 @@ export const FormatTab: React.FC = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-sm">Prefix & Suffix</CardTitle>
-                    <CardDescription>Add text before or after values</CardDescription>
+                    <CardDescription>Add text before or after numbers</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       {FORMAT_EXAMPLES.prefixSuffix.map((example, i) => (
                         <div key={i} className="flex items-center justify-between p-2 rounded hover:bg-muted/50">
                           <div className="flex-1">
-                            <code className="text-sm bg-muted px-2 py-1 rounded">{example.format}</code>
-                            <p className="text-xs text-muted-foreground mt-1">{example.description}</p>
+                            <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{example.pattern}</code>
+                            <p className="text-xs text-muted-foreground mt-1">{example.desc}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">{example.example}</Badge>
+                            <span className="text-sm text-muted-foreground">{example.example}</span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(example.format)}
+                              onClick={() => copyToClipboard(example.pattern)}
+                              className="h-6 w-6 p-0"
                             >
-                              {copiedExample === example.format ? (
-                                <Check className="h-3 w-3" />
+                              {copiedExample === example.pattern ? (
+                                <Check className="h-3 w-3 text-green-500" />
                               ) : (
                                 <Copy className="h-3 w-3" />
                               )}
@@ -426,25 +455,26 @@ export const FormatTab: React.FC = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-sm">Advanced Formats</CardTitle>
-                    <CardDescription>Special formatting techniques</CardDescription>
+                    <CardDescription>Scientific notation, fractions, and more</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       {FORMAT_EXAMPLES.advanced.map((example, i) => (
                         <div key={i} className="flex items-center justify-between p-2 rounded hover:bg-muted/50">
                           <div className="flex-1">
-                            <code className="text-sm bg-muted px-2 py-1 rounded">{example.format}</code>
-                            <p className="text-xs text-muted-foreground mt-1">{example.description}</p>
+                            <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{example.pattern}</code>
+                            <p className="text-xs text-muted-foreground mt-1">{example.desc}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">{example.example}</Badge>
+                            <span className="text-sm text-muted-foreground">{example.example}</span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(example.format)}
+                              onClick={() => copyToClipboard(example.pattern)}
+                              className="h-6 w-6 p-0"
                             >
-                              {copiedExample === example.format ? (
-                                <Check className="h-3 w-3" />
+                              {copiedExample === example.pattern ? (
+                                <Check className="h-3 w-3 text-green-500" />
                               ) : (
                                 <Copy className="h-3 w-3" />
                               )}
@@ -459,23 +489,19 @@ export const FormatTab: React.FC = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-sm">Format String Syntax</CardTitle>
+                    <CardDescription>Complete reference</CardDescription>
                   </CardHeader>
-                  <CardContent className="text-sm space-y-2">
-                    <p><strong>Sections:</strong> Formats can have up to 4 sections separated by semicolons:</p>
-                    <code className="block bg-muted p-2 rounded text-xs">positive;negative;zero;text</code>
-                    
-                    <p className="mt-3"><strong>Special Characters:</strong></p>
-                    <ul className="list-disc list-inside space-y-1 text-xs">
-                      <li><code>0</code> - Digit placeholder (shows 0 if no digit)</li>
-                      <li><code>#</code> - Digit placeholder (nothing if no digit)</li>
-                      <li><code>.</code> - Decimal point</li>
-                      <li><code>,</code> - Thousands separator</li>
-                      <li><code>%</code> - Percentage (multiplies by 100)</li>
-                      <li><code>E+</code> - Scientific notation</li>
-                      <li><code>"text"</code> - Literal text</li>
-                      <li><code>[condition]</code> - Conditional formatting</li>
-                      <li><code>[color]</code> - Text color (Red, Blue, Green, etc.)</li>
-                    </ul>
+                  <CardContent className="text-xs space-y-2">
+                    <p><strong>0</strong> - Display digit or 0</p>
+                    <p><strong>#</strong> - Display digit or nothing</p>
+                    <p><strong>,</strong> - Thousands separator</p>
+                    <p><strong>.</strong> - Decimal point</p>
+                    <p><strong>%</strong> - Percentage (multiply by 100)</p>
+                    <p><strong>E+, E-</strong> - Scientific notation</p>
+                    <p><strong>"text"</strong> - Display literal text</p>
+                    <p><strong>@</strong> - Text placeholder</p>
+                    <p><strong>[condition]</strong> - Conditional formatting</p>
+                    <p><strong>;</strong> - Section separator (positive;negative;zero;text)</p>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -483,6 +509,6 @@ export const FormatTab: React.FC = () => {
           </Tabs>
         </DialogContent>
       </Dialog>
-    </div>
+    </ScrollArea>
   );
 };

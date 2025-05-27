@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { subscribeWithSelector } from 'zustand/middleware';
 import { ColDef as AgColDef } from 'ag-grid-community';
+import { debounce } from 'lodash';
 
 // Extend AG-Grid ColDef to include our custom properties
 export interface ColDef extends AgColDef {
@@ -65,9 +67,20 @@ export interface DialogActions {
 
 export type ColumnCustomizationStore = DialogState & DialogActions;
 
+// Performance optimization: memoized selectors
+export const useSelectedColumns = () => useColumnCustomizationStore(state => state.selectedColumns);
+export const useColumnDefinitions = () => useColumnCustomizationStore(state => state.columnDefinitions);
+export const usePendingChanges = () => useColumnCustomizationStore(state => state.pendingChanges);
+
+// Create debounced apply function outside of the store
+const debouncedApply = debounce((applyFn: () => void) => {
+  applyFn();
+}, 150);
+
 export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
-  persist(
-    (set, get) => ({
+  subscribeWithSelector(
+    persist(
+      (set, get) => ({
       // Initial state
       open: false,
       selectedColumns: new Set<string>(),
@@ -92,52 +105,41 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
       updateBulkProperty: (property, value) => {
         const { selectedColumns, pendingChanges, applyMode, onImmediateApply, columnDefinitions } = get();
+        if (selectedColumns.size === 0) return;
+        
         const newPendingChanges = new Map(pendingChanges);
 
+        // Batch updates for performance
+        const processedValue = property === 'headerStyle' && typeof value === 'object'
+          ? (params: { floatingFilter?: boolean }) => (!params.floatingFilter ? value : null)
+          : value;
 
         selectedColumns.forEach(colId => {
           const existing = newPendingChanges.get(colId) || {};
           if (value === undefined) {
-            // Remove the property if value is undefined
-            const updatedExisting = { ...existing };
-            delete updatedExisting[property as keyof ColDef];
-            if (Object.keys(updatedExisting).length === 0) {
+            const updated = { ...existing };
+            delete updated[property as keyof ColDef];
+            if (Object.keys(updated).length === 0) {
               newPendingChanges.delete(colId);
             } else {
-              newPendingChanges.set(colId, updatedExisting);
+              newPendingChanges.set(colId, updated);
             }
           } else {
-            // Special handling for headerStyle to prevent floating filter contamination
-            if (property === 'headerStyle' && typeof value === 'object') {
-              // Convert static style object to a callback function that only applies to headers
-              const styleObject = value as React.CSSProperties;
-              value = (params: any) => {
-                // Only apply styles to the actual header, not floating filters
-                if (!params.floatingFilter) {
-                  return styleObject;
-                }
-                // Return null for floating filters to keep them unstyled
-                return null;
-              };
-            }
-            newPendingChanges.set(colId, { ...existing, [property]: value });
+            newPendingChanges.set(colId, { ...existing, [property]: processedValue });
           }
         });
 
         set({ pendingChanges: newPendingChanges });
 
-        // Apply immediately if in immediate mode
+        // Apply immediately if in immediate mode with debouncing
         if (applyMode === 'immediate' && onImmediateApply) {
-          const updatedColumns: ColDef[] = [];
-          columnDefinitions.forEach((colDef, colId) => {
-            const changes = newPendingChanges.get(colId);
-            if (changes) {
-              updatedColumns.push({ ...colDef, ...changes });
-            } else {
-              updatedColumns.push(colDef);
-            }
+          debouncedApply(() => {
+            const updatedColumns = Array.from(columnDefinitions.entries()).map(([colId, colDef]) => {
+              const changes = newPendingChanges.get(colId);
+              return changes ? { ...colDef, ...changes } : colDef;
+            });
+            onImmediateApply(updatedColumns);
           });
-          onImmediateApply(updatedColumns);
         }
       },
 
@@ -156,7 +158,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
               // Special handling for headerStyle to prevent floating filter contamination
               if (property === 'headerStyle' && typeof value === 'object') {
                 const styleObject = value as React.CSSProperties;
-                updated[property as keyof ColDef] = ((params: any) => {
+                updated[property as keyof ColDef] = ((params: { floatingFilter?: boolean }) => {
                   if (!params.floatingFilter) {
                     return styleObject;
                   }
@@ -177,18 +179,20 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
         set({ pendingChanges: newPendingChanges });
 
-        // Apply immediately if in immediate mode - do it once for all properties
+        // Apply immediately if in immediate mode with debouncing
         if (applyMode === 'immediate' && onImmediateApply) {
-          const updatedColumns: ColDef[] = [];
-          columnDefinitions.forEach((colDef, colId) => {
-            const changes = newPendingChanges.get(colId);
-            if (changes) {
-              updatedColumns.push({ ...colDef, ...changes });
-            } else {
-              updatedColumns.push(colDef);
-            }
+          debouncedApply(() => {
+            const updatedColumns: ColDef[] = [];
+            columnDefinitions.forEach((colDef, colId) => {
+              const changes = newPendingChanges.get(colId);
+              if (changes) {
+                updatedColumns.push({ ...colDef, ...changes });
+              } else {
+                updatedColumns.push(colDef);
+              }
+            });
+            onImmediateApply(updatedColumns);
           });
-          onImmediateApply(updatedColumns);
         }
       },
 
@@ -236,25 +240,26 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       },
 
       clearTemplateColumns: () => set({ templateColumns: new Set() }),
-    }),
-    {
-      name: 'column-customization-store',
-      partialize: (state) => ({
-        // Only persist UI preferences, not data
-        applyMode: state.applyMode,
-        activeTab: state.activeTab,
-        showOnlyCommon: state.showOnlyCommon,
-        compareMode: state.compareMode,
-        cellDataTypeFilter: state.cellDataTypeFilter,
-        bulkActionsPanelCollapsed: state.bulkActionsPanelCollapsed,
-        templateColumns: Array.from(state.templateColumns), // Convert Set to Array for serialization
       }),
-      onRehydrateStorage: () => (state) => {
-        // Convert templateColumns back to Set after rehydration
-        if (state && Array.isArray(state.templateColumns)) {
-          state.templateColumns = new Set(state.templateColumns);
-        }
-      },
-    }
+      {
+        name: 'column-customization-store',
+        partialize: (state) => ({
+          // Only persist UI preferences, not data
+          applyMode: state.applyMode,
+          activeTab: state.activeTab,
+          showOnlyCommon: state.showOnlyCommon,
+          compareMode: state.compareMode,
+          cellDataTypeFilter: state.cellDataTypeFilter,
+          bulkActionsPanelCollapsed: state.bulkActionsPanelCollapsed,
+          templateColumns: Array.from(state.templateColumns), // Convert Set to Array for serialization
+        }),
+        onRehydrateStorage: () => (state) => {
+          // Convert templateColumns back to Set after rehydration
+          if (state && Array.isArray(state.templateColumns)) {
+            state.templateColumns = new Set(state.templateColumns);
+          }
+        },
+      }
+    )
   )
 );

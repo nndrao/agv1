@@ -11,11 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HexColorPicker } from 'react-colorful';
-import { Editor } from '@monaco-editor/react';
-import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -25,9 +22,10 @@ import {
   Italic,
   Underline,
   Square,
-  Code,
   Eye,
-  RotateCcw
+  X,
+  RotateCcw,
+  Paintbrush
 } from 'lucide-react';
 
 interface StyleEditorProps {
@@ -48,13 +46,15 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
   isHeaderStyle = false
 }) => {
   const [style, setStyle] = useState<React.CSSProperties>(initialStyle);
-  const [cssText, setCssText] = useState(convertStyleToCss(initialStyle));
-  const [activeTab, setActiveTab] = useState('visual');
+  const [activeTab, setActiveTab] = useState('all');
+  const [showIndividualBorders, setShowIndividualBorders] = useState(false);
 
-  // Sync with initialStyle changes
   useEffect(() => {
     setStyle(initialStyle);
-    setCssText(convertStyleToCss(initialStyle));
+    // Check if we have individual borders set
+    if (initialStyle.borderTop || initialStyle.borderRight || initialStyle.borderBottom || initialStyle.borderLeft) {
+      setShowIndividualBorders(true);
+    }
   }, [initialStyle]);
 
   const updateStyle = (property: keyof React.CSSProperties, value: string | number | undefined) => {
@@ -65,18 +65,6 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
       newStyle[property] = value as never;
     }
     setStyle(newStyle);
-    setCssText(convertStyleToCss(newStyle));
-  };
-
-  const handleCssChange = (css: string | undefined) => {
-    if (!css) return;
-    setCssText(css);
-    try {
-      const styleObj = parseCssToStyle(css);
-      setStyle(styleObj);
-    } catch (e) {
-      console.warn('Invalid CSS:', e);
-    }
   };
 
   const handleSave = () => {
@@ -86,357 +74,498 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
 
   const resetStyles = () => {
     setStyle({});
-    setCssText('');
   };
 
   const hasStyles = Object.keys(style).length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[85vh] max-h-[900px] p-0 flex flex-col">
+      <DialogContent className="max-w-[800px] h-[350px] p-0 flex flex-col">
         {/* Compact Header */}
-        <DialogHeader className="px-4 py-3 border-b shrink-0 bg-muted/30">
+        <DialogHeader className="px-4 py-2 border-b shrink-0 bg-muted/20">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Palette className="h-4 w-4 text-primary" />
-                <DialogTitle className="text-base">{title}</DialogTitle>
-                <DialogDescription className="sr-only">
-                  Style editor for customizing {isHeaderStyle ? 'header' : 'cell'} appearance including colors, typography, spacing, and borders
-                </DialogDescription>
-              </div>
+            <div className="flex items-center gap-2">
+              <Paintbrush className="h-4 w-4 text-primary" />
+              <DialogTitle className="text-sm font-medium">{title}</DialogTitle>
+              <DialogDescription className="sr-only">
+                Style editor for {isHeaderStyle ? 'header' : 'cell'} appearance
+              </DialogDescription>
               {hasStyles && (
-                <Badge variant="secondary" className="text-xs">
-                  {Object.keys(style).length} properties
+                <Badge variant="secondary" className="text-xs ml-2">
+                  {Object.keys(style).length} styles
                 </Badge>
               )}
             </div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={resetStyles}
               disabled={!hasStyles}
-              className="h-7 px-3 text-xs"
+              className="h-6 px-2 text-xs"
             >
               <RotateCcw className="h-3 w-3 mr-1" />
-              Reset All
+              Reset
             </Button>
           </div>
         </DialogHeader>
 
-        <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
-          {/* Main Editor Panel */}
-          <div className="flex-1 flex flex-col min-h-0 border-r">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              {/* Compact Tab List */}
-              <div className="border-b bg-muted/20 px-3 py-2 shrink-0">
-                <TabsList className="h-8 p-1">
-                  <TabsTrigger value="visual" className="h-6 px-3 text-xs">
-                    <Eye className="h-3 w-3 mr-1" />
-                    Visual
-                  </TabsTrigger>
-                  <TabsTrigger value="css" className="h-6 px-3 text-xs">
-                    <Code className="h-3 w-3 mr-1" />
-                    CSS
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+        {/* Main Content Area */}
+        <div className="flex-1 flex gap-0 min-h-0 overflow-hidden">
+          {/* Left Panel - Style Controls */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+              <TabsList className="mx-4 mt-3 h-8 p-1 grid grid-cols-4 w-fit">
+                <TabsTrigger value="all" className="text-xs px-3 h-6">All</TabsTrigger>
+                <TabsTrigger value="text" className="text-xs px-3 h-6">Text</TabsTrigger>
+                <TabsTrigger value="colors" className="text-xs px-3 h-6">Colors</TabsTrigger>
+                <TabsTrigger value="borders" className="text-xs px-3 h-6">Borders</TabsTrigger>
+              </TabsList>
 
-              <TabsContent value="visual" className="flex-1 overflow-y-auto p-4 min-h-0 m-0">
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Left Column */}
-                  <div className="space-y-4">
-                    {/* Typography Section */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Type className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="font-medium text-sm">Typography</h3>
+              {/* All Tab - Compact Grid Layout */}
+              <TabsContent value="all" className="flex-1 px-4 pb-3 pt-3 overflow-y-auto">
+                <div className="grid grid-cols-3 gap-x-6 gap-y-3">
+                  {/* Column 1 - Typography */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Type className="h-3.5 w-3.5 text-muted-foreground" />
+                      <h3 className="text-xs font-medium uppercase text-muted-foreground">Typography</h3>
+                    </div>
+                    
+                    {/* Font Size & Weight in one row */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Size</Label>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            value={parseInt(style.fontSize as string) || ''}
+                            onChange={(e) => updateStyle('fontSize', e.target.value ? `${e.target.value}px` : undefined)}
+                            className="h-7 text-xs"
+                            placeholder="14"
+                            min={8}
+                            max={72}
+                          />
+                          <span className="text-xs text-muted-foreground">px</span>
+                        </div>
                       </div>
-                      
-                      {/* Font Family */}
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Font Family</Label>
+                      <div>
+                        <Label className="text-xs">Weight</Label>
                         <Select
-                          value={style.fontFamily as string || 'default'}
-                          onValueChange={(value) => updateStyle('fontFamily', value === 'default' ? undefined : value)}
+                          value={style.fontWeight as string || 'default'}
+                          onValueChange={(value) => updateStyle('fontWeight', value === 'default' ? undefined : value)}
                         >
-                          <SelectTrigger className="h-8 text-sm">
-                            <SelectValue placeholder="Default" />
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue placeholder="Normal" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="default">Default</SelectItem>
-                            <SelectItem value="system-ui, -apple-system, sans-serif">System UI</SelectItem>
-                            <SelectItem value="Inter, sans-serif">Inter</SelectItem>
-                            <SelectItem value="Arial, sans-serif">Arial</SelectItem>
-                            <SelectItem value="Helvetica, sans-serif">Helvetica</SelectItem>
-                            <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                            <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
-                            <SelectItem value="'Courier New', monospace">Courier New</SelectItem>
+                            <SelectItem value="default">Normal</SelectItem>
+                            <SelectItem value="500">Medium</SelectItem>
+                            <SelectItem value="600">Semibold</SelectItem>
+                            <SelectItem value="700">Bold</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-
-                      {/* Font Size & Weight Row */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Size</Label>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              type="number"
-                              value={parseInt(style.fontSize as string) || ''}
-                              onChange={(e) => updateStyle('fontSize', e.target.value ? `${e.target.value}px` : undefined)}
-                              className="h-8 text-sm"
-                              placeholder="14"
-                              min={8}
-                              max={72}
-                            />
-                            <span className="text-xs text-muted-foreground w-6">px</span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Weight</Label>
-                          <Select
-                            value={style.fontWeight as string || 'default'}
-                            onValueChange={(value) => updateStyle('fontWeight', value === 'default' ? undefined : value)}
-                          >
-                            <SelectTrigger className="h-8 text-sm">
-                              <SelectValue placeholder="Normal" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="default">Normal</SelectItem>
-                              <SelectItem value="300">Light</SelectItem>
-                              <SelectItem value="400">Normal</SelectItem>
-                              <SelectItem value="500">Medium</SelectItem>
-                              <SelectItem value="600">Semi Bold</SelectItem>
-                              <SelectItem value="700">Bold</SelectItem>
-                              <SelectItem value="900">Black</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      {/* Font Style Toggles */}
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Style</Label>
-                        <div className="flex gap-1">
-                          <Button
-                            variant={style.fontWeight === 'bold' || style.fontWeight === '700' ? 'default' : 'outline'}
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => {
-                              const isBold = style.fontWeight === 'bold' || style.fontWeight === '700';
-                              updateStyle('fontWeight', isBold ? undefined : 'bold');
-                            }}
-                          >
-                            <Bold className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant={style.fontStyle === 'italic' ? 'default' : 'outline'}
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => updateStyle('fontStyle', style.fontStyle === 'italic' ? undefined : 'italic')}
-                          >
-                            <Italic className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant={style.textDecoration === 'underline' ? 'default' : 'outline'}
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => updateStyle('textDecoration', style.textDecoration === 'underline' ? undefined : 'underline')}
-                          >
-                            <Underline className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
                     </div>
 
-
+                    {/* Style Buttons */}
+                    <div className="flex gap-1">
+                      <Button
+                        variant={style.fontWeight === 'bold' || style.fontWeight === '700' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7 flex-1"
+                        onClick={() => {
+                          const isBold = style.fontWeight === 'bold' || style.fontWeight === '700';
+                          updateStyle('fontWeight', isBold ? undefined : 'bold');
+                        }}
+                      >
+                        <Bold className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant={style.fontStyle === 'italic' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7 flex-1"
+                        onClick={() => updateStyle('fontStyle', style.fontStyle === 'italic' ? undefined : 'italic')}
+                      >
+                        <Italic className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant={style.textDecoration === 'underline' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7 flex-1"
+                        onClick={() => updateStyle('textDecoration', style.textDecoration === 'underline' ? undefined : 'underline')}
+                      >
+                        <Underline className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
 
-                  {/* Right Column */}
-                  <div className="space-y-4">
-                    {/* Colors Section */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Palette className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="font-medium text-sm">Colors</h3>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <ColorControl
-                          label="Text Color"
-                          value={style.color as string}
-                          onChange={(color) => updateStyle('color', color)}
-                          defaultColor="#000000"
-                        />
-                        
-                        <ColorControl
-                          label="Background"
-                          value={style.backgroundColor as string}
-                          onChange={(color) => updateStyle('backgroundColor', color)}
-                          defaultColor="#ffffff"
-                        />
-                      </div>
+                  {/* Column 2 - Colors */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+                      <h3 className="text-xs font-medium uppercase text-muted-foreground">Colors</h3>
                     </div>
+                    
+                    <CompactColorControl
+                      label="Text"
+                      value={style.color as string}
+                      onChange={(color) => updateStyle('color', color)}
+                      defaultColor="#000000"
+                    />
+                    
+                    <CompactColorControl
+                      label="Background"
+                      value={style.backgroundColor as string}
+                      onChange={(color) => updateStyle('backgroundColor', color)}
+                      defaultColor="#ffffff"
+                    />
+                  </div>
 
-                    <Separator />
-
-                    {/* Spacing & Layout */}
-                    <div className="space-y-3">
-                      <h3 className="font-medium text-sm">Spacing & Layout</h3>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Padding</Label>
-                          <Input
-                            value={style.padding as string || ''}
-                            onChange={(e) => updateStyle('padding', e.target.value || undefined)}
-                            className="h-8 text-sm"
-                            placeholder="8px"
-                          />
-                        </div>
-                        
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Margin</Label>
-                          <Input
-                            value={style.margin as string || ''}
-                            onChange={(e) => updateStyle('margin', e.target.value || undefined)}
-                            className="h-8 text-sm"
-                            placeholder="0px"
-                          />
-                        </div>
-                      </div>
+                  {/* Column 3 - Spacing & Borders */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Square className="h-3.5 w-3.5 text-muted-foreground" />
+                      <h3 className="text-xs font-medium uppercase text-muted-foreground">Layout</h3>
                     </div>
-
-                    <Separator />
-
-                    {/* Border Section */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Square className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="font-medium text-sm">Border</h3>
-                      </div>
-                      
-                      <BorderControl
-                        allSides={style.border as string}
-                        topSide={style.borderTop as string}
-                        rightSide={style.borderRight as string}
-                        bottomSide={style.borderBottom as string}
-                        leftSide={style.borderLeft as string}
-                        onAllSidesChange={(border) => updateStyle('border', border)}
-                        onTopChange={(border) => updateStyle('borderTop', border)}
-                        onRightChange={(border) => updateStyle('borderRight', border)}
-                        onBottomChange={(border) => updateStyle('borderBottom', border)}
-                        onLeftChange={(border) => updateStyle('borderLeft', border)}
+                    
+                    {/* Padding */}
+                    <div>
+                      <Label className="text-xs">Padding</Label>
+                      <Input
+                        value={style.padding as string || ''}
+                        onChange={(e) => updateStyle('padding', e.target.value || undefined)}
+                        className="h-7 text-xs"
+                        placeholder="8px"
                       />
-                      
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Border Radius</Label>
+                    </div>
+
+                    {/* Simple Border */}
+                    <div>
+                      <Label className="text-xs">Border</Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          value={style.border as string || ''}
+                          onChange={(e) => updateStyle('border', e.target.value || undefined)}
+                          className="h-7 text-xs flex-1"
+                          placeholder="1px solid #ccc"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => {
+                            setActiveTab('borders');
+                            setShowIndividualBorders(true);
+                          }}
+                          title="Advanced border settings"
+                        >
+                          <Square className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Border Radius */}
+                    <div>
+                      <Label className="text-xs">Radius</Label>
+                      <Input
+                        value={style.borderRadius as string || ''}
+                        onChange={(e) => updateStyle('borderRadius', e.target.value || undefined)}
+                        className="h-7 text-xs"
+                        placeholder="4px"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Text Tab */}
+              <TabsContent value="text" className="flex-1 px-4 pb-3 pt-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs">Font Family</Label>
+                      <Select
+                        value={style.fontFamily as string || 'default'}
+                        onValueChange={(value) => updateStyle('fontFamily', value === 'default' ? undefined : value)}
+                      >
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Default" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="system-ui, -apple-system, sans-serif">System UI</SelectItem>
+                          <SelectItem value="Inter, sans-serif">Inter</SelectItem>
+                          <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                          <SelectItem value="'Courier New', monospace">Monospace</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Size</Label>
+                        <Input
+                          type="number"
+                          value={parseInt(style.fontSize as string) || ''}
+                          onChange={(e) => updateStyle('fontSize', e.target.value ? `${e.target.value}px` : undefined)}
+                          className="h-7 text-xs"
+                          placeholder="14"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Line Height</Label>
+                        <Input
+                          value={style.lineHeight as string || ''}
+                          onChange={(e) => updateStyle('lineHeight', e.target.value || undefined)}
+                          className="h-7 text-xs"
+                          placeholder="1.5"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs">Text Align</Label>
+                      <Select
+                        value={style.textAlign as string || 'default'}
+                        onValueChange={(value) => updateStyle('textAlign', value === 'default' ? undefined : value)}
+                      >
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Default" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="left">Left</SelectItem>
+                          <SelectItem value="center">Center</SelectItem>
+                          <SelectItem value="right">Right</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-xs">Text Transform</Label>
+                      <Select
+                        value={style.textTransform as string || 'default'}
+                        onValueChange={(value) => updateStyle('textTransform', value === 'default' ? undefined : value)}
+                      >
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="None" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">None</SelectItem>
+                          <SelectItem value="uppercase">Uppercase</SelectItem>
+                          <SelectItem value="lowercase">Lowercase</SelectItem>
+                          <SelectItem value="capitalize">Capitalize</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Colors Tab */}
+              <TabsContent value="colors" className="flex-1 px-4 pb-3 pt-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <CompactColorControl
+                    label="Text Color"
+                    value={style.color as string}
+                    onChange={(color) => updateStyle('color', color)}
+                    defaultColor="#000000"
+                  />
+                  <CompactColorControl
+                    label="Background Color"
+                    value={style.backgroundColor as string}
+                    onChange={(color) => updateStyle('backgroundColor', color)}
+                    defaultColor="#ffffff"
+                  />
+                </div>
+              </TabsContent>
+
+              {/* Borders Tab */}
+              <TabsContent value="borders" className="flex-1 px-4 pb-3 pt-3 overflow-y-auto">
+                <div className="space-y-4">
+                  {/* Border Mode Toggle */}
+                  <div className="flex items-center gap-4">
+                    <Label className="text-xs">Border Mode:</Label>
+                    <div className="flex gap-1">
+                      <Button
+                        variant={!showIndividualBorders ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-6 px-3 text-xs"
+                        onClick={() => setShowIndividualBorders(false)}
+                      >
+                        All Sides
+                      </Button>
+                      <Button
+                        variant={showIndividualBorders ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-6 px-3 text-xs"
+                        onClick={() => setShowIndividualBorders(true)}
+                      >
+                        Individual
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Border Controls */}
+                  {!showIndividualBorders ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs">All Borders</Label>
+                        <Input
+                          value={style.border as string || ''}
+                          onChange={(e) => updateStyle('border', e.target.value || undefined)}
+                          className="h-7 text-xs"
+                          placeholder="1px solid #ccc"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Border Radius</Label>
                         <Input
                           value={style.borderRadius as string || ''}
                           onChange={(e) => updateStyle('borderRadius', e.target.value || undefined)}
-                          className="h-8 text-sm"
+                          className="h-7 text-xs"
                           placeholder="4px"
                         />
                       </div>
                     </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <CompactBorderControl
+                          label="Top"
+                          value={style.borderTop as string}
+                          onChange={(value) => updateStyle('borderTop', value)}
+                        />
+                        <CompactBorderControl
+                          label="Right"
+                          value={style.borderRight as string}
+                          onChange={(value) => updateStyle('borderRight', value)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <CompactBorderControl
+                          label="Bottom"
+                          value={style.borderBottom as string}
+                          onChange={(value) => updateStyle('borderBottom', value)}
+                        />
+                        <CompactBorderControl
+                          label="Left"
+                          value={style.borderLeft as string}
+                          onChange={(value) => updateStyle('borderLeft', value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Border Radius</Label>
+                        <Input
+                          value={style.borderRadius as string || ''}
+                          onChange={(e) => updateStyle('borderRadius', e.target.value || undefined)}
+                          className="h-7 text-xs"
+                          placeholder="4px"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Spacing */}
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <Label className="text-xs">Padding</Label>
+                      <Input
+                        value={style.padding as string || ''}
+                        onChange={(e) => updateStyle('padding', e.target.value || undefined)}
+                        className="h-7 text-xs"
+                        placeholder="8px"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Margin</Label>
+                      <Input
+                        value={style.margin as string || ''}
+                        onChange={(e) => updateStyle('margin', e.target.value || undefined)}
+                        className="h-7 text-xs"
+                        placeholder="0px"
+                      />
+                    </div>
                   </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="css" className="flex-1 m-0 min-h-0">
-                <Editor
-                  height="100%"
-                  language="css"
-                  theme="vs-dark"
-                  value={cssText}
-                  onChange={handleCssChange}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 13,
-                    lineNumbers: 'on',
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                    wordWrap: 'on',
-                    padding: { top: 16, bottom: 16 }
-                  }}
-                />
               </TabsContent>
             </Tabs>
           </div>
 
-          {/* Compact Preview Panel */}
-          <div className="w-80 bg-muted/20 flex flex-col shrink-0">
-            {/* Preview Header */}
-            <div className="px-4 py-3 border-b bg-muted/30">
-              <h3 className="font-medium text-sm">Live Preview</h3>
+          {/* Right Panel - Live Preview */}
+          <div className="w-[200px] border-l bg-muted/10 flex flex-col">
+            <div className="px-3 py-2 border-b">
+              <div className="flex items-center gap-1.5">
+                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                <h3 className="text-xs font-medium">Live Preview</h3>
+              </div>
             </div>
-
-            {/* Preview Content */}
-            <div className="p-4 space-y-4 flex-1">
-              <div className="border rounded-lg p-3 bg-background shadow-sm">
+            
+            <div className="flex-1 p-3 flex items-center justify-center">
+              <div className="w-full">
                 <div 
                   style={style} 
-                  className="p-3 text-center border rounded min-h-[60px] flex items-center justify-center"
+                  className="min-h-[60px] flex items-center justify-center border rounded text-sm"
                 >
-                  {isHeaderStyle ? 'Column Header' : 'Sample Cell Content'}
+                  {isHeaderStyle ? 'Column Header' : 'Sample Cell'}
                 </div>
               </div>
+            </div>
 
-              {/* CSS Output */}
-              <div className="flex-1 min-h-0">
-                <h4 className="font-medium text-xs mb-2 text-muted-foreground uppercase tracking-wide">CSS Output</h4>
-                <div className="text-xs bg-muted/50 p-3 rounded border overflow-auto max-h-[200px] font-mono">
-                  <pre className="whitespace-pre-wrap">{cssText || '/* No styles applied */'}</pre>
-                </div>
+            {/* CSS Output - Compact */}
+            <div className="p-3 border-t">
+              <h4 className="text-xs font-medium mb-1 text-muted-foreground">CSS</h4>
+              <div className="text-xs bg-muted/50 p-2 rounded border max-h-[80px] overflow-auto font-mono">
+                {Object.entries(style).map(([key, value]) => {
+                  const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+                  return (
+                    <div key={key} className="truncate">
+                      {cssKey}: {value};
+                    </div>
+                  );
+                })}
+                {Object.keys(style).length === 0 && <span className="text-muted-foreground">/* No styles */</span>}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Compact Footer */}
-        <DialogFooter className="px-4 py-3 border-t shrink-0 bg-muted/20">
-          <div className="flex items-center justify-between w-full">
-            <div className="text-xs text-muted-foreground">
-              {hasStyles ? `${Object.keys(style).length} properties applied` : 'No styles applied'}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleSave}>
-                Apply Style
-              </Button>
-            </div>
-          </div>
+        {/* Footer */}
+        <DialogFooter className="px-4 py-2 border-t shrink-0">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="h-7">
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleSave} className="h-7">
+            Apply Style
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
 
-// Color Control Component
-interface ColorControlProps {
+// Compact Color Control Component
+interface CompactColorControlProps {
   label: string;
   value?: string;
   onChange: (color: string | undefined) => void;
   defaultColor: string;
 }
 
-const ColorControl: React.FC<ColorControlProps> = ({ label, value, onChange, defaultColor }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const CompactColorControl: React.FC<CompactColorControlProps> = ({ label, value, onChange, defaultColor }) => {
   const currentColor = value || defaultColor;
 
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <div className="flex gap-2">
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <div className="space-y-1">
+      <Label className="text-xs">{label}</Label>
+      <div className="flex gap-1">
+        <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="h-8 w-16 p-1 border-2"
+              className="h-7 w-7 p-0.5 shrink-0"
               style={{ backgroundColor: currentColor }}
             >
               <div className="w-full h-full rounded-sm border border-white/20" />
@@ -450,7 +579,7 @@ const ColorControl: React.FC<ColorControlProps> = ({ label, value, onChange, def
             <Input
               value={currentColor}
               onChange={(e) => onChange(e.target.value)}
-              className="mt-3 h-8 text-sm font-mono"
+              className="mt-2 h-7 text-xs font-mono"
               placeholder="#000000"
             />
           </PopoverContent>
@@ -459,7 +588,7 @@ const ColorControl: React.FC<ColorControlProps> = ({ label, value, onChange, def
         <Input
           value={value || ''}
           onChange={(e) => onChange(e.target.value || undefined)}
-          className="h-8 text-sm font-mono flex-1"
+          className="h-7 text-xs font-mono"
           placeholder={defaultColor}
         />
         
@@ -467,10 +596,10 @@ const ColorControl: React.FC<ColorControlProps> = ({ label, value, onChange, def
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0"
+            className="h-7 w-7 p-0 shrink-0"
             onClick={() => onChange(undefined)}
           >
-            <RotateCcw className="h-3 w-3" />
+            <X className="h-3 w-3" />
           </Button>
         )}
       </div>
@@ -478,239 +607,87 @@ const ColorControl: React.FC<ColorControlProps> = ({ label, value, onChange, def
   );
 };
 
-// Border Control Component
-interface BorderControlProps {
-  allSides?: string;
-  topSide?: string;
-  rightSide?: string;
-  bottomSide?: string;
-  leftSide?: string;
-  onAllSidesChange: (border: string | undefined) => void;
-  onTopChange: (border: string | undefined) => void;
-  onRightChange: (border: string | undefined) => void;
-  onBottomChange: (border: string | undefined) => void;
-  onLeftChange: (border: string | undefined) => void;
-}
-
-const BorderControl: React.FC<BorderControlProps> = ({ 
-  allSides, 
-  topSide, 
-  rightSide, 
-  bottomSide, 
-  leftSide,
-  onAllSidesChange,
-  onTopChange,
-  onRightChange,
-  onBottomChange,
-  onLeftChange
-}) => {
-  const [mode, setMode] = useState<'all' | 'individual'>('all');
-
-  const borderStyles = ['solid', 'dashed', 'dotted', 'double'];
-  const borderWidths = ['0', '1', '2', '3', '4', '5'];
-
-  // Check if we have individual borders set
-  useEffect(() => {
-    if (topSide || rightSide || bottomSide || leftSide) {
-      setMode('individual');
-    } else if (allSides) {
-      setMode('all');
-    }
-  }, [allSides, topSide, rightSide, bottomSide, leftSide]);
-
-  // Removed unused helper functions
-
-  const clearAllBorders = () => {
-    onAllSidesChange(undefined);
-    onTopChange(undefined);
-    onRightChange(undefined);
-    onBottomChange(undefined);
-    onLeftChange(undefined);
-  };
-
-  const hasAnyBorder = allSides || topSide || rightSide || bottomSide || leftSide;
-
-  return (
-    <div className="space-y-3">
-      {/* Mode Toggle */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Border Mode</Label>
-        <Select
-          value={mode}
-          onValueChange={(value: 'all' | 'individual') => {
-            setMode(value);
-            if (value === 'all') {
-              // Clear individual borders when switching to all
-              onTopChange(undefined);
-              onRightChange(undefined);
-              onBottomChange(undefined);
-              onLeftChange(undefined);
-            } else {
-              // Clear all border when switching to individual
-              onAllSidesChange(undefined);
-            }
-          }}
-        >
-          <SelectTrigger className="h-8 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Sides</SelectItem>
-            <SelectItem value="individual">Individual Sides</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {mode === 'all' ? (
-        <BorderSideControl
-          label="All Borders"
-          value={allSides}
-          onChange={onAllSidesChange}
-          borderStyles={borderStyles}
-          borderWidths={borderWidths}
-        />
-      ) : (
-        <div className="space-y-2">
-          <BorderSideControl
-            label="Top"
-            value={topSide}
-            onChange={onTopChange}
-            borderStyles={borderStyles}
-            borderWidths={borderWidths}
-            compact
-          />
-          <BorderSideControl
-            label="Right"
-            value={rightSide}
-            onChange={onRightChange}
-            borderStyles={borderStyles}
-            borderWidths={borderWidths}
-            compact
-          />
-          <BorderSideControl
-            label="Bottom"
-            value={bottomSide}
-            onChange={onBottomChange}
-            borderStyles={borderStyles}
-            borderWidths={borderWidths}
-            compact
-          />
-          <BorderSideControl
-            label="Left"
-            value={leftSide}
-            onChange={onLeftChange}
-            borderStyles={borderStyles}
-            borderWidths={borderWidths}
-            compact
-          />
-        </div>
-      )}
-      
-      {hasAnyBorder && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 text-xs w-full"
-          onClick={clearAllBorders}
-        >
-          <RotateCcw className="h-3 w-3 mr-1" />
-          Clear All Borders
-        </Button>
-      )}
-    </div>
-  );
-};
-
-// Individual Border Side Control Component
-interface BorderSideControlProps {
+// Compact Border Control Component for individual sides
+interface CompactBorderControlProps {
   label: string;
   value?: string;
-  onChange: (border: string | undefined) => void;
-  borderStyles: string[];
-  borderWidths: string[];
-  compact?: boolean;
+  onChange: (value: string | undefined) => void;
 }
 
-const BorderSideControl: React.FC<BorderSideControlProps> = ({
-  label,
-  value,
-  onChange,
-  borderStyles,
-  borderWidths,
-  compact = false
-}) => {
+const CompactBorderControl: React.FC<CompactBorderControlProps> = ({ label, value, onChange }) => {
   const [width, setWidth] = useState('1');
   const [style, setStyle] = useState('solid');
   const [color, setColor] = useState('#cccccc');
 
-  // Parse initial value
-  useEffect(() => {
+  // Parse the border value
+  React.useEffect(() => {
     if (value) {
       const parts = value.split(' ');
       if (parts.length >= 3) {
-        setWidth(parseInt(parts[0]) + '');
+        setWidth(parts[0].replace('px', ''));
         setStyle(parts[1]);
         setColor(parts[2]);
       }
-    } else {
-      setWidth('1');
-      setStyle('solid');
-      setColor('#cccccc');
     }
   }, [value]);
 
   const updateBorder = (newWidth: string, newStyle: string, newColor: string) => {
-    if (newWidth === '0') {
+    if (newWidth === '0' || !newWidth) {
       onChange(undefined);
     } else {
       onChange(`${newWidth}px ${newStyle} ${newColor}`);
     }
   };
 
-  if (compact) {
-    return (
-      <div className="grid grid-cols-[60px_1fr_80px_80px_60px] items-center gap-2">
-        <Label className="text-xs text-muted-foreground">{label}</Label>
-        
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs">{label} Border</Label>
+      <div className="flex gap-1">
+        {/* Width */}
         <Select
           value={width}
-          onValueChange={(value) => {
-            setWidth(value);
-            updateBorder(value, style, color);
+          onValueChange={(val) => {
+            setWidth(val);
+            updateBorder(val, style, color);
           }}
         >
-          <SelectTrigger className="h-7 text-xs">
+          <SelectTrigger className="h-7 w-14 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {borderWidths.map(w => (
-              <SelectItem key={w} value={w}>{w}px</SelectItem>
-            ))}
+            <SelectItem value="0">0</SelectItem>
+            <SelectItem value="1">1px</SelectItem>
+            <SelectItem value="2">2px</SelectItem>
+            <SelectItem value="3">3px</SelectItem>
+            <SelectItem value="4">4px</SelectItem>
           </SelectContent>
         </Select>
 
+        {/* Style */}
         <Select
           value={style}
-          onValueChange={(value) => {
-            setStyle(value);
-            updateBorder(width, value, color);
+          onValueChange={(val) => {
+            setStyle(val);
+            updateBorder(width, val, color);
           }}
         >
-          <SelectTrigger className="h-7 text-xs">
+          <SelectTrigger className="h-7 flex-1 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {borderStyles.map(s => (
-              <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-            ))}
+            <SelectItem value="solid">Solid</SelectItem>
+            <SelectItem value="dashed">Dashed</SelectItem>
+            <SelectItem value="dotted">Dotted</SelectItem>
+            <SelectItem value="double">Double</SelectItem>
           </SelectContent>
         </Select>
 
+        {/* Color */}
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="h-7 w-full p-1"
+              className="h-7 w-7 p-0.5 shrink-0"
               style={{ backgroundColor: color }}
             >
               <div className="w-full h-full rounded-sm border border-white/20" />
@@ -730,137 +707,24 @@ const BorderSideControl: React.FC<BorderSideControlProps> = ({
                 setColor(e.target.value);
                 updateBorder(width, style, e.target.value);
               }}
-              className="mt-3 h-8 text-sm font-mono"
+              className="mt-2 h-7 text-xs font-mono"
               placeholder="#cccccc"
             />
           </PopoverContent>
         </Popover>
 
+        {/* Clear button */}
         {value && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 w-7 p-0"
+            className="h-7 w-7 p-0 shrink-0"
             onClick={() => onChange(undefined)}
           >
-            <RotateCcw className="h-3 w-3" />
+            <X className="h-3 w-3" />
           </Button>
         )}
       </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <Label className="text-xs text-muted-foreground font-medium">{label}</Label>
-      <div className="grid grid-cols-3 gap-2">
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Width</Label>
-          <Select
-            value={width}
-            onValueChange={(value) => {
-              setWidth(value);
-              updateBorder(value, style, color);
-            }}
-          >
-            <SelectTrigger className="h-8 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {borderWidths.map(w => (
-                <SelectItem key={w} value={w}>{w}px</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Style</Label>
-          <Select
-            value={style}
-            onValueChange={(value) => {
-              setStyle(value);
-              updateBorder(width, value, color);
-            }}
-          >
-            <SelectTrigger className="h-8 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {borderStyles.map(s => (
-                <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Color</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="h-8 w-full p-1"
-                style={{ backgroundColor: color }}
-              >
-                <div className="w-full h-full rounded-sm border border-white/20" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-3" align="start">
-              <HexColorPicker
-                color={color}
-                onChange={(newColor) => {
-                  setColor(newColor);
-                  updateBorder(width, style, newColor);
-                }}
-              />
-              <Input
-                value={color}
-                onChange={(e) => {
-                  setColor(e.target.value);
-                  updateBorder(width, style, e.target.value);
-                }}
-                className="mt-3 h-8 text-sm font-mono"
-                placeholder="#cccccc"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-      
-      {value && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 text-xs w-full"
-          onClick={() => onChange(undefined)}
-        >
-          <RotateCcw className="h-3 w-3 mr-1" />
-          Clear Border
-        </Button>
-      )}
     </div>
   );
 };
-
-// Helper functions
-function convertStyleToCss(style: React.CSSProperties): string {
-  return Object.entries(style)
-    .map(([key, value]) => {
-      const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-      return `${cssKey}: ${value};`;
-    })
-    .join('\n');
-}
-
-function parseCssToStyle(css: string): React.CSSProperties {
-  const style: Record<string, string> = {};
-  css.split(';').forEach(rule => {
-    const [key, value] = rule.split(':').map(s => s.trim());
-    if (key && value) {
-      const jsKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-      style[jsKey] = value;
-    }
-  });
-  return style;
-}
