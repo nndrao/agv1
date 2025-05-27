@@ -5,9 +5,6 @@ import { DataTable, type ColumnDef } from '@/components/datatable/data-table';
 import { generateFixedIncomeData, type FixedIncomePosition } from '@/lib/data-generator';
 import { useMemo } from 'react';
 
-// Efficient column inference: sample a fixed number of rows (max 10), cache by data shape, and improve type inference
-import isEqual from 'fast-deep-equal';
-
 function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   if (!Array.isArray(data) || data.length === 0) return [];
 
@@ -19,7 +16,7 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   const keys = Object.keys(data[0]);
 
   // Improved type inference: handle null/undefined, mixed types
-  const inferType = (values: any[]): string => {
+  const inferType = (values: unknown[]): string => {
     let hasNumber = false, hasDate = false, hasBoolean = false, hasString = false;
     for (const value of values) {
       if (value === null || value === undefined) continue;
@@ -40,12 +37,12 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   return keys.map(key => {
     const sampleValues = sampleData.map(row => row[key]);
     const inferredType = inferType(sampleValues);
-    let columnDataType: 'text' | 'number' | 'date' | 'boolean' = 'text';
+    let cellDataType: 'text' | 'number' | 'date' | 'boolean' = 'text';
     switch (inferredType) {
-      case 'number': columnDataType = 'number'; break;
-      case 'date': columnDataType = 'date'; break;
-      case 'boolean': columnDataType = 'boolean'; break;
-      default: columnDataType = 'text';
+      case 'number': cellDataType = 'number'; break;
+      case 'date': cellDataType = 'date'; break;
+      case 'boolean': cellDataType = 'boolean'; break;
+      default: cellDataType = 'text';
     }
     return {
       field: key,
@@ -53,7 +50,7 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, str => str.toUpperCase())
         .trim(),
-      columnDataType,
+      cellDataType,
     };
   });
 }
@@ -62,23 +59,26 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
 function App() {
   // Memoize data and columns for stable references (prevent unnecessary re-renders)
   const data = useMemo(() => generateFixedIncomeData(10000), []);
-  const columns = useMemo(() => inferColumnDefinitions(data), [data && data[0] ? Object.keys(data[0]).join(',') : '']);
+
+  const columns = useMemo(() => inferColumnDefinitions(data), [data]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-background border-b flex items-center justify-between px-6 z-50">
-        <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6" />
-          <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
+      <header className="flex-shrink-0 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-16 items-center justify-between px-6">
+          <div className="flex items-center gap-4">
+            <Menu className="h-6 w-6" />
+            <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
+          </div>
+          <ThemeToggle />
         </div>
-        <ThemeToggle />
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 mt-16 mb-16">
-        <div className="p-6">
-          <div className="h-[calc(100vh-8rem-3rem)]">
+      {/* Main Content - Centered DataTable */}
+      <main className="flex-1 flex items-center justify-center p-6 min-h-0">
+        <div className="w-full h-full max-w-7xl mx-auto">
+          <div className="h-full rounded-lg border bg-card shadow-sm overflow-hidden">
             {/* DataTable receives stable, memoized props */}
             <DataTable columnDefs={columns} dataRow={data} />
           </div>
@@ -86,10 +86,12 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 h-16 bg-background border-t flex items-center justify-center px-6">
-        <p className="text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Your Company. All rights reserved.
-        </p>
+      <footer className="flex-shrink-0 border-t">
+        <div className="flex h-12 items-center justify-center px-6">
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Your Company. All rights reserved.
+          </p>
+        </div>
       </footer>
     </div>
   );
