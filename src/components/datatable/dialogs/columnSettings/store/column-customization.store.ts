@@ -2,14 +2,19 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ColDef as AgColDef } from 'ag-grid-community';
 
+// Extend AG-Grid ColDef to include our custom properties
+export interface ColDef extends AgColDef {
+  valueFormat?: string;
+}
+
 export interface DialogState {
   // Dialog state
   open: boolean;
 
   // Column management
   selectedColumns: Set<string>;
-  columnDefinitions: Map<string, AgColDef>;
-  pendingChanges: Map<string, Partial<AgColDef>>;
+  columnDefinitions: Map<string, ColDef>;
+  pendingChanges: Map<string, Partial<ColDef>>;
 
   // UI state
   activeTab: string;
@@ -23,7 +28,7 @@ export interface DialogState {
   bulkActionsPanelCollapsed: boolean;
 
   // Immediate apply callback
-  onImmediateApply?: (columns: AgColDef[]) => void;
+  onImmediateApply?: (columns: ColDef[]) => void;
 
   // Template columns for quick copy
   templateColumns: Set<string>;
@@ -35,12 +40,12 @@ export interface DialogActions {
 
   // Column management
   setSelectedColumns: (columns: Set<string>) => void;
-  setColumnDefinitions: (columns: Map<string, AgColDef>) => void;
+  setColumnDefinitions: (columns: Map<string, ColDef>) => void;
   updateBulkProperty: (property: string, value: unknown) => void;
   updateBulkProperties: (properties: Record<string, unknown>) => void;
-  applyChanges: () => AgColDef[];
+  applyChanges: () => ColDef[];
   resetChanges: () => void;
-  setOnImmediateApply: (callback?: (columns: AgColDef[]) => void) => void;
+  setOnImmediateApply: (callback?: (columns: ColDef[]) => void) => void;
 
   // UI actions
   setActiveTab: (tab: string) => void;
@@ -66,8 +71,8 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       // Initial state
       open: false,
       selectedColumns: new Set<string>(),
-      columnDefinitions: new Map<string, AgColDef>(),
-      pendingChanges: new Map<string, Partial<AgColDef>>(),
+      columnDefinitions: new Map<string, ColDef>(),
+      pendingChanges: new Map<string, Partial<ColDef>>(),
       activeTab: 'general',
       applyMode: 'onSave',
       showOnlyCommon: false,
@@ -95,7 +100,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
           if (value === undefined) {
             // Remove the property if value is undefined
             const updatedExisting = { ...existing };
-            delete updatedExisting[property as keyof AgColDef];
+            delete updatedExisting[property as keyof ColDef];
             if (Object.keys(updatedExisting).length === 0) {
               newPendingChanges.delete(colId);
             } else {
@@ -123,7 +128,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
         // Apply immediately if in immediate mode
         if (applyMode === 'immediate' && onImmediateApply) {
-          const updatedColumns: AgColDef[] = [];
+          const updatedColumns: ColDef[] = [];
           columnDefinitions.forEach((colDef, colId) => {
             const changes = newPendingChanges.get(colId);
             if (changes) {
@@ -146,19 +151,19 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
           Object.entries(properties).forEach(([property, value]) => {
             if (value === undefined) {
-              delete updated[property as keyof AgColDef];
+              delete updated[property as keyof ColDef];
             } else {
               // Special handling for headerStyle to prevent floating filter contamination
               if (property === 'headerStyle' && typeof value === 'object') {
                 const styleObject = value as React.CSSProperties;
-                updated[property as keyof AgColDef] = ((params: any) => {
+                updated[property as keyof ColDef] = ((params: any) => {
                   if (!params.floatingFilter) {
                     return styleObject;
                   }
                   return null;
                 }) as any;
               } else {
-                updated[property as keyof AgColDef] = value as any;
+                updated[property as keyof ColDef] = value as any;
               }
             }
           });
@@ -174,7 +179,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
         // Apply immediately if in immediate mode - do it once for all properties
         if (applyMode === 'immediate' && onImmediateApply) {
-          const updatedColumns: AgColDef[] = [];
+          const updatedColumns: ColDef[] = [];
           columnDefinitions.forEach((colDef, colId) => {
             const changes = newPendingChanges.get(colId);
             if (changes) {
@@ -189,7 +194,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
       applyChanges: () => {
         const { columnDefinitions, pendingChanges } = get();
-        const updatedColumns: AgColDef[] = [];
+        const updatedColumns: ColDef[] = [];
 
         columnDefinitions.forEach((colDef, colId) => {
           const changes = pendingChanges.get(colId);

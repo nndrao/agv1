@@ -6,7 +6,7 @@ import { Settings, Palette, Hash, Filter, Edit3, Cog, AlertTriangle } from 'luci
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { GeneralTab } from '../tabs/GeneralTab';
 import { StylingTab } from '../tabs/StylingTab';
-import { ValueFormattersTab } from '../tabs/ValueFormattersTab';
+import { FormatTab } from '../tabs/FormatTab';
 import { FiltersTab } from '../tabs/FiltersTab';
 import { EditorsTab } from '../tabs/EditorsTab';
 import { AdvancedTab } from '../tabs/AdvancedTab';
@@ -95,7 +95,7 @@ export const PropertyEditorPanel: React.FC = () => {
             <StylingTab />
           </TabsContent>
           <TabsContent value="formatters" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
-            <ValueFormattersTab />
+            <FormatTab />
           </TabsContent>
           <TabsContent value="filters" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
             <FiltersTab />

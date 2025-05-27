@@ -1,4 +1,9 @@
-import { ColDef } from 'ag-grid-community';
+import { ColDef as AgColDef } from 'ag-grid-community';
+
+// Extend AG-Grid ColDef to include our custom properties
+export interface ColDef extends AgColDef {
+  valueFormat?: string;
+}
 
 export interface DialogState {
   // Selection state
