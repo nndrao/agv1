@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,7 +11,7 @@ import { COLUMN_ICONS } from '../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import '../column-customization-dialog.css';
 
-export const ColumnSelectorPanel: React.FC = () => {
+export const ColumnSelectorPanel: React.FC = React.memo(() => {
   const {
     selectedColumns,
     columnDefinitions,
@@ -76,7 +76,7 @@ export const ColumnSelectorPanel: React.FC = () => {
     overscan: 5
   });
 
-  const toggleColumnSelection = (columnId: string) => {
+  const toggleColumnSelection = useCallback((columnId: string) => {
     const newSelected = new Set(selectedColumns);
     if (newSelected.has(columnId)) {
       newSelected.delete(columnId);
@@ -84,9 +84,9 @@ export const ColumnSelectorPanel: React.FC = () => {
       newSelected.add(columnId);
     }
     setSelectedColumns(newSelected);
-  };
+  }, [selectedColumns, setSelectedColumns]);
 
-  const selectAllFilteredColumns = () => {
+  const selectAllFilteredColumns = useCallback(() => {
     const newSelected = new Set(selectedColumns);
     filteredColumns.forEach(col => {
       const colId = col.field || col.colId || '';
@@ -95,9 +95,9 @@ export const ColumnSelectorPanel: React.FC = () => {
       }
     });
     setSelectedColumns(newSelected);
-  };
+  }, [selectedColumns, filteredColumns, setSelectedColumns]);
 
-  const deselectAllFilteredColumns = () => {
+  const deselectAllFilteredColumns = useCallback(() => {
     const newSelected = new Set(selectedColumns);
     filteredColumns.forEach(col => {
       const colId = col.field || col.colId || '';
@@ -106,17 +106,26 @@ export const ColumnSelectorPanel: React.FC = () => {
       }
     });
     setSelectedColumns(newSelected);
-  };
+  }, [selectedColumns, filteredColumns, setSelectedColumns]);
 
-  const isAllSelected = filteredColumns.length > 0 &&
-    filteredColumns.every(col => selectedColumns.has(col.field || col.colId || ''));
-  const isIndeterminate = filteredColumns.some(col => selectedColumns.has(col.field || col.colId || '')) &&
-    !isAllSelected;
+  const isAllSelected = useMemo(() => 
+    filteredColumns.length > 0 &&
+    filteredColumns.every(col => selectedColumns.has(col.field || col.colId || '')),
+    [filteredColumns, selectedColumns]
+  );
+  const isIndeterminate = useMemo(() => 
+    filteredColumns.some(col => selectedColumns.has(col.field || col.colId || '')) &&
+    !isAllSelected,
+    [filteredColumns, selectedColumns, isAllSelected]
+  );
 
   // Count of filtered columns that are selected
-  const filteredSelectedCount = filteredColumns.filter(col =>
-    selectedColumns.has(col.field || col.colId || '')
-  ).length;
+  const filteredSelectedCount = useMemo(() => 
+    filteredColumns.filter(col =>
+      selectedColumns.has(col.field || col.colId || '')
+    ).length,
+    [filteredColumns, selectedColumns]
+  );
 
   return (
     <div className="h-full flex flex-col">
@@ -160,7 +169,7 @@ export const ColumnSelectorPanel: React.FC = () => {
               {availableCellDataTypes.map(type => (
                 <SelectItem key={type} value={type} className="text-sm">
                   <div className="flex items-center gap-2">
-                    <span>{COLUMN_ICONS[type] || COLUMN_ICONS.default}</span>
+                    <span className="text-sm">{COLUMN_ICONS[type] || COLUMN_ICONS.text}</span>
                     <span className="capitalize">{type}</span>
                   </div>
                 </SelectItem>
@@ -239,33 +248,43 @@ export const ColumnSelectorPanel: React.FC = () => {
       </div>
     </div>
   );
-};
+});
 
-// Modern Column Item Component
+// Clean Column Item Component
 const ColumnItem: React.FC<{
   column: ColDef;
   selected: boolean;
   isTemplate: boolean;
   onToggle: () => void;
   onToggleTemplate: () => void;
-}> = ({ column, selected, isTemplate, onToggle, onToggleTemplate }) => {
-  const iconKey = (column.cellDataType || column.type || 'default') as string;
-  const icon = COLUMN_ICONS[iconKey] || COLUMN_ICONS.default;
+}> = React.memo(({ column, selected, isTemplate, onToggle, onToggleTemplate }) => {
+  const iconKey = (column.cellDataType || column.type || 'text') as string;
+  const icon = COLUMN_ICONS[iconKey] || COLUMN_ICONS.text;
 
   return (
-    <div className="flex items-center gap-2.5 p-2 hover:bg-gradient-to-r hover:from-accent/30 hover:to-accent/10 rounded-lg transition-all duration-200 group cursor-pointer border border-transparent hover:border-border/30">
+    <div 
+      className={`relative flex items-center gap-2 px-3 py-1.5 rounded hover:bg-muted/50 transition-colors group cursor-pointer ${
+        selected ? 'bg-muted/30' : ''
+      }`}
+      onClick={onToggle}
+    >
+      {selected && (
+        <div className="selection-indicator absolute left-0 h-full" />
+      )}
       <Checkbox
         checked={selected}
         onCheckedChange={onToggle}
-        className="checkbox-enhanced h-4 w-4 rounded"
+        onClick={(e) => e.stopPropagation()}
+        className="checkbox-enhanced"
       />
-      <span className="text-xs flex-1 truncate font-medium text-foreground group-hover:text-foreground">
+      <span className="text-sm shrink-0">{icon}</span>
+      <span className="text-sm flex-1 truncate">
         {column.headerName || column.field}
       </span>
       <Button
         variant="ghost"
         size="sm"
-        className={`h-6 w-6 p-0 transition-all ${
+        className={`h-5 w-5 p-0 transition-opacity ${
           isTemplate ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}
         onClick={(e) => {
@@ -275,12 +294,20 @@ const ColumnItem: React.FC<{
         title={isTemplate ? 'Remove from templates' : 'Add to templates'}
       >
         <Star 
-          className={`h-3.5 w-3.5 transition-colors ${
+          className={`h-3 w-3 transition-colors ${
             isTemplate ? 'text-yellow-500 fill-current' : 'text-muted-foreground hover:text-yellow-500'
           }`}
         />
       </Button>
-      <span className="text-xs opacity-60 group-hover:opacity-100 transition-opacity">{icon}</span>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison to prevent unnecessary re-renders
+  return (
+    prevProps.selected === nextProps.selected &&
+    prevProps.isTemplate === nextProps.isTemplate &&
+    prevProps.column.field === nextProps.column.field &&
+    prevProps.column.headerName === nextProps.column.headerName &&
+    prevProps.column.cellDataType === nextProps.column.cellDataType
+  );
+});

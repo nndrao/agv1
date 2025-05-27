@@ -1,110 +1,96 @@
-/* Modern Column Customization Dialog Enhancements */
+/* Modern Column Customization Dialog - Sleek & Professional */
 
-/* Smooth backdrop blur animation */
+/* Root CSS Variables for consistent theming */
+:root {
+  --dialog-border-radius: 8px;
+  --dialog-padding: 16px;
+  --dialog-gap: 12px;
+  --transition-base: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Smooth backdrop with subtle blur */
 .column-dialog-backdrop {
-  backdrop-filter: blur(8px);
-  background: rgba(0, 0, 0, 0.4);
-  transition: backdrop-filter 0.3s ease-in-out;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.3);
+  transition: all var(--transition-base);
 }
 
-/* Enhanced dialog content with modern shadows */
+/* Enhanced dialog with professional shadow */
 .column-dialog-content {
-  box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--dialog-border-radius);
   overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.5);
 }
 
-/* Subtle glass morphism effect for panels */
-.panel-glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Clean panel styling without excessive glass effects */
+.panel-section {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border) / 0.3);
 }
 
-/* Modern scrollbar styling */
+/* Minimal scrollbar styling */
 .modern-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 .modern-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 3px;
+  background: transparent;
 }
 
 .modern-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-  transition: background 0.2s ease;
+  background: hsl(var(--border));
+  border-radius: 2px;
+  opacity: 0.5;
+  transition: opacity var(--transition-base);
 }
 
 .modern-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  opacity: 0.8;
 }
 
-/* Dark mode scrollbar */
-.dark .modern-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.dark .modern-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.dark .modern-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* Enhanced button hover effects */
+/* Professional button styling */
 .modern-button {
   position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-base);
+  font-weight: 500;
 }
 
-.modern-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-  transition: left 0.5s ease;
+.modern-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
-.modern-button:hover::before {
-  left: 100%;
+.modern-button:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
-/* Subtle animations for interactive elements */
+/* Subtle entrance animation */
 .fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+  animation: fadeIn var(--transition-base);
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
 }
 
-/* Enhanced focus states */
+/* Clean focus states */
 .modern-focus:focus-visible {
-  outline: 2px solid hsl(var(--primary));
-  outline-offset: 2px;
-  border-radius: 6px;
+  outline: 2px solid hsl(var(--primary) / 0.5);
+  outline-offset: 1px;
+  border-radius: calc(var(--dialog-border-radius) / 2);
 }
 
 /* Improved checkbox styling for better visibility */
@@ -155,69 +141,87 @@
   box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2), 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Badge enhancements */
+/* Clean badge styling */
 .modern-badge {
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  box-shadow: var(--shadow-sm);
 }
 
-/* Panel separator enhancements */
+/* Simple panel separators */
 .panel-separator {
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(0, 0, 0, 0.1),
-    transparent
-  );
+  background: hsl(var(--border) / 0.5);
   width: 1px;
 }
 
-.dark .panel-separator {
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-}
-
-/* Tab enhancements */
+/* Professional tab styling */
 .modern-tab {
   position: relative;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  transition: all var(--transition-base);
+}
+
+.modern-tab[data-state="active"] {
+  color: hsl(var(--primary));
 }
 
 .modern-tab[data-state="active"]::after {
   content: '';
   position: absolute;
-  bottom: -1px;
+  bottom: 0;
   left: 0;
   right: 0;
   height: 2px;
   background: hsl(var(--primary));
-  border-radius: 1px;
 }
 
-/* Loading states */
-.loading-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
+/* Professional section headers */
+.section-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: var(--dialog-gap);
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+/* Compact input styling */
+.compact-input {
+  height: 36px;
+  font-size: 0.875rem;
+  padding: 0 12px;
+}
+
+/* Professional property groups */
+.property-group {
+  background: hsl(var(--muted) / 0.3);
+  border-radius: calc(var(--dialog-border-radius) / 2);
+  padding: 12px;
+  border: 1px solid hsl(var(--border) / 0.3);
+}
+
+/* Clean hover states */
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+/* Professional toggle styling */
+.modern-toggle {
+  transition: all var(--transition-base);
+}
+
+.modern-toggle[data-state="checked"] {
+  background: hsl(var(--primary));
+}
+
+/* Clean selection indicator */
+.selection-indicator {
+  width: 3px;
+  background: hsl(var(--primary));
+  border-radius: 0 2px 2px 0;
+  transition: opacity var(--transition-base);
 }
 
 /* Responsive adjustments */

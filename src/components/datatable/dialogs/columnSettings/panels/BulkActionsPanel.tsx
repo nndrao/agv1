@@ -20,7 +20,6 @@ export const BulkActionsPanel: React.FC = () => {
     columnDefinitions,
     pendingChanges,
     templateColumns,
-    updateBulkProperty,
     updateBulkProperties
   } = useColumnCustomizationStore();
 
@@ -44,7 +43,7 @@ export const BulkActionsPanel: React.FC = () => {
         cellDataType: 'number',
         type: 'numericColumn',
         filter: 'agNumberColumnFilter',
-        valueFormatter: (params: any) => {
+        valueFormatter: (params: { value: number | null | undefined }) => {
           if (params.value == null) return '';
           return `$${params.value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
         }
@@ -104,12 +103,20 @@ export const BulkActionsPanel: React.FC = () => {
     const sourceColumn = columnDefinitions.get(sourceColumnId);
     if (!sourceColumn) return;
 
-    // Only copy formatting-related properties
+    // Copy formatting, filter, editor, and style properties
     const propertiesToCopy = [
-      'cellDataType', 'type', 'filter',
+      // Data type and basic properties
+      'cellDataType', 'type',
+      // Filter configurations
+      'filter', 'filterParams', 'floatingFilter', 'suppressMenu', 'suppressFiltersToolPanel',
+      // Editor configurations
+      'editable', 'cellEditor', 'cellEditorParams', 'cellEditorPopup', 'cellEditorPopupPosition',
+      'singleClickEdit', 'stopEditingWhenCellsLoseFocus',
+      // Format configurations
+      'valueFormat', 'valueFormatter',
+      // Style properties
       'cellStyle', 'headerStyle', 'cellClass', 'headerClass',
-      'valueFormatter', 'cellRenderer',
-      'wrapText', 'autoHeight'
+      'cellRenderer', 'wrapText', 'autoHeight'
     ];
 
     // Build properties object for batch update
@@ -167,17 +174,17 @@ export const BulkActionsPanel: React.FC = () => {
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b">
         <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Bulk Actions</span>
+          <Zap className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold">Quick Actions</span>
         </div>
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-5">
           {/* Quick Templates */}
           <div>
-            <h3 className="text-xs font-semibold mb-3 uppercase text-muted-foreground">
-              Quick Templates
+            <h3 className="section-header">
+              Apply Template
             </h3>
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(templates).map(([id, template]) => (
@@ -185,11 +192,13 @@ export const BulkActionsPanel: React.FC = () => {
                   key={id}
                   variant="outline"
                   size="sm"
-                  className="justify-start gap-2"
+                  className="h-9 justify-start gap-2 text-sm hover-lift"
                   onClick={() => applyTemplate(id as keyof typeof templates)}
                   disabled={isDisabled}
                 >
-                  {template.icon}
+                  <span className="text-muted-foreground">
+                    {template.icon}
+                  </span>
                   {template.label}
                 </Button>
               ))}
@@ -198,71 +207,85 @@ export const BulkActionsPanel: React.FC = () => {
 
           {/* Copy From Column */}
           <div>
-            <h3 className="text-xs font-semibold mb-3 uppercase text-muted-foreground">
+            <h3 className="section-header">
               Copy From Column
             </h3>
+            <p className="text-xs text-muted-foreground mb-2">
+              Copies styles, format, filters, and editor settings
+            </p>
             <Select
               value={sourceColumnId}
               onValueChange={setSourceColumnId}
               disabled={isDisabled || templateColumnsList.length === 0}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="h-8 text-sm compact-input">
                 <SelectValue placeholder={
                   templateColumnsList.length === 0
-                    ? "No template columns available"
-                    : "Select a template column"
+                    ? "No template columns"
+                    : "Select template column"
                 } />
               </SelectTrigger>
               <SelectContent>
-                {templateColumnsList.map(([colId, col]) => (
-                  <SelectItem key={colId} value={colId}>
-                    {col.headerName || col.field}
-                  </SelectItem>
-                ))}
+                {templateColumnsList.length === 0 ? (
+                  <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+                    <p className="mb-1">No template columns</p>
+                    <p className="text-xs opacity-70">Star columns to use as templates</p>
+                  </div>
+                ) : (
+                  templateColumnsList.map(([colId, col]) => (
+                    <SelectItem key={colId} value={colId} className="text-sm">
+                      {col.headerName || col.field}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
-              className="w-full mt-2"
+              className="w-full mt-2 h-8 text-sm gap-2"
               onClick={copyFromColumn}
               disabled={isDisabled || !sourceColumnId}
+              title="Copy styles, format, filters, and editor settings"
             >
-              <Copy className="h-4 w-4 mr-2" />
-              Copy to Selected
+              <Copy className="h-3.5 w-3.5" />
+              Copy All Settings
             </Button>
           </div>
 
           {/* Clear All */}
           <div>
-            <h3 className="text-xs font-semibold mb-3 uppercase text-muted-foreground">
+            <h3 className="section-header">
               Reset
             </h3>
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
-              className="w-full"
+              className="w-full h-8 text-sm gap-2"
               onClick={clearAllCustomizations}
               disabled={isDisabled}
             >
-              <Eraser className="h-4 w-4 mr-2" />
+              <Eraser className="h-3.5 w-3.5" />
               Clear All Customizations
             </Button>
           </div>
 
           {/* Status */}
-          {selectedColumns.size > 0 && (
-            <div className="pt-4 border-t text-center">
-              <p className="text-sm text-muted-foreground">
-                {selectedColumns.size} column{selectedColumns.size !== 1 ? 's' : ''} selected
-              </p>
-              {changeCount > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {changeCount} pending change{changeCount !== 1 ? 's' : ''}
-                </p>
-              )}
+          <div className="pt-5 mt-5 border-t">
+            <h3 className="section-header">
+              Status
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between p-2 rounded bg-muted/30">
+                <span className="text-muted-foreground">Selected Columns</span>
+                <span className="font-medium">{selectedColumns.size}</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded bg-muted/30">
+                <span className="text-muted-foreground">Pending Changes</span>
+                <span className="font-medium">{changeCount}</span>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </ScrollArea>
     </div>

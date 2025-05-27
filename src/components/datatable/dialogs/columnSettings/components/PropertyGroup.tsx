@@ -12,12 +12,11 @@ export const PropertyGroup: React.FC<PropertyGroupProps> = ({
   className = '' 
 }) => {
   return (
-    <div className={className}>
-      <h3 className="text-sm font-semibold mb-3 text-foreground flex items-center gap-2">
-        <div className="w-1 h-4 bg-primary rounded-full" />
+    <div className={`property-group ${className}`}>
+      <h3 className="section-header">
         {title}
       </h3>
-      <div className="pl-3">
+      <div className="space-y-2">
         {children}
       </div>
     </div>
