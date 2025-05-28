@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Columns3, Filter, Star } from 'lucide-react';
+import { Search, Columns3, Filter, Star, Eye, EyeOff } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { COLUMN_ICONS } from '../types';
@@ -15,14 +15,17 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
   const {
     selectedColumns,
     columnDefinitions,
+    columnState,
     searchTerm,
     cellDataTypeFilter,
+    visibilityFilter,
     templateColumns,
     toggleColumnSelection,
     selectColumns,
     deselectColumns,
     setSearchTerm,
     setCellDataTypeFilter,
+    setVisibilityFilter,
     toggleTemplateColumn
   } = useColumnCustomizationStore();
 
@@ -44,7 +47,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
     return Array.from(types).sort();
   }, [allColumns]);
 
-  // Filter columns based on search and cellDataType
+  // Filter columns based on search, cellDataType, and visibility
   const filteredColumns = useMemo(() => {
     let filtered = allColumns;
 
@@ -62,8 +65,57 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
       filtered = filtered.filter(col => col.cellDataType === cellDataTypeFilter);
     }
 
+    // Filter by visibility using column state
+    if (visibilityFilter !== 'all') {
+      // Debug logging
+      console.log('[ColumnSelector] Visibility filter:', visibilityFilter);
+      console.log('[ColumnSelector] Column state size:', columnState.size);
+      console.log('[ColumnSelector] All columns count:', allColumns.length);
+      
+      // First, let's see what's in the column state
+      if (columnState.size > 0) {
+        console.log('[ColumnSelector] Column state keys:', Array.from(columnState.keys()).slice(0, 5));
+      }
+      
+      filtered = filtered.filter(col => {
+        // Try multiple ways to match column with state
+        const field = col.field || '';
+        const colId = col.colId || field;
+        
+        // Try to find column state by field first, then by colId
+        let colState = columnState.get(field);
+        if (!colState && field !== colId) {
+          colState = columnState.get(colId);
+        }
+        
+        // Check if column state exists at all - if not, the grid API might not be returning state for all columns
+        // AG-Grid only includes columns in getColumnState if they have been modified from defaults
+        // So if a column has no state, it means it's using default settings (visible)
+        const isHidden = colState?.hide === true; // Only hidden if explicitly set to true
+        
+        // Debug for first few columns
+        const colIndex = allColumns.indexOf(col);
+        if (colIndex < 5) {
+          console.log('[ColumnSelector] Column visibility check:', {
+            index: colIndex,
+            field: col.field,
+            colId: colId,
+            hasColState: !!colState,
+            hide: colState?.hide,
+            isHidden: isHidden,
+            shouldShow: visibilityFilter === 'hidden' ? isHidden : !isHidden
+          });
+        }
+        
+        return visibilityFilter === 'hidden' ? isHidden : !isHidden;
+      });
+      
+      console.log('[ColumnSelector] Filtered columns count:', filtered.length);
+      console.log('[ColumnSelector] Showing:', visibilityFilter === 'visible' ? 'visible columns' : 'hidden columns');
+    }
+
     return filtered;
-  }, [allColumns, searchTerm, cellDataTypeFilter]);
+  }, [allColumns, searchTerm, cellDataTypeFilter, visibilityFilter, columnState]);
 
   // Prepare items for virtual scrolling (simple flat list)
   const flatItems = useMemo(() => {
@@ -146,8 +198,9 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
           />
         </div>
 
-        {/* CellDataType Filter */}
-        <div className="mb-4">
+        {/* Filters */}
+        <div className="space-y-3 mb-4">
+          {/* CellDataType Filter */}
           <Select
             value={cellDataTypeFilter}
             onValueChange={setCellDataTypeFilter}
@@ -168,6 +221,43 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Visibility Filter */}
+          <Select
+            value={visibilityFilter}
+            onValueChange={(value: 'all' | 'visible' | 'hidden') => setVisibilityFilter(value)}
+          >
+            <SelectTrigger className="h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
+              {visibilityFilter === 'visible' ? (
+                <Eye className="h-4 w-4 mr-2" />
+              ) : visibilityFilter === 'hidden' ? (
+                <EyeOff className="h-4 w-4 mr-2" />
+              ) : (
+                <Eye className="h-4 w-4 mr-2" />
+              )}
+              <SelectValue placeholder="Filter by visibility" />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
+              <SelectItem value="all" className="text-sm">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  <span>All Columns</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="visible" className="text-sm">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-green-600" />
+                  <span>Visible Columns</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="hidden" className="text-sm">
+                <div className="flex items-center gap-2">
+                  <EyeOff className="h-4 w-4 text-red-600" />
+                  <span>Hidden Columns</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Modern Selection Controls */}
@@ -184,7 +274,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
             className="checkbox-enhanced rounded"
           />
           <span className="text-xs font-medium text-foreground">
-            {(searchTerm || cellDataTypeFilter !== 'all') ? 'All Filtered' : 'All'}
+            {(searchTerm || cellDataTypeFilter !== 'all' || visibilityFilter !== 'all') ? 'All Filtered' : 'All'}
           </span>
           {filteredSelectedCount > 0 && (
             <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium rounded-md bg-secondary/80 border border-secondary/40">
@@ -227,6 +317,16 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
                       columnId={item.id}
                       selected={selectedColumns.has(item.id)}
                       isTemplate={templateColumns instanceof Set ? templateColumns.has(item.id) : false}
+                      isHidden={(() => {
+                        // Try to find column state by field first, then by colId
+                        const field = item.column.field || '';
+                        const colId = item.column.colId || field;
+                        let colState = columnState.get(field);
+                        if (!colState && field !== colId) {
+                          colState = columnState.get(colId);
+                        }
+                        return colState?.hide || false;
+                      })()}
                       onToggle={toggleColumnSelection}
                       onToggleTemplate={toggleTemplateColumn}
                     />
@@ -249,9 +349,10 @@ const ColumnItem: React.FC<{
   columnId: string;
   selected: boolean;
   isTemplate: boolean;
+  isHidden: boolean;
   onToggle: (columnId: string) => void;
   onToggleTemplate: (columnId: string) => void;
-}> = React.memo(({ column, columnId, selected, isTemplate, onToggle, onToggleTemplate }) => {
+}> = React.memo(({ column, columnId, selected, isTemplate, isHidden, onToggle, onToggleTemplate }) => {
   const iconKey = (column.cellDataType || column.type || 'text') as string;
   const icon = COLUMN_ICONS[iconKey] || COLUMN_ICONS.text;
 
@@ -281,8 +382,13 @@ const ColumnItem: React.FC<{
         className="checkbox-enhanced"
       />
       <span className="text-sm shrink-0">{icon}</span>
-      <span className="text-sm flex-1 truncate">
-        {column.headerName || column.field}
+      <span className="text-sm flex-1 truncate flex items-center gap-2">
+        <span className={isHidden ? 'opacity-50' : ''}>
+          {column.headerName || column.field}
+        </span>
+        {isHidden && (
+          <EyeOff className="h-3 w-3 text-muted-foreground" />
+        )}
       </span>
       <Button
         variant="ghost"
@@ -306,6 +412,7 @@ const ColumnItem: React.FC<{
   return (
     prevProps.selected === nextProps.selected &&
     prevProps.isTemplate === nextProps.isTemplate &&
+    prevProps.isHidden === nextProps.isHidden &&
     prevProps.columnId === nextProps.columnId &&
     prevProps.column.field === nextProps.column.field &&
     prevProps.column.headerName === nextProps.column.headerName &&

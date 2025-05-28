@@ -127,7 +127,7 @@ function processFormatSection(format: string, value: number, params: ValueFormat
  * Supports Excel format strings for numbers, currency, percentages, dates, etc.
  */
 export function createExcelFormatter(formatString: string) {
-  return (params: ValueFormatterParams): string => {
+  const formatter = (params: ValueFormatterParams): string => {
     if (params.value == null || params.value === '') return '';
     
     const value = params.value;
@@ -294,6 +294,12 @@ export function createExcelFormatter(formatString: string) {
       return value.toString();
     }
   };
+  
+  // Attach format string as metadata for serialization
+  (formatter as any).__formatString = formatString;
+  (formatter as any).__formatterType = 'excel';
+  
+  return formatter;
 }
 
 /**

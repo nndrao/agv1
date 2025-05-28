@@ -47,6 +47,9 @@ export const BulkActionsPanel: React.FC = () => {
 
   // Properties to save in templates - comprehensive list
   const TEMPLATE_PROPERTIES = [
+    // NOTE: 'field' and 'headerName' are intentionally excluded from templates
+    // They should only be applied to single columns, not in bulk
+    
     // Data type and basic properties
     'cellDataType', 'type', 'valueGetter', 'valueSetter',
     
@@ -59,12 +62,13 @@ export const BulkActionsPanel: React.FC = () => {
     'singleClickEdit', 'stopEditingWhenCellsLoseFocus', 'cellEditorSelector',
     
     // Format configurations
-    'valueFormat', 'valueFormatter', 'exportValueFormatter', 'excelFormat',
+    'valueFormatter', 'exportValueFormatter',
     'cellClass', 'cellClassRules', 'cellStyle',
     
     // Header configurations
     'headerClass', 'headerStyle', 'headerTooltip', 'headerComponent', 'headerComponentParams',
     'headerTextAlign', 'headerCheckboxSelection', 'headerCheckboxSelectionFilteredOnly',
+    'wrapHeaderText', 'autoHeaderHeight',  // Added from StylingTab
     
     // Cell renderer
     'cellRenderer', 'cellRendererParams', 'cellRendererSelector',
@@ -81,6 +85,7 @@ export const BulkActionsPanel: React.FC = () => {
     'pinned', 'lockPosition', 'lockPinned', 'lockVisible',
     'width', 'minWidth', 'maxWidth', 'flex',
     'resizable', 'suppressSizeToFit',
+    'initialWidth', 'initialHide', 'initialPinned',  // Added from GeneralTab
     
     // Tooltips
     'tooltip', 'tooltipField', 'tooltipValueGetter', 'tooltipComponent', 'tooltipComponentParams',
@@ -127,35 +132,73 @@ export const BulkActionsPanel: React.FC = () => {
       if (value !== undefined) {
         // Special handling for functions - convert to serializable format
         if (typeof value === 'function') {
-          // For formatters, we always save the valueFormat if available
+          // For formatters, we just copy the function reference
           if (property === 'valueFormatter' || property === 'exportValueFormatter') {
-            // Always store the valueFormat which can recreate the formatter
-            const format = changes?.valueFormat ?? columnDef.valueFormat;
-            if (format) {
-              config.valueFormat = format;
-              // Also store a flag indicating this uses a formatter
-              config._hasFormatter = true;
+            // Store the formatter function directly
+            if (value && typeof value === 'function') {
+              config[property] = value;
             }
-          } else if (property === 'headerStyle' || property === 'cellStyle') {
+          } else if (property === 'headerStyle') {
+            // Special handling for headerStyle function
+            try {
+              // Extract styles for both regular header and floating filter
+              const regularStyle = value({ floatingFilter: false });
+              const floatingStyle = value({ floatingFilter: true });
+              
+              // Store as an object that preserves the conditional logic
+              config[property] = {
+                _isHeaderStyleConfig: true,
+                regular: regularStyle,
+                floating: floatingStyle
+              };
+            } catch (e) {
+              console.warn(`Failed to extract headerStyle:`, e);
+              // Try to store just the regular style
+              try {
+                const regularStyle = value({});
+                if (regularStyle && typeof regularStyle === 'object') {
+                  config[property] = regularStyle;
+                }
+              } catch (e2) {
+                console.warn(`Failed to extract headerStyle completely:`, e2);
+              }
+            }
+          } else if (property === 'cellStyle') {
             // Extract style by calling the function if it's a function
             try {
-              const extractedStyle = value({ floatingFilter: false });
+              const extractedStyle = value({});
               if (extractedStyle && typeof extractedStyle === 'object') {
                 config[property] = extractedStyle;
               }
             } catch (e) {
               // If function fails, try to store as is
-              console.warn(`Failed to extract ${property}:`, e);
+              console.warn(`Failed to extract cellStyle:`, e);
             }
-          } else if (property === 'comparator' || property === 'valueGetter' || property === 'valueSetter') {
+          } else if (property === 'comparator' || property === 'valueGetter' || property === 'valueSetter' || 
+                     property === 'cellRenderer' || property === 'cellEditor' || property === 'filterValueGetter' ||
+                     property === 'tooltipValueGetter') {
             // For other functions, store a flag that they exist
             config[`_has${property.charAt(0).toUpperCase() + property.slice(1)}`] = true;
           }
+        } else if (value && typeof value === 'object' && property === 'headerStyle' && 
+                   value._isHeaderStyleConfig) {
+          // If it's already in our special format, store it as is
+          config[property] = value;
         } else {
           // For non-function values, store directly
           config[property] = value;
         }
       }
+    });
+    
+    console.log('[BulkActionsPanel] Template configuration captured:', {
+      columnId: firstColumnId,
+      propertiesFound: Object.keys(config),
+      hasHeaderStyle: !!config.headerStyle,
+      headerStyleType: config.headerStyle ? typeof config.headerStyle : 'none',
+      hasCellStyle: !!config.cellStyle,
+      hasValueFormatter: !!config.valueFormatter,
+      totalProperties: Object.keys(config).length
     });
     
     return config;
@@ -200,46 +243,53 @@ export const BulkActionsPanel: React.FC = () => {
     // Prepare properties to apply
     const propertiesToApply: Record<string, any> = { ...template.properties };
     
-    // If template has a valueFormat and the formatter flag, we need to recreate the formatter
-    if (template.properties.valueFormat && template.properties._hasFormatter) {
-      // Import the formatter creator function
-      import('@/components/datatable/utils/formatters').then(({ createExcelFormatter, getExcelStyleClass, getExcelExportFormat, createCellStyleFunction }) => {
-        const format = template.properties.valueFormat;
-        
-        // Create the formatter function
-        const formatter = createExcelFormatter(format);
-        propertiesToApply.valueFormatter = formatter;
-        propertiesToApply.exportValueFormatter = formatter;
-        
-        // Set appropriate cell class
-        const cellClass = getExcelStyleClass(format);
-        if (cellClass) {
-          const existingClasses = template.properties.cellClass || '';
-          const currentClasses = typeof existingClasses === 'string' ? 
-            existingClasses.split(' ').filter(c => !c.startsWith('ag-')) : [];
-          const newClasses = [...new Set([...currentClasses, ...cellClass.split(' ')])];
-          propertiesToApply.cellClass = newClasses.join(' ').trim();
-        }
-        
-        // Handle cell style for dynamic color formatting
-        if (format.includes('[') && format.includes(']')) {
-          const baseStyle = template.properties.cellStyle || {};
-          propertiesToApply.cellStyle = createCellStyleFunction(format, baseStyle);
-        }
-        
-        // Set Excel export format
-        const excelFormat = getExcelExportFormat(format);
-        if (excelFormat) {
-          propertiesToApply.excelFormat = excelFormat;
-        }
-        
-        // Apply all properties after formatter is created
-        updateBulkProperties(propertiesToApply);
-      });
-    } else {
-      // Apply all template properties at once
-      updateBulkProperties(propertiesToApply);
+    // Remove field and headerName to ensure they're never applied from templates
+    delete propertiesToApply.field;
+    delete propertiesToApply.headerName;
+    
+    // Special handling for certain properties
+    
+    // If template has a valueFormatter, apply it directly
+    if (template.properties.valueFormatter && typeof template.properties.valueFormatter === 'function') {
+      propertiesToApply.valueFormatter = template.properties.valueFormatter;
     }
+    if (template.properties.exportValueFormatter && typeof template.properties.exportValueFormatter === 'function') {
+      propertiesToApply.exportValueFormatter = template.properties.exportValueFormatter;
+    }
+    
+    // Handle headerStyle - convert back to function if needed
+    if (template.properties.headerStyle) {
+      const headerStyle = template.properties.headerStyle;
+      if (headerStyle._isHeaderStyleConfig) {
+        // Convert to function format
+        propertiesToApply.headerStyle = (params: { floatingFilter?: boolean }) => {
+          if (params?.floatingFilter) {
+            return headerStyle.floating || null;
+          }
+          return headerStyle.regular || null;
+        };
+      } else if (typeof headerStyle === 'object') {
+        // Legacy format - just a style object
+        propertiesToApply.headerStyle = (params: { floatingFilter?: boolean }) => {
+          if (!params?.floatingFilter) {
+            return headerStyle;
+          }
+          return null;
+        };
+      }
+    }
+    
+    console.log('[BulkActionsPanel] Applying template:', {
+      templateName: template.name,
+      templateId: template.id,
+      propertiesCount: Object.keys(propertiesToApply).length,
+      properties: Object.keys(propertiesToApply),
+      hasHeaderStyle: !!propertiesToApply.headerStyle,
+      headerStyleType: propertiesToApply.headerStyle ? typeof propertiesToApply.headerStyle : 'none'
+    });
+    
+    // Apply all template properties at once
+    updateBulkProperties(propertiesToApply);
     
     setSelectedTemplateId(''); // Clear selection after applying
   }, [selectedTemplateId, templates, updateBulkProperties]);

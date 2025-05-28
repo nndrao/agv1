@@ -71,7 +71,22 @@ export const StylingTab: React.FC = () => {
   };
 
   const handleHeaderStyleSave = (style: React.CSSProperties) => {
-    updateBulkProperty('headerStyle', style);
+    console.log('[StylingTab] Saving headerStyle:', {
+      style,
+      selectedColumnsCount: selectedColumns.size,
+      selectedColumns: Array.from(selectedColumns)
+    });
+    
+    // Create a function that applies styles only to regular headers, not floating filters
+    const headerStyleFn = (params: { floatingFilter?: boolean }) => {
+      // Don't apply styles to floating filter row
+      if (params?.floatingFilter) {
+        return null;
+      }
+      return style;
+    };
+    
+    updateBulkProperty('headerStyle', headerStyleFn);
   };
 
   // Clear all styles
@@ -168,7 +183,9 @@ export const StylingTab: React.FC = () => {
   // Handle header alignment changes using headerClass (separate from headerStyle)
   const handleHeaderAlignmentChange = (alignment: string, type: 'horizontal' | 'vertical') => {
     const currentHeaderClass = getMixedValue('headerClass');
-    const currentClasses = (currentHeaderClass.value as string || '').trim();
+    // Ensure we always work with strings, not booleans
+    const currentClassesRaw = currentHeaderClass.value;
+    const currentClasses = (typeof currentClassesRaw === 'string' ? currentClassesRaw : '').trim();
     const classArray = currentClasses ? currentClasses.split(' ').filter(c => c) : [];
 
     // Remove existing alignment classes
@@ -194,7 +211,9 @@ export const StylingTab: React.FC = () => {
   // Handle cell alignment changes using cellClass
   const handleCellAlignmentChange = (alignment: string, type: 'horizontal' | 'vertical') => {
     const currentCellClass = getMixedValue('cellClass');
-    const currentClasses = (currentCellClass.value as string || '').trim();
+    // Ensure we always work with strings, not booleans
+    const currentClassesRaw = currentCellClass.value;
+    const currentClasses = (typeof currentClassesRaw === 'string' ? currentClassesRaw : '').trim();
     const classArray = currentClasses ? currentClasses.split(' ').filter(c => c) : [];
 
     // Remove existing alignment classes
@@ -220,7 +239,8 @@ export const StylingTab: React.FC = () => {
   // Extract current header alignment from headerClass
   const getCurrentHeaderAlignment = (type: 'horizontal' | 'vertical') => {
     const headerClassValue = getMixedValue('headerClass');
-    const headerClass = (headerClassValue.value as string || '').trim();
+    const headerClassRaw = headerClassValue.value;
+    const headerClass = (typeof headerClassRaw === 'string' ? headerClassRaw : '').trim();
 
     if (headerClassValue.isMixed) {
       return 'default';
@@ -242,7 +262,8 @@ export const StylingTab: React.FC = () => {
   // Extract current cell alignment from cellClass
   const getCurrentCellAlignment = (type: 'horizontal' | 'vertical') => {
     const cellClassValue = getMixedValue('cellClass');
-    const cellClass = (cellClassValue.value as string || '').trim();
+    const cellClassRaw = cellClassValue.value;
+    const cellClass = (typeof cellClassRaw === 'string' ? cellClassRaw : '').trim();
 
     if (cellClassValue.isMixed) {
       return 'default';

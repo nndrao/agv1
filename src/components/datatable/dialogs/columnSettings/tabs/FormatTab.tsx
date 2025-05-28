@@ -172,7 +172,8 @@ export const FormatTab: React.FC = React.memo(() => {
     selectedColumns.forEach(colId => {
       const colDef = columnDefinitions.get(colId);
       const changes = pendingChanges.get(colId);
-      const format = changes?.valueFormat || colDef?.valueFormat || 'default';
+      // Detect format from valueFormatter if it exists
+      const format = 'default';
       formats.add(format);
     });
 
@@ -282,10 +283,8 @@ export const FormatTab: React.FC = React.memo(() => {
     setSelectedFormat(value);
     
     if (value === 'default') {
-      updateBulkProperty('valueFormat', undefined);
       updateBulkProperty('valueFormatter', undefined);
       updateBulkProperty('exportValueFormatter', undefined);
-      updateBulkProperty('excelFormat', undefined);
     } else if (value === 'custom') {
       // Don't update yet, wait for custom input
     } else {
@@ -297,15 +296,19 @@ export const FormatTab: React.FC = React.memo(() => {
   // Apply format with all necessary properties - optimized
   const applyFormat = useCallback((format: string) => {
     // Batch all updates together
-    const updates: Record<string, any> = {
-      valueFormat: format
-    };
+    const updates: Record<string, any> = {};
     
     // Check cache for formatter
     let formatter = formatCache.current.get(format);
     if (!formatter) {
       formatter = createExcelFormatter(format);
       formatCache.current.set(format, formatter);
+    }
+    
+    // Ensure formatter has metadata
+    if (!(formatter as any).__formatString) {
+      (formatter as any).__formatString = format;
+      (formatter as any).__formatterType = 'excel';
     }
     
     updates.valueFormatter = formatter;
@@ -316,9 +319,10 @@ export const FormatTab: React.FC = React.memo(() => {
     if (cellClass) {
       // Get first column's current class only once
       const firstColId = selectedColumns.size > 0 ? Array.from(selectedColumns)[0] : null;
-      const currentCellClass = firstColId ? 
+      const currentCellClassRaw = firstColId ? 
         columnDefinitions.get(firstColId)?.cellClass || '' : '';
-      const existingClasses = typeof currentCellClass === 'string' ? 
+      const currentCellClass = typeof currentCellClassRaw === 'string' ? currentCellClassRaw : '';
+      const existingClasses = currentCellClass ? 
         currentCellClass.split(' ').filter(c => !c.startsWith('ag-')) : [];
       const newClasses = [...new Set([...existingClasses, ...cellClass.split(' ')])];
       updates.cellClass = newClasses.join(' ').trim();
@@ -340,11 +344,7 @@ export const FormatTab: React.FC = React.memo(() => {
       updates.cellStyle = createCellStyleFunction(format, baseStyle);
     }
     
-    // Set Excel export format
-    const excelFormat = getExcelExportFormat(format);
-    if (excelFormat) {
-      updates.excelFormat = excelFormat;
-    }
+    // Excel export format is handled by the formatter itself
     
     // Apply all updates at once using updateBulkProperties
     const store = useColumnCustomizationStore.getState();
