@@ -42,6 +42,9 @@ export interface DialogActions {
 
   // Column management
   setSelectedColumns: (columns: Set<string>) => void;
+  toggleColumnSelection: (columnId: string) => void;
+  selectColumns: (columnIds: string[]) => void;
+  deselectColumns: (columnIds: string[]) => void;
   setColumnDefinitions: (columns: Map<string, ColDef>) => void;
   updateBulkProperty: (property: string, value: unknown) => void;
   updateBulkProperties: (properties: Record<string, unknown>) => void;
@@ -72,10 +75,25 @@ export const useSelectedColumns = () => useColumnCustomizationStore(state => sta
 export const useColumnDefinitions = () => useColumnCustomizationStore(state => state.columnDefinitions);
 export const usePendingChanges = () => useColumnCustomizationStore(state => state.pendingChanges);
 
-// Create debounced apply function outside of the store
-const debouncedApply = debounce((applyFn: () => void) => {
-  applyFn();
-}, 150);
+// Create debounced apply function with ref counting
+let applyTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingApplyCount = 0;
+
+const debouncedApply = (applyFn: () => void) => {
+  pendingApplyCount++;
+  
+  if (applyTimer) {
+    clearTimeout(applyTimer);
+  }
+  
+  applyTimer = setTimeout(() => {
+    if (pendingApplyCount > 0) {
+      applyFn();
+      pendingApplyCount = 0;
+    }
+    applyTimer = null;
+  }, 100); // Reduced from 150ms
+};
 
 export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
   subscribeWithSelector(
@@ -100,33 +118,71 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       setOpen: (open) => set({ open }),
 
       setSelectedColumns: (columns) => set({ selectedColumns: columns }),
+      
+      toggleColumnSelection: (columnId: string) => {
+        const { selectedColumns } = get();
+        const newSelected = new Set(selectedColumns);
+        if (newSelected.has(columnId)) {
+          newSelected.delete(columnId);
+        } else {
+          newSelected.add(columnId);
+        }
+        set({ selectedColumns: newSelected });
+      },
+      
+      selectColumns: (columnIds: string[]) => {
+        const { selectedColumns } = get();
+        const newSelected = new Set(selectedColumns);
+        columnIds.forEach(id => newSelected.add(id));
+        set({ selectedColumns: newSelected });
+      },
+      
+      deselectColumns: (columnIds: string[]) => {
+        const { selectedColumns } = get();
+        const newSelected = new Set(selectedColumns);
+        columnIds.forEach(id => newSelected.delete(id));
+        set({ selectedColumns: newSelected });
+      },
 
       setColumnDefinitions: (columns) => set({ columnDefinitions: columns }),
 
       updateBulkProperty: (property, value) => {
-        const { selectedColumns, pendingChanges, applyMode, onImmediateApply, columnDefinitions } = get();
+        const { selectedColumns, pendingChanges, applyMode, onImmediateApply } = get();
         if (selectedColumns.size === 0) return;
         
-        const newPendingChanges = new Map(pendingChanges);
+        // Use the existing Map when possible
+        const newPendingChanges = pendingChanges.size > 0 ? new Map(pendingChanges) : new Map();
 
         // Batch updates for performance
         const processedValue = property === 'headerStyle' && typeof value === 'object'
           ? (params: { floatingFilter?: boolean }) => (!params.floatingFilter ? value : null)
           : value;
 
+        // Use batch update for better performance
+        const updates: Array<[string, Partial<ColDef>]> = [];
+        
         selectedColumns.forEach(colId => {
-          const existing = newPendingChanges.get(colId) || {};
+          const existing = newPendingChanges.get(colId);
+          
           if (value === undefined) {
-            const updated = { ...existing };
-            delete updated[property as keyof ColDef];
-            if (Object.keys(updated).length === 0) {
-              newPendingChanges.delete(colId);
-            } else {
-              newPendingChanges.set(colId, updated);
+            if (existing && property in existing) {
+              const updated = { ...existing };
+              delete updated[property as keyof ColDef];
+              if (Object.keys(updated).length === 0) {
+                newPendingChanges.delete(colId);
+              } else {
+                updates.push([colId, updated]);
+              }
             }
           } else {
-            newPendingChanges.set(colId, { ...existing, [property]: processedValue });
+            const updated = existing ? { ...existing, [property]: processedValue } : { [property]: processedValue };
+            updates.push([colId, updated]);
           }
+        });
+        
+        // Apply all updates at once
+        updates.forEach(([colId, changes]) => {
+          newPendingChanges.set(colId, changes);
         });
 
         set({ pendingChanges: newPendingChanges });
@@ -134,10 +190,8 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         // Apply immediately if in immediate mode with debouncing
         if (applyMode === 'immediate' && onImmediateApply) {
           debouncedApply(() => {
-            const updatedColumns = Array.from(columnDefinitions.entries()).map(([colId, colDef]) => {
-              const changes = newPendingChanges.get(colId);
-              return changes ? { ...colDef, ...changes } : colDef;
-            });
+            const state = get();
+            const updatedColumns = state.applyChanges();
             onImmediateApply(updatedColumns);
           });
         }
@@ -198,19 +252,33 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
       applyChanges: () => {
         const { columnDefinitions, pendingChanges } = get();
-        const updatedColumns: ColDef[] = [];
+        
+        // Early return if no changes
+        if (pendingChanges.size === 0) {
+          return Array.from(columnDefinitions.values());
+        }
 
-        columnDefinitions.forEach((colDef, colId) => {
-          const changes = pendingChanges.get(colId);
-          if (changes) {
-            updatedColumns.push({ ...colDef, ...changes });
+        // Only update columns that have changes
+        const updatedColumns: ColDef[] = [];
+        const changedColIds = new Set(pendingChanges.keys());
+        
+        // Process columns in a single pass
+        for (const [colId, colDef] of columnDefinitions) {
+          if (changedColIds.has(colId)) {
+            const changes = pendingChanges.get(colId)!;
+            // Only spread if we have actual changes
+            updatedColumns.push(Object.keys(changes).length > 0 ? { ...colDef, ...changes } : colDef);
           } else {
+            // Reuse existing object reference for unchanged columns
             updatedColumns.push(colDef);
           }
-        });
+        }
 
-        // Clear pending changes after applying
-        set({ pendingChanges: new Map() });
+        // Batch state update
+        set({ 
+          pendingChanges: new Map(),
+          columnDefinitions: new Map(Array.from(columnDefinitions.entries()))
+        });
 
         return updatedColumns;
       },

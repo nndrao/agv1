@@ -1,0 +1,71 @@
+/* AG-Grid Format Styles */
+
+/* Numeric cells */
+.ag-numeric-cell {
+  text-align: right !important;
+}
+
+/* Currency cells */
+.ag-currency-cell {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Percentage cells */
+.ag-percentage-cell {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Date cells */
+.ag-date-cell {
+  text-align: center !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Color formatting support */
+.ag-cell-red {
+  color: #dc2626 !important;
+}
+
+.ag-cell-green {
+  color: #16a34a !important;
+}
+
+.ag-cell-blue {
+  color: #2563eb !important;
+}
+
+.ag-cell-yellow {
+  color: #ca8a04 !important;
+}
+
+.ag-cell-orange {
+  color: #ea580c !important;
+}
+
+.ag-cell-purple {
+  color: #9333ea !important;
+}
+
+.ag-cell-gray,
+.ag-cell-grey {
+  color: #6b7280 !important;
+}
+
+/* Negative values in parentheses (accounting style) */
+.ag-currency-cell.ag-negative {
+  color: #dc2626;
+}
+
+/* Excel export styles - these map to the excelStyles configuration */
+.ag-header-cell-text {
+  font-weight: 600;
+}
+
+/* Ensure proper alignment in floating filters */
+.ag-floating-filter .ag-numeric-cell,
+.ag-floating-filter .ag-currency-cell,
+.ag-floating-filter .ag-percentage-cell {
+  text-align: left !important;
+}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Palette, Eraser } from 'lucide-react';
 import { StyleEditor } from '../editors/StyleEditor';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { createCellStyleFunction } from '@/components/datatable/utils/formatters';
 
 export const StylingTab: React.FC = () => {
   const {
@@ -47,7 +48,26 @@ export const StylingTab: React.FC = () => {
   const isMultipleSelection = selectedColumns.size > 1;
 
   const handleCellStyleSave = (style: React.CSSProperties) => {
-    updateBulkProperty('cellStyle', style);
+    // Check if we have conditional formatting that needs to be preserved
+    let hasConditionalFormatting = false;
+    let formatString = '';
+    
+    selectedColumns.forEach(colId => {
+      const colDef = columnDefinitions.get(colId);
+      if (colDef?.valueFormat && colDef.valueFormat.includes('[') && colDef.valueFormat.includes(']')) {
+        hasConditionalFormatting = true;
+        formatString = colDef.valueFormat;
+      }
+    });
+    
+    if (hasConditionalFormatting) {
+      // Re-create the conditional style function with the new base style
+      const cellStyleFn = createCellStyleFunction(formatString, style);
+      updateBulkProperty('cellStyle', cellStyleFn);
+    } else {
+      // No conditional formatting, just save the style directly
+      updateBulkProperty('cellStyle', style);
+    }
   };
 
   const handleHeaderStyleSave = (style: React.CSSProperties) => {
@@ -64,8 +84,35 @@ export const StylingTab: React.FC = () => {
 
   // Clear only cell styles
   const clearCellStyles = () => {
-    updateBulkProperty('cellStyle', undefined);
-    updateBulkProperty('cellClass', undefined);
+    // Check if we have conditional formatting that needs to be preserved
+    let hasConditionalFormatting = false;
+    let formatString = '';
+    
+    selectedColumns.forEach(colId => {
+      const colDef = columnDefinitions.get(colId);
+      if (colDef?.valueFormat && colDef.valueFormat.includes('[') && colDef.valueFormat.includes(']')) {
+        hasConditionalFormatting = true;
+        formatString = colDef.valueFormat;
+      }
+    });
+    
+    if (hasConditionalFormatting) {
+      // Re-create the conditional style function without base styles
+      const cellStyleFn = createCellStyleFunction(formatString, {});
+      updateBulkProperty('cellStyle', cellStyleFn);
+    } else {
+      updateBulkProperty('cellStyle', undefined);
+    }
+    
+    // Clear non-format related classes
+    const currentCellClass = getMixedValue('cellClass');
+    if (currentCellClass.value) {
+      const classes = (currentCellClass.value as string).split(' ').filter(c => 
+        c.startsWith('ag-numeric-cell') || c.startsWith('ag-currency-cell') || 
+        c.startsWith('ag-percentage-cell') || c.startsWith('ag-date-cell')
+      );
+      updateBulkProperty('cellClass', classes.length > 0 ? classes.join(' ') : undefined);
+    }
   };
 
   // Clear only header styles
@@ -107,6 +154,15 @@ export const StylingTab: React.FC = () => {
       return currentHeaderStyle.value({ floatingFilter: false });
     }
     return currentHeaderStyle.value;
+  };
+
+  // Extract style object from cellStyle if it's a function
+  const getCellStyleObject = () => {
+    if (currentCellStyle.value && typeof currentCellStyle.value === 'function') {
+      // Don't pass function-based styles to the editor
+      return {};
+    }
+    return currentCellStyle.value;
   };
 
   // Handle header alignment changes using headerClass (separate from headerStyle)
@@ -389,7 +445,7 @@ export const StylingTab: React.FC = () => {
         open={showCellStyleEditor}
         onOpenChange={setShowCellStyleEditor}
         title="Cell Style Editor"
-        initialStyle={currentCellStyle.isMixed ? {} : (currentCellStyle.value as React.CSSProperties || {})}
+        initialStyle={currentCellStyle.isMixed ? {} : (getCellStyleObject() as React.CSSProperties || {})}
         onSave={handleCellStyleSave}
         isHeaderStyle={false}
       />

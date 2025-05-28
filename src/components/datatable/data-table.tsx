@@ -6,6 +6,7 @@ import { DataTableToolbar } from './data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
 import './alignment-styles.css';
+import './format-styles.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 
@@ -108,6 +109,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     enablePivot: true,
     resizable: true,
     sortable: true,
+    // Enable value formatter for Excel export by default
+    useValueFormatterForExport: true,
   }), []);
 
   const getContextMenuItems = useCallback(() => {
@@ -123,6 +126,29 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     ];
   }, []);
 
+  // Excel export configuration
+  const excelStyles = useMemo(() => [
+    {
+      id: 'header',
+      font: { bold: true },
+      alignment: { horizontal: 'Center', vertical: 'Center' }
+    },
+    {
+      id: 'ag-numeric-cell',
+      alignment: { horizontal: 'Right' }
+    },
+    {
+      id: 'ag-currency-cell',
+      numberFormat: { format: '$#,##0.00' },
+      alignment: { horizontal: 'Right' }
+    },
+    {
+      id: 'ag-percentage-cell',
+      numberFormat: { format: '0.00%' },
+      alignment: { horizontal: 'Right' }
+    }
+  ], []);
+
   const handleFontChange = (font: string) => {
     setSelectedFont(font);
     if (gridApiRef.current) {
@@ -130,18 +156,40 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     }
   };
 
-  const handleApplyColumnChanges = (updatedColumns: AgColDef[]) => {
-    // Convert back to ColumnDef type, preserving all properties
-    const convertedColumns: ColumnDef[] = updatedColumns.map(col => ({
-      ...col,
-      field: col.field || '',
-      headerName: col.headerName || col.field || ''
-    }));
-    setCurrentColumnDefs(convertedColumns);
+  const handleApplyColumnChanges = useCallback((updatedColumns: AgColDef[]) => {
+    // Update AG-Grid immediately
     if (gridApiRef.current) {
       gridApiRef.current.setGridOption('columnDefs', updatedColumns);
     }
-  };
+    
+    // Update React state only if necessary
+    setCurrentColumnDefs(prevColumns => {
+      // Check if we actually need to update
+      const needsUpdate = updatedColumns.length !== prevColumns.length ||
+        updatedColumns.some((col, idx) => col !== prevColumns[idx]);
+      
+      if (!needsUpdate) return prevColumns;
+      
+      // Only convert columns that need it
+      return updatedColumns.map((col, idx) => {
+        // Reuse existing column object if unchanged
+        if (prevColumns[idx] && col === prevColumns[idx]) {
+          return prevColumns[idx];
+        }
+        
+        // Check if conversion is needed
+        if (col.field && col.headerName) {
+          return col as ColumnDef;
+        }
+        
+        return {
+          ...col,
+          field: col.field || '',
+          headerName: col.headerName || col.field || ''
+        };
+      });
+    });
+  }, []);
 
   return (
     <div className="h-full w-full flex flex-col overflow-hidden">
@@ -184,6 +232,23 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
             gridApiRef.current = params.api;
           }}
           theme={theme}
+          excelStyles={excelStyles}
+          defaultExcelExportParams={{
+            // Apply column formatting to Excel export
+            processCellCallback: (params) => {
+              // Use the exportValueFormatter if available, otherwise valueFormatter
+              if (params.column.getColDef().exportValueFormatter) {
+                return params.column.getColDef().exportValueFormatter(params);
+              } else if (params.column.getColDef().valueFormatter) {
+                return params.column.getColDef().valueFormatter(params);
+              }
+              return params.value;
+            },
+            // Include column headers with formatting
+            processHeaderCallback: (params) => {
+              return params.column.getColDef().headerName || params.column.getColId();
+            }
+          }}
         />
       </div>
 
