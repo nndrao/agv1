@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,10 +22,9 @@ import {
   Settings,
   FileText,
   Code,
-  ChevronRight,
-  AlertCircle,
   Lightbulb
 } from 'lucide-react';
+import { debounce } from 'lodash';
 
 // Cell editor types based on AG-Grid documentation
 const CELL_EDITORS = {
@@ -80,7 +79,8 @@ const CELL_EDITORS = {
   },
 };
 
-export const EditorsTab: React.FC = () => {
+// Memoized component to prevent re-renders
+export const EditorsTab: React.FC = React.memo(() => {
   const {
     selectedColumns,
     columnDefinitions,
@@ -89,11 +89,20 @@ export const EditorsTab: React.FC = () => {
     updateBulkProperties,
   } = useColumnCustomizationStore();
 
-  const [activeSection, setActiveSection] = useState<'basic' | 'advanced'>('basic');
+  // Cache for editor configurations
+  const editorConfigCache = useRef<Map<string, any>>(new Map());
 
-  // Get current editor configuration
+  // Get current editor configuration with caching
   const currentEditorConfig = useMemo(() => {
     if (selectedColumns.size === 0) return null;
+
+    // Create a cache key from selected columns
+    const cacheKey = Array.from(selectedColumns).sort().join(',');
+    
+    // Check cache first
+    if (editorConfigCache.current.has(cacheKey)) {
+      return editorConfigCache.current.get(cacheKey);
+    }
 
     const configs = new Map<string, any>();
     selectedColumns.forEach(colId => {
@@ -102,20 +111,12 @@ export const EditorsTab: React.FC = () => {
       
       const cellEditor = changes?.cellEditor || colDef?.cellEditor || '';
       const cellEditorParams = changes?.cellEditorParams || colDef?.cellEditorParams || {};
-      const cellEditorPopup = changes?.cellEditorPopup ?? colDef?.cellEditorPopup ?? false;
-      const cellEditorPopupPosition = changes?.cellEditorPopupPosition || colDef?.cellEditorPopupPosition || 'over';
       const editable = changes?.editable ?? colDef?.editable ?? true;
-      const singleClickEdit = changes?.singleClickEdit ?? colDef?.singleClickEdit ?? false;
-      const stopEditingWhenCellsLoseFocus = changes?.stopEditingWhenCellsLoseFocus ?? colDef?.stopEditingWhenCellsLoseFocus ?? true;
       
       configs.set(colId, {
         cellEditor,
         cellEditorParams,
-        cellEditorPopup,
-        cellEditorPopupPosition,
         editable,
-        singleClickEdit,
-        stopEditingWhenCellsLoseFocus,
       });
     });
 
@@ -125,7 +126,18 @@ export const EditorsTab: React.FC = () => {
       JSON.stringify(config) === JSON.stringify(firstConfig)
     );
 
-    return allSame ? firstConfig : null;
+    const result = allSame ? firstConfig : null;
+    
+    // Cache the result
+    editorConfigCache.current.set(cacheKey, result);
+    
+    // Limit cache size
+    if (editorConfigCache.current.size > 50) {
+      const firstKey = editorConfigCache.current.keys().next().value;
+      editorConfigCache.current.delete(firstKey);
+    }
+    
+    return result;
   }, [selectedColumns, columnDefinitions, pendingChanges]);
 
   // Get recommended editor type based on data type
@@ -153,7 +165,7 @@ export const EditorsTab: React.FC = () => {
     return 'agTextCellEditor'; // Default
   }, [selectedColumns, columnDefinitions]);
 
-  const handleEditorTypeChange = (editorType: string) => {
+  const handleEditorTypeChange = useCallback((editorType: string) => {
     if (editorType === 'none') {
       updateBulkProperty('cellEditor', undefined);
       updateBulkProperty('cellEditorParams', undefined);
@@ -162,17 +174,13 @@ export const EditorsTab: React.FC = () => {
       // Set default params for the editor type
       updateBulkProperty('cellEditorParams', getDefaultEditorParams(editorType));
     }
-  };
+  }, [updateBulkProperty]);
 
-  const handleEditorParamChange = (param: string, value: any) => {
+  const handleEditorParamChange = useCallback((param: string, value: any) => {
     const currentParams = currentEditorConfig?.cellEditorParams || {};
     const newParams = { ...currentParams, [param]: value };
     updateBulkProperty('cellEditorParams', newParams);
-  };
-
-  const handleBulkUpdate = (updates: Record<string, any>) => {
-    updateBulkProperties(updates);
-  };
+  }, [currentEditorConfig, updateBulkProperty]);
 
   const getDefaultEditorParams = (editorType: string): any => {
     switch (editorType) {
@@ -192,9 +200,6 @@ export const EditorsTab: React.FC = () => {
       case 'agSelectCellEditor':
         return {
           values: ['Option 1', 'Option 2', 'Option 3'],
-          valueListGap: 0,
-          valueListMaxHeight: undefined,
-          valueListMaxWidth: undefined,
         };
       
       case 'agRichSelectCellEditor':
@@ -205,9 +210,6 @@ export const EditorsTab: React.FC = () => {
           allowTyping: true,
           filterList: true,
           highlightMatch: true,
-          valueListGap: 0,
-          valueListMaxHeight: undefined,
-          valueListMaxWidth: undefined,
         };
       
       case 'agNumberCellEditor':
@@ -241,270 +243,114 @@ export const EditorsTab: React.FC = () => {
         <div className="space-y-2">
           <h3 className="text-lg font-semibold">Cell Editors</h3>
           <p className="text-sm text-muted-foreground">
-            Configure how cells can be edited. Choose editor types and customize their behavior.
+            Choose editor types and customize their behavior for selected columns.
           </p>
         </div>
 
-        {/* Edit Configuration */}
+        {/* Cell Editor Selection */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Edit Configuration</CardTitle>
-            <CardDescription className="text-sm">
-              Control how cells enter and exit edit mode
-            </CardDescription>
+            <CardTitle className="text-base">Editor Type</CardTitle>
+            {recommendedEditor && currentEditor === 'none' && (
+              <Alert className="mt-2">
+                <Lightbulb className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  Recommended: <strong>{CELL_EDITORS[Object.keys(CELL_EDITORS).find(k => CELL_EDITORS[k as keyof typeof CELL_EDITORS].value === recommendedEditor) as keyof typeof CELL_EDITORS]?.label}</strong> based on your column data type
+                </AlertDescription>
+              </Alert>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="editable" className="text-sm font-medium">
-                    Enable Editing
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Allow cells to be edited
-                  </p>
-                </div>
-                <Switch
-                  id="editable"
-                  checked={currentEditorConfig?.editable ?? true}
-                  onCheckedChange={(checked) => updateBulkProperty('editable', checked)}
-                  disabled={isDisabled}
-                />
-              </div>
-
-              {currentEditorConfig?.editable !== false && (
-                <>
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="single-click" className="text-sm font-medium">
-                        Single Click Edit
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Start editing with single click instead of double click
-                      </p>
-                    </div>
-                    <Switch
-                      id="single-click"
-                      checked={currentEditorConfig?.singleClickEdit ?? false}
-                      onCheckedChange={(checked) => updateBulkProperty('singleClickEdit', checked)}
-                      disabled={isDisabled}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="stop-editing" className="text-sm font-medium">
-                        Stop Editing on Focus Lost
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Automatically stop editing when clicking outside
-                      </p>
-                    </div>
-                    <Switch
-                      id="stop-editing"
-                      checked={currentEditorConfig?.stopEditingWhenCellsLoseFocus ?? true}
-                      onCheckedChange={(checked) => updateBulkProperty('stopEditingWhenCellsLoseFocus', checked)}
-                      disabled={isDisabled}
-                    />
-                  </div>
-                </>
-              )}
-            </div>
+            <Select
+              value={currentEditor}
+              onValueChange={handleEditorTypeChange}
+              disabled={isDisabled}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select an editor type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Default (Auto)</SelectItem>
+                <Separator className="my-1" />
+                {Object.entries(CELL_EDITORS).map(([key, editor]) => {
+                  const Icon = editor.icon;
+                  return (
+                    <SelectItem key={key} value={editor.value}>
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        <span>{editor.label}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+                <Separator className="my-1" />
+                <SelectItem value="custom">Custom Editor</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && (
+              <Alert className="border-muted">
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  {CELL_EDITORS[Object.keys(CELL_EDITORS).find(k => CELL_EDITORS[k as keyof typeof CELL_EDITORS].value === currentEditor) as keyof typeof CELL_EDITORS]?.description}
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
-        {/* Cell Editor Selection */}
-        {currentEditorConfig?.editable !== false && (
+        {/* Editor Parameters */}
+        {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && (
           <Card>
             <CardHeader className="pb-4">
-              <CardTitle className="text-base">Editor Type</CardTitle>
+              <CardTitle className="text-base">Editor Settings</CardTitle>
               <CardDescription className="text-sm">
-                Select the appropriate editor for your data
+                Configure editor-specific options
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Select
-                value={currentEditor}
-                onValueChange={handleEditorTypeChange}
-                disabled={isDisabled}
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select an editor type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Default (Auto)</SelectItem>
-                  <Separator className="my-1" />
-                  {Object.entries(CELL_EDITORS).map(([key, editor]) => {
-                    const Icon = editor.icon;
-                    return (
-                      <SelectItem key={key} value={editor.value}>
-                        <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4" />
-                          <span>{editor.label}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                  <Separator className="my-1" />
-                  <SelectItem value="custom">Custom Editor</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && (
-                <Alert className="border-muted">
-                  <Info className="h-4 w-4" />
-                  <AlertDescription className="text-sm">
-                    {CELL_EDITORS[Object.keys(CELL_EDITORS).find(k => CELL_EDITORS[k as keyof typeof CELL_EDITORS].value === currentEditor) as keyof typeof CELL_EDITORS]?.description}
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              {recommendedEditor && currentEditor !== recommendedEditor && currentEditor === 'none' && (
-                <Alert>
-                  <Lightbulb className="h-4 w-4" />
-                  <AlertTitle className="text-sm">Recommendation</AlertTitle>
-                  <AlertDescription className="text-sm">
-                    Based on your column data type, we recommend using{' '}
-                    <strong>{CELL_EDITORS[Object.keys(CELL_EDITORS).find(k => CELL_EDITORS[k as keyof typeof CELL_EDITORS].value === recommendedEditor) as keyof typeof CELL_EDITORS]?.label}</strong>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Popup Configuration */}
-              {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && (
-                <>
-                  <Separator />
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="popup-editor" className="text-sm font-medium">
-                          Popup Editor
-                        </Label>
-                        <p className="text-xs text-muted-foreground">
-                          Show editor in a popup instead of inline
-                        </p>
-                      </div>
-                      <Switch
-                        id="popup-editor"
-                        checked={currentEditorConfig?.cellEditorPopup ?? false}
-                        onCheckedChange={(checked) => updateBulkProperty('cellEditorPopup', checked)}
-                        disabled={isDisabled}
-                      />
-                    </div>
-
-                    {currentEditorConfig?.cellEditorPopup && (
-                      <div className="space-y-2">
-                        <Label htmlFor="popup-position" className="text-sm">Popup Position</Label>
-                        <Select
-                          value={currentEditorConfig?.cellEditorPopupPosition || 'over'}
-                          onValueChange={(value) => updateBulkProperty('cellEditorPopupPosition', value)}
-                          disabled={isDisabled}
-                        >
-                          <SelectTrigger id="popup-position" className="h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="over">Over Cell</SelectItem>
-                            <SelectItem value="under">Under Cell</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Editor Parameters */}
-        {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && currentEditorConfig?.editable !== false && (
-          <Card>
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base">Editor Parameters</CardTitle>
-                  <CardDescription className="text-sm">
-                    Customize editor behavior and options
-                  </CardDescription>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant={activeSection === 'basic' ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setActiveSection('basic')}
-                    className="h-7 px-3"
-                  >
-                    Basic
-                  </Button>
-                  <Button
-                    variant={activeSection === 'advanced' ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setActiveSection('advanced')}
-                    className="h-7 px-3"
-                  >
-                    Advanced
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
             <CardContent>
-              {activeSection === 'basic' ? (
-                <div className="space-y-4">
-                  {currentEditor === 'agTextCellEditor' && (
-                    <TextEditorParams
-                      editorParams={currentEditorConfig?.cellEditorParams || {}}
-                      onParamChange={handleEditorParamChange}
-                      disabled={isDisabled}
-                    />
-                  )}
-                  
-                  {currentEditor === 'agLargeTextCellEditor' && (
-                    <LargeTextEditorParams
-                      editorParams={currentEditorConfig?.cellEditorParams || {}}
-                      onParamChange={handleEditorParamChange}
-                      disabled={isDisabled}
-                    />
-                  )}
-                  
-                  {(currentEditor === 'agSelectCellEditor' || currentEditor === 'agRichSelectCellEditor') && (
-                    <SelectEditorParams
-                      editorType={currentEditor}
-                      editorParams={currentEditorConfig?.cellEditorParams || {}}
-                      onParamChange={handleEditorParamChange}
-                      disabled={isDisabled}
-                    />
-                  )}
-                  
-                  {currentEditor === 'agNumberCellEditor' && (
-                    <NumberEditorParams
-                      editorParams={currentEditorConfig?.cellEditorParams || {}}
-                      onParamChange={handleEditorParamChange}
-                      disabled={isDisabled}
-                    />
-                  )}
-                  
-                  {currentEditor === 'agDateCellEditor' && (
-                    <DateEditorParams
-                      editorParams={currentEditorConfig?.cellEditorParams || {}}
-                      onParamChange={handleEditorParamChange}
-                      disabled={isDisabled}
-                    />
-                  )}
-                </div>
-              ) : (
-                <AdvancedEditorParams
-                  editorType={currentEditor}
-                  editorParams={currentEditorConfig?.cellEditorParams || {}}
-                  onParamChange={handleEditorParamChange}
-                  disabled={isDisabled}
-                />
-              )}
+              <div className="space-y-4">
+                {currentEditor === 'agTextCellEditor' && (
+                  <TextEditorParams
+                    editorParams={currentEditorConfig?.cellEditorParams || {}}
+                    onParamChange={handleEditorParamChange}
+                    disabled={isDisabled}
+                  />
+                )}
+                
+                {currentEditor === 'agLargeTextCellEditor' && (
+                  <LargeTextEditorParams
+                    editorParams={currentEditorConfig?.cellEditorParams || {}}
+                    onParamChange={handleEditorParamChange}
+                    disabled={isDisabled}
+                  />
+                )}
+                
+                {(currentEditor === 'agSelectCellEditor' || currentEditor === 'agRichSelectCellEditor') && (
+                  <SelectEditorParams
+                    editorType={currentEditor}
+                    editorParams={currentEditorConfig?.cellEditorParams || {}}
+                    onParamChange={handleEditorParamChange}
+                    disabled={isDisabled}
+                  />
+                )}
+                
+                {currentEditor === 'agNumberCellEditor' && (
+                  <NumberEditorParams
+                    editorParams={currentEditorConfig?.cellEditorParams || {}}
+                    onParamChange={handleEditorParamChange}
+                    disabled={isDisabled}
+                  />
+                )}
+                
+                {currentEditor === 'agDateCellEditor' && (
+                  <DateEditorParams
+                    editorParams={currentEditorConfig?.cellEditorParams || {}}
+                    onParamChange={handleEditorParamChange}
+                    disabled={isDisabled}
+                  />
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -523,89 +369,23 @@ export const EditorsTab: React.FC = () => {
             </CardContent>
           </Card>
         )}
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base">Quick Actions</CardTitle>
-            <CardDescription className="text-sm">
-              Apply common editor configurations with one click
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start h-9"
-              onClick={() => handleBulkUpdate({
-                editable: true,
-                cellEditor: recommendedEditor || 'agTextCellEditor',
-                cellEditorParams: getDefaultEditorParams(recommendedEditor || 'agTextCellEditor'),
-                singleClickEdit: true,
-              })}
-              disabled={isDisabled}
-            >
-              <Edit3 className="h-4 w-4 mr-2" />
-              Enable Recommended Editor
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start h-9"
-              onClick={() => handleBulkUpdate({
-                editable: false,
-                cellEditor: undefined,
-                cellEditorParams: undefined,
-              })}
-              disabled={isDisabled}
-            >
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Make Read-Only
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start h-9"
-              onClick={() => handleBulkUpdate({
-                editable: true,
-                cellEditor: undefined,
-                cellEditorParams: undefined,
-                cellEditorPopup: false,
-                singleClickEdit: false,
-                stopEditingWhenCellsLoseFocus: true,
-              })}
-              disabled={isDisabled}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Reset to Default
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Tips */}
-        <Alert>
-          <Lightbulb className="h-4 w-4" />
-          <AlertTitle className="text-sm">Quick Tips</AlertTitle>
-          <AlertDescription className="text-xs space-y-1">
-            <p>• Text editors work best for general text input</p>
-            <p>• Use select editors when users should choose from predefined options</p>
-            <p>• Number editors provide validation and step controls</p>
-            <p>• Date editors ensure consistent date formatting</p>
-          </AlertDescription>
-        </Alert>
       </div>
     </ScrollArea>
   );
-};
+});
 
-// Text Editor Parameters
+EditorsTab.displayName = 'EditorsTab';
+
+// Text Editor Parameters - Memoized
 const TextEditorParams: React.FC<{
   editorParams: any;
   onParamChange: (param: string, value: any) => void;
   disabled: boolean;
-}> = ({ editorParams, onParamChange, disabled }) => {
+}> = React.memo(({ editorParams, onParamChange, disabled }) => {
+  const handleMaxLengthChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onParamChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined);
+  }, [onParamChange]);
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -614,34 +394,39 @@ const TextEditorParams: React.FC<{
           id="max-length"
           type="number"
           value={editorParams.maxLength || ''}
-          onChange={(e) => onParamChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined)}
+          onChange={handleMaxLengthChange}
           placeholder="No limit"
           disabled={disabled}
           className="h-8"
         />
-      </div>
-
-      <div className="flex items-center justify-between">
-        <Label htmlFor="use-formatter" className="text-sm">
-          Use Value Formatter
-        </Label>
-        <Switch
-          id="use-formatter"
-          checked={editorParams.useFormatter ?? false}
-          onCheckedChange={(checked) => onParamChange('useFormatter', checked)}
-          disabled={disabled}
-        />
+        <p className="text-xs text-muted-foreground">
+          Maximum number of characters allowed
+        </p>
       </div>
     </div>
   );
-};
+});
 
-// Large Text Editor Parameters
+TextEditorParams.displayName = 'TextEditorParams';
+
+// Large Text Editor Parameters - Memoized
 const LargeTextEditorParams: React.FC<{
   editorParams: any;
   onParamChange: (param: string, value: any) => void;
   disabled: boolean;
-}> = ({ editorParams, onParamChange, disabled }) => {
+}> = React.memo(({ editorParams, onParamChange, disabled }) => {
+  const handleRowsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onParamChange('rows', parseInt(e.target.value));
+  }, [onParamChange]);
+
+  const handleColsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onParamChange('cols', parseInt(e.target.value));
+  }, [onParamChange]);
+
+  const handleMaxLengthChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onParamChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined);
+  }, [onParamChange]);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
@@ -651,7 +436,7 @@ const LargeTextEditorParams: React.FC<{
             id="rows"
             type="number"
             value={editorParams.rows || 5}
-            onChange={(e) => onParamChange('rows', parseInt(e.target.value))}
+            onChange={handleRowsChange}
             min={1}
             disabled={disabled}
             className="h-8"
@@ -664,7 +449,7 @@ const LargeTextEditorParams: React.FC<{
             id="cols"
             type="number"
             value={editorParams.cols || 50}
-            onChange={(e) => onParamChange('cols', parseInt(e.target.value))}
+            onChange={handleColsChange}
             min={1}
             disabled={disabled}
             className="h-8"
@@ -678,7 +463,7 @@ const LargeTextEditorParams: React.FC<{
           id="max-length-large"
           type="number"
           value={editorParams.maxLength || ''}
-          onChange={(e) => onParamChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined)}
+          onChange={handleMaxLengthChange}
           placeholder="No limit"
           disabled={disabled}
           className="h-8"
@@ -686,24 +471,42 @@ const LargeTextEditorParams: React.FC<{
       </div>
     </div>
   );
-};
+});
 
-// Select Editor Parameters
+LargeTextEditorParams.displayName = 'LargeTextEditorParams';
+
+// Select Editor Parameters - Memoized with debouncing
 const SelectEditorParams: React.FC<{
   editorType: string;
   editorParams: any;
   onParamChange: (param: string, value: any) => void;
   disabled: boolean;
-}> = ({ editorType, editorParams, onParamChange, disabled }) => {
+}> = React.memo(({ editorType, editorParams, onParamChange, disabled }) => {
   const [valuesInput, setValuesInput] = useState(
     Array.isArray(editorParams.values) ? editorParams.values.join('\n') : ''
   );
 
-  const handleValuesChange = (input: string) => {
+  // Debounced values change handler
+  const debouncedValuesChange = useMemo(
+    () => debounce((input: string) => {
+      const values = input.split('\n').filter(v => v.trim()).map(v => v.trim());
+      onParamChange('values', values);
+    }, 300),
+    [onParamChange]
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      debouncedValuesChange.cancel();
+    };
+  }, [debouncedValuesChange]);
+
+  const handleValuesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const input = e.target.value;
     setValuesInput(input);
-    const values = input.split('\n').filter(v => v.trim()).map(v => v.trim());
-    onParamChange('values', values);
-  };
+    debouncedValuesChange(input);
+  }, [debouncedValuesChange]);
 
   return (
     <div className="space-y-4">
@@ -711,11 +514,11 @@ const SelectEditorParams: React.FC<{
         <Label className="text-sm">Options (one per line)</Label>
         <Textarea
           value={valuesInput}
-          onChange={(e) => handleValuesChange(e.target.value)}
+          onChange={handleValuesChange}
           placeholder="Option 1&#10;Option 2&#10;Option 3"
           rows={5}
           disabled={disabled}
-          className="resize-none"
+          className="resize-none font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
           Enter each option on a new line
@@ -741,61 +544,6 @@ const SelectEditorParams: React.FC<{
             </Select>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="allow-typing" className="text-sm">
-                Allow Typing
-              </Label>
-              <Switch
-                id="allow-typing"
-                checked={editorParams.allowTyping ?? true}
-                onCheckedChange={(checked) => onParamChange('allowTyping', checked)}
-                disabled={disabled}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="filter-list" className="text-sm">
-                Filter List
-              </Label>
-              <Switch
-                id="filter-list"
-                checked={editorParams.filterList ?? true}
-                onCheckedChange={(checked) => onParamChange('filterList', checked)}
-                disabled={disabled}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="highlight-match" className="text-sm">
-                Highlight Match
-              </Label>
-              <Switch
-                id="highlight-match"
-                checked={editorParams.highlightMatch ?? true}
-                onCheckedChange={(checked) => onParamChange('highlightMatch', checked)}
-                disabled={disabled}
-              />
-            </div>
-          </div>
-        </>
-      )}
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="value-list-gap" className="text-sm">List Gap (px)</Label>
-          <Input
-            id="value-list-gap"
-            type="number"
-            value={editorParams.valueListGap || 0}
-            onChange={(e) => onParamChange('valueListGap', parseInt(e.target.value))}
-            min={0}
-            disabled={disabled}
-            className="h-8"
-          />
-        </div>
-
-        {editorType === 'agRichSelectCellEditor' && (
           <div className="space-y-2">
             <Label htmlFor="cell-height" className="text-sm">Cell Height (px)</Label>
             <Input
@@ -808,18 +556,20 @@ const SelectEditorParams: React.FC<{
               className="h-8"
             />
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
-};
+});
 
-// Number Editor Parameters
+SelectEditorParams.displayName = 'SelectEditorParams';
+
+// Number Editor Parameters - Memoized
 const NumberEditorParams: React.FC<{
   editorParams: any;
   onParamChange: (param: string, value: any) => void;
   disabled: boolean;
-}> = ({ editorParams, onParamChange, disabled }) => {
+}> = React.memo(({ editorParams, onParamChange, disabled }) => {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
@@ -879,28 +629,18 @@ const NumberEditorParams: React.FC<{
           />
         </div>
       </div>
-
-      <div className="flex items-center justify-between">
-        <Label htmlFor="stepper-buttons" className="text-sm">
-          Show Stepper Buttons
-        </Label>
-        <Switch
-          id="stepper-buttons"
-          checked={editorParams.showStepperButtons ?? true}
-          onCheckedChange={(checked) => onParamChange('showStepperButtons', checked)}
-          disabled={disabled}
-        />
-      </div>
     </div>
   );
-};
+});
 
-// Date Editor Parameters
+NumberEditorParams.displayName = 'NumberEditorParams';
+
+// Date Editor Parameters - Memoized
 const DateEditorParams: React.FC<{
   editorParams: any;
   onParamChange: (param: string, value: any) => void;
   disabled: boolean;
-}> = ({ editorParams, onParamChange, disabled }) => {
+}> = React.memo(({ editorParams, onParamChange, disabled }) => {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -945,89 +685,14 @@ const DateEditorParams: React.FC<{
       </div>
     </div>
   );
-};
+});
 
-// Advanced Editor Parameters
-const AdvancedEditorParams: React.FC<{
-  editorType: string;
-  editorParams: any;
-  onParamChange: (param: string, value: any) => void;
-  disabled: boolean;
-}> = ({ editorType, editorParams, onParamChange, disabled }) => {
-  return (
-    <div className="space-y-4">
-      <Alert className="border-muted">
-        <Info className="h-4 w-4" />
-        <AlertDescription className="text-sm">
-          Advanced parameters for fine-tuning editor behavior
-        </AlertDescription>
-      </Alert>
+DateEditorParams.displayName = 'DateEditorParams';
 
-      {(editorType === 'agSelectCellEditor' || editorType === 'agRichSelectCellEditor') && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="list-max-height" className="text-sm">Max Height (px)</Label>
-            <Input
-              id="list-max-height"
-              type="number"
-              value={editorParams.valueListMaxHeight || ''}
-              onChange={(e) => onParamChange('valueListMaxHeight', e.target.value ? parseInt(e.target.value) : undefined)}
-              placeholder="Auto"
-              disabled={disabled}
-              className="h-8"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="list-max-width" className="text-sm">Max Width (px)</Label>
-            <Input
-              id="list-max-width"
-              type="number"
-              value={editorParams.valueListMaxWidth || ''}
-              onChange={(e) => onParamChange('valueListMaxWidth', e.target.value ? parseInt(e.target.value) : undefined)}
-              placeholder="Auto"
-              disabled={disabled}
-              className="h-8"
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="char-press" className="text-sm">Start Editing Key</Label>
-        <Input
-          id="char-press"
-          value={editorParams.charPress || ''}
-          onChange={(e) => onParamChange('charPress', e.target.value)}
-          placeholder="Any key"
-          maxLength={1}
-          disabled={disabled}
-          className="h-8"
-        />
-        <p className="text-xs text-muted-foreground">
-          Specific key that starts editing (leave empty for any key)
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <Label htmlFor="format-after-edit" className="text-sm">
-          Format After Edit
-        </Label>
-        <Switch
-          id="format-after-edit"
-          checked={editorParams.formatAfterEdit ?? true}
-          onCheckedChange={(checked) => onParamChange('formatAfterEdit', checked)}
-          disabled={disabled}
-        />
-      </div>
-    </div>
-  );
-};
-
-// Custom Editor Configuration
+// Custom Editor Configuration - Memoized
 const CustomEditorConfig: React.FC<{
   disabled: boolean;
-}> = ({ disabled }) => {
+}> = React.memo(({ disabled }) => {
   return (
     <div className="space-y-4">
       <Alert className="border-muted">
@@ -1083,4 +748,6 @@ const CustomEditorConfig: React.FC<{
       </div>
     </div>
   );
-};
+});
+
+CustomEditorConfig.displayName = 'CustomEditorConfig';

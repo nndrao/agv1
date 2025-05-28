@@ -18,7 +18,9 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
     searchTerm,
     cellDataTypeFilter,
     templateColumns,
-    setSelectedColumns,
+    toggleColumnSelection,
+    selectColumns,
+    deselectColumns,
     setSearchTerm,
     setCellDataTypeFilter,
     toggleTemplateColumn
@@ -65,7 +67,11 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
 
   // Prepare items for virtual scrolling (simple flat list)
   const flatItems = useMemo(() => {
-    return filteredColumns.map(column => ({ type: 'column' as const, column }));
+    return filteredColumns.map(column => ({ 
+      type: 'column' as const, 
+      column,
+      id: column.field || column.colId || ''
+    }));
   }, [filteredColumns]);
 
   // Virtual scrolling setup
@@ -76,37 +82,23 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
     overscan: 5
   });
 
-  const toggleColumnSelection = useCallback((columnId: string) => {
-    const newSelected = new Set(selectedColumns);
-    if (newSelected.has(columnId)) {
-      newSelected.delete(columnId);
-    } else {
-      newSelected.add(columnId);
-    }
-    setSelectedColumns(newSelected);
-  }, [selectedColumns, setSelectedColumns]);
-
   const selectAllFilteredColumns = useCallback(() => {
-    const newSelected = new Set(selectedColumns);
-    filteredColumns.forEach(col => {
-      const colId = col.field || col.colId || '';
-      if (colId) {
-        newSelected.add(colId);
-      }
-    });
-    setSelectedColumns(newSelected);
-  }, [selectedColumns, filteredColumns, setSelectedColumns]);
+    const columnIds = filteredColumns
+      .map(col => col.field || col.colId || '')
+      .filter(id => id && !selectedColumns.has(id));
+    if (columnIds.length > 0) {
+      selectColumns(columnIds);
+    }
+  }, [filteredColumns, selectedColumns, selectColumns]);
 
   const deselectAllFilteredColumns = useCallback(() => {
-    const newSelected = new Set(selectedColumns);
-    filteredColumns.forEach(col => {
-      const colId = col.field || col.colId || '';
-      if (colId) {
-        newSelected.delete(colId);
-      }
-    });
-    setSelectedColumns(newSelected);
-  }, [selectedColumns, filteredColumns, setSelectedColumns]);
+    const columnIds = filteredColumns
+      .map(col => col.field || col.colId || '')
+      .filter(id => id && selectedColumns.has(id));
+    if (columnIds.length > 0) {
+      deselectColumns(columnIds);
+    }
+  }, [filteredColumns, selectedColumns, deselectColumns]);
 
   const isAllSelected = useMemo(() => 
     filteredColumns.length > 0 &&
@@ -181,15 +173,15 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
         {/* Modern Selection Controls */}
         <div className="flex items-center gap-2.5 mb-4">
           <Checkbox
-            checked={isAllSelected || isIndeterminate}
+            checked={isAllSelected ? true : isIndeterminate ? "indeterminate" : false}
             onCheckedChange={(checked) => {
-              if (checked && !isAllSelected) {
+              if (checked === true || checked === "indeterminate") {
                 selectAllFilteredColumns();
               } else {
                 deselectAllFilteredColumns();
               }
             }}
-            className={`checkbox-enhanced h-4 w-4 rounded ${isIndeterminate ? 'data-[state=checked]:bg-primary/50' : ''}`}
+            className="checkbox-enhanced rounded"
           />
           <span className="text-xs font-medium text-foreground">
             {(searchTerm || cellDataTypeFilter !== 'all') ? 'All Filtered' : 'All'}
@@ -232,10 +224,11 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
                   >
                     <ColumnItem
                       column={item.column}
-                      selected={selectedColumns.has(item.column.field || item.column.colId || '')}
-                      isTemplate={templateColumns instanceof Set ? templateColumns.has(item.column.field || item.column.colId || '') : false}
-                      onToggle={() => toggleColumnSelection(item.column.field || item.column.colId || '')}
-                      onToggleTemplate={() => toggleTemplateColumn(item.column.field || item.column.colId || '')}
+                      columnId={item.id}
+                      selected={selectedColumns.has(item.id)}
+                      isTemplate={templateColumns instanceof Set ? templateColumns.has(item.id) : false}
+                      onToggle={toggleColumnSelection}
+                      onToggleTemplate={toggleTemplateColumn}
                     />
                   </div>
                 );
@@ -253,27 +246,37 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
 // Clean Column Item Component
 const ColumnItem: React.FC<{
   column: ColDef;
+  columnId: string;
   selected: boolean;
   isTemplate: boolean;
-  onToggle: () => void;
-  onToggleTemplate: () => void;
-}> = React.memo(({ column, selected, isTemplate, onToggle, onToggleTemplate }) => {
+  onToggle: (columnId: string) => void;
+  onToggleTemplate: (columnId: string) => void;
+}> = React.memo(({ column, columnId, selected, isTemplate, onToggle, onToggleTemplate }) => {
   const iconKey = (column.cellDataType || column.type || 'text') as string;
   const icon = COLUMN_ICONS[iconKey] || COLUMN_ICONS.text;
+
+  const handleToggle = useCallback(() => {
+    onToggle(columnId);
+  }, [columnId, onToggle]);
+
+  const handleToggleTemplate = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleTemplate(columnId);
+  }, [columnId, onToggleTemplate]);
 
   return (
     <div 
       className={`relative flex items-center gap-2 px-3 py-1.5 rounded hover:bg-muted/50 transition-colors group cursor-pointer ${
         selected ? 'bg-muted/30' : ''
       }`}
-      onClick={onToggle}
+      onClick={handleToggle}
     >
       {selected && (
         <div className="selection-indicator absolute left-0 h-full" />
       )}
       <Checkbox
         checked={selected}
-        onCheckedChange={onToggle}
+        onCheckedChange={handleToggle}
         onClick={(e) => e.stopPropagation()}
         className="checkbox-enhanced"
       />
@@ -287,10 +290,7 @@ const ColumnItem: React.FC<{
         className={`h-5 w-5 p-0 transition-opacity ${
           isTemplate ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleTemplate();
-        }}
+        onClick={handleToggleTemplate}
         title={isTemplate ? 'Remove from templates' : 'Add to templates'}
       >
         <Star 
@@ -306,6 +306,7 @@ const ColumnItem: React.FC<{
   return (
     prevProps.selected === nextProps.selected &&
     prevProps.isTemplate === nextProps.isTemplate &&
+    prevProps.columnId === nextProps.columnId &&
     prevProps.column.field === nextProps.column.field &&
     prevProps.column.headerName === nextProps.column.headerName &&
     prevProps.column.cellDataType === nextProps.column.cellDataType

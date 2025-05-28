@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, memo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +17,7 @@ interface ColumnCustomizationDialogProps {
   onApply: (updatedColumns: ColDef[]) => void;
 }
 
-export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps> = ({
+export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps> = memo(({
   open,
   onOpenChange,
   columnDefs,
@@ -37,15 +37,26 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
 
   // Initialize column definitions when dialog opens
   useEffect(() => {
-    if (open && columnDefs.length > 0) {
-      const columnMap = new Map<string, ColDef>();
-      columnDefs.forEach(col => {
-        const colId = col.field || col.colId || '';
-        if (colId) {
-          columnMap.set(colId, col);
-        }
-      });
-      setColumnDefinitions(columnMap);
+    if (open) {
+      // Only update if columnDefs have actually changed
+      const needsUpdate = columnDefs.length !== columnDefinitions.size ||
+        columnDefs.some(col => {
+          const colId = col.field || col.colId || '';
+          const existing = columnDefinitions.get(colId);
+          return !existing || existing !== col;
+        });
+      
+      if (needsUpdate && columnDefs.length > 0) {
+        const columnMap = new Map<string, ColDef>();
+        columnDefs.forEach(col => {
+          const colId = col.field || col.colId || '';
+          if (colId) {
+            columnMap.set(colId, col);
+          }
+        });
+        setColumnDefinitions(columnMap);
+      }
+      
       setOnImmediateApply(onApply);
     }
     setOpen(open);
@@ -56,7 +67,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
         setOnImmediateApply(undefined);
       }
     };
-  }, [open, columnDefs, setColumnDefinitions, setOpen, setOnImmediateApply, onApply]);
+  }, [open, columnDefs, columnDefinitions.size, setColumnDefinitions, setOpen, setOnImmediateApply, onApply]);
 
   const selectedCount = selectedColumns.size;
   const totalColumns = columnDefinitions.size;
@@ -66,6 +77,13 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     const updatedColumns = applyChanges();
     onApply(updatedColumns);
   }, [applyChanges, onApply]);
+
+  // Apply and close in a single operation
+  const handleApplyAndClose = useCallback(() => {
+    const updatedColumns = applyChanges();
+    onApply(updatedColumns);
+    onOpenChange(false);
+  }, [applyChanges, onApply, onOpenChange]);
 
   // Discard changes
   const handleDiscardChanges = useCallback(() => {
@@ -170,10 +188,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
             <Button
               variant="default"
               size="sm"
-              onClick={() => {
-                handleApplyChanges();
-                onOpenChange(false);
-              }}
+              onClick={handleApplyAndClose}
               className="modern-button h-8 px-4 text-sm"
             >
               Apply & Close
@@ -183,4 +198,6 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
       </DialogContent>
     </Dialog>
   );
-};
+});
+
+ColumnCustomizationDialog.displayName = 'ColumnCustomizationDialog';
