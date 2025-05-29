@@ -1,13 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { ColDef as AgColDef } from 'ag-grid-community';
-import { debounce } from 'lodash';
+import { ColDef as AgColDef, ColumnState } from 'ag-grid-community';
 
-// Extend AG-Grid ColDef to include our custom properties
-export interface ColDef extends AgColDef {
-  valueFormat?: string;
-}
+// Use AG-Grid's ColDef directly
+export type ColDef = AgColDef;
 
 export interface DialogState {
   // Dialog state
@@ -16,21 +13,19 @@ export interface DialogState {
   // Column management
   selectedColumns: Set<string>;
   columnDefinitions: Map<string, ColDef>;
+  columnState: Map<string, ColumnState>; // AG-Grid column state by colId
   pendingChanges: Map<string, Partial<ColDef>>;
 
   // UI state
   activeTab: string;
-  applyMode: 'immediate' | 'onSave';
   showOnlyCommon: boolean;
   compareMode: boolean;
   searchTerm: string;
   cellDataTypeFilter: string;
+  visibilityFilter: 'all' | 'visible' | 'hidden';
 
   // Panel states
   bulkActionsPanelCollapsed: boolean;
-
-  // Immediate apply callback
-  onImmediateApply?: (columns: ColDef[]) => void;
 
   // Template columns for quick copy
   templateColumns: Set<string>;
@@ -46,19 +41,19 @@ export interface DialogActions {
   selectColumns: (columnIds: string[]) => void;
   deselectColumns: (columnIds: string[]) => void;
   setColumnDefinitions: (columns: Map<string, ColDef>) => void;
+  setColumnState: (columnState: ColumnState[]) => void;
   updateBulkProperty: (property: string, value: unknown) => void;
   updateBulkProperties: (properties: Record<string, unknown>) => void;
   applyChanges: () => ColDef[];
   resetChanges: () => void;
-  setOnImmediateApply: (callback?: (columns: ColDef[]) => void) => void;
 
   // UI actions
   setActiveTab: (tab: string) => void;
-  setApplyMode: (mode: 'immediate' | 'onSave') => void;
   setShowOnlyCommon: (show: boolean) => void;
   setCompareMode: (compare: boolean) => void;
   setSearchTerm: (term: string) => void;
   setCellDataTypeFilter: (filter: string) => void;
+  setVisibilityFilter: (filter: 'all' | 'visible' | 'hidden') => void;
 
   // Panel actions
   setBulkActionsPanelCollapsed: (collapsed: boolean) => void;
@@ -75,26 +70,6 @@ export const useSelectedColumns = () => useColumnCustomizationStore(state => sta
 export const useColumnDefinitions = () => useColumnCustomizationStore(state => state.columnDefinitions);
 export const usePendingChanges = () => useColumnCustomizationStore(state => state.pendingChanges);
 
-// Create debounced apply function with ref counting
-let applyTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingApplyCount = 0;
-
-const debouncedApply = (applyFn: () => void) => {
-  pendingApplyCount++;
-  
-  if (applyTimer) {
-    clearTimeout(applyTimer);
-  }
-  
-  applyTimer = setTimeout(() => {
-    if (pendingApplyCount > 0) {
-      applyFn();
-      pendingApplyCount = 0;
-    }
-    applyTimer = null;
-  }, 100); // Reduced from 150ms
-};
-
 export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
   subscribeWithSelector(
     persist(
@@ -103,15 +78,15 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       open: false,
       selectedColumns: new Set<string>(),
       columnDefinitions: new Map<string, ColDef>(),
+      columnState: new Map<string, ColumnState>(),
       pendingChanges: new Map<string, Partial<ColDef>>(),
       activeTab: 'general',
-      applyMode: 'onSave',
       showOnlyCommon: false,
       compareMode: false,
       searchTerm: '',
       cellDataTypeFilter: 'all',
+      visibilityFilter: 'all',
       bulkActionsPanelCollapsed: false,
-      onImmediateApply: undefined,
       templateColumns: new Set<string>(),
 
       // Actions
@@ -146,17 +121,53 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
       setColumnDefinitions: (columns) => set({ columnDefinitions: columns }),
 
+      setColumnState: (columnStateArray) => {
+        const stateMap = new Map();
+        if (columnStateArray) {
+          console.log('[Store] Setting column state, array length:', columnStateArray.length);
+          let visibleCount = 0;
+          let hiddenCount = 0;
+          
+          columnStateArray.forEach(colState => {
+            stateMap.set(colState.colId, colState);
+            if (colState.hide) {
+              hiddenCount++;
+            } else {
+              visibleCount++;
+            }
+          });
+          
+          console.log('[Store] Column state summary:', {
+            total: columnStateArray.length,
+            visible: visibleCount,
+            hidden: hiddenCount,
+            stateMapSize: stateMap.size
+          });
+        }
+        set({ columnState: stateMap });
+      },
+
       updateBulkProperty: (property, value) => {
-        const { selectedColumns, pendingChanges, applyMode, onImmediateApply } = get();
+        const { selectedColumns, pendingChanges } = get();
         if (selectedColumns.size === 0) return;
+        
+        // Prevent editing field property
+        if (property === 'field') {
+          console.warn('[Store] Field property cannot be edited');
+          return;
+        }
+        
+        // Prevent bulk editing of headerName
+        if (property === 'headerName' && selectedColumns.size > 1) {
+          console.warn('[Store] Header Name cannot be edited for multiple columns');
+          return;
+        }
         
         // Use the existing Map when possible
         const newPendingChanges = pendingChanges.size > 0 ? new Map(pendingChanges) : new Map();
 
-        // Batch updates for performance
-        const processedValue = property === 'headerStyle' && typeof value === 'object'
-          ? (params: { floatingFilter?: boolean }) => (!params.floatingFilter ? value : null)
-          : value;
+        // Don't convert headerStyle to function here - do it only when applying
+        const processedValue = value;
 
         // Use batch update for better performance
         const updates: Array<[string, Partial<ColDef>]> = [];
@@ -187,40 +198,36 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
         set({ pendingChanges: newPendingChanges });
 
-        // Apply immediately if in immediate mode with debouncing
-        if (applyMode === 'immediate' && onImmediateApply) {
-          debouncedApply(() => {
-            const state = get();
-            const updatedColumns = state.applyChanges();
-            onImmediateApply(updatedColumns);
-          });
-        }
+        // Never apply immediately - changes are only saved when Apply buttons are clicked
       },
 
       updateBulkProperties: (properties) => {
-        const { selectedColumns, pendingChanges, applyMode, onImmediateApply, columnDefinitions } = get();
+        const { selectedColumns, pendingChanges } = get();
+        
+        // Filter out field and headerName for safety
+        const filteredProperties = { ...properties };
+        
+        // Always remove field from bulk updates
+        delete filteredProperties.field;
+        
+        // Remove headerName if multiple columns are selected
+        if (selectedColumns.size > 1) {
+          delete filteredProperties.headerName;
+        }
+        
         const newPendingChanges = new Map(pendingChanges);
 
         selectedColumns.forEach(colId => {
           const existing = newPendingChanges.get(colId) || {};
           const updated = { ...existing };
 
-          Object.entries(properties).forEach(([property, value]) => {
+          Object.entries(filteredProperties).forEach(([property, value]) => {
             if (value === undefined) {
               delete updated[property as keyof ColDef];
             } else {
-              // Special handling for headerStyle to prevent floating filter contamination
-              if (property === 'headerStyle' && typeof value === 'object') {
-                const styleObject = value as React.CSSProperties;
-                updated[property as keyof ColDef] = ((params: { floatingFilter?: boolean }) => {
-                  if (!params.floatingFilter) {
-                    return styleObject;
-                  }
-                  return null;
-                }) as any;
-              } else {
-                updated[property as keyof ColDef] = value as any;
-              }
+              // For headerStyle, just save the style object directly
+              // We'll convert it to a function when loading from storage
+              (updated as Record<string, unknown>)[property] = value;
             }
           });
 
@@ -233,28 +240,24 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
         set({ pendingChanges: newPendingChanges });
 
-        // Apply immediately if in immediate mode with debouncing
-        if (applyMode === 'immediate' && onImmediateApply) {
-          debouncedApply(() => {
-            const updatedColumns: ColDef[] = [];
-            columnDefinitions.forEach((colDef, colId) => {
-              const changes = newPendingChanges.get(colId);
-              if (changes) {
-                updatedColumns.push({ ...colDef, ...changes });
-              } else {
-                updatedColumns.push(colDef);
-              }
-            });
-            onImmediateApply(updatedColumns);
-          });
-        }
+        // Never apply immediately - changes are only saved when Apply buttons are clicked
       },
 
       applyChanges: () => {
         const { columnDefinitions, pendingChanges } = get();
         
+        console.log('[ColumnCustomizationStore] applyChanges called:', {
+          columnDefinitionsCount: columnDefinitions.size,
+          pendingChangesCount: pendingChanges.size,
+          pendingChangesDetails: Array.from(pendingChanges.entries()).map(([colId, changes]) => ({
+            colId,
+            changes: Object.keys(changes)
+          }))
+        });
+        
         // Early return if no changes
         if (pendingChanges.size === 0) {
+          console.log('[ColumnCustomizationStore] No pending changes, returning original columns');
           return Array.from(columnDefinitions.values());
         }
 
@@ -266,13 +269,44 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         for (const [colId, colDef] of columnDefinitions) {
           if (changedColIds.has(colId)) {
             const changes = pendingChanges.get(colId)!;
+            // Process changes to handle special cases
+            const processedChanges = { ...changes };
+            
             // Only spread if we have actual changes
-            updatedColumns.push(Object.keys(changes).length > 0 ? { ...colDef, ...changes } : colDef);
+            const updatedCol = Object.keys(processedChanges).length > 0 ? { ...colDef, ...processedChanges } : colDef;
+            updatedColumns.push(updatedCol);
+            
+            console.log('[ColumnCustomizationStore] Applied changes to column:', {
+              colId,
+              field: colDef.field,
+              headerName: updatedCol.headerName,
+              changesApplied: Object.keys(changes),
+              changesDetail: changes,
+              hasValueFormatter: !!updatedCol.valueFormatter,
+              hasCellStyle: !!updatedCol.cellStyle,
+              hasHeaderStyle: !!updatedCol.headerStyle,
+              hasCellClass: !!updatedCol.cellClass,
+              hasHeaderClass: !!updatedCol.headerClass,
+              cellStyleType: typeof updatedCol.cellStyle,
+              headerStyleType: typeof updatedCol.headerStyle,
+              headerStyle: updatedCol.headerStyle,
+              sortable: updatedCol.sortable,
+              resizable: updatedCol.resizable,
+              editable: updatedCol.editable
+            });
           } else {
             // Reuse existing object reference for unchanged columns
             updatedColumns.push(colDef);
           }
         }
+
+        console.log('[ColumnCustomizationStore] Total columns updated:', {
+          totalColumns: updatedColumns.length,
+          columnsWithChanges: changedColIds.size,
+          columnsWithCustomizations: updatedColumns.filter(col => 
+            col.cellStyle || col.valueFormatter || col.cellClass || col.headerClass
+          ).length
+        });
 
         // Batch state update
         set({ 
@@ -285,14 +319,12 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
 
       resetChanges: () => set({ pendingChanges: new Map() }),
 
-      setOnImmediateApply: (callback) => set({ onImmediateApply: callback }),
-
       setActiveTab: (tab) => set({ activeTab: tab }),
-      setApplyMode: (mode) => set({ applyMode: mode }),
       setShowOnlyCommon: (show) => set({ showOnlyCommon: show }),
       setCompareMode: (compare) => set({ compareMode: compare }),
       setSearchTerm: (term) => set({ searchTerm: term }),
       setCellDataTypeFilter: (filter) => set({ cellDataTypeFilter: filter }),
+      setVisibilityFilter: (filter) => set({ visibilityFilter: filter }),
       setBulkActionsPanelCollapsed: (collapsed) => set({ bulkActionsPanelCollapsed: collapsed }),
 
       // Template column actions
@@ -313,11 +345,11 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         name: 'column-customization-store',
         partialize: (state) => ({
           // Only persist UI preferences, not data
-          applyMode: state.applyMode,
           activeTab: state.activeTab,
           showOnlyCommon: state.showOnlyCommon,
           compareMode: state.compareMode,
           cellDataTypeFilter: state.cellDataTypeFilter,
+          visibilityFilter: state.visibilityFilter,
           bulkActionsPanelCollapsed: state.bulkActionsPanelCollapsed,
           templateColumns: Array.from(state.templateColumns), // Convert Set to Array for serialization
         }),

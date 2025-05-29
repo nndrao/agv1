@@ -4,6 +4,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Saving button animation */
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(138, 170, 167, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(138, 170, 167, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(138, 170, 167, 0);
+  }
+}
+
+.saving-button {
+  animation: pulse-border 1.5s infinite;
+  border-color: hsl(var(--primary)) !important;
+  background-color: hsl(var(--primary) / 0.1) !important;
+  color: hsl(var(--primary)) !important;
+}
+
+.dark .saving-button {
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.5);
+}
+
 @layer base {
   :root {
     /* AG-Grid Quartz Light Theme Colors */

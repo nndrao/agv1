@@ -3,7 +3,7 @@ import { ValueFormatterParams } from 'ag-grid-community';
 /**
  * Process a single format section (handles colors, conditions, and number formatting)
  */
-function processFormatSection(format: string, value: number, params: ValueFormatterParams): string {
+function processFormatSection(format: string, value: number): string {
   // Extract and handle color formatting - support both named and hex colors
   const colorMatch = format.match(/\[([^\]]+)\]/);
   let cleanFormat = format;
@@ -127,7 +127,7 @@ function processFormatSection(format: string, value: number, params: ValueFormat
  * Supports Excel format strings for numbers, currency, percentages, dates, etc.
  */
 export function createExcelFormatter(formatString: string) {
-  return (params: ValueFormatterParams): string => {
+  const formatter = (params: ValueFormatterParams): string => {
     if (params.value == null || params.value === '') return '';
     
     const value = params.value;
@@ -294,6 +294,13 @@ export function createExcelFormatter(formatString: string) {
       return value.toString();
     }
   };
+  
+  // Attach format string as metadata for serialization
+  // Store metadata on the formatter function
+  Object.defineProperty(formatter, '__formatString', { value: formatString, writable: false });
+  Object.defineProperty(formatter, '__formatterType', { value: 'excel', writable: false });
+  
+  return formatter;
 }
 
 /**
@@ -321,11 +328,11 @@ export function getExcelStyleClass(formatString: string): string {
 /**
  * Create cell style function for dynamic color formatting
  */
-export function createCellStyleFunction(formatString: string, baseStyle?: any) {
+export function createCellStyleFunction(formatString: string, baseStyle?: React.CSSProperties) {
   // Parse format sections
   const sections = formatString.split(';');
   
-  return (params: any) => {
+  return (params: { value: unknown }) => {
     // Start with base styles from styling tab
     const baseStyles = typeof baseStyle === 'object' && baseStyle !== null ? { ...baseStyle } : {};
     

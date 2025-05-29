@@ -71,19 +71,26 @@ export const GeneralTab: React.FC = () => {
                   id="field"
                   mixedValue={mixedValues.field}
                   onChange={(value) => updateBulkProperty('field', value)}
-                  disabled={isDisabled || (isMultipleSelection && mixedValues.field.isMixed)}
+                  disabled={true} // Field should never be editable
                   placeholder="Column field name"
+                  title="Field cannot be edited"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="headerName" className="text-xs font-medium">Header Name</Label>
+                <Label htmlFor="headerName" className="text-xs font-medium">
+                  Header Name
+                  {isMultipleSelection && (
+                    <span className="text-xs text-muted-foreground ml-2">(Single column only)</span>
+                  )}
+                </Label>
                 <MixedValueInput
                   id="headerName"
                   mixedValue={mixedValues.headerName}
                   onChange={(value) => updateBulkProperty('headerName', value)}
-                  disabled={isDisabled || (isMultipleSelection && mixedValues.headerName.isMixed)}
+                  disabled={isDisabled || isMultipleSelection} // Disable for multiple selection
                   placeholder="Display name"
+                  title={isMultipleSelection ? "Header Name can only be edited for single columns" : ""}
                 />
               </div>
 

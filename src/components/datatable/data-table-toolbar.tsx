@@ -6,7 +6,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Settings2 } from "lucide-react";
+import { Settings2, Download, FileSpreadsheet } from "lucide-react";
+import { ProfileManager } from "./profile-manager";
+import { GridApi, ColDef as AgColDef } from "ag-grid-community";
+import { GridProfile } from "@/stores/profile.store";
+import { useToast } from "@/hooks/use-toast";
 
 const monospaceFonts = [
   { value: 'JetBrains Mono', label: 'JetBrains Mono' },
@@ -24,13 +28,104 @@ interface DataTableToolbarProps {
   onFontChange: (font: string) => void;
   onSpacingChange: (spacing: string) => void;
   onOpenColumnSettings?: () => void;
+  gridApi?: GridApi | null;
+  onProfileChange?: (profile: GridProfile) => void;
+  getColumnDefsWithStyles?: () => AgColDef[];
 }
 
-export function DataTableToolbar({ onFontChange, onOpenColumnSettings }: DataTableToolbarProps) {
+export function DataTableToolbar({ 
+  onFontChange, 
+  onOpenColumnSettings,
+  gridApi,
+  onProfileChange,
+  getColumnDefsWithStyles 
+}: DataTableToolbarProps) {
+  const { toast } = useToast();
+  
+  const handleExportExcel = () => {
+    if (!gridApi) {
+      toast({
+        title: "Export failed",
+        description: "Grid is not ready for export",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      gridApi.exportDataAsExcel({
+        fileName: `data-export-${new Date().toISOString().split('T')[0]}.xlsx`,
+        author: 'AG-Grid Export',
+        sheetName: 'Data',
+        processCellCallback: (params) => {
+          // Use the exportValueFormatter if available, otherwise valueFormatter
+          if (params.column.getColDef().exportValueFormatter) {
+            return params.column.getColDef().exportValueFormatter(params);
+          } else if (params.column.getColDef().valueFormatter) {
+            return params.column.getColDef().valueFormatter(params);
+          }
+          return params.value;
+        }
+      });
+      
+      toast({
+        title: "Export successful",
+        description: "Data exported to Excel file",
+      });
+    } catch {
+      toast({
+        title: "Export failed",
+        description: "An error occurred while exporting data",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleExportCsv = () => {
+    if (!gridApi) {
+      toast({
+        title: "Export failed",
+        description: "Grid is not ready for export",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      gridApi.exportDataAsCsv({
+        fileName: `data-export-${new Date().toISOString().split('T')[0]}.csv`,
+        processCellCallback: (params) => {
+          // Use the exportValueFormatter if available, otherwise valueFormatter
+          if (params.column.getColDef().exportValueFormatter) {
+            return params.column.getColDef().exportValueFormatter(params);
+          } else if (params.column.getColDef().valueFormatter) {
+            return params.column.getColDef().valueFormatter(params);
+          }
+          return params.value;
+        }
+      });
+      
+      toast({
+        title: "Export successful",
+        description: "Data exported to CSV file",
+      });
+    } catch {
+      toast({
+        title: "Export failed",
+        description: "An error occurred while exporting data",
+        variant: "destructive"
+      });
+    }
+  };
   return (
     <div className="flex items-center justify-between p-4 border-b bg-muted/40">
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
+        <ProfileManager 
+          gridApi={gridApi || null} 
+          onProfileChange={onProfileChange}
+          getColumnDefsWithStyles={getColumnDefsWithStyles}
+        />
+        <div className="border-l pl-4 flex items-center gap-2">
           <label htmlFor="font-select" className="text-sm font-medium">
             Font:
           </label>
@@ -50,6 +145,26 @@ export function DataTableToolbar({ onFontChange, onOpenColumnSettings }: DataTab
       </div>
       
       <div className="flex items-center gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleExportExcel}
+          className="h-8"
+          disabled={!gridApi}
+        >
+          <FileSpreadsheet className="mr-2 h-4 w-4" />
+          Excel
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleExportCsv}
+          className="h-8"
+          disabled={!gridApi}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          CSV
+        </Button>
         {onOpenColumnSettings && (
           <Button 
             variant="outline" 

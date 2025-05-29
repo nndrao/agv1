@@ -1,13 +1,11 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
@@ -17,14 +15,18 @@ import {
   Calendar, 
   ToggleLeft, 
   List, 
-  Edit3,
   Info,
-  Settings,
   FileText,
   Code,
   Lightbulb
 } from 'lucide-react';
 import { debounce } from 'lodash';
+
+interface EditorConfig {
+  cellEditor: string;
+  cellEditorParams: Record<string, unknown>;
+  editable: boolean;
+}
 
 // Cell editor types based on AG-Grid documentation
 const CELL_EDITORS = {
@@ -86,11 +88,10 @@ export const EditorsTab: React.FC = React.memo(() => {
     columnDefinitions,
     pendingChanges,
     updateBulkProperty,
-    updateBulkProperties,
   } = useColumnCustomizationStore();
 
   // Cache for editor configurations
-  const editorConfigCache = useRef<Map<string, any>>(new Map());
+  const editorConfigCache = useRef<Map<string, EditorConfig | null>>(new Map());
 
   // Get current editor configuration with caching
   const currentEditorConfig = useMemo(() => {
@@ -104,7 +105,7 @@ export const EditorsTab: React.FC = React.memo(() => {
       return editorConfigCache.current.get(cacheKey);
     }
 
-    const configs = new Map<string, any>();
+    const configs = new Map<string, EditorConfig>();
     selectedColumns.forEach(colId => {
       const colDef = columnDefinitions.get(colId);
       const changes = pendingChanges.get(colId);
@@ -155,7 +156,7 @@ export const EditorsTab: React.FC = React.memo(() => {
       const dataType = Array.from(dataTypes)[0];
       
       // Find best matching editor
-      for (const [key, editor] of Object.entries(CELL_EDITORS)) {
+      for (const [, editor] of Object.entries(CELL_EDITORS)) {
         if (editor.dataTypes.includes(dataType)) {
           return editor.value;
         }
@@ -176,13 +177,13 @@ export const EditorsTab: React.FC = React.memo(() => {
     }
   }, [updateBulkProperty]);
 
-  const handleEditorParamChange = useCallback((param: string, value: any) => {
+  const handleEditorParamChange = useCallback((param: string, value: unknown) => {
     const currentParams = currentEditorConfig?.cellEditorParams || {};
     const newParams = { ...currentParams, [param]: value };
     updateBulkProperty('cellEditorParams', newParams);
   }, [currentEditorConfig, updateBulkProperty]);
 
-  const getDefaultEditorParams = (editorType: string): any => {
+  const getDefaultEditorParams = (editorType: string): Record<string, unknown> => {
     switch (editorType) {
       case 'agTextCellEditor':
         return {
@@ -378,8 +379,8 @@ EditorsTab.displayName = 'EditorsTab';
 
 // Text Editor Parameters - Memoized
 const TextEditorParams: React.FC<{
-  editorParams: any;
-  onParamChange: (param: string, value: any) => void;
+  editorParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = React.memo(({ editorParams, onParamChange, disabled }) => {
   const handleMaxLengthChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -411,8 +412,8 @@ TextEditorParams.displayName = 'TextEditorParams';
 
 // Large Text Editor Parameters - Memoized
 const LargeTextEditorParams: React.FC<{
-  editorParams: any;
-  onParamChange: (param: string, value: any) => void;
+  editorParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = React.memo(({ editorParams, onParamChange, disabled }) => {
   const handleRowsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -478,8 +479,8 @@ LargeTextEditorParams.displayName = 'LargeTextEditorParams';
 // Select Editor Parameters - Memoized with debouncing
 const SelectEditorParams: React.FC<{
   editorType: string;
-  editorParams: any;
-  onParamChange: (param: string, value: any) => void;
+  editorParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = React.memo(({ editorType, editorParams, onParamChange, disabled }) => {
   const [valuesInput, setValuesInput] = useState(
@@ -566,8 +567,8 @@ SelectEditorParams.displayName = 'SelectEditorParams';
 
 // Number Editor Parameters - Memoized
 const NumberEditorParams: React.FC<{
-  editorParams: any;
-  onParamChange: (param: string, value: any) => void;
+  editorParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = React.memo(({ editorParams, onParamChange, disabled }) => {
   return (
@@ -637,8 +638,8 @@ NumberEditorParams.displayName = 'NumberEditorParams';
 
 // Date Editor Parameters - Memoized
 const DateEditorParams: React.FC<{
-  editorParams: any;
-  onParamChange: (param: string, value: any) => void;
+  editorParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = React.memo(({ editorParams, onParamChange, disabled }) => {
   return (

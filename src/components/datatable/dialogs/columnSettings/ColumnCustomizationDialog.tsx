@@ -5,15 +5,17 @@ import { Badge } from '@/components/ui/badge';
 import { ColumnSelectorPanel } from './panels/ColumnSelectorPanel';
 import { PropertyEditorPanel } from './panels/PropertyEditorPanel';
 import { BulkActionsPanel } from './panels/BulkActionsPanel';
-import { ColDef } from 'ag-grid-community';
+import { ColDef, ColumnState } from 'ag-grid-community';
 import { useColumnCustomizationStore } from './store/column-customization.store';
 import { Undo2, Redo2, Settings2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import './column-customization-dialog.css';
 
 interface ColumnCustomizationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   columnDefs: ColDef[];
+  columnState?: ColumnState[]; // AG-Grid column state
   onApply: (updatedColumns: ColDef[]) => void;
 }
 
@@ -21,6 +23,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
   open,
   onOpenChange,
   columnDefs,
+  columnState,
   onApply
 }) => {
   const {
@@ -30,10 +33,11 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     bulkActionsPanelCollapsed,
     setOpen,
     setColumnDefinitions,
+    setColumnState,
     applyChanges,
-    resetChanges,
-    setOnImmediateApply
+    resetChanges
   } = useColumnCustomizationStore();
+  const { toast } = useToast();
 
   // Initialize column definitions when dialog opens
   useEffect(() => {
@@ -57,38 +61,75 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
         setColumnDefinitions(columnMap);
       }
       
-      setOnImmediateApply(onApply);
+      // Also set column state if provided
+      if (columnState) {
+        console.log('[ColumnCustomizationDialog] Setting column state:', {
+          columnStateLength: columnState.length,
+          sampleState: columnState.slice(0, 3).map(cs => ({
+            colId: cs.colId,
+            hide: cs.hide,
+            width: cs.width
+          }))
+        });
+        setColumnState(columnState);
+      } else {
+        console.log('[ColumnCustomizationDialog] No column state provided');
+      }
     }
     setOpen(open);
-    
-    // Cleanup on unmount
-    return () => {
-      if (!open) {
-        setOnImmediateApply(undefined);
-      }
-    };
-  }, [open, columnDefs, columnDefinitions.size, setColumnDefinitions, setOpen, setOnImmediateApply, onApply]);
+  }, [open, columnDefs, columnState, columnDefinitions.size, setColumnDefinitions, setColumnState, setOpen]);
 
   const selectedCount = selectedColumns.size;
   const totalColumns = columnDefinitions.size;
 
   // Apply changes
   const handleApplyChanges = useCallback(() => {
+    console.log('[ColumnCustomizationDialog] handleApplyChanges called');
     const updatedColumns = applyChanges();
+    console.log('[ColumnCustomizationDialog] Columns after applyChanges:', {
+      count: updatedColumns.length,
+      hasCustomizations: updatedColumns.some(col => 
+        col.cellStyle || col.valueFormatter || col.cellClass
+      )
+    });
     onApply(updatedColumns);
   }, [applyChanges, onApply]);
 
   // Apply and close in a single operation
   const handleApplyAndClose = useCallback(() => {
+    console.log('[ColumnCustomizationDialog] handleApplyAndClose called');
     const updatedColumns = applyChanges();
+    console.log('[ColumnCustomizationDialog] Columns after applyChanges:', {
+      count: updatedColumns.length,
+      hasCustomizations: updatedColumns.some(col => 
+        col.cellStyle || col.valueFormatter || col.cellClass
+      )
+    });
     onApply(updatedColumns);
     onOpenChange(false);
-  }, [applyChanges, onApply, onOpenChange]);
+    
+    // Show success toast only when dialog is closed with Apply
+    const customizationCount = updatedColumns.filter(col => 
+      col.cellStyle || col.headerStyle || col.valueFormatter || col.cellClass || col.headerClass
+    ).length;
+    
+    if (customizationCount > 0) {
+      toast({
+        title: 'Column customizations applied',
+        description: `Updated ${customizationCount} column${customizationCount !== 1 ? 's' : ''} with custom styles and formatting`,
+      });
+    }
+  }, [applyChanges, onApply, onOpenChange, toast]);
 
   // Discard changes
   const handleDiscardChanges = useCallback(() => {
+    const changeCount = Array.from(pendingChanges.values()).reduce((acc, changes) => acc + Object.keys(changes).length, 0);
     resetChanges();
-  }, [resetChanges]);
+    toast({
+      title: 'Changes discarded',
+      description: `${changeCount} pending change${changeCount !== 1 ? 's' : ''} discarded`,
+    });
+  }, [resetChanges, pendingChanges, toast]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

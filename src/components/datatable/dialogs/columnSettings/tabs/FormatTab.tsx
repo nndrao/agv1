@@ -7,11 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { HelpCircle, Copy, Check, Sparkles, Search, X, Eye, EyeOff, History, Star, StarOff } from 'lucide-react';
-import { createExcelFormatter, getExcelStyleClass, getExcelExportFormat, createCellStyleFunction } from '@/components/datatable/utils/formatters';
-import { cn } from '@/lib/utils';
+import { createExcelFormatter, getExcelStyleClass, createCellStyleFunction } from '@/components/datatable/utils/formatters';
 import { debounce } from 'lodash';
 
 // Pre-defined formatters organized by category
@@ -132,14 +130,12 @@ export const FormatTab: React.FC = React.memo(() => {
   const {
     selectedColumns,
     columnDefinitions,
-    pendingChanges,
     updateBulkProperty
   } = useColumnCustomizationStore();
 
   const [selectedFormat, setSelectedFormat] = useState<string>('default');
   const [customFormat, setCustomFormat] = useState<string>('');
   const [showGuide, setShowGuide] = useState(false);
-  const [copiedExample, setCopiedExample] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showPreview, setShowPreview] = useState(true);
   const [previewValue, setPreviewValue] = useState<number>(1234.56);
@@ -148,8 +144,7 @@ export const FormatTab: React.FC = React.memo(() => {
   
   // Refs for performance
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const formatCache = useRef<Map<string, any>>(new Map());
-  const applyFormatRef = useRef<(format: string) => void>();
+  const formatCache = useRef<Map<string, ((params: unknown) => string) | undefined>>(new Map());
 
   // Load recent and favorite formats
   useEffect(() => {
@@ -169,15 +164,14 @@ export const FormatTab: React.FC = React.memo(() => {
     if (selectedColumns.size === 0) return null;
     
     const formats = new Set<string>();
-    selectedColumns.forEach(colId => {
-      const colDef = columnDefinitions.get(colId);
-      const changes = pendingChanges.get(colId);
-      const format = changes?.valueFormat || colDef?.valueFormat || 'default';
+    selectedColumns.forEach(() => {
+      // Detect format from valueFormatter if it exists
+      const format = 'default';
       formats.add(format);
     });
 
     return formats.size === 1 ? Array.from(formats)[0] : null;
-  }, [selectedColumns, columnDefinitions, pendingChanges]);
+  }, [selectedColumns]);
 
   // Find matching predefined format
   const matchedFormat = useMemo(() => {
@@ -282,10 +276,8 @@ export const FormatTab: React.FC = React.memo(() => {
     setSelectedFormat(value);
     
     if (value === 'default') {
-      updateBulkProperty('valueFormat', undefined);
       updateBulkProperty('valueFormatter', undefined);
       updateBulkProperty('exportValueFormatter', undefined);
-      updateBulkProperty('excelFormat', undefined);
     } else if (value === 'custom') {
       // Don't update yet, wait for custom input
     } else {
@@ -297,15 +289,19 @@ export const FormatTab: React.FC = React.memo(() => {
   // Apply format with all necessary properties - optimized
   const applyFormat = useCallback((format: string) => {
     // Batch all updates together
-    const updates: Record<string, any> = {
-      valueFormat: format
-    };
+    const updates: Record<string, unknown> = {};
     
     // Check cache for formatter
     let formatter = formatCache.current.get(format);
     if (!formatter) {
       formatter = createExcelFormatter(format);
       formatCache.current.set(format, formatter);
+    }
+    
+    // Ensure formatter has metadata
+    if (formatter && !Object.prototype.hasOwnProperty.call(formatter, '__formatString')) {
+      Object.defineProperty(formatter, '__formatString', { value: format, writable: false });
+      Object.defineProperty(formatter, '__formatterType', { value: 'excel', writable: false });
     }
     
     updates.valueFormatter = formatter;
@@ -316,9 +312,10 @@ export const FormatTab: React.FC = React.memo(() => {
     if (cellClass) {
       // Get first column's current class only once
       const firstColId = selectedColumns.size > 0 ? Array.from(selectedColumns)[0] : null;
-      const currentCellClass = firstColId ? 
+      const currentCellClassRaw = firstColId ? 
         columnDefinitions.get(firstColId)?.cellClass || '' : '';
-      const existingClasses = typeof currentCellClass === 'string' ? 
+      const currentCellClass = typeof currentCellClassRaw === 'string' ? currentCellClassRaw : '';
+      const existingClasses = currentCellClass ? 
         currentCellClass.split(' ').filter(c => !c.startsWith('ag-')) : [];
       const newClasses = [...new Set([...existingClasses, ...cellClass.split(' ')])];
       updates.cellClass = newClasses.join(' ').trim();
@@ -340,11 +337,7 @@ export const FormatTab: React.FC = React.memo(() => {
       updates.cellStyle = createCellStyleFunction(format, baseStyle);
     }
     
-    // Set Excel export format
-    const excelFormat = getExcelExportFormat(format);
-    if (excelFormat) {
-      updates.excelFormat = excelFormat;
-    }
+    // Excel export format is handled by the formatter itself
     
     // Apply all updates at once using updateBulkProperties
     const store = useColumnCustomizationStore.getState();
@@ -373,11 +366,6 @@ export const FormatTab: React.FC = React.memo(() => {
     debouncedApplyFormat(value);
   }, [debouncedApplyFormat]);
 
-  const copyToClipboard = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopiedExample(text);
-    setTimeout(() => setCopiedExample(null), 2000);
-  };
 
   const isDisabled = selectedColumns.size === 0;
 
