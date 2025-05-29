@@ -14,6 +14,19 @@ import './format-styles.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 
+// Interfaces for style configurations
+interface HeaderStyleConfig {
+  _isHeaderStyleConfig: boolean;
+  regular?: React.CSSProperties;
+  floating?: React.CSSProperties;
+}
+
+interface FormatterConfig {
+  _isFormatterConfig: boolean;
+  type: string;
+  formatString?: string;
+}
+
 export interface ColumnDef extends Omit<AgColDef, 'field' | 'headerName' | 'type'> {
   field: string;
   headerName: string;
@@ -82,7 +95,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         // Convert headerStyle objects back to functions
         if (processedCol.headerStyle) {
           if (typeof processedCol.headerStyle === 'object') {
-            const styleConfig = processedCol.headerStyle as any;
+            const styleConfig = processedCol.headerStyle as HeaderStyleConfig;
             
             // Check if it's our special format with regular/floating styles
             if (styleConfig._isHeaderStyleConfig) {
@@ -123,7 +136,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         
         // Recreate valueFormatter from saved config
         if (processedCol.valueFormatter && typeof processedCol.valueFormatter === 'object') {
-          const formatterConfig = processedCol.valueFormatter as any;
+          const formatterConfig = processedCol.valueFormatter as FormatterConfig;
           
           if (formatterConfig._isFormatterConfig && formatterConfig.type === 'excel' && formatterConfig.formatString) {
             console.log('[DataTable] Recreating valueFormatter from config:', {
@@ -391,7 +404,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         // Convert headerStyle objects back to functions
         if (processedCol.headerStyle) {
           if (typeof processedCol.headerStyle === 'object') {
-            const styleConfig = processedCol.headerStyle as any;
+            const styleConfig = processedCol.headerStyle as HeaderStyleConfig;
             
             // Check if it's our special format with regular/floating styles
             if (styleConfig._isHeaderStyleConfig) {
@@ -427,7 +440,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         
         // Recreate valueFormatter from saved config
         if (processedCol.valueFormatter && typeof processedCol.valueFormatter === 'object') {
-          const formatterConfig = processedCol.valueFormatter as any;
+          const formatterConfig = processedCol.valueFormatter as FormatterConfig;
           
           if (formatterConfig._isFormatterConfig && formatterConfig.type === 'excel' && formatterConfig.formatString) {
             console.log('[DataTable] Profile change - Recreating valueFormatter from config:', {
@@ -712,7 +725,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
                   // Convert headerStyle objects back to functions
                   if (processed.headerStyle) {
                     if (typeof processed.headerStyle === 'object') {
-                      const styleConfig = processed.headerStyle as any;
+                      const styleConfig = processed.headerStyle as HeaderStyleConfig;
                       
                       // Check if it's our special format with regular/floating styles
                       if (styleConfig._isHeaderStyleConfig) {
@@ -753,7 +766,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
                   
                   // Recreate valueFormatter from saved config
                   if (processed.valueFormatter && typeof processed.valueFormatter === 'object') {
-                    const formatterConfig = processed.valueFormatter as any;
+                    const formatterConfig = processed.valueFormatter as FormatterConfig;
                     
                     if (formatterConfig._isFormatterConfig && formatterConfig.type === 'excel' && formatterConfig.formatString) {
                       console.log('[DataTable] onGridReady - Recreating valueFormatter from config:', {

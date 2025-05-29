@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { ColDef as AgColDef } from 'ag-grid-community';
+import { ColDef as AgColDef, ColumnState } from 'ag-grid-community';
 
 // Use AG-Grid's ColDef directly
 export type ColDef = AgColDef;
@@ -13,7 +13,7 @@ export interface DialogState {
   // Column management
   selectedColumns: Set<string>;
   columnDefinitions: Map<string, ColDef>;
-  columnState: Map<string, any>; // AG-Grid column state by colId
+  columnState: Map<string, ColumnState>; // AG-Grid column state by colId
   pendingChanges: Map<string, Partial<ColDef>>;
 
   // UI state
@@ -41,7 +41,7 @@ export interface DialogActions {
   selectColumns: (columnIds: string[]) => void;
   deselectColumns: (columnIds: string[]) => void;
   setColumnDefinitions: (columns: Map<string, ColDef>) => void;
-  setColumnState: (columnState: any[]) => void;
+  setColumnState: (columnState: ColumnState[]) => void;
   updateBulkProperty: (property: string, value: unknown) => void;
   updateBulkProperties: (properties: Record<string, unknown>) => void;
   applyChanges: () => ColDef[];
@@ -78,7 +78,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       open: false,
       selectedColumns: new Set<string>(),
       columnDefinitions: new Map<string, ColDef>(),
-      columnState: new Map<string, any>(),
+      columnState: new Map<string, ColumnState>(),
       pendingChanges: new Map<string, Partial<ColDef>>(),
       activeTab: 'general',
       showOnlyCommon: false,
@@ -227,7 +227,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
             } else {
               // For headerStyle, just save the style object directly
               // We'll convert it to a function when loading from storage
-              updated[property as keyof ColDef] = value as any;
+              (updated as Record<string, unknown>)[property] = value;
             }
           });
 

@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Settings2, Download, FileSpreadsheet } from "lucide-react";
 import { ProfileManager } from "./profile-manager";
-import { GridApi } from "ag-grid-community";
+import { GridApi, ColDef as AgColDef } from "ag-grid-community";
 import { GridProfile } from "@/stores/profile.store";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,7 +30,7 @@ interface DataTableToolbarProps {
   onOpenColumnSettings?: () => void;
   gridApi?: GridApi | null;
   onProfileChange?: (profile: GridProfile) => void;
-  getColumnDefsWithStyles?: () => any[];
+  getColumnDefsWithStyles?: () => AgColDef[];
 }
 
 export function DataTableToolbar({ 

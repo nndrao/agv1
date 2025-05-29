@@ -44,12 +44,19 @@ import {
   useProfiles,
   GridProfile 
 } from '@/stores/profile.store';
-import { GridApi } from 'ag-grid-community';
+import { GridApi, ColDef, ColumnState } from 'ag-grid-community';
+
+// Interface for style configurations
+interface HeaderStyleConfig {
+  _isHeaderStyleConfig: boolean;
+  regular?: React.CSSProperties;
+  floating?: React.CSSProperties;
+}
 
 interface ProfileManagerProps {
   gridApi: GridApi | null;
   onProfileChange?: (profile: GridProfile) => void;
-  getColumnDefsWithStyles?: () => any[];
+  getColumnDefsWithStyles?: () => ColDef[];
 }
 
 export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyles }: ProfileManagerProps) {
@@ -59,7 +66,6 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
   const {
     setActiveProfile,
     createProfile,
-    updateProfile,
     deleteProfile,
     duplicateProfile,
     saveCurrentState,
@@ -77,16 +83,16 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
   const [isSaving, setIsSaving] = useState(false);
 
   // Function to apply profile states in sequence
-  const applyProfileStates = (gridApi: GridApi, gridState: any, profileName: string) => {
+  const applyProfileStates = (gridApi: GridApi, gridState: GridProfile['gridState'], profileName: string) => {
     console.log('[ProfileManager] Applying profile states in sequence');
     
     // 1. Apply column state first
     if (gridState.columnState) {
       console.log('[ProfileManager] Applying columnState:', {
         totalColumns: gridState.columnState.length,
-        visibleColumns: gridState.columnState.filter((col: any) => !col.hide).length,
-        hiddenColumns: gridState.columnState.filter((col: any) => col.hide).length,
-        columnOrder: gridState.columnState.slice(0, 5).map((col: any) => col.colId)
+        visibleColumns: gridState.columnState.filter((col: ColumnState) => !col.hide).length,
+        hiddenColumns: gridState.columnState.filter((col: ColumnState) => col.hide).length,
+        columnOrder: gridState.columnState.slice(0, 5).map((col: ColumnState) => col.colId)
       });
       
       gridApi.applyColumnState({
@@ -224,7 +230,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
           
           // Convert headerStyle if needed
           if (cleanCol.headerStyle && typeof cleanCol.headerStyle === 'object') {
-            const styleConfig = cleanCol.headerStyle as any;
+            const styleConfig = cleanCol.headerStyle as HeaderStyleConfig;
             if (styleConfig._isHeaderStyleConfig) {
               cleanCol.headerStyle = ((params: { floatingFilter?: boolean }) => {
                 if (params?.floatingFilter) {
@@ -371,11 +377,12 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       // Store valueFormatter metadata if it exists
       if (cleaned.valueFormatter && typeof cleaned.valueFormatter === 'function') {
         // Check if it has format metadata
-        if ((cleaned.valueFormatter as any).__formatString) {
+        const formatterFunc = cleaned.valueFormatter as { __formatString?: string };
+        if (formatterFunc.__formatString) {
           cleaned.valueFormatter = {
             _isFormatterConfig: true,
             type: 'excel',
-            formatString: (cleaned.valueFormatter as any).__formatString
+            formatString: formatterFunc.__formatString
           };
           console.log('[ProfileManager] Saved valueFormatter config:', cleaned.valueFormatter);
         } else {
@@ -484,7 +491,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
         title: 'Profile duplicated',
         description: `Profile "${newProfile.name}" has been created.`,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to duplicate profile.',
@@ -539,7 +546,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
           title: 'Profile imported',
           description: `Profile "${profile.name}" has been imported.`,
         });
-      } catch (error) {
+      } catch {
         toast({
           title: 'Import failed',
           description: 'Invalid profile file format.',

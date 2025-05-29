@@ -3,7 +3,7 @@ import { ValueFormatterParams } from 'ag-grid-community';
 /**
  * Process a single format section (handles colors, conditions, and number formatting)
  */
-function processFormatSection(format: string, value: number, params: ValueFormatterParams): string {
+function processFormatSection(format: string, value: number): string {
   // Extract and handle color formatting - support both named and hex colors
   const colorMatch = format.match(/\[([^\]]+)\]/);
   let cleanFormat = format;
@@ -296,8 +296,9 @@ export function createExcelFormatter(formatString: string) {
   };
   
   // Attach format string as metadata for serialization
-  (formatter as any).__formatString = formatString;
-  (formatter as any).__formatterType = 'excel';
+  // Store metadata on the formatter function
+  Object.defineProperty(formatter, '__formatString', { value: formatString, writable: false });
+  Object.defineProperty(formatter, '__formatterType', { value: 'excel', writable: false });
   
   return formatter;
 }
@@ -327,11 +328,11 @@ export function getExcelStyleClass(formatString: string): string {
 /**
  * Create cell style function for dynamic color formatting
  */
-export function createCellStyleFunction(formatString: string, baseStyle?: any) {
+export function createCellStyleFunction(formatString: string, baseStyle?: React.CSSProperties) {
   // Parse format sections
   const sections = formatString.split(';');
   
-  return (params: any) => {
+  return (params: { value: unknown }) => {
     // Start with base styles from styling tab
     const baseStyles = typeof baseStyle === 'object' && baseStyle !== null ? { ...baseStyle } : {};
     

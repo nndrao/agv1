@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ColDef } from 'ag-grid-community';
+import { ColDef, ColumnState, FilterModel, SortModelItem } from 'ag-grid-community';
+
+interface PersistedState {
+  profiles?: GridProfile[];
+  activeProfileId?: string;
+  lastExportedAt?: number;
+  autoSave?: boolean;
+}
 
 // Profile data structure
 export interface GridProfile {
@@ -12,17 +19,17 @@ export interface GridProfile {
   description?: string;
   gridState: {
     // Column definitions with all customizations
-    columnDefs: any[];
+    columnDefs: ColDef[];
     // Column state (order, visibility, width, etc.)
-    columnState: any[];
+    columnState: ColumnState[];
     // Filter model
-    filterModel: any;
+    filterModel: FilterModel;
     // Sort model
-    sortModel: any[];
+    sortModel: SortModelItem[];
     // Templates
-    templates?: any[];
+    templates?: Record<string, unknown>[];
     // Column customization templates
-    columnTemplates?: any[];
+    columnTemplates?: Record<string, unknown>[];
     // UI preferences
     font?: string;
     // Other grid options
@@ -169,7 +176,7 @@ export const useProfileStore = create<ProfileStore>()(
       
       // Delete profile (cannot delete default or active profile)
       deleteProfile: (profileId) => {
-        const { profiles, activeProfileId } = get();
+        const { activeProfileId } = get();
         
         // Cannot delete default profile
         if (profileId === DEFAULT_PROFILE_ID) {
@@ -313,7 +320,7 @@ export const useProfileStore = create<ProfileStore>()(
     {
       name: 'grid-profile-storage',
       version: 3, // Increment version to trigger migration for headerStyle format
-      migrate: (persistedState: any, version: number) => {
+      migrate: (persistedState: PersistedState, version: number) => {
         let state = persistedState;
         
         // Migrate from version 1 to 2 (clean invalid properties)
@@ -321,10 +328,10 @@ export const useProfileStore = create<ProfileStore>()(
           state = { ...state };
           
           if (state.profiles && Array.isArray(state.profiles)) {
-            state.profiles = state.profiles.map((profile: any) => {
+            state.profiles = state.profiles.map((profile: GridProfile) => {
               if (profile.gridState && profile.gridState.columnDefs) {
                 // Clean invalid properties from each column definition
-                profile.gridState.columnDefs = profile.gridState.columnDefs.map((col: any) => {
+                profile.gridState.columnDefs = profile.gridState.columnDefs.map((col: ColDef) => {
                   const cleaned = { ...col };
                   // Remove invalid properties that AG-Grid doesn't recognize
                   delete cleaned.valueFormat;
@@ -343,10 +350,10 @@ export const useProfileStore = create<ProfileStore>()(
           state = { ...state };
           
           if (state.profiles && Array.isArray(state.profiles)) {
-            state.profiles = state.profiles.map((profile: any) => {
+            state.profiles = state.profiles.map((profile: GridProfile) => {
               if (profile.gridState && profile.gridState.columnDefs) {
                 // Convert headerStyle objects to new format
-                profile.gridState.columnDefs = profile.gridState.columnDefs.map((col: any) => {
+                profile.gridState.columnDefs = profile.gridState.columnDefs.map((col: ColDef) => {
                   if (col.headerStyle && typeof col.headerStyle === 'object' && !col.headerStyle._isHeaderStyleConfig) {
                     // Convert old format to new format
                     col.headerStyle = {

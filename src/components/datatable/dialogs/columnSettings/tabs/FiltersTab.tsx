@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,10 +7,17 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
-import { Info, Settings, Filter, Calendar, Hash, Type, ToggleLeft, Search, X, Plus, Lightbulb } from 'lucide-react';
+import { Info, Settings, Filter, Calendar, Hash, Type, ToggleLeft, X, Plus, Lightbulb } from 'lucide-react';
+
+interface FilterConfig {
+  filter: string;
+  filterParams: Record<string, unknown>;
+  floatingFilter: boolean;
+  suppressMenu: boolean;
+  suppressFiltersToolPanel: boolean;
+}
 
 // Filter types based on AG-Grid documentation
 const FILTER_TYPES = {
@@ -107,7 +114,7 @@ export const FiltersTab: React.FC = () => {
   const currentFilterConfig = useMemo(() => {
     if (selectedColumns.size === 0) return null;
 
-    const configs = new Map<string, any>();
+    const configs = new Map<string, FilterConfig>();
     selectedColumns.forEach(colId => {
       const colDef = columnDefinitions.get(colId);
       const changes = pendingChanges.get(colId);
@@ -151,7 +158,7 @@ export const FiltersTab: React.FC = () => {
       const dataType = Array.from(dataTypes)[0];
       
       // Find best matching filter type
-      for (const [key, filterType] of Object.entries(FILTER_TYPES)) {
+      for (const [, filterType] of Object.entries(FILTER_TYPES)) {
         if (filterType.dataTypes.includes(dataType)) {
           return filterType.value;
         }
@@ -172,17 +179,17 @@ export const FiltersTab: React.FC = () => {
     }
   };
 
-  const handleFilterParamChange = (param: string, value: any) => {
+  const handleFilterParamChange = (param: string, value: unknown) => {
     const currentParams = currentFilterConfig?.filterParams || {};
     const newParams = { ...currentParams, [param]: value };
     updateBulkProperty('filterParams', newParams);
   };
 
-  const handleBulkUpdate = (updates: Record<string, any>) => {
+  const handleBulkUpdate = (updates: Record<string, unknown>) => {
     updateBulkProperties(updates);
   };
 
-  const getDefaultFilterParams = (filterType: string): any => {
+  const getDefaultFilterParams = (filterType: string): Record<string, unknown> => {
     switch (filterType) {
       case 'agTextColumnFilter':
         return {
@@ -543,8 +550,8 @@ export const FiltersTab: React.FC = () => {
 
 // Text Filter Parameters Component
 const TextFilterParams: React.FC<{
-  filterParams: any;
-  onParamChange: (param: string, value: any) => void;
+  filterParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = ({ filterParams, onParamChange, disabled }) => {
   return (
@@ -612,8 +619,8 @@ const TextFilterParams: React.FC<{
 
 // Number Filter Parameters Component
 const NumberFilterParams: React.FC<{
-  filterParams: any;
-  onParamChange: (param: string, value: any) => void;
+  filterParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = ({ filterParams, onParamChange, disabled }) => {
   return (
@@ -684,8 +691,8 @@ const NumberFilterParams: React.FC<{
 
 // Date Filter Parameters Component
 const DateFilterParams: React.FC<{
-  filterParams: any;
-  onParamChange: (param: string, value: any) => void;
+  filterParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = ({ filterParams, onParamChange, disabled }) => {
   return (
@@ -753,8 +760,8 @@ const DateFilterParams: React.FC<{
 
 // Set Filter Parameters Component
 const SetFilterParams: React.FC<{
-  filterParams: any;
-  onParamChange: (param: string, value: any) => void;
+  filterParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = ({ filterParams, onParamChange, disabled }) => {
   return (
@@ -821,8 +828,8 @@ const SetFilterParams: React.FC<{
 // Advanced Filter Parameters Component
 const AdvancedFilterParams: React.FC<{
   filterType: string;
-  filterParams: any;
-  onParamChange: (param: string, value: any) => void;
+  filterParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = ({ filterType, filterParams, onParamChange, disabled }) => {
   return (
@@ -932,8 +939,8 @@ const AdvancedFilterParams: React.FC<{
 
 // Multi Filter Parameters Component
 const MultiFilterParams: React.FC<{
-  filterParams: any;
-  onParamChange: (param: string, value: any) => void;
+  filterParams: Record<string, unknown>;
+  onParamChange: (param: string, value: unknown) => void;
   disabled: boolean;
 }> = ({ filterParams, onParamChange, disabled }) => {
   // Available filter types for multi filter (excluding multi filter itself)
@@ -963,7 +970,7 @@ const MultiFilterParams: React.FC<{
 
   const removeFilter = (index: number) => {
     if (defaultFilters.length <= 1) return; // Keep at least one filter
-    const newFilters = defaultFilters.filter((_: any, i: number) => i !== index);
+    const newFilters = defaultFilters.filter((_: unknown, i: number) => i !== index);
     onParamChange('filters', newFilters);
   };
 
@@ -979,7 +986,7 @@ const MultiFilterParams: React.FC<{
       <div className="space-y-3">
         <Label className="text-sm">Filter Configuration</Label>
         
-        {defaultFilters.map((filterConfig: any, index: number) => {
+        {defaultFilters.map((filterConfig: unknown, index: number) => {
           const Icon = MULTI_FILTER_OPTIONS.find(opt => opt.value === filterConfig.filter)?.icon || Filter;
           
           return (

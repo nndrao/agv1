@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ColumnSelectorPanel } from './panels/ColumnSelectorPanel';
 import { PropertyEditorPanel } from './panels/PropertyEditorPanel';
 import { BulkActionsPanel } from './panels/BulkActionsPanel';
-import { ColDef } from 'ag-grid-community';
+import { ColDef, ColumnState } from 'ag-grid-community';
 import { useColumnCustomizationStore } from './store/column-customization.store';
 import { Undo2, Redo2, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +15,7 @@ interface ColumnCustomizationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   columnDefs: ColDef[];
-  columnState?: any[]; // AG-Grid column state
+  columnState?: ColumnState[]; // AG-Grid column state
   onApply: (updatedColumns: ColDef[]) => void;
 }
 

@@ -254,7 +254,7 @@ export const StylingTab: React.FC = () => {
   };
 
   // Check if header alignment is mixed
-  const isHeaderAlignmentMixed = (type: 'horizontal' | 'vertical') => {
+  const isHeaderAlignmentMixed = () => {
     const headerClassValue = getMixedValue('headerClass');
     return headerClassValue.isMixed;
   };
@@ -277,7 +277,7 @@ export const StylingTab: React.FC = () => {
   };
 
   // Check if cell alignment is mixed
-  const isCellAlignmentMixed = (type: 'horizontal' | 'vertical') => {
+  const isCellAlignmentMixed = () => {
     const cellClassValue = getMixedValue('cellClass');
     return cellClassValue.isMixed;
   };

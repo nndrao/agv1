@@ -1,5 +1,7 @@
 // Utility to serialize and deserialize style functions for localStorage
 
+import { ColDef } from 'ag-grid-community';
+
 export interface SerializedStyle {
   type: 'static' | 'function';
   value?: React.CSSProperties;
@@ -7,14 +9,13 @@ export interface SerializedStyle {
   baseStyle?: React.CSSProperties;
 }
 
-export interface SerializedColumnDef {
+export interface SerializedColumnDef extends Omit<ColDef, 'cellStyle' | 'headerStyle'> {
   cellStyle?: SerializedStyle;
   headerStyle?: SerializedStyle;
-  [key: string]: any;
 }
 
 // Serialize a column definition with style functions
-export function serializeColumnDef(colDef: any): any {
+export function serializeColumnDef(colDef: ColDef): SerializedColumnDef {
   const serialized = { ...colDef };
   
   // Handle cellStyle
@@ -55,7 +56,7 @@ export function serializeColumnDef(colDef: any): any {
 }
 
 // Deserialize a column definition and recreate style functions
-export function deserializeColumnDef(serialized: any): any {
+export function deserializeColumnDef(serialized: SerializedColumnDef): ColDef {
   const colDef = { ...serialized };
   
   // Handle cellStyle
@@ -67,7 +68,7 @@ export function deserializeColumnDef(serialized: any): any {
     } else if (styleConfig.type === 'function' && styleConfig.formatString) {
       // Recreate the cell style function
       // This is a simplified version - you'd need the actual createCellStyleFunction
-      colDef.cellStyle = (params: any) => {
+      colDef.cellStyle = () => {
         // For now, just return the base style
         // In production, you'd recreate the conditional logic
         return styleConfig.baseStyle || {};
@@ -83,7 +84,7 @@ export function deserializeColumnDef(serialized: any): any {
       colDef.headerStyle = styleConfig.value;
     } else if (styleConfig.type === 'function') {
       // Recreate header style function that avoids floating filter
-      colDef.headerStyle = (params: any) => {
+      colDef.headerStyle = (params: { floatingFilter?: boolean }) => {
         if (params?.floatingFilter) {
           return null;
         }
@@ -96,11 +97,11 @@ export function deserializeColumnDef(serialized: any): any {
 }
 
 // Serialize all column definitions
-export function serializeColumnDefs(columnDefs: any[]): any[] {
+export function serializeColumnDefs(columnDefs: ColDef[]): SerializedColumnDef[] {
   return columnDefs.map(serializeColumnDef);
 }
 
 // Deserialize all column definitions
-export function deserializeColumnDefs(serialized: any[]): any[] {
+export function deserializeColumnDefs(serialized: SerializedColumnDef[]): ColDef[] {
   return serialized.map(deserializeColumnDef);
 }

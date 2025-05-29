@@ -26,7 +26,7 @@ interface ColumnTemplate {
   id: string;
   name: string;
   createdAt: number;
-  properties: Record<string, any>;
+  properties: Partial<ColDef>;
 }
 
 export const BulkActionsPanel: React.FC = () => {
@@ -124,7 +124,7 @@ export const BulkActionsPanel: React.FC = () => {
     
     if (!columnDef) return null;
     
-    const config: Record<string, any> = {};
+    const config: Partial<ColDef> = {};
     
     TEMPLATE_PROPERTIES.forEach(property => {
       // Check pending changes first, then column definition
@@ -241,7 +241,7 @@ export const BulkActionsPanel: React.FC = () => {
     if (!template) return;
     
     // Prepare properties to apply
-    const propertiesToApply: Record<string, any> = { ...template.properties };
+    const propertiesToApply: Partial<ColDef> = { ...template.properties };
     
     // Remove field and headerName to ensure they're never applied from templates
     delete propertiesToApply.field;
