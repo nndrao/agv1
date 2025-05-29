@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ColDef, ColumnState, FilterModel, SortModelItem } from 'ag-grid-community';
+import { ColumnCustomization, serializeColumnCustomizations, deserializeColumnCustomizations } from './column-serializer';
+import { perfMonitor } from '@/lib/performance-monitor';
 
 interface PersistedState {
   profiles?: GridProfile[];
@@ -18,8 +20,12 @@ export interface GridProfile {
   isDefault?: boolean;
   description?: string;
   gridState: {
-    // Column definitions with all customizations
-    columnDefs: ColDef[];
+    // Column definitions with all customizations (legacy - for backward compatibility)
+    columnDefs?: ColDef[];
+    // Lightweight column customizations (new format)
+    columnCustomizations?: Record<string, ColumnCustomization>;
+    // Base column definitions snapshot (for reference)
+    baseColumnDefs?: ColDef[];
     // Column state (order, visibility, width, etc.)
     columnState: ColumnState[];
     // Filter model
@@ -52,6 +58,10 @@ interface ProfileStore {
   profiles: GridProfile[];
   activeProfileId: string;
   
+  // Migration state
+  migrationPending: boolean;
+  migrationInProgress: boolean;
+  
   // Actions
   createProfile: (name: string, description?: string) => GridProfile;
   updateProfile: (profileId: string, updates: Partial<GridProfile>) => void;
@@ -64,9 +74,16 @@ interface ProfileStore {
   exportProfile: (profileId: string) => GridProfile | undefined;
   saveCurrentState: (gridState: Partial<GridProfile['gridState']>) => void;
   
+  // Lightweight column serialization
+  saveColumnCustomizations: (columnDefs: ColDef[], baseColumnDefs?: ColDef[]) => void;
+  getColumnDefs: (profileId?: string) => ColDef[] | undefined;
+  
   // Auto-save
   autoSave: boolean;
   setAutoSave: (enabled: boolean) => void;
+  
+  // Migration
+  performDeferredMigration: () => Promise<void>;
 }
 
 // Default profile ID
@@ -80,12 +97,88 @@ const createDefaultProfile = (): GridProfile => ({
   updatedAt: Date.now(),
   isDefault: true,
   gridState: {
-    columnDefs: [],
+    columnCustomizations: {},
     columnState: [],
     filterModel: {},
     sortModel: []
   }
 });
+
+// Deferred migration function
+async function performMigration(state: PersistedState): Promise<PersistedState> {
+  perfMonitor.mark('migration-start');
+  
+  let newState = { ...state };
+  
+  // Migrate from version 1 to 2 (clean invalid properties)
+  if (state.profiles && Array.isArray(state.profiles)) {
+    newState.profiles = state.profiles.map((profile: GridProfile) => {
+      const newProfile = { ...profile };
+      
+      if (profile.gridState && profile.gridState.columnDefs) {
+        // Clean invalid properties from each column definition
+        newProfile.gridState.columnDefs = profile.gridState.columnDefs.map((col: ColDef) => {
+          const cleaned = { ...col };
+          // Remove invalid properties that AG-Grid doesn't recognize
+          delete cleaned.valueFormat;
+          delete cleaned._hasFormatter;
+          delete cleaned.excelFormat;
+          return cleaned;
+        });
+      }
+      
+      // Convert headerStyle objects to new format
+      if (newProfile.gridState && newProfile.gridState.columnDefs) {
+        newProfile.gridState.columnDefs = newProfile.gridState.columnDefs.map((col: ColDef) => {
+          if (col.headerStyle && typeof col.headerStyle === 'object' && !col.headerStyle._isHeaderStyleConfig) {
+            // Convert old format to new format
+            col.headerStyle = {
+              _isHeaderStyleConfig: true,
+              regular: col.headerStyle,
+              floating: null
+            };
+          }
+          return col;
+        });
+      }
+      
+      // Convert to lightweight format if needed
+      if (newProfile.gridState && newProfile.gridState.columnDefs && 
+          newProfile.gridState.columnDefs.length > 0 && 
+          !newProfile.gridState.columnCustomizations) {
+        
+        const baseColumns = newProfile.gridState.columnDefs.map((col: ColDef) => ({
+          field: col.field,
+          headerName: col.field,
+          cellDataType: col.cellDataType
+        }));
+        
+        const customizations = serializeColumnCustomizations(newProfile.gridState.columnDefs, baseColumns);
+        
+        console.log('[ProfileStore Migration] Converting profile to lightweight format:', {
+          profileId: newProfile.id,
+          profileName: newProfile.name,
+          originalSize: JSON.stringify(newProfile.gridState.columnDefs).length,
+          newSize: JSON.stringify(customizations).length,
+          reduction: `${Math.round((1 - JSON.stringify(customizations).length / JSON.stringify(newProfile.gridState.columnDefs).length) * 100)}%`
+        });
+        
+        // Update to new format
+        newProfile.gridState.columnCustomizations = customizations;
+        newProfile.gridState.baseColumnDefs = baseColumns;
+        // Remove legacy columnDefs after migration
+        delete newProfile.gridState.columnDefs;
+      }
+      
+      return newProfile;
+    });
+  }
+  
+  perfMonitor.mark('migration-end');
+  perfMonitor.measure('migrationTime', 'migration-start', 'migration-end');
+  
+  return newState;
+}
 
 export const useProfileStore = create<ProfileStore>()(
   persist(
@@ -94,6 +187,8 @@ export const useProfileStore = create<ProfileStore>()(
       profiles: [createDefaultProfile()],
       activeProfileId: DEFAULT_PROFILE_ID,
       autoSave: true,
+      migrationPending: false,
+      migrationInProgress: false,
       
       // Create new profile
       createProfile: (name, description) => {
@@ -109,14 +204,16 @@ export const useProfileStore = create<ProfileStore>()(
           createdAt: Date.now(),
           updatedAt: Date.now(),
           gridState: defaultProfile?.gridState ? {
-            // Clone the default profile's grid state
-            columnDefs: [...(defaultProfile.gridState.columnDefs || [])],
+            // Clone the default profile's grid state using new lightweight format
+            columnCustomizations: { ...(defaultProfile.gridState.columnCustomizations || {}) },
+            baseColumnDefs: [...(defaultProfile.gridState.baseColumnDefs || [])],
             columnState: [...(defaultProfile.gridState.columnState || [])],
             filterModel: {},  // Start with no filters
             sortModel: []     // Start with no sorting
           } : {
             // Fallback to empty state if default profile not found
-            columnDefs: [],
+            columnCustomizations: {},
+            baseColumnDefs: [],
             columnState: [],
             filterModel: {},
             sortModel: []
@@ -126,7 +223,7 @@ export const useProfileStore = create<ProfileStore>()(
         console.log('[ProfileStore] Creating new profile with default state:', {
           profileName: name,
           defaultProfileFound: !!defaultProfile,
-          columnDefsCount: newProfile.gridState.columnDefs.length
+          customizationsCount: Object.keys(newProfile.gridState.columnCustomizations || {}).length
         });
         
         set(state => ({
@@ -304,80 +401,197 @@ export const useProfileStore = create<ProfileStore>()(
           return;
         }
         
+        // If columnDefs are provided, convert to lightweight format
+        if (gridState.columnDefs) {
+          const baseColumns = activeProfile.gridState.baseColumnDefs || [];
+          const customizations = serializeColumnCustomizations(gridState.columnDefs, baseColumns);
+          
+          console.log('[ProfileStore] Converting columnDefs to lightweight format:', {
+            columnDefsCount: gridState.columnDefs.length,
+            customizationsCount: Object.keys(customizations).length,
+            sizeReduction: `${Math.round((1 - JSON.stringify(customizations).length / JSON.stringify(gridState.columnDefs).length) * 100)}%`
+          });
+          
+          get().updateProfile(activeProfileId, {
+            gridState: {
+              ...activeProfile.gridState,
+              ...gridState,
+              columnCustomizations: customizations,
+              // Keep base columns for reference (only update if not set)
+              baseColumnDefs: activeProfile.gridState.baseColumnDefs || gridState.columnDefs,
+              // Remove full columnDefs to save space
+              columnDefs: undefined
+            }
+          });
+        } else {
+          get().updateProfile(activeProfileId, {
+            gridState: {
+              ...activeProfile.gridState,
+              ...gridState
+            }
+          });
+        }
+      },
+      
+      // Save column customizations in lightweight format
+      saveColumnCustomizations: (columnDefs, baseColumnDefs) => {
+        const { activeProfileId } = get();
+        const activeProfile = get().getActiveProfile();
+        
+        if (!activeProfile) {
+          console.warn('[ProfileStore] No active profile found for saving column customizations');
+          return;
+        }
+        
+        const customizations = serializeColumnCustomizations(
+          columnDefs, 
+          baseColumnDefs || activeProfile.gridState.baseColumnDefs || columnDefs
+        );
+        
+        console.log('[ProfileStore] Saving column customizations:', {
+          profileId: activeProfileId,
+          customizationsCount: Object.keys(customizations).length,
+          size: `${(JSON.stringify(customizations).length / 1024).toFixed(2)}KB`
+        });
+        
         get().updateProfile(activeProfileId, {
           gridState: {
             ...activeProfile.gridState,
-            ...gridState
+            columnCustomizations: customizations,
+            baseColumnDefs: baseColumnDefs || activeProfile.gridState.baseColumnDefs || columnDefs,
+            // Remove legacy full columnDefs
+            columnDefs: undefined
           }
         });
+      },
+      
+      // Get column definitions (reconstruct from lightweight format if needed)
+      getColumnDefs: (profileId) => {
+        const { profiles, activeProfileId } = get();
+        const id = profileId || activeProfileId;
+        const profile = profiles.find(p => p.id === id);
+        
+        if (!profile) return undefined;
+        
+        // If we have the new lightweight format
+        if (profile.gridState.columnCustomizations && profile.gridState.baseColumnDefs) {
+          console.log('[ProfileStore] Reconstructing columnDefs from lightweight format');
+          return deserializeColumnCustomizations(
+            profile.gridState.columnCustomizations,
+            profile.gridState.baseColumnDefs
+          );
+        }
+        
+        // Fall back to legacy format
+        return profile.gridState.columnDefs;
       },
       
       // Auto-save settings
       setAutoSave: (enabled) => {
         set({ autoSave: enabled });
       },
+      
+      // Perform deferred migration
+      performDeferredMigration: async () => {
+        const state = get();
+        if (state.migrationInProgress) return;
+        
+        set({ migrationInProgress: true });
+        
+        try {
+          // Get the current persisted state
+          const storageKey = 'grid-profile-storage';
+          const stored = localStorage.getItem(storageKey);
+          
+          if (stored) {
+            const parsedData = JSON.parse(stored);
+            const currentVersion = parsedData.version || 1;
+            
+            if (currentVersion < 4) {
+              console.log('[ProfileStore] Performing deferred migration from version', currentVersion);
+              
+              // Perform migration
+              const migratedState = await performMigration(parsedData.state);
+              
+              // Update the store
+              set({
+                profiles: migratedState.profiles || [createDefaultProfile()],
+                activeProfileId: migratedState.activeProfileId || DEFAULT_PROFILE_ID,
+                autoSave: migratedState.autoSave !== undefined ? migratedState.autoSave : true,
+                migrationPending: false,
+                migrationInProgress: false
+              });
+              
+              // Update localStorage with new version
+              const newData = {
+                ...parsedData,
+                version: 4,
+                state: migratedState
+              };
+              localStorage.setItem(storageKey, JSON.stringify(newData));
+              
+              console.log('[ProfileStore] Migration completed successfully');
+            }
+          }
+        } catch (error) {
+          console.error('[ProfileStore] Migration failed:', error);
+        } finally {
+          set({ migrationInProgress: false, migrationPending: false });
+        }
+      }
     }),
     {
       name: 'grid-profile-storage',
-      version: 3, // Increment version to trigger migration for headerStyle format
+      version: 4,
+      // Skip migration during initialization - will be done on demand
       migrate: (persistedState: PersistedState, version: number) => {
-        let state = persistedState;
-        
-        // Migrate from version 1 to 2 (clean invalid properties)
-        if (version < 2) {
-          state = { ...state };
-          
-          if (state.profiles && Array.isArray(state.profiles)) {
-            state.profiles = state.profiles.map((profile: GridProfile) => {
-              if (profile.gridState && profile.gridState.columnDefs) {
-                // Clean invalid properties from each column definition
-                profile.gridState.columnDefs = profile.gridState.columnDefs.map((col: ColDef) => {
-                  const cleaned = { ...col };
-                  // Remove invalid properties that AG-Grid doesn't recognize
-                  delete cleaned.valueFormat;
-                  delete cleaned._hasFormatter;
-                  delete cleaned.excelFormat;
-                  return cleaned;
-                });
-              }
-              return profile;
-            });
-          }
+        if (version < 4) {
+          // Mark that migration is needed but don't do it now
+          console.log('[ProfileStore] Migration needed, will defer until after initialization');
+          return {
+            ...persistedState,
+            migrationPending: true
+          };
         }
-        
-        // Migrate from version 2 to 3 (convert headerStyle to new format)
-        if (version < 3) {
-          state = { ...state };
-          
-          if (state.profiles && Array.isArray(state.profiles)) {
-            state.profiles = state.profiles.map((profile: GridProfile) => {
-              if (profile.gridState && profile.gridState.columnDefs) {
-                // Convert headerStyle objects to new format
-                profile.gridState.columnDefs = profile.gridState.columnDefs.map((col: ColDef) => {
-                  if (col.headerStyle && typeof col.headerStyle === 'object' && !col.headerStyle._isHeaderStyleConfig) {
-                    // Convert old format to new format
-                    col.headerStyle = {
-                      _isHeaderStyleConfig: true,
-                      regular: col.headerStyle,
-                      floating: null // Old format didn't support floating filter styles
-                    };
-                  }
-                  return col;
-                });
-              }
-              return profile;
-            });
-          }
-        }
-        
-        return state;
+        return persistedState;
       },
+      // Only persist essential data
+      partialize: (state) => ({
+        profiles: state.profiles,
+        activeProfileId: state.activeProfileId,
+        autoSave: state.autoSave
+      })
     }
   )
 );
 
 // Convenience hooks
 export const useProfiles = () => useProfileStore(state => state.profiles);
-export const useActiveProfile = () => useProfileStore(state => 
-  state.profiles.find(p => p.id === state.activeProfileId)
-);
+export const useActiveProfile = () => {
+  perfMonitor.mark('profile-load-start');
+  const profile = useProfileStore(state => 
+    state.profiles.find(p => p.id === state.activeProfileId)
+  );
+  perfMonitor.mark('profile-load-end');
+  perfMonitor.measure('profileLoadTime', 'profile-load-start', 'profile-load-end');
+  return profile;
+};
+
+// Perform migration on idle
+if (typeof window !== 'undefined') {
+  const store = useProfileStore.getState();
+  
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      if (store.migrationPending) {
+        store.performDeferredMigration();
+      }
+    }, { timeout: 5000 });
+  } else {
+    setTimeout(() => {
+      if (store.migrationPending) {
+        store.performDeferredMigration();
+      }
+    }, 2000);
+  }
+}

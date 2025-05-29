@@ -1,9 +1,30 @@
 import { Menu } from 'lucide-react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 
 import { ThemeToggle } from '@/components/theme-toggle';
-import { DataTable, type ColumnDef } from '@/components/datatable/data-table';
+import { LazyDataTable, GridSkeleton, usePreloadAgGrid } from '@/components/datatable/lazy-ag-grid';
 import { generateFixedIncomeData, type FixedIncomePosition } from '@/lib/data-generator';
-import { useMemo } from 'react';
+import { perfMonitor } from '@/lib/performance-monitor';
+import { type ColumnDef } from '@/components/datatable/data-table';
+
+// Error fallback component
+function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center p-8">
+      <div className="text-center space-y-4">
+        <h2 className="text-lg font-semibold text-destructive">Something went wrong</h2>
+        <pre className="text-sm text-muted-foreground">{error.message}</pre>
+        <button
+          onClick={resetErrorBoundary}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   if (!Array.isArray(data) || data.length === 0) return [];
@@ -55,12 +76,66 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   });
 }
 
+// Async data generation wrapper
+async function generateDataAsync(rowCount: number): Promise<FixedIncomePosition[]> {
+  return new Promise((resolve) => {
+    // Use requestIdleCallback if available, otherwise setTimeout
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => {
+        perfMonitor.mark('data-generation-start');
+        const data = generateFixedIncomeData(rowCount);
+        perfMonitor.mark('data-generation-end');
+        perfMonitor.measure('dataGenerationTime', 'data-generation-start', 'data-generation-end');
+        resolve(data);
+      });
+    } else {
+      setTimeout(() => {
+        perfMonitor.mark('data-generation-start');
+        const data = generateFixedIncomeData(rowCount);
+        perfMonitor.mark('data-generation-end');
+        perfMonitor.measure('dataGenerationTime', 'data-generation-start', 'data-generation-end');
+        resolve(data);
+      }, 0);
+    }
+  });
+}
 
 function App() {
-  // Memoize data and columns for stable references (prevent unnecessary re-renders)
-  const data = useMemo(() => generateFixedIncomeData(10000), []);
+  const [data, setData] = useState<FixedIncomePosition[]>([]);
+  const [columns, setColumns] = useState<ColumnDef[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const columns = useMemo(() => inferColumnDefinitions(data), [data]);
+  // Preload AG-Grid modules
+  usePreloadAgGrid();
+
+  // Generate data asynchronously
+  const loadData = useCallback(async () => {
+    try {
+      const generatedData = await generateDataAsync(10000);
+      const inferredColumns = inferColumnDefinitions(generatedData);
+      
+      setData(generatedData);
+      setColumns(inferredColumns);
+      setIsLoading(false);
+      
+      perfMonitor.measureFromStart('dataReadyTime');
+    } catch (error) {
+      console.error('Failed to generate data:', error);
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    // Mark when app is fully loaded
+    if (!isLoading && data.length > 0) {
+      perfMonitor.measureFromStart('fullyLoadedTime');
+      perfMonitor.logSummary();
+    }
+  }, [isLoading, data.length]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
@@ -79,8 +154,15 @@ function App() {
       <main className="flex-1 flex items-center justify-center p-6 min-h-0">
         <div className="w-full h-full max-w-7xl mx-auto">
           <div className="h-full rounded-lg border bg-card shadow-sm overflow-hidden">
-            {/* DataTable receives stable, memoized props */}
-            <DataTable columnDefs={columns} dataRow={data} />
+            <ErrorBoundary FallbackComponent={ErrorFallback}>
+              <Suspense fallback={<GridSkeleton />}>
+                {!isLoading && data.length > 0 ? (
+                  <LazyDataTable columnDefs={columns} dataRow={data} />
+                ) : (
+                  <GridSkeleton />
+                )}
+              </Suspense>
+            </ErrorBoundary>
           </div>
         </div>
       </main>
