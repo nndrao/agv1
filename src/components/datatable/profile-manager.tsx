@@ -350,6 +350,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       delete cleaned._hasFormatter;
       delete cleaned.excelFormat;
       
+      
       // Store headerStyle as a serializable format that includes the logic
       if (cleaned.headerStyle && typeof cleaned.headerStyle === 'function') {
         try {

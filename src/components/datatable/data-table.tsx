@@ -452,12 +452,14 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
             const formatter = createExcelFormatter(formatterConfig.formatString);
             processedCol.valueFormatter = formatter;
             processedCol.exportValueFormatter = formatter;
+            
           } else {
             // Invalid formatter config, remove it
             delete processedCol.valueFormatter;
             delete processedCol.exportValueFormatter;
           }
         }
+        
         
         return processedCol;
       });
@@ -539,6 +541,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           if ('exportValueFormatter' in updatedCol) mergedCol.exportValueFormatter = updatedCol.exportValueFormatter;
           if ('valueGetter' in updatedCol) mergedCol.valueGetter = updatedCol.valueGetter;
           if ('valueSetter' in updatedCol) mergedCol.valueSetter = updatedCol.valueSetter;
+          
           
           // Filter properties
           if (updatedCol.filter !== undefined) mergedCol.filter = updatedCol.filter;

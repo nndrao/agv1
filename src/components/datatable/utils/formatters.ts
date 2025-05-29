@@ -3,7 +3,7 @@ import { ValueFormatterParams } from 'ag-grid-community';
 /**
  * Process a single format section (handles colors, conditions, and number formatting)
  */
-function processFormatSection(format: string, value: number): string {
+function processFormatSection(format: string, value: number, params?: ValueFormatterParams): string {
   // Extract and handle color formatting - support both named and hex colors
   const colorMatch = format.match(/\[([^\]]+)\]/);
   let cleanFormat = format;
@@ -62,6 +62,14 @@ function processFormatSection(format: string, value: number): string {
     // Remove the quoted text from the format
     numberFormat = numberFormat.replace(match, '');
   });
+  
+  // Check if this is a text-only format (no number formatting characters)
+  const isTextOnlyFormat = numberFormat.trim() === '';
+  
+  if (isTextOnlyFormat) {
+    // For text-only formats (like emojis), just return the prefix/suffix without the number
+    return prefix + suffix;
+  }
   
   // Format the number
   // Check if we should suppress the minus sign (when red color formatting is present and value is negative)
@@ -258,8 +266,11 @@ export function createExcelFormatter(formatString: string) {
                   return processFormatSection(section, num, params);
                 }
               } else {
-                // No condition in this section, use as default/fallback
-                return processFormatSection(section, num, params);
+                // No condition in this section, may be a default/fallback at the end
+                // Only use if we're at the last section without a condition
+                if (sections.indexOf(section) === sections.length - 1) {
+                  return processFormatSection(section, num, params);
+                }
               }
             }
           } else {
@@ -342,51 +353,146 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
     const num = typeof value === 'number' ? value : parseFloat(value);
     if (isNaN(num)) return baseStyles;
     
-    let selectedSection: string;
+    // Check for conditional formatting (like traffic lights)
+    const hasConditions = sections.some(s => s.match(/\[[<>=]+[\d.-]+\]/));
     
-    // Select appropriate section based on value
-    if (num > 0 && sections[0]) {
-      selectedSection = sections[0];
-    } else if (num < 0 && sections[1]) {
-      selectedSection = sections[1];
-    } else if (num === 0 && sections[2]) {
-      selectedSection = sections[2];
+    if (hasConditions) {
+      // Process each section to find matching condition
+      for (const section of sections) {
+        const conditionMatch = section.match(/\[([<>=!]+)([\d.-]+)\]/);
+        if (conditionMatch) {
+          const condition = conditionMatch[1];
+          const threshold = parseFloat(conditionMatch[2]);
+          
+          let conditionMet = false;
+          switch (condition) {
+            case '>': conditionMet = num > threshold; break;
+            case '<': conditionMet = num < threshold; break;
+            case '>=': conditionMet = num >= threshold; break;
+            case '<=': conditionMet = num <= threshold; break;
+            case '=': conditionMet = num === threshold; break;
+            case '==': conditionMet = num === threshold; break;
+            case '<>': conditionMet = num !== threshold; break;
+            case '!=': conditionMet = num !== threshold; break;
+          }
+          
+          if (conditionMet) {
+            // Extract color from this section
+            const colorMatch = section.match(/\[([A-Za-z]+|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})\]/);
+            if (colorMatch) {
+              const colorValue = colorMatch[1];
+              let finalColor: string;
+              
+              // Check if it's a hex color (with or without #)
+              if (colorValue.match(/^#?[0-9A-Fa-f]{6}$/)) {
+                finalColor = colorValue.startsWith('#') ? colorValue : `#${colorValue}`;
+              } else {
+                // Named color mapping
+                const colorName = colorValue.toLowerCase();
+                const colorMap: Record<string, string> = {
+                  'red': '#dc2626',
+                  'green': '#16a34a',
+                  'blue': '#2563eb',
+                  'yellow': '#ca8a04',
+                  'orange': '#ea580c',
+                  'purple': '#9333ea',
+                  'gray': '#6b7280',
+                  'grey': '#6b7280',
+                  'black': '#000000',
+                  'white': '#ffffff'
+                };
+                finalColor = colorMap[colorName] || colorValue;
+              }
+              
+              return {
+                ...baseStyles,
+                color: finalColor
+              };
+            }
+            return baseStyles;
+          }
+        } else if (sections.indexOf(section) === sections.length - 1) {
+          // Last section without condition is the default
+          const colorMatch = section.match(/\[([A-Za-z]+|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})\]/);
+          if (colorMatch) {
+            const colorValue = colorMatch[1];
+            let finalColor: string;
+            
+            // Check if it's a hex color (with or without #)
+            if (colorValue.match(/^#?[0-9A-Fa-f]{6}$/)) {
+              finalColor = colorValue.startsWith('#') ? colorValue : `#${colorValue}`;
+            } else {
+              // Named color mapping
+              const colorName = colorValue.toLowerCase();
+              const colorMap: Record<string, string> = {
+                'red': '#dc2626',
+                'green': '#16a34a',
+                'blue': '#2563eb',
+                'yellow': '#ca8a04',
+                'orange': '#ea580c',
+                'purple': '#9333ea',
+                'gray': '#6b7280',
+                'grey': '#6b7280',
+                'black': '#000000',
+                'white': '#ffffff'
+              };
+              finalColor = colorMap[colorName] || colorValue;
+            }
+            
+            return {
+              ...baseStyles,
+              color: finalColor
+            };
+          }
+        }
+      }
     } else {
-      selectedSection = sections[0] || formatString;
-    }
-    
-    // Extract color from the selected section - support both named colors and hex colors
-    const colorMatch = selectedSection.match(/\[([^\]]+)\]/i);
-    if (colorMatch) {
-      const colorValue = colorMatch[1];
-      let finalColor: string;
+      // Standard positive;negative;zero format
+      let selectedSection: string;
       
-      // Check if it's a hex color (with or without #)
-      if (colorValue.match(/^#?[0-9A-Fa-f]{6}$/)) {
-        finalColor = colorValue.startsWith('#') ? colorValue : `#${colorValue}`;
+      if (num > 0 && sections[0]) {
+        selectedSection = sections[0];
+      } else if (num < 0 && sections[1]) {
+        selectedSection = sections[1];
+      } else if (num === 0 && sections[2]) {
+        selectedSection = sections[2];
       } else {
-        // Named color mapping
-        const colorName = colorValue.toLowerCase();
-        const colorMap: Record<string, string> = {
-          'red': '#dc2626',
-          'green': '#16a34a',
-          'blue': '#2563eb',
-          'yellow': '#ca8a04',
-          'orange': '#ea580c',
-          'purple': '#9333ea',
-          'gray': '#6b7280',
-          'grey': '#6b7280',
-          'black': '#000000',
-          'white': '#ffffff'
-        };
-        finalColor = colorMap[colorName] || colorValue;
+        selectedSection = sections[0] || formatString;
       }
       
-      // Merge with base styles - conditional color overrides base color
-      return {
-        ...baseStyles,
-        color: finalColor
-      };
+      // Extract color from the selected section
+      const colorMatch = selectedSection.match(/\[([A-Za-z]+|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})\]/);
+      if (colorMatch) {
+        const colorValue = colorMatch[1];
+        let finalColor: string;
+        
+        // Check if it's a hex color (with or without #)
+        if (colorValue.match(/^#?[0-9A-Fa-f]{6}$/)) {
+          finalColor = colorValue.startsWith('#') ? colorValue : `#${colorValue}`;
+        } else {
+          // Named color mapping
+          const colorName = colorValue.toLowerCase();
+          const colorMap: Record<string, string> = {
+            'red': '#dc2626',
+            'green': '#16a34a',
+            'blue': '#2563eb',
+            'yellow': '#ca8a04',
+            'orange': '#ea580c',
+            'purple': '#9333ea',
+            'gray': '#6b7280',
+            'grey': '#6b7280',
+            'black': '#000000',
+            'white': '#ffffff'
+          };
+          finalColor = colorMap[colorName] || colorValue;
+        }
+        
+        // Merge with base styles - conditional color overrides base color
+        return {
+          ...baseStyles,
+          color: finalColor
+        };
+      }
     }
     
     // Return base styles if no conditional formatting applies

@@ -7,10 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
-import { HelpCircle, Copy, Check, Sparkles, Search, X, Eye, EyeOff, History, Star, StarOff } from 'lucide-react';
+import { HelpCircle, Copy, Check, Sparkles, Search, X, Eye, EyeOff, History, Star, StarOff, Wand2 } from 'lucide-react';
 import { createExcelFormatter, getExcelStyleClass, createCellStyleFunction } from '@/components/datatable/utils/formatters';
 import { debounce } from 'lodash';
+import { FormatWizard } from '../components/FormatWizard';
 
 // Pre-defined formatters organized by category
 const PREDEFINED_FORMATTERS = {
@@ -105,8 +107,42 @@ const PREDEFINED_FORMATTERS = {
       { value: '[>=75][Green]"█";[>=50][#FFA500]"█";[Red]"█"', label: 'Bars', preview: '█' },
       { value: '[>=100][Green]"⬆";[<=0][Red]"⬇";[#FFA500]"→"', label: 'Arrows (trend)', preview: '⬆' },
       { value: '[>=80][Green]"✓ "#,##0;[>=50][#FFA500]"! "#,##0;[Red]"✗ "#,##0', label: 'Check/Warning/Cross', preview: '✓ 85' },
-      { value: '[>0][Green]"🟢";[<0][Red]"🔴";[#FFA500]"🟡"', label: 'Circle Lights', preview: '🟢' },
+      { value: '[>0]"🟢";[<0]"🔴";"🟡"', label: 'Emoji Circles', preview: '🟢' },
       { value: '[>=4][Green]"★★★★★";[>=3][Green]"★★★★☆";[>=2][#FFA500]"★★★☆☆";[>=1][#FFA500]"★★☆☆☆";[Red]"★☆☆☆☆"', label: '5-Star Rating', preview: '★★★★☆' },
+    ]
+  },
+  emoji: {
+    label: 'Emoji Formats',
+    icon: '😊',
+    options: [
+      { value: '[>100]"🟢";[>90]"🟡";"🔴"', label: 'Emoji only (🟢 🟡 🔴)', preview: '🟢' },
+      { value: '[>100]#,##0" 🟢";[>90]#,##0" 🟡";#,##0" 🔴"', label: 'Value + emoji', preview: '95 🟡' },
+      { value: '[>100]"🟢 "#,##0;[>90]"🟡 "#,##0;"🔴 "#,##0', label: 'Emoji + value', preview: '🟡 95' },
+      { value: '[>100]#,##0" (🟢)";[>90]#,##0" (🟡)";#,##0" (🔴)"', label: 'With parentheses', preview: '95 (🟡)' },
+      { value: '[>100]0"% 🟢";[>90]0"% 🟡";0"% 🔴"', label: 'Percentage + emoji', preview: '95% 🟡' },
+      { value: '[>0]"📈";[<0]"📉";"➖"', label: 'Chart trends', preview: '📈' },
+      { value: '[>=100]"🔥";[>=75]"✨";[>=50]"👍";"👎"', label: 'Performance indicators', preview: '✨' },
+      { value: '[>0]"➕ "#,##0;[<0]"➖ "#,##0;"0️⃣"', label: 'Plus/minus emoji', preview: '➕ 100' },
+    ]
+  },
+  symbols: {
+    label: 'Unicode Symbols',
+    icon: '◆',
+    options: [
+      { value: '[>0][Green]"●";[<0][Red]"●";"●"', label: 'Colored circles', preview: '●' },
+      { value: '[>0][Green]"◉";[<0][Red]"◉";"◉"', label: 'Circled dot', preview: '◉' },
+      { value: '[>0]"○";[<0]"●";"○"', label: 'Empty/Filled circles', preview: '○' },
+      { value: '[>0][Green]"▲";[<0][Red]"▼";"▬"', label: 'Triangle arrows', preview: '▲' },
+      { value: '[>0][#00AA00]"↑";[<0][#FF0000]"↓";[#666666]"→"', label: 'Simple arrows', preview: '↑' },
+      { value: '[>0][Green]"⬆";[<0][Red]"⬇";"➡"', label: 'Bold arrows', preview: '⬆' },
+      { value: '[>=4]"★★★★★";[>=3]"★★★★☆";[>=2]"★★★☆☆";[>=1]"★★☆☆☆";"★☆☆☆☆"', label: '5-Star rating', preview: '★★★★☆' },
+      { value: '[>0][Green]"✓";[<0][Red]"✗";"○"', label: 'Check/Cross marks', preview: '✓' },
+      { value: '[>0][#0080FF]"✔";[<0][#FF4040]"✖";"○"', label: 'Bold check/cross', preview: '✔' },
+      { value: '[>0]"■";[<0]"□";"▪"', label: 'Filled/Empty squares', preview: '■' },
+      { value: '[>0][Green]"▪";[<0][Red]"▫";"▫"', label: 'Small squares', preview: '▪' },
+      { value: '[>0][#4169E1]"◆";[<0][#DC143C]"◇";"◈"', label: 'Diamonds', preview: '◆' },
+      { value: '[>=80]"█████";[>=60]"████░";[>=40]"███░░";[>=20]"██░░░";"█░░░░"', label: 'Progress bars', preview: '████░' },
+      { value: '[>0]"▌";[<0]"▎";"▏"', label: 'Vertical bars', preview: '▌' },
     ]
   }
 };
@@ -130,6 +166,7 @@ export const FormatTab: React.FC = React.memo(() => {
   const {
     selectedColumns,
     columnDefinitions,
+    pendingChanges,
     updateBulkProperty
   } = useColumnCustomizationStore();
 
@@ -141,6 +178,7 @@ export const FormatTab: React.FC = React.memo(() => {
   const [previewValue, setPreviewValue] = useState<number>(1234.56);
   const [recentFormats, setRecentFormats] = useState<string[]>([]);
   const [favoriteFormats, setFavoriteFormats] = useState<Set<string>>(new Set());
+  const [showWizard, setShowWizard] = useState(false);
   
   // Refs for performance
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -164,14 +202,30 @@ export const FormatTab: React.FC = React.memo(() => {
     if (selectedColumns.size === 0) return null;
     
     const formats = new Set<string>();
-    selectedColumns.forEach(() => {
-      // Detect format from valueFormatter if it exists
-      const format = 'default';
-      formats.add(format);
+    selectedColumns.forEach(colId => {
+      const colDef = columnDefinitions.get(colId);
+      const changes = pendingChanges.get(colId);
+      
+      // Check for format in pending changes first, then column definition
+      const formatter = changes?.valueFormatter || colDef?.valueFormatter;
+      
+      if (formatter && typeof formatter === 'function') {
+        // Try to extract the format string from the formatter metadata
+        const formatString = (formatter as any).__formatString || (formatter as any)._formatString;
+        if (formatString) {
+          formats.add(formatString);
+        } else {
+          // If no metadata, it's a custom formatter
+          formats.add('custom');
+        }
+      } else {
+        formats.add('default');
+      }
     });
 
-    return formats.size === 1 ? Array.from(formats)[0] : null;
-  }, [selectedColumns]);
+    // Return the format if all selected columns have the same format
+    return formats.size === 1 ? Array.from(formats)[0] : 'mixed';
+  }, [selectedColumns, columnDefinitions, pendingChanges]);
 
   // Find matching predefined format
   const matchedFormat = useMemo(() => {
@@ -211,17 +265,29 @@ export const FormatTab: React.FC = React.memo(() => {
 
   // Sync selected format with current format
   useEffect(() => {
-    if (currentFormat) {
-      if (matchedFormat) {
+    if (currentFormat && currentFormat !== 'mixed') {
+      if (currentFormat === 'default') {
+        setSelectedFormat('default');
+        setCustomFormat('');
+      } else if (currentFormat === 'custom') {
+        // It's a custom formatter without metadata
+        setSelectedFormat('custom');
+        // Keep the existing customFormat value
+      } else if (matchedFormat) {
+        // Found in predefined formats
         setSelectedFormat(currentFormat);
-      } else if (currentFormat !== 'default') {
+        setCustomFormat('');
+      } else {
+        // Has a format string but not in predefined list
         setSelectedFormat('custom');
         setCustomFormat(currentFormat);
-      } else {
-        setSelectedFormat('default');
       }
+    } else if (currentFormat === 'mixed') {
+      // Multiple different formats selected
+      setSelectedFormat('default');
+      setCustomFormat('');
     }
-  }, [matchedFormat, currentFormat]);
+  }, [currentFormat, matchedFormat]);
 
   // Memoized preview formatter with better caching
   const previewFormatter = useMemo(() => {
@@ -275,9 +341,19 @@ export const FormatTab: React.FC = React.memo(() => {
   const handleFormatChange = useCallback((value: string) => {
     setSelectedFormat(value);
     
+    // Clear the formatter cache when changing formats
+    formatCache.current.clear();
+    
     if (value === 'default') {
-      updateBulkProperty('valueFormatter', undefined);
-      updateBulkProperty('exportValueFormatter', undefined);
+      // Clear all formatting-related properties
+      const updates = {
+        valueFormatter: undefined,
+        exportValueFormatter: undefined,
+        cellStyle: undefined,
+        cellClass: undefined
+      };
+      const store = useColumnCustomizationStore.getState();
+      store.updateBulkProperties(updates);
     } else if (value === 'custom') {
       // Don't update yet, wait for custom input
     } else {
@@ -291,12 +367,12 @@ export const FormatTab: React.FC = React.memo(() => {
     // Batch all updates together
     const updates: Record<string, unknown> = {};
     
-    // Check cache for formatter
-    let formatter = formatCache.current.get(format);
-    if (!formatter) {
-      formatter = createExcelFormatter(format);
-      formatCache.current.set(format, formatter);
-    }
+    // Clear cache to ensure we get a fresh formatter
+    formatCache.current.delete(format);
+    
+    // Create new formatter
+    const formatter = createExcelFormatter(format);
+    formatCache.current.set(format, formatter);
     
     // Ensure formatter has metadata
     if (formatter && !Object.prototype.hasOwnProperty.call(formatter, '__formatString')) {
@@ -321,20 +397,30 @@ export const FormatTab: React.FC = React.memo(() => {
       updates.cellClass = newClasses.join(' ').trim();
     }
     
-    // Handle cell style for dynamic color formatting
+    // Always set cellStyle - either a function for color formatting or undefined to clear it
     if (format.includes('[') && format.includes(']')) {
-      // Get base style from first column only
-      let baseStyle = {};
-      const firstColId = Array.from(selectedColumns)[0];
-      if (firstColId) {
-        const colDef = columnDefinitions.get(firstColId);
-        const currentStyle = colDef?.cellStyle;
-        if (currentStyle && typeof currentStyle === 'object') {
-          baseStyle = currentStyle;
+      // Check if this is a color format (has color codes)
+      const hasColorCodes = format.match(/\[(Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})\]/i);
+      if (hasColorCodes) {
+        // Get base style from first column only
+        let baseStyle = {};
+        const firstColId = Array.from(selectedColumns)[0];
+        if (firstColId) {
+          const colDef = columnDefinitions.get(firstColId);
+          const currentStyle = colDef?.cellStyle;
+          if (currentStyle && typeof currentStyle === 'object') {
+            baseStyle = currentStyle;
+          }
         }
+        // Use enhanced cell style function that extracts colors from format sections
+        updates.cellStyle = createCellStyleFunction(format, baseStyle);
+      } else {
+        // Clear cellStyle if no color codes
+        updates.cellStyle = undefined;
       }
-      
-      updates.cellStyle = createCellStyleFunction(format, baseStyle);
+    } else {
+      // Clear cellStyle if no brackets in format
+      updates.cellStyle = undefined;
     }
     
     // Excel export format is handled by the formatter itself
@@ -354,10 +440,12 @@ export const FormatTab: React.FC = React.memo(() => {
     [applyFormat]
   );
 
-  // Cleanup effect to cancel pending debounced operations
+  // Cleanup effect to cancel pending debounced operations and clear cache
   useEffect(() => {
     return () => {
       debouncedApplyFormat.cancel();
+      // Clear formatter cache on unmount
+      formatCache.current.clear();
     };
   }, [debouncedApplyFormat]);
 
@@ -395,6 +483,16 @@ export const FormatTab: React.FC = React.memo(() => {
                 >
                   <HelpCircle className="h-3 w-3" />
                   Guide
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowWizard(true)}
+                  className="h-7 text-xs gap-1"
+                  disabled={isDisabled}
+                >
+                  <Wand2 className="h-3 w-3" />
+                  Wizard
                 </Button>
               </div>
             </div>
@@ -505,6 +603,12 @@ export const FormatTab: React.FC = React.memo(() => {
                   </div>
                 </SelectItem>
                 
+                {currentFormat === 'mixed' && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                    Multiple formats selected
+                  </div>
+                )}
+                
                 {/* Favorites */}
                 {favoriteFormats.size > 0 && (
                   <>
@@ -575,15 +679,32 @@ export const FormatTab: React.FC = React.memo(() => {
               <Label htmlFor="custom-format" className="text-sm flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
                 Custom Format String
+                {currentFormat && currentFormat !== 'default' && currentFormat !== 'custom' && currentFormat !== 'mixed' && (
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">
+                    (Current: {currentFormat.substring(0, 30)}{currentFormat.length > 30 ? '...' : ''})
+                  </span>
+                )}
               </Label>
-              <Input
-                id="custom-format"
-                value={customFormat}
-                onChange={(e) => handleCustomFormatChange(e.target.value)}
-                placeholder="Enter format string (e.g., #,##0.00)"
-                disabled={isDisabled}
-                className="h-9 font-mono text-sm"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="custom-format"
+                  value={customFormat}
+                  onChange={(e) => handleCustomFormatChange(e.target.value)}
+                  placeholder="Enter format string (e.g., #,##0.00)"
+                  disabled={isDisabled}
+                  className="h-9 font-mono text-sm flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowWizard(true)}
+                  disabled={isDisabled}
+                  className="h-9 px-3"
+                  title="Open Format Wizard"
+                >
+                  <Wand2 className="h-4 w-4" />
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Use Excel-style format strings. Click the guide for examples and syntax.
               </p>
@@ -634,11 +755,12 @@ export const FormatTab: React.FC = React.memo(() => {
                 </div>
               </div>
               
-              {currentFormat && currentFormat !== 'default' && (
+              {((selectedFormat !== 'default' && selectedFormat !== 'custom') || 
+                (selectedFormat === 'custom' && customFormat)) && (
                 <div className="pt-2 border-t">
                   <p className="text-xs font-medium text-muted-foreground mb-1">Format String</p>
-                  <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                    {currentFormat}
+                  <code className="text-xs bg-muted px-2 py-1 rounded font-mono block break-all">
+                    {selectedFormat === 'custom' ? customFormat : selectedFormat}
                   </code>
                 </div>
               )}
@@ -657,6 +779,9 @@ export const FormatTab: React.FC = React.memo(() => {
               <li>• Percentages multiply by 100: <code className="bg-muted px-1 rounded">0%</code></li>
               <li>• Wrap text in quotes: <code className="bg-muted px-1 rounded">"$"0.00</code></li>
               <li>• Use semicolons for positive;negative;zero formats</li>
+              <li>• <strong>Unicode symbols:</strong> Change color with <code className="bg-muted px-1 rounded">[Red]</code>, <code className="bg-muted px-1 rounded">[Green]</code>, or <code className="bg-muted px-1 rounded">[#FF0000]</code></li>
+              <li>• <strong>Symbol size:</strong> Controlled by the column's font size in the Styling tab</li>
+              <li>• <strong>Combine with values:</strong> <code className="bg-muted px-1 rounded">[Green]"✓ "#,##0</code> shows check + number</li>
             </ul>
           </div>
         </div>
@@ -664,6 +789,17 @@ export const FormatTab: React.FC = React.memo(() => {
 
       {/* Format Guide Dialog */}
       <FormatGuideDialog open={showGuide} onOpenChange={setShowGuide} />
+      
+      {/* Format Wizard Dialog */}
+      <FormatWizard
+        open={showWizard}
+        onOpenChange={setShowWizard}
+        initialFormat={selectedFormat === 'custom' ? customFormat : (selectedFormat === 'default' ? '' : selectedFormat)}
+        onApply={(format) => {
+          setCustomFormat(format);
+          handleCustomFormatChange(format);
+        }}
+      />
     </ScrollArea>
   );
 });
@@ -702,6 +838,26 @@ const FormatGuideDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean)
       { pattern: '"("0")"', desc: 'Wrap in parentheses', example: '(100)' },
       { pattern: '0" units"', desc: 'Unit suffix', example: '50 units' },
     ],
+    emoji: [
+      { pattern: '[>100]"🟢";[>90]"🟡";"🔴"', desc: 'Status emojis only', example: '🟢' },
+      { pattern: '[>100]#,##0" 🟢";[>90]#,##0" 🟡";#,##0" 🔴"', desc: 'Value with emoji', example: '95 🟡' },
+      { pattern: '[>100]"🟢 "#,##0;[>90]"🟡 "#,##0;"🔴 "#,##0', desc: 'Emoji before value', example: '🟡 95' },
+      { pattern: '[>0]"📈";[<0]"📉";"➖"', desc: 'Trend emojis', example: '📈' },
+      { pattern: '[>=100]"🔥";[>=75]"✨";[>=50]"👍";"👎"', desc: 'Performance emojis', example: '✨' },
+      { pattern: '[>100]0"% 🟢";[>90]0"% 🟡";0"% 🔴"', desc: 'Percentage with emoji', example: '95% 🟡' },
+    ],
+    symbols: [
+      { pattern: '[Green]"●"', desc: 'Colored circle', example: '● (green)' },
+      { pattern: '[#FF0000]"◆"', desc: 'Hex color diamond', example: '◆ (red)' },
+      { pattern: '[Blue]"▲"', desc: 'Colored triangle', example: '▲ (blue)' },
+      { pattern: '"★★★"', desc: 'Three stars', example: '★★★' },
+      { pattern: '[>0][Green]"↑";[<0][Red]"↓"', desc: 'Conditional arrows', example: '↑' },
+      { pattern: '"█████"', desc: 'Progress bar', example: '█████' },
+      { pattern: '[>0][Green]"✓ "#,##0;[<0][Red]"✗ "#,##0', desc: 'Symbol + value', example: '✓ 100' },
+      { pattern: '#,##0" "[Green]"●"', desc: 'Value + symbol', example: '100 ●' },
+      { pattern: '[>=80]"████░";[>=60]"███░░";[>=40]"██░░░";"█░░░░"', desc: 'Progress levels', example: '███░░' },
+      { pattern: '[>0][#00AA00]"⬆";[<0][#FF0000]"⬇";"➡"', desc: 'Hex color arrows', example: '⬆' },
+    ],
     advanced: [
       { pattern: '0.00E+00', desc: 'Scientific notation', example: '1.23E+03' },
       { pattern: '# ?/?', desc: 'Fractions', example: '1 1/2' },
@@ -725,6 +881,8 @@ const FormatGuideDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean)
             <TabsTrigger value="basic">Basic</TabsTrigger>
             <TabsTrigger value="conditional">Conditional</TabsTrigger>
             <TabsTrigger value="prefixSuffix">Prefix/Suffix</TabsTrigger>
+            <TabsTrigger value="emoji">Emoji</TabsTrigger>
+            <TabsTrigger value="symbols">Symbols</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
 
@@ -737,12 +895,16 @@ const FormatGuideDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean)
                       {key === 'basic' && 'Basic Number Formats'}
                       {key === 'conditional' && 'Conditional Formatting'}
                       {key === 'prefixSuffix' && 'Prefix & Suffix'}
+                      {key === 'emoji' && 'Emoji Formats'}
+                      {key === 'symbols' && 'Unicode Symbols'}
                       {key === 'advanced' && 'Advanced Formats'}
                     </CardTitle>
                     <CardDescription>
                       {key === 'basic' && 'Common patterns for formatting numbers'}
                       {key === 'conditional' && 'Format based on value conditions'}
                       {key === 'prefixSuffix' && 'Add text before or after numbers'}
+                      {key === 'emoji' && 'Use emojis for visual indicators and status'}
+                      {key === 'symbols' && 'Unicode symbols with color and size customization'}
                       {key === 'advanced' && 'Scientific notation, fractions, and more'}
                     </CardDescription>
                   </CardHeader>
@@ -792,6 +954,21 @@ const FormatGuideDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean)
                       <p><strong>@</strong> - Text placeholder</p>
                       <p><strong>[condition]</strong> - Conditional formatting</p>
                       <p><strong>;</strong> - Section separator (positive;negative;zero;text)</p>
+                      <Separator className="my-2" />
+                      <p className="font-medium">Color & Size Guide:</p>
+                      <p><strong>Colors:</strong> Use <code className="bg-muted px-1">[Red]</code>, <code className="bg-muted px-1">[Green]</code>, <code className="bg-muted px-1">[Blue]</code>, etc.</p>
+                      <p><strong>Hex colors:</strong> Use <code className="bg-muted px-1">[#FF0000]</code> for custom colors</p>
+                      <p><strong>Symbol size:</strong> Set font size in the Styling tab (symbols inherit cell font size)</p>
+                      <p className="mt-2"><strong>Unicode Symbols:</strong></p>
+                      <p>• Circles: ● ◉ ○ ◎ ⊙ ⊚ ⊛</p>
+                      <p>• Squares: ■ □ ▪ ▫ ◼ ◻ ▰ ▱</p>
+                      <p>• Arrows: ▲ ▼ ↑ ↓ ⬆ ⬇ → ← ↔ ⇧ ⇩</p>
+                      <p>• Stars: ★ ☆ ✦ ✧ ⭐</p>
+                      <p>• Marks: ✓ ✗ ✔ ✖ ☑ ☒ ⊕ ⊖</p>
+                      <p>• Diamonds: ◆ ◈ ◇ ⬧ ⬦ ♦</p>
+                      <p>• Bars: █ ▌ ▎ ▏ ░ ▒ ▓</p>
+                      <p>• Progress: ▰▱▱▱▱ ▰▰▰▱▱ ▰▰▰▰▰</p>
+                      <p>• Other: • · ◦ ‣ ⁃ ⁍ ⁎ ⁕</p>
                     </CardContent>
                   </Card>
                 )}
