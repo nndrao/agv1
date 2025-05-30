@@ -3,16 +3,23 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { PropertyGroup } from '../components/PropertyGroup';
+import { CollapsibleSection } from '../components/CollapsibleSection';
 import { MixedValueInput } from '../components/MixedValueInput';
 import { NumericInput } from '../components/NumericInput';
 import { ThreeStateCheckbox } from '../components/ThreeStateCheckbox';
+import { Badge } from '@/components/ui/badge';
 
-export const GeneralTab: React.FC = () => {
+interface GeneralTabProps {
+  uiMode?: 'simple' | 'advanced';
+}
+
+export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => {
   const {
     selectedColumns,
     columnDefinitions,
     pendingChanges,
-    updateBulkProperty
+    updateBulkProperty,
+    updateBulkProperties
   } = useColumnCustomizationStore();
 
   // Memoized function to get mixed values for properties
@@ -44,7 +51,7 @@ export const GeneralTab: React.FC = () => {
   // Pre-compute mixed values for all properties to avoid recalculation
   const mixedValues = useMemo(() => {
     const properties = ['field', 'headerName', 'type', 'cellDataType', 'sortable', 'resizable',
-                       'editable', 'filter', 'initialWidth', 'minWidth', 'maxWidth', 'initialHide', 'initialPinned'];
+                       'editable', 'filter', 'floatingFilter', 'initialWidth', 'minWidth', 'maxWidth', 'initialHide', 'initialPinned'];
 
     const values: Record<string, { value: unknown; isMixed: boolean; values?: unknown[] }> = {};
     properties.forEach(property => {
@@ -58,12 +65,133 @@ export const GeneralTab: React.FC = () => {
 
   return (
     <div className="p-4 space-y-4">
-      {/* Two-column layout for better space utilization */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Left Column */}
+      {uiMode === 'simple' ? (
+        // Simple mode - Essential properties only
         <div className="space-y-4">
+          <CollapsibleSection
+            id="general-basic"
+            title="Basic Properties"
+            description="Essential column settings"
+            defaultExpanded={true}
+            badge={selectedColumns.size > 1 && <Badge variant="secondary" className="text-xs">Bulk Edit</Badge>}
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="headerName" className="text-xs font-medium">
+                  Header Name
+                  {isMultipleSelection && (
+                    <span className="text-xs text-muted-foreground ml-2">(Single column only)</span>
+                  )}
+                </Label>
+                <MixedValueInput
+                  id="headerName"
+                  mixedValue={mixedValues.headerName}
+                  onChange={(value) => updateBulkProperty('headerName', value)}
+                  disabled={isDisabled || isMultipleSelection}
+                  placeholder="Display name"
+                  title={isMultipleSelection ? "Header Name can only be edited for single columns" : ""}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="initialWidth" className="text-xs font-medium">Width</Label>
+                <NumericInput
+                  id="initialWidth"
+                  mixedValue={mixedValues.initialWidth}
+                  onChange={(value) => updateBulkProperty('initialWidth', value)}
+                  min={50}
+                  max={500}
+                  step={10}
+                  disabled={isDisabled || (isMultipleSelection && mixedValues.initialWidth.isMixed)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 mt-4">
+              <ThreeStateCheckbox
+                label="Sortable"
+                property="sortable"
+                mixedValue={mixedValues.sortable}
+                onChange={(value) => updateBulkProperty('sortable', value)}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.sortable.isMixed)}
+                description="Allow sorting by clicking column header"
+              />
+
+              <ThreeStateCheckbox
+                label="Resizable"
+                property="resizable"
+                mixedValue={mixedValues.resizable}
+                onChange={(value) => updateBulkProperty('resizable', value)}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.resizable.isMixed)}
+                description="Allow resizing column width by dragging"
+              />
+
+              <ThreeStateCheckbox
+                label="Initially Hidden"
+                property="initialHide"
+                mixedValue={mixedValues.initialHide}
+                onChange={(value) => updateBulkProperty('initialHide', value)}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.initialHide.isMixed)}
+                description="Hide column on initial load"
+              />
+
+              <ThreeStateCheckbox
+                label="Floating Filter"
+                property="floatingFilter"
+                mixedValue={mixedValues.floatingFilter}
+                onChange={(checked) => {
+                  // When enabling floating filter, also set appropriate filter type based on data type
+                  if (checked) {
+                    const updates: Record<string, unknown> = { floatingFilter: checked };
+                    
+                    // Get the data type of selected columns
+                    const dataTypes = new Set<string>();
+                    selectedColumns.forEach(colId => {
+                      const colDef = columnDefinitions.get(colId);
+                      const pendingChange = pendingChanges.get(colId);
+                      const dataType = pendingChange?.cellDataType || colDef?.cellDataType || pendingChange?.type || colDef?.type || 'text';
+                      dataTypes.add(dataType);
+                    });
+                    
+                    // If all columns have the same data type, set appropriate filter
+                    if (dataTypes.size === 1 && !mixedValues.filter.value) {
+                      const dataType = Array.from(dataTypes)[0];
+                      let filterType = 'agTextColumnFilter'; // default
+                      
+                      if (dataType === 'number' || dataType === 'numericColumn') {
+                        filterType = 'agNumberColumnFilter';
+                      } else if (dataType === 'date' || dataType === 'dateColumn') {
+                        filterType = 'agDateColumnFilter';
+                      } else if (dataType === 'boolean' || dataType === 'booleanColumn') {
+                        filterType = 'agBooleanColumnFilter';
+                      }
+                      
+                      updates.filter = filterType;
+                    }
+                    
+                    updateBulkProperties(updates);
+                  } else {
+                    updateBulkProperty('floatingFilter', checked);
+                  }
+                }}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.floatingFilter.isMixed)}
+                description="Show filter inputs below column headers"
+              />
+            </div>
+          </CollapsibleSection>
+        </div>
+      ) : (
+        // Advanced mode - All properties with better organization
+        <div className="grid grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-4">
           {/* Identity & Basic Info */}
-          <PropertyGroup title="Identity & Basic Info">
+          <CollapsibleSection
+            id="general-identity"
+            title="Identity & Basic Info"
+            description="Core column properties"
+            defaultExpanded={true}
+          >
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="field" className="text-xs font-medium">Field</Label>
@@ -134,10 +262,15 @@ export const GeneralTab: React.FC = () => {
                 </Select>
               </div>
             </div>
-          </PropertyGroup>
+          </CollapsibleSection>
 
           {/* Column Sizing */}
-          <PropertyGroup title="Column Sizing">
+          <CollapsibleSection
+            id="general-sizing"
+            title="Column Sizing"
+            description="Width constraints and defaults"
+            defaultExpanded={true}
+          >
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="initialWidth" className="text-xs font-medium">Initial Width</Label>
@@ -180,13 +313,18 @@ export const GeneralTab: React.FC = () => {
                 </div>
               </div>
             </div>
-          </PropertyGroup>
+          </CollapsibleSection>
         </div>
 
         {/* Right Column */}
         <div className="space-y-4">
           {/* Column Behavior */}
-          <PropertyGroup title="Column Behavior">
+          <CollapsibleSection
+            id="general-behavior"
+            title="Column Behavior"
+            description="Control how users interact with this column"
+            defaultExpanded={true}
+          >
             <div className="space-y-2">
               <ThreeStateCheckbox
                 label="Sortable"
@@ -223,11 +361,59 @@ export const GeneralTab: React.FC = () => {
                 disabled={isDisabled || (isMultipleSelection && mixedValues.filter.isMixed)}
                 description="Show filter in column menu"
               />
+
+              <ThreeStateCheckbox
+                label="Floating Filter"
+                property="floatingFilter"
+                mixedValue={mixedValues.floatingFilter}
+                onChange={(checked) => {
+                  // When enabling floating filter, also set appropriate filter type based on data type
+                  if (checked) {
+                    const updates: Record<string, unknown> = { floatingFilter: checked };
+                    
+                    // Get the data type of selected columns
+                    const dataTypes = new Set<string>();
+                    selectedColumns.forEach(colId => {
+                      const colDef = columnDefinitions.get(colId);
+                      const pendingChange = pendingChanges.get(colId);
+                      const dataType = pendingChange?.cellDataType || colDef?.cellDataType || pendingChange?.type || colDef?.type || 'text';
+                      dataTypes.add(dataType);
+                    });
+                    
+                    // If all columns have the same data type, set appropriate filter
+                    if (dataTypes.size === 1 && !mixedValues.filter.value) {
+                      const dataType = Array.from(dataTypes)[0];
+                      let filterType = 'agTextColumnFilter'; // default
+                      
+                      if (dataType === 'number' || dataType === 'numericColumn') {
+                        filterType = 'agNumberColumnFilter';
+                      } else if (dataType === 'date' || dataType === 'dateColumn') {
+                        filterType = 'agDateColumnFilter';
+                      } else if (dataType === 'boolean' || dataType === 'booleanColumn') {
+                        filterType = 'agBooleanColumnFilter';
+                      }
+                      
+                      updates.filter = filterType;
+                    }
+                    
+                    updateBulkProperties(updates);
+                  } else {
+                    updateBulkProperty('floatingFilter', checked);
+                  }
+                }}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.floatingFilter.isMixed)}
+                description="Show filter inputs below column headers"
+              />
             </div>
-          </PropertyGroup>
+          </CollapsibleSection>
 
           {/* Visibility & Pinning */}
-          <PropertyGroup title="Visibility & Pinning">
+          <CollapsibleSection
+            id="general-visibility"
+            title="Visibility & Pinning"
+            description="Control column display and position"
+            defaultExpanded={false}
+          >
             <div className="space-y-3">
               <ThreeStateCheckbox
                 label="Initially Hidden"
@@ -256,9 +442,10 @@ export const GeneralTab: React.FC = () => {
                 </Select>
               </div>
             </div>
-          </PropertyGroup>
+          </CollapsibleSection>
         </div>
       </div>
+      )}
     </div>
   );
 };

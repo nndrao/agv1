@@ -58,11 +58,16 @@ export function DataTableToolbar({
         author: 'AG-Grid Export',
         sheetName: 'Data',
         processCellCallback: (params) => {
+          const colDef = params.column.getColDef();
           // Use the exportValueFormatter if available, otherwise valueFormatter
-          if (params.column.getColDef().exportValueFormatter) {
-            return params.column.getColDef().exportValueFormatter(params);
-          } else if (params.column.getColDef().valueFormatter) {
-            return params.column.getColDef().valueFormatter(params);
+          if ('exportValueFormatter' in colDef && colDef.exportValueFormatter) {
+            return typeof colDef.exportValueFormatter === 'function' 
+              ? colDef.exportValueFormatter(params as any)
+              : params.value;
+          } else if (colDef.valueFormatter) {
+            return typeof colDef.valueFormatter === 'function'
+              ? colDef.valueFormatter(params as any)
+              : params.value;
           }
           return params.value;
         }
@@ -95,11 +100,16 @@ export function DataTableToolbar({
       gridApi.exportDataAsCsv({
         fileName: `data-export-${new Date().toISOString().split('T')[0]}.csv`,
         processCellCallback: (params) => {
+          const colDef = params.column.getColDef();
           // Use the exportValueFormatter if available, otherwise valueFormatter
-          if (params.column.getColDef().exportValueFormatter) {
-            return params.column.getColDef().exportValueFormatter(params);
-          } else if (params.column.getColDef().valueFormatter) {
-            return params.column.getColDef().valueFormatter(params);
+          if ('exportValueFormatter' in colDef && colDef.exportValueFormatter) {
+            return typeof colDef.exportValueFormatter === 'function' 
+              ? colDef.exportValueFormatter(params as any)
+              : params.value;
+          } else if (colDef.valueFormatter) {
+            return typeof colDef.valueFormatter === 'function'
+              ? colDef.valueFormatter(params as any)
+              : params.value;
           }
           return params.value;
         }

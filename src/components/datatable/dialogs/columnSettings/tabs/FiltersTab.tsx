@@ -14,7 +14,6 @@ import { Info, Settings, Filter, Calendar, Hash, Type, ToggleLeft, X, Plus, Ligh
 interface FilterConfig {
   filter: string;
   filterParams: Record<string, unknown>;
-  floatingFilter: boolean;
   suppressMenu: boolean;
   suppressFiltersToolPanel: boolean;
 }
@@ -121,14 +120,12 @@ export const FiltersTab: React.FC = () => {
       
       const filter = changes?.filter || colDef?.filter || '';
       const filterParams = changes?.filterParams || colDef?.filterParams || {};
-      const floatingFilter = changes?.floatingFilter ?? colDef?.floatingFilter ?? true;
       const suppressMenu = changes?.suppressMenu ?? colDef?.suppressMenu ?? false;
       const suppressFiltersToolPanel = changes?.suppressFiltersToolPanel ?? colDef?.suppressFiltersToolPanel ?? false;
       
       configs.set(colId, {
         filter,
         filterParams,
-        floatingFilter,
         suppressMenu,
         suppressFiltersToolPanel,
       });
@@ -331,25 +328,6 @@ export const FiltersTab: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="floating-filter" className="text-sm font-medium">
-                      Floating Filter
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Show filter inputs below column headers
-                    </p>
-                  </div>
-                  <Switch
-                    id="floating-filter"
-                    checked={currentFilterConfig?.floatingFilter ?? true}
-                    onCheckedChange={(checked) => updateBulkProperty('floatingFilter', checked)}
-                    disabled={isDisabled}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
                     <Label htmlFor="suppress-menu" className="text-sm font-medium">
                       Hide Filter Menu
                     </Label>
@@ -490,7 +468,6 @@ export const FiltersTab: React.FC = () => {
               onClick={() => handleBulkUpdate({
                 filter: 'agSetColumnFilter',
                 filterParams: getDefaultFilterParams('agSetColumnFilter'),
-                floatingFilter: true,
               })}
               disabled={isDisabled}
             >
@@ -505,7 +482,6 @@ export const FiltersTab: React.FC = () => {
               onClick={() => handleBulkUpdate({
                 filter: recommendedFilterType || 'agTextColumnFilter',
                 filterParams: getDefaultFilterParams(recommendedFilterType || 'agTextColumnFilter'),
-                floatingFilter: true,
               })}
               disabled={isDisabled}
             >
@@ -520,7 +496,6 @@ export const FiltersTab: React.FC = () => {
               onClick={() => handleBulkUpdate({
                 filter: undefined,
                 filterParams: undefined,
-                floatingFilter: false,
                 suppressMenu: false,
                 suppressFiltersToolPanel: false,
               })}
