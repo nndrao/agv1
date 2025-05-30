@@ -116,54 +116,92 @@
   }
 }
 
-/* Custom Scrollbar Styles */
+/* Custom Scrollbar Styles - Apply only to non-AG-Grid elements */
 @layer base {
-  /* Firefox */
-  * {
+  /* Apply custom scrollbars to specific UI elements, not globally */
+  .scroll-area,
+  .overflow-auto:not(.ag-root-wrapper *),
+  .overflow-y-auto:not(.ag-root-wrapper *),
+  .overflow-x-auto:not(.ag-root-wrapper *),
+  [class*="dialog"]:not(.ag-root-wrapper *),
+  [class*="sheet"]:not(.ag-root-wrapper *),
+  [class*="dropdown"]:not(.ag-root-wrapper *),
+  [class*="popover"]:not(.ag-root-wrapper *) {
+    /* Firefox */
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
 
-  /* Webkit browsers (Chrome, Safari, Edge) */
-  *::-webkit-scrollbar {
+  /* Webkit browsers (Chrome, Safari, Edge) - for specific elements only */
+  .scroll-area::-webkit-scrollbar,
+  .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar,
+  .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar,
+  .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar,
+  [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar,
+  [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar,
+  [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar,
+  [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
 
-  *::-webkit-scrollbar-track {
-    background: transparent;
+  .scroll-area::-webkit-scrollbar-track,
+  .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
+  .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
+  .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
+  [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
+  [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
+  [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
+  [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
     border-radius: 5px;
   }
 
-  *::-webkit-scrollbar-thumb {
+  .scroll-area::-webkit-scrollbar-thumb,
+  .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted-foreground) / 0.3);
     border-radius: 5px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
 
-  *::-webkit-scrollbar-thumb:hover {
+  .scroll-area::-webkit-scrollbar-thumb:hover,
+  .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground) / 0.5);
   }
 
-  *::-webkit-scrollbar-corner {
-    background: transparent;
-  }
-
-  /* Dark mode scrollbar adjustments */
-  .dark *::-webkit-scrollbar-thumb {
+  /* Dark mode adjustments for custom scrollbars */
+  .dark .scroll-area::-webkit-scrollbar-thumb,
+  .dark .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  .dark .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  .dark .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  .dark [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  .dark [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  .dark [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
+  .dark [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted-foreground) / 0.2);
   }
 
-  .dark *::-webkit-scrollbar-thumb:hover {
+  .dark .scroll-area::-webkit-scrollbar-thumb:hover,
+  .dark .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  .dark .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  .dark .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  .dark [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  .dark [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  .dark [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
+  .dark [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground) / 0.4);
-  }
-
-  /* For better visibility on certain backgrounds */
-  .scroll-area::-webkit-scrollbar-track,
-  .overflow-auto::-webkit-scrollbar-track,
-  .overflow-y-auto::-webkit-scrollbar-track,
-  .overflow-x-auto::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.3);
   }
 }
