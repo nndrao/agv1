@@ -337,6 +337,9 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
         resizable: col.resizable,
         editable: col.editable,
         filter: col.filter,
+        floatingFilter: col.floatingFilter,
+        suppressMenu: col.suppressMenu,
+        suppressFiltersToolPanel: col.suppressFiltersToolPanel,
         minWidth: col.minWidth,
         maxWidth: col.maxWidth
       });

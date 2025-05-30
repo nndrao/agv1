@@ -2,13 +2,14 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { 
+  AlignJustify,
   AlignLeft, 
   AlignCenter, 
-  AlignRight, 
-  AlignStartVertical,
-  AlignCenterVertical,
-  AlignEndVertical,
-  MoreHorizontal
+  AlignRight,
+  AlignVerticalJustifyStart,
+  AlignVerticalJustifyCenter,
+  AlignVerticalJustifyEnd,
+  Minus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,17 +31,17 @@ export const AlignmentIconPicker: React.FC<AlignmentIconPickerProps> = ({
   isMixed = false
 }) => {
   const getHorizontalOptions = () => [
-    { value: 'default', icon: MoreHorizontal, label: 'Default', tooltip: 'Default alignment' },
+    { value: 'default', icon: Minus, label: 'Default', tooltip: 'Default alignment' },
     { value: 'left', icon: AlignLeft, label: 'Left', tooltip: 'Align left' },
     { value: 'center', icon: AlignCenter, label: 'Center', tooltip: 'Align center' },
     { value: 'right', icon: AlignRight, label: 'Right', tooltip: 'Align right' }
   ];
 
   const getVerticalOptions = () => [
-    { value: 'default', icon: MoreHorizontal, label: 'Default', tooltip: 'Default alignment' },
-    { value: 'top', icon: AlignStartVertical, label: 'Top', tooltip: 'Align top' },
-    { value: 'middle', icon: AlignCenterVertical, label: 'Middle', tooltip: 'Align middle' },
-    { value: 'bottom', icon: AlignEndVertical, label: 'Bottom', tooltip: 'Align bottom' }
+    { value: 'default', icon: Minus, label: 'Default', tooltip: 'Default alignment' },
+    { value: 'top', icon: AlignVerticalJustifyStart, label: 'Top', tooltip: 'Align top' },
+    { value: 'middle', icon: AlignVerticalJustifyCenter, label: 'Middle', tooltip: 'Align middle' },
+    { value: 'bottom', icon: AlignVerticalJustifyEnd, label: 'Bottom', tooltip: 'Align bottom' }
   ];
 
   const options = type === 'horizontal' ? getHorizontalOptions() : getVerticalOptions();
@@ -56,7 +57,7 @@ export const AlignmentIconPicker: React.FC<AlignmentIconPickerProps> = ({
         )}
       </Label>
       
-      <div className="flex gap-1 p-1 bg-muted/30 rounded-lg border border-border/40">
+      <div className="flex gap-0.5 p-0.5 bg-muted/20 rounded-lg border border-border/30">
         {options.map((option) => {
           const Icon = option.icon;
           const isSelected = value === option.value;
@@ -67,9 +68,9 @@ export const AlignmentIconPicker: React.FC<AlignmentIconPickerProps> = ({
               variant="ghost"
               size="sm"
               className={cn(
-                "h-8 w-8 p-0 rounded-md transition-all duration-200",
-                "hover:bg-background hover:shadow-sm",
-                isSelected && "bg-background shadow-sm border border-border/60",
+                "h-9 w-9 p-0 rounded-md transition-all duration-200",
+                "hover:bg-accent/80 hover:text-accent-foreground",
+                isSelected && "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
                 disabled && "opacity-50 cursor-not-allowed",
                 isMixed && !isSelected && "opacity-60"
               )}
@@ -80,7 +81,7 @@ export const AlignmentIconPicker: React.FC<AlignmentIconPickerProps> = ({
               <Icon 
                 className={cn(
                   "h-4 w-4 transition-colors",
-                  isSelected ? "text-foreground" : "text-muted-foreground",
+                  isSelected ? "text-primary-foreground" : "text-muted-foreground",
                   disabled && "text-muted-foreground/50"
                 )} 
               />

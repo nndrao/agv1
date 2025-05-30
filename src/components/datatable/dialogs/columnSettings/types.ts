@@ -58,15 +58,15 @@ export interface MixedValueInfo {
 }
 
 export const COLUMN_ICONS: Record<string, string> = {
-  'number': '📊',
-  'numericColumn': '📊',
-  'currency': '💰',
+  'number': '123',
+  'numericColumn': '123',
+  'currency': '$',
   'date': '📅',
   'dateColumn': '📅',
-  'text': '📝',
-  'textColumn': '📝',
-  'boolean': '✓',
-  'booleanColumn': '✓',
-  'object': '📦',
-  'default': '📋'
+  'text': 'Aa',
+  'textColumn': 'Aa',
+  'boolean': '☑',
+  'booleanColumn': '☑',
+  'object': '{ }',
+  'default': '•'
 };

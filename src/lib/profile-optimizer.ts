@@ -227,7 +227,46 @@ class ProfileOptimizer {
       
       // Step 1: Apply column definitions if changed
       if (diff.columnDefsChanged && cached.processedColumnDefs.length > 0) {
-        gridApi.setGridOption('columnDefs', cached.processedColumnDefs);
+        // Store current filter model to reapply after column update
+        const currentFilterModel = gridApi.getFilterModel();
+        
+        // Get current defaultColDef to ensure it's preserved
+        const defaultColDef = gridApi.getGridOption('defaultColDef') || {
+          flex: 1,
+          minWidth: 100,
+          filter: true,
+          floatingFilter: true,
+          enableValue: true,
+          enableRowGroup: true,
+          enablePivot: true,
+          resizable: true,
+          sortable: true,
+          useValueFormatterForExport: true,
+        };
+        
+        // Update both columnDefs and defaultColDef to ensure consistency
+        gridApi.updateGridOptions({
+          columnDefs: cached.processedColumnDefs,
+          defaultColDef: defaultColDef
+        });
+        
+        // After setting column definitions, we need to ensure the grid is fully updated
+        setTimeout(() => {
+          // Force a complete refresh of the grid structure
+          gridApi.refreshHeader();
+          gridApi.refreshCells({ force: true });
+          
+          // Reapply filter model to ensure filters are displayed
+          if (currentFilterModel && Object.keys(currentFilterModel).length > 0) {
+            gridApi.setFilterModel(currentFilterModel);
+          }
+          
+          // Final refresh to ensure floating filters are visible
+          setTimeout(() => {
+            gridApi.refreshFilters();
+          }, 50);
+        }, 100);
+        
         progress++;
         options.onProgress?.(progress / totalSteps);
       }
@@ -247,7 +286,13 @@ class ProfileOptimizer {
       // Step 3: Apply filters (lower priority)
       if (diff.filterModelChanged) {
         this.scheduleUpdate('filterModel', () => {
-          gridApi.setFilterModel(profile.gridState.filterModel || null);
+          // Clear existing filters first, then apply new ones
+          gridApi.setFilterModel(null);
+          if (profile.gridState.filterModel && Object.keys(profile.gridState.filterModel).length > 0) {
+            setTimeout(() => {
+              gridApi.setFilterModel(profile.gridState.filterModel);
+            }, 10);
+          }
           progress++;
           options.onProgress?.(progress / totalSteps);
         }, 2);

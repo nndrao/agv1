@@ -18,7 +18,8 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
     selectedColumns,
     columnDefinitions,
     pendingChanges,
-    updateBulkProperty
+    updateBulkProperty,
+    updateBulkProperties
   } = useColumnCustomizationStore();
 
   // Memoized function to get mixed values for properties
@@ -50,7 +51,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
   // Pre-compute mixed values for all properties to avoid recalculation
   const mixedValues = useMemo(() => {
     const properties = ['field', 'headerName', 'type', 'cellDataType', 'sortable', 'resizable',
-                       'editable', 'filter', 'initialWidth', 'minWidth', 'maxWidth', 'initialHide', 'initialPinned'];
+                       'editable', 'filter', 'floatingFilter', 'initialWidth', 'minWidth', 'maxWidth', 'initialHide', 'initialPinned'];
 
     const values: Record<string, { value: unknown; isMixed: boolean; values?: unknown[] }> = {};
     properties.forEach(property => {
@@ -132,6 +133,49 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
                 onChange={(value) => updateBulkProperty('initialHide', value)}
                 disabled={isDisabled || (isMultipleSelection && mixedValues.initialHide.isMixed)}
                 description="Hide column on initial load"
+              />
+
+              <ThreeStateCheckbox
+                label="Floating Filter"
+                property="floatingFilter"
+                mixedValue={mixedValues.floatingFilter}
+                onChange={(checked) => {
+                  // When enabling floating filter, also set appropriate filter type based on data type
+                  if (checked) {
+                    const updates: Record<string, unknown> = { floatingFilter: checked };
+                    
+                    // Get the data type of selected columns
+                    const dataTypes = new Set<string>();
+                    selectedColumns.forEach(colId => {
+                      const colDef = columnDefinitions.get(colId);
+                      const pendingChange = pendingChanges.get(colId);
+                      const dataType = pendingChange?.cellDataType || colDef?.cellDataType || pendingChange?.type || colDef?.type || 'text';
+                      dataTypes.add(dataType);
+                    });
+                    
+                    // If all columns have the same data type, set appropriate filter
+                    if (dataTypes.size === 1 && !mixedValues.filter.value) {
+                      const dataType = Array.from(dataTypes)[0];
+                      let filterType = 'agTextColumnFilter'; // default
+                      
+                      if (dataType === 'number' || dataType === 'numericColumn') {
+                        filterType = 'agNumberColumnFilter';
+                      } else if (dataType === 'date' || dataType === 'dateColumn') {
+                        filterType = 'agDateColumnFilter';
+                      } else if (dataType === 'boolean' || dataType === 'booleanColumn') {
+                        filterType = 'agBooleanColumnFilter';
+                      }
+                      
+                      updates.filter = filterType;
+                    }
+                    
+                    updateBulkProperties(updates);
+                  } else {
+                    updateBulkProperty('floatingFilter', checked);
+                  }
+                }}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.floatingFilter.isMixed)}
+                description="Show filter inputs below column headers"
               />
             </div>
           </CollapsibleSection>
@@ -316,6 +360,49 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
                 onChange={(value) => updateBulkProperty('filter', value)}
                 disabled={isDisabled || (isMultipleSelection && mixedValues.filter.isMixed)}
                 description="Show filter in column menu"
+              />
+
+              <ThreeStateCheckbox
+                label="Floating Filter"
+                property="floatingFilter"
+                mixedValue={mixedValues.floatingFilter}
+                onChange={(checked) => {
+                  // When enabling floating filter, also set appropriate filter type based on data type
+                  if (checked) {
+                    const updates: Record<string, unknown> = { floatingFilter: checked };
+                    
+                    // Get the data type of selected columns
+                    const dataTypes = new Set<string>();
+                    selectedColumns.forEach(colId => {
+                      const colDef = columnDefinitions.get(colId);
+                      const pendingChange = pendingChanges.get(colId);
+                      const dataType = pendingChange?.cellDataType || colDef?.cellDataType || pendingChange?.type || colDef?.type || 'text';
+                      dataTypes.add(dataType);
+                    });
+                    
+                    // If all columns have the same data type, set appropriate filter
+                    if (dataTypes.size === 1 && !mixedValues.filter.value) {
+                      const dataType = Array.from(dataTypes)[0];
+                      let filterType = 'agTextColumnFilter'; // default
+                      
+                      if (dataType === 'number' || dataType === 'numericColumn') {
+                        filterType = 'agNumberColumnFilter';
+                      } else if (dataType === 'date' || dataType === 'dateColumn') {
+                        filterType = 'agDateColumnFilter';
+                      } else if (dataType === 'boolean' || dataType === 'booleanColumn') {
+                        filterType = 'agBooleanColumnFilter';
+                      }
+                      
+                      updates.filter = filterType;
+                    }
+                    
+                    updateBulkProperties(updates);
+                  } else {
+                    updateBulkProperty('floatingFilter', checked);
+                  }
+                }}
+                disabled={isDisabled || (isMultipleSelection && mixedValues.floatingFilter.isMixed)}
+                description="Show filter inputs below column headers"
               />
             </div>
           </CollapsibleSection>

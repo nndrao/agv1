@@ -150,9 +150,9 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content - Centered DataTable */}
-      <main className="flex-1 flex items-center justify-center p-6 min-h-0">
-        <div className="w-full h-full max-w-7xl mx-auto">
+      {/* Main Content - Full Width DataTable */}
+      <main className="flex-1 flex items-center justify-center p-2 min-h-0">
+        <div className="w-full h-full">
           <div className="h-full rounded-lg border bg-card shadow-sm overflow-hidden">
             <ErrorBoundary FallbackComponent={ErrorFallback}>
               <Suspense fallback={<GridSkeleton />}>

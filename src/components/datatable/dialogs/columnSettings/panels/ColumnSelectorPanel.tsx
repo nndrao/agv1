@@ -4,12 +4,36 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Columns3, Filter, Star, Eye, EyeOff } from 'lucide-react';
+import { Search, Columns3, Filter, Star, Eye, EyeOff, Hash, Type, Calendar, ToggleLeft, Package, CircleDot, DollarSign } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { COLUMN_ICONS } from '../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import '../column-customization-dialog.css';
+
+// Helper function to get icon component based on column type
+const getColumnIcon = (type: string) => {
+  switch (type) {
+    case 'number':
+    case 'numericColumn':
+      return Hash;
+    case 'currency':
+      return DollarSign;
+    case 'date':
+    case 'dateColumn':
+      return Calendar;
+    case 'text':
+    case 'textColumn':
+      return Type;
+    case 'boolean':
+    case 'booleanColumn':
+      return ToggleLeft;
+    case 'object':
+      return Package;
+    default:
+      return CircleDot;
+  }
+};
 
 export const ColumnSelectorPanel: React.FC = React.memo(() => {
   const {
@@ -211,14 +235,17 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
             </SelectTrigger>
             <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
               <SelectItem value="all" className="text-sm">All Data Types</SelectItem>
-              {availableCellDataTypes.map(type => (
-                <SelectItem key={type} value={type} className="text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{COLUMN_ICONS[type] || COLUMN_ICONS.text}</span>
-                    <span className="capitalize">{type}</span>
-                  </div>
-                </SelectItem>
-              ))}
+              {availableCellDataTypes.map(type => {
+                const TypeIcon = getColumnIcon(type);
+                return (
+                  <SelectItem key={type} value={type} className="text-sm">
+                    <div className="flex items-center gap-2">
+                      <TypeIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="capitalize">{type}</span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
 
@@ -354,7 +381,7 @@ const ColumnItem: React.FC<{
   onToggleTemplate: (columnId: string) => void;
 }> = React.memo(({ column, columnId, selected, isTemplate, isHidden, onToggle, onToggleTemplate }) => {
   const iconKey = (column.cellDataType || column.type || 'text') as string;
-  const icon = COLUMN_ICONS[iconKey] || COLUMN_ICONS.text;
+  const IconComponent = getColumnIcon(iconKey);
 
   const handleToggle = useCallback(() => {
     onToggle(columnId);
@@ -381,7 +408,7 @@ const ColumnItem: React.FC<{
         onClick={(e) => e.stopPropagation()}
         className="checkbox-enhanced"
       />
-      <span className="text-sm shrink-0">{icon}</span>
+      <IconComponent className="h-4 w-4 shrink-0 text-muted-foreground" />
       <span className="text-sm flex-1 truncate flex items-center gap-2">
         <span className={isHidden ? 'opacity-50' : ''}>
           {column.headerName || column.field}

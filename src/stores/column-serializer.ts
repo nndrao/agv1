@@ -283,11 +283,19 @@ export function deserializeColumnCustomizations(
   return baseColumns.map(baseCol => {
     const field = baseCol.field;
     if (!field || !customizations[field]) {
-      return baseCol;
+      // Apply defaults even if no customizations
+      return {
+        ...baseCol,
+        ...COLUMN_DEFAULTS
+      };
     }
     
     const custom = customizations[field];
-    const merged: ColDef = { ...baseCol };
+    // Start with base column merged with defaults
+    const merged: ColDef = { 
+      ...COLUMN_DEFAULTS,
+      ...baseCol 
+    };
     
     // Apply basic properties
     if (custom.headerName !== undefined) merged.headerName = custom.headerName;
