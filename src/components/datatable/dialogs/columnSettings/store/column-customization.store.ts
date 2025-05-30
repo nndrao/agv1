@@ -23,9 +23,14 @@ export interface DialogState {
   searchTerm: string;
   cellDataTypeFilter: string;
   visibilityFilter: 'all' | 'visible' | 'hidden';
+  uiMode: 'simple' | 'advanced';
+  showPreviewPane: boolean;
+  collapsedSections: Set<string>;
+  quickFormatPinned: string[];
 
   // Panel states
   bulkActionsPanelCollapsed: boolean;
+  showColumnDrawer: boolean;
 
   // Template columns for quick copy
   templateColumns: Set<string>;
@@ -54,9 +59,15 @@ export interface DialogActions {
   setSearchTerm: (term: string) => void;
   setCellDataTypeFilter: (filter: string) => void;
   setVisibilityFilter: (filter: 'all' | 'visible' | 'hidden') => void;
+  setUiMode: (mode: 'simple' | 'advanced') => void;
+  setShowPreviewPane: (show: boolean) => void;
+  toggleSectionCollapse: (section: string) => void;
+  setQuickFormatPinned: (formats: string[]) => void;
+  toggleQuickFormat: (format: string) => void;
 
   // Panel actions
   setBulkActionsPanelCollapsed: (collapsed: boolean) => void;
+  setShowColumnDrawer: (show: boolean) => void;
 
   // Template column actions
   toggleTemplateColumn: (columnId: string) => void;
@@ -88,6 +99,11 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       visibilityFilter: 'all',
       bulkActionsPanelCollapsed: false,
       templateColumns: new Set<string>(),
+      uiMode: 'simple',
+      showPreviewPane: false,
+      collapsedSections: new Set<string>(),
+      quickFormatPinned: ['number', 'currency', 'percentage', 'date', 'text'],
+      showColumnDrawer: false,
 
       // Actions
       setOpen: (open) => set({ open }),
@@ -288,6 +304,27 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       setCellDataTypeFilter: (filter) => set({ cellDataTypeFilter: filter }),
       setVisibilityFilter: (filter) => set({ visibilityFilter: filter }),
       setBulkActionsPanelCollapsed: (collapsed) => set({ bulkActionsPanelCollapsed: collapsed }),
+      setUiMode: (mode) => set({ uiMode: mode }),
+      setShowPreviewPane: (show) => set({ showPreviewPane: show }),
+      toggleSectionCollapse: (section) => {
+        const { collapsedSections } = get();
+        const newCollapsed = new Set(collapsedSections);
+        if (newCollapsed.has(section)) {
+          newCollapsed.delete(section);
+        } else {
+          newCollapsed.add(section);
+        }
+        set({ collapsedSections: newCollapsed });
+      },
+      setQuickFormatPinned: (formats) => set({ quickFormatPinned: formats }),
+      toggleQuickFormat: (format) => {
+        const { quickFormatPinned } = get();
+        const newPinned = quickFormatPinned.includes(format)
+          ? quickFormatPinned.filter(f => f !== format)
+          : [...quickFormatPinned, format];
+        set({ quickFormatPinned: newPinned });
+      },
+      setShowColumnDrawer: (show) => set({ showColumnDrawer: show }),
 
       // Template column actions
       toggleTemplateColumn: (columnId) => {
@@ -314,11 +351,21 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
           visibilityFilter: state.visibilityFilter,
           bulkActionsPanelCollapsed: state.bulkActionsPanelCollapsed,
           templateColumns: Array.from(state.templateColumns), // Convert Set to Array for serialization
+          uiMode: state.uiMode,
+          showPreviewPane: state.showPreviewPane,
+          collapsedSections: Array.from(state.collapsedSections), // Convert Set to Array
+          quickFormatPinned: state.quickFormatPinned,
+          showColumnDrawer: state.showColumnDrawer,
         }),
         onRehydrateStorage: () => (state) => {
-          // Convert templateColumns back to Set after rehydration
-          if (state && Array.isArray(state.templateColumns)) {
-            state.templateColumns = new Set(state.templateColumns);
+          // Convert Sets back from Arrays after rehydration
+          if (state) {
+            if (Array.isArray(state.templateColumns)) {
+              state.templateColumns = new Set(state.templateColumns);
+            }
+            if (Array.isArray(state.collapsedSections)) {
+              state.collapsedSections = new Set(state.collapsedSections);
+            }
           }
         },
       }

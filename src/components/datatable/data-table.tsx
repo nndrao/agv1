@@ -8,8 +8,6 @@ import { useTheme } from '@/components/theme-provider';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
 import { useProfileStore, useActiveProfile, GridProfile } from '@/stores/profile.store';
 import { DebugProfile } from './debug-profile';
-import { useToast } from '@/hooks/use-toast';
-import { createExcelFormatter } from './utils/formatters';
 import { profileOptimizer } from '@/lib/profile-optimizer';
 import './alignment-styles.css';
 import './format-styles.css';
@@ -17,24 +15,12 @@ import './profile-transitions.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 
-// Interfaces for style configurations
-interface HeaderStyleConfig {
-  _isHeaderStyleConfig: boolean;
-  regular?: React.CSSProperties;
-  floating?: React.CSSProperties;
-}
-
-interface FormatterConfig {
-  _isFormatterConfig: boolean;
-  type: string;
-  formatString?: string;
-}
-
 export interface ColumnDef extends Omit<AgColDef, 'field' | 'headerName' | 'type'> {
   field: string;
   headerName: string;
   type?: string | string[]; // For legacy/custom use, matching ag-grid's type
-  cellDataType?: 'text' | 'number' | 'date' | 'boolean'; // ag-Grid v33+ optimization
+  cellDataType?: 'text' | 'number' | 'date' | 'boolean' | string | boolean; // ag-Grid v33+ optimization
+  exportValueFormatter?: AgColDef['valueFormatter']; // Custom property for export formatting
 }
 
 interface DataTableProps {
@@ -55,11 +41,10 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const { theme: currentTheme } = useTheme();
   const gridApiRef = useRef<GridApi | null>(null);
   const isDarkMode = currentTheme === 'dark';
-  const { toast } = useToast();
   
   // Profile management - moved before state initialization
   const activeProfile = useActiveProfile();
-  const { updateProfile, getColumnDefs, saveColumnCustomizations } = useProfileStore();
+  const { getColumnDefs, saveColumnCustomizations } = useProfileStore();
   
   const [selectedFont, setSelectedFont] = useState(() => {
     // Initialize with saved font if available
@@ -91,8 +76,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       });
       
       // Initialize the ref
-      columnDefsWithStylesRef.current = savedColumnDefs;
-      return savedColumnDefs;
+      columnDefsWithStylesRef.current = savedColumnDefs as ColumnDef[];
+      return savedColumnDefs as ColumnDef[];
     }
     
     console.log('[DataTable] Initializing with default columnDefs');
@@ -112,7 +97,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         activeProfileId: activeProfile.id
       });
       // Save base column definitions for the default profile
-      saveColumnCustomizations(columnDefs, columnDefs);
+      saveColumnCustomizations(columnDefs as AgColDef[], columnDefs as AgColDef[]);
     }
   }, [activeProfile, columnDefs, saveColumnCustomizations]);
 
@@ -198,7 +183,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       "paste",
       "separator",
       "export",
-    ];
+    ] as string[];
   }, []);
 
   // Excel export configuration
@@ -206,21 +191,21 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     {
       id: 'header',
       font: { bold: true },
-      alignment: { horizontal: 'Center', vertical: 'Center' }
+      alignment: { horizontal: 'Center' as const, vertical: 'Center' as const }
     },
     {
       id: 'ag-numeric-cell',
-      alignment: { horizontal: 'Right' }
+      alignment: { horizontal: 'Right' as const }
     },
     {
       id: 'ag-currency-cell',
       numberFormat: { format: '$#,##0.00' },
-      alignment: { horizontal: 'Right' }
+      alignment: { horizontal: 'Right' as const }
     },
     {
       id: 'ag-percentage-cell',
       numberFormat: { format: '0.00%' },
-      alignment: { horizontal: 'Right' }
+      alignment: { horizontal: 'Right' as const }
     }
   ], []);
 
@@ -251,8 +236,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         columnCount: profileColumnDefs.length
       });
       
-      setCurrentColumnDefs(profileColumnDefs);
-      columnDefsWithStylesRef.current = profileColumnDefs;
+      setCurrentColumnDefs(profileColumnDefs as ColumnDef[]);
+      columnDefsWithStylesRef.current = profileColumnDefs as ColumnDef[];
     } else {
       // Reset to original column definitions if profile has none
       console.log('[DataTable] Resetting to original columnDefs');
@@ -297,8 +282,10 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       // Create a map of current columns for quick lookup
       const currentColMap = new Map();
       currentColumnDefs.forEach(col => {
-        if (col.field || col.colId) {
-          currentColMap.set(col.field || col.colId, col);
+        if ('field' in col && col.field) {
+          currentColMap.set(col.field, col);
+        } else if ('colId' in col && col.colId) {
+          currentColMap.set(col.colId, col);
         }
       });
       
@@ -551,11 +538,16 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           defaultExcelExportParams={{
             // Apply column formatting to Excel export
             processCellCallback: (params) => {
+              const colDef = params.column.getColDef();
               // Use the exportValueFormatter if available, otherwise valueFormatter
-              if (params.column.getColDef().exportValueFormatter) {
-                return params.column.getColDef().exportValueFormatter(params);
-              } else if (params.column.getColDef().valueFormatter) {
-                return params.column.getColDef().valueFormatter(params);
+              if ('exportValueFormatter' in colDef && colDef.exportValueFormatter) {
+                return typeof colDef.exportValueFormatter === 'function' 
+                  ? colDef.exportValueFormatter(params as any)
+                  : params.value;
+              } else if (colDef.valueFormatter) {
+                return typeof colDef.valueFormatter === 'function'
+                  ? colDef.valueFormatter(params as any)
+                  : params.value;
               }
               return params.value;
             },

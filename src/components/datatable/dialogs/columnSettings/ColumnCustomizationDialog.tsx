@@ -2,12 +2,15 @@ import React, { useCallback, useEffect, memo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ColumnSelectorPanel } from './panels/ColumnSelectorPanel';
 import { PropertyEditorPanel } from './panels/PropertyEditorPanel';
 import { BulkActionsPanel } from './panels/BulkActionsPanel';
 import { ColDef, ColumnState } from 'ag-grid-community';
 import { useColumnCustomizationStore } from './store/column-customization.store';
-import { Undo2, Redo2, Settings2, Volume2, VolumeX } from 'lucide-react';
+import { Undo2, Redo2, Settings2, Volume2, VolumeX, Columns, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useButtonFeedback, useProgressIndicator } from './utils/feedback';
 import { useSoundPreference } from './hooks/useSoundPreference';
@@ -37,7 +40,13 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     setColumnDefinitions,
     setColumnState,
     applyChanges,
-    resetChanges
+    resetChanges,
+    uiMode,
+    setUiMode,
+    showColumnDrawer,
+    setShowColumnDrawer,
+    showPreviewPane,
+    setShowPreviewPane
   } = useColumnCustomizationStore();
   const { toast } = useToast();
   const { soundEnabled, toggleSound } = useSoundPreference();
@@ -216,36 +225,109 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
                 </div>
               </div>
             </div>
-            {/* Sound toggle button */}
-            <button
-              onClick={toggleSound}
-              className={`sound-toggle ${soundEnabled ? 'sound-enabled' : ''}`}
-              aria-label={soundEnabled ? 'Disable sound feedback' : 'Enable sound feedback'}
-              title={soundEnabled ? 'Sound feedback enabled' : 'Sound feedback disabled'}
-            >
-              {soundEnabled ? (
-                <Volume2 className="h-4 w-4 text-primary" />
-              ) : (
-                <VolumeX className="h-4 w-4 text-muted-foreground" />
-              )}
-            </button>
+            
+            {/* UI Controls */}
+            <div className="flex items-center gap-4">
+              {/* UI Mode Toggle */}
+              <div className="flex items-center gap-2">
+                <Label htmlFor="ui-mode" className="text-xs text-muted-foreground">
+                  Simple
+                </Label>
+                <Switch
+                  id="ui-mode"
+                  checked={uiMode === 'advanced'}
+                  onCheckedChange={(checked) => setUiMode(checked ? 'advanced' : 'simple')}
+                  className="data-[state=checked]:bg-primary"
+                />
+                <Label htmlFor="ui-mode" className="text-xs text-muted-foreground">
+                  Advanced
+                </Label>
+              </div>
+              
+              {/* Preview Pane Toggle */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPreviewPane(!showPreviewPane)}
+                className="h-8 px-2"
+                title={showPreviewPane ? 'Hide preview' : 'Show preview'}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              
+              {/* Sound toggle button */}
+              <button
+                onClick={toggleSound}
+                className={`sound-toggle ${soundEnabled ? 'sound-enabled' : ''}`}
+                aria-label={soundEnabled ? 'Disable sound feedback' : 'Enable sound feedback'}
+                title={soundEnabled ? 'Sound feedback enabled' : 'Sound feedback disabled'}
+              >
+                {soundEnabled ? (
+                  <Volume2 className="h-4 w-4 text-primary" />
+                ) : (
+                  <VolumeX className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+            </div>
           </div>
         </DialogHeader>
 
         {/* Clean Body Layout */}
         <div className="flex-1 flex overflow-hidden min-h-0">
-          {/* Column Selector Panel */}
-          <div className="w-[260px] border-r bg-muted/30 overflow-hidden flex flex-col">
-            <ColumnSelectorPanel />
+          {/* Column Selector - Mobile Drawer or Desktop Panel */}
+          {showColumnDrawer ? (
+            <>
+              {/* Mobile-style column selector button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowColumnDrawer(true)}
+                className="fixed left-4 bottom-20 z-50 h-10 px-3 shadow-lg bg-background border"
+              >
+                <Columns className="h-4 w-4 mr-2" />
+                Columns
+              </Button>
+              <Sheet open={showColumnDrawer} onOpenChange={setShowColumnDrawer}>
+                <SheetContent side="left" className="w-[300px] p-0">
+                  <SheetHeader className="px-4 py-3 border-b">
+                    <SheetTitle>Select Columns</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 overflow-hidden">
+                    <ColumnSelectorPanel />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </>
+          ) : (
+            <div className="w-[260px] border-r bg-muted/30 overflow-hidden flex flex-col">
+              <ColumnSelectorPanel />
+            </div>
+          )}
+
+          {/* Property Editor Panel - With Preview Pane */}
+          <div className="flex-1 flex overflow-hidden">
+            <div className={`flex-1 overflow-hidden flex flex-col min-w-0 bg-background ${showPreviewPane ? 'border-r' : ''}`}>
+              <PropertyEditorPanel uiMode={uiMode} />
+            </div>
+            
+            {/* Preview Pane */}
+            {showPreviewPane && (
+              <div className="w-[300px] bg-muted/10 overflow-hidden flex flex-col p-4">
+                <h3 className="text-sm font-semibold mb-3">Live Preview</h3>
+                <div className="flex-1 overflow-auto">
+                  <div className="space-y-3">
+                    {/* Preview content will be implemented later */}
+                    <div className="text-xs text-muted-foreground">
+                      Preview of changes will appear here
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Property Editor Panel */}
-          <div className="flex-1 overflow-hidden flex flex-col min-w-0 bg-background">
-            <PropertyEditorPanel />
-          </div>
-
-          {/* Bulk Actions Panel */}
-          {!bulkActionsPanelCollapsed && (
+          {/* Bulk Actions Panel - Contextual */}
+          {selectedColumns.size > 1 && !bulkActionsPanelCollapsed && (
             <div className="w-[260px] border-l bg-muted/30 overflow-hidden flex flex-col">
               <BulkActionsPanel />
             </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PropertyGroup } from '../components/PropertyGroup';
+import { CollapsibleSection } from '../components/CollapsibleSection';
 import { ThreeStateCheckbox } from '../components/ThreeStateCheckbox';
 import { AlignmentIconPicker } from '../components/AlignmentIconPicker';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,11 @@ import { StyleEditor } from '../editors/StyleEditor';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { createCellStyleFunction } from '@/components/datatable/utils/formatters';
 
-export const StylingTab: React.FC = () => {
+interface StylingTabProps {
+  uiMode?: 'simple' | 'advanced';
+}
+
+export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => {
   const {
     selectedColumns,
     columnDefinitions,

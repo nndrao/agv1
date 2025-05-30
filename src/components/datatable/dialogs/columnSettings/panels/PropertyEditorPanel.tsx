@@ -11,7 +11,11 @@ import { FiltersTab } from '../tabs/FiltersTab';
 import { EditorsTab } from '../tabs/EditorsTab';
 import { AdvancedTab } from '../tabs/AdvancedTab';
 
-export const PropertyEditorPanel: React.FC = () => {
+interface PropertyEditorPanelProps {
+  uiMode?: 'simple' | 'advanced';
+}
+
+export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({ uiMode = 'simple' }) => {
   const {
     selectedColumns,
     activeTab,
@@ -22,14 +26,20 @@ export const PropertyEditorPanel: React.FC = () => {
   const selectedColumnNames = Array.from(selectedColumns).slice(0, 3).join(', ');
   const hasMoreColumns = selectedColumns.size > 3;
 
-  const tabConfig = [
-    { id: 'general', label: 'General', icon: Settings },
-    { id: 'styling', label: 'Styling', icon: Palette },
-    { id: 'formatters', label: 'Format', icon: Hash },
-    { id: 'filters', label: 'Filters', icon: Filter },
-    { id: 'editors', label: 'Editors', icon: Edit3 },
-    { id: 'advanced', label: 'Advanced', icon: Cog },
-  ];
+  const tabConfig = uiMode === 'simple' 
+    ? [
+        { id: 'general', label: 'General', icon: Settings },
+        { id: 'styling', label: 'Styling', icon: Palette },
+        { id: 'formatters', label: 'Format', icon: Hash },
+      ]
+    : [
+        { id: 'general', label: 'General', icon: Settings },
+        { id: 'styling', label: 'Styling', icon: Palette },
+        { id: 'formatters', label: 'Format', icon: Hash },
+        { id: 'filters', label: 'Filters', icon: Filter },
+        { id: 'editors', label: 'Editors', icon: Edit3 },
+        { id: 'advanced', label: 'Advanced', icon: Cog },
+      ];
 
   return (
     <div className="h-full flex flex-col">
@@ -89,23 +99,27 @@ export const PropertyEditorPanel: React.FC = () => {
 
         <div className="flex-1 overflow-auto">
           <TabsContent value="general" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
-            <GeneralTab />
+            <GeneralTab uiMode={uiMode} />
           </TabsContent>
           <TabsContent value="styling" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
-            <StylingTab />
+            <StylingTab uiMode={uiMode} />
           </TabsContent>
           <TabsContent value="formatters" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
-            <FormatTab />
+            <FormatTab uiMode={uiMode} />
           </TabsContent>
-          <TabsContent value="filters" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
-            <FiltersTab />
-          </TabsContent>
-          <TabsContent value="editors" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
-            <EditorsTab />
-          </TabsContent>
-          <TabsContent value="advanced" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
-            <AdvancedTab />
-          </TabsContent>
+          {uiMode === 'advanced' && (
+            <>
+              <TabsContent value="filters" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
+                <FiltersTab />
+              </TabsContent>
+              <TabsContent value="editors" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
+                <EditorsTab />
+              </TabsContent>
+              <TabsContent value="advanced" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
+                <AdvancedTab />
+              </TabsContent>
+            </>
+          )}
         </div>
       </Tabs>
     </div>

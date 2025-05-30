@@ -9,7 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
-import { HelpCircle, Copy, Check, Sparkles, Search, X, Eye, EyeOff, History, Star, StarOff, Wand2 } from 'lucide-react';
+import { CollapsibleSection } from '../components/CollapsibleSection';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { HelpCircle, Copy, Check, Sparkles, Search, X, Eye, EyeOff, History, Star, StarOff, Wand2, Hash, DollarSign, Percent, Calendar, Type } from 'lucide-react';
 import { createExcelFormatter, getExcelStyleClass, createCellStyleFunction } from '@/components/datatable/utils/formatters';
 import { debounce } from 'lodash';
 import { FormatWizard } from '../components/FormatWizard';
@@ -162,7 +165,11 @@ const MAX_RECENT_FORMATS = 5;
 // Format favorites storage key
 const FAVORITE_FORMATS_KEY = 'column-format-favorites';
 
-export const FormatTab: React.FC = React.memo(() => {
+interface FormatTabProps {
+  uiMode?: 'simple' | 'advanced';
+}
+
+export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simple' }) => {
   const {
     selectedColumns,
     columnDefinitions,
@@ -457,71 +464,127 @@ export const FormatTab: React.FC = React.memo(() => {
 
   const isDisabled = selectedColumns.size === 0;
 
+  // Quick format buttons data
+  const quickFormats = [
+    { id: 'number', label: 'Number', icon: Hash, format: '#,##0.00', description: '1,234.50' },
+    { id: 'currency', label: 'Currency', icon: DollarSign, format: '$#,##0.00', description: '$1,234.50' },
+    { id: 'percentage', label: 'Percent', icon: Percent, format: '0%', description: '12%' },
+    { id: 'date', label: 'Date', icon: Calendar, format: 'MM/DD/YYYY', description: '12/31/2024' },
+    { id: 'text', label: 'Text', icon: Type, format: '@', description: 'Text' },
+  ];
+
+  const { quickFormatPinned, toggleQuickFormat } = useColumnCustomizationStore();
+
   return (
     <ScrollArea className="h-full">
       <div className="p-6">
         <div className="space-y-6">
+          {/* Quick Format Buttons - Always visible in simple mode */}
+          {uiMode === 'simple' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Quick Formats</Label>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowWizard(true)}
+                    className="h-7 px-2"
+                    disabled={isDisabled}
+                    title="Format Wizard"
+                  >
+                    <Wand2 className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowGuide(true)}
+                    className="h-7 px-2"
+                    title="Format Guide"
+                  >
+                    <HelpCircle className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {quickFormats.filter(qf => quickFormatPinned.includes(qf.id)).map((quickFormat) => {
+                  const Icon = quickFormat.icon;
+                  const isActive = selectedFormat === quickFormat.format;
+                  return (
+                    <button
+                      key={quickFormat.id}
+                      onClick={() => handleFormatChange(quickFormat.format)}
+                      disabled={isDisabled}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all",
+                        "hover:bg-muted/50 hover:border-primary/50",
+                        "disabled:opacity-50 disabled:cursor-not-allowed",
+                        isActive
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background"
+                      )}
+                    >
+                      <Icon className="h-5 w-5 mb-1" />
+                      <span className="text-xs font-medium">{quickFormat.label}</span>
+                      <span className="text-[10px] text-muted-foreground mt-0.5">
+                        {quickFormat.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Header Section */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Value Formatting</h3>
-              <div className="flex items-center gap-2">
+          <CollapsibleSection
+            id="format-selection"
+            title="Format Selection"
+            description="Choose from predefined formats or create custom ones"
+            defaultExpanded={uiMode === 'advanced'}
+            badge={
+              currentFormat && currentFormat !== 'default' && currentFormat !== 'mixed' ? (
+                <Badge variant="secondary" className="text-xs">
+                  {currentFormat.length > 20 ? currentFormat.substring(0, 20) + '...' : currentFormat}
+                </Badge>
+              ) : null
+            }
+            actionButton={
+              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowPreview(!showPreview)}
-                  className="h-7 text-xs gap-1"
+                  className="h-7 px-2"
                 >
                   {showPreview ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                  Preview
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowGuide(true)}
-                  className="h-7 text-xs gap-1"
-                >
-                  <HelpCircle className="h-3 w-3" />
-                  Guide
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowWizard(true)}
-                  className="h-7 text-xs gap-1"
-                  disabled={isDisabled}
-                >
-                  <Wand2 className="h-3 w-3" />
-                  Wizard
                 </Button>
               </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Apply number, currency, date, or custom formats to cell values
-            </p>
-          </div>
+            }
+          >
+            <div className="space-y-4">
 
-          {/* Quick Actions */}
-          {POPULAR_FORMATS.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Popular Formats</Label>
-              <div className="flex flex-wrap gap-1">
-                {POPULAR_FORMATS.map(format => (
-                  <Button
-                    key={format.value}
-                    variant={selectedFormat === format.value ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => handleFormatChange(format.value)}
-                    disabled={isDisabled}
-                  >
-                    <span className="font-mono mr-1">{PREDEFINED_FORMATTERS[format.category as keyof typeof PREDEFINED_FORMATTERS].icon}</span>
-                    {format.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
+              {/* Popular Formats - Moved inside CollapsibleSection */}
+              {POPULAR_FORMATS.length > 0 && uiMode === 'advanced' && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Popular Formats</Label>
+                  <div className="flex flex-wrap gap-1">
+                    {POPULAR_FORMATS.map(format => (
+                      <Button
+                        key={format.value}
+                        variant={selectedFormat === format.value ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => handleFormatChange(format.value)}
+                        disabled={isDisabled}
+                      >
+                        <span className="font-mono mr-1">{PREDEFINED_FORMATTERS[format.category as keyof typeof PREDEFINED_FORMATTERS].icon}</span>
+                        {format.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
           {/* Recent Formats */}
           {recentFormats.length > 0 && (
@@ -710,10 +773,23 @@ export const FormatTab: React.FC = React.memo(() => {
               </p>
             </div>
           )}
+            </div>
+          </CollapsibleSection>
 
           {/* Live Preview */}
           {showPreview && (selectedFormat !== 'default' || customFormat) && (
-            <div className="p-4 bg-muted/20 rounded-lg border space-y-3">
+            <CollapsibleSection
+              id="format-preview"
+              title="Live Preview"
+              description="See how your format will appear"
+              defaultExpanded={true}
+              badge={
+                <Badge variant="outline" className="text-xs">
+                  {selectedFormat === 'custom' ? customFormat : selectedFormat}
+                </Badge>
+              }
+            >
+              <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-medium uppercase text-muted-foreground">Live Preview</Label>
                 <Input
@@ -764,26 +840,31 @@ export const FormatTab: React.FC = React.memo(() => {
                   </code>
                 </div>
               )}
-            </div>
+              </div>
+            </CollapsibleSection>
           )}
 
           {/* Quick Tips */}
-          <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
-            <h4 className="text-xs font-medium mb-2 flex items-center gap-1">
-              <Sparkles className="h-3 w-3" />
-              Quick Tips
-            </h4>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>• Use <code className="bg-muted px-1 rounded">#</code> for optional digits, <code className="bg-muted px-1 rounded">0</code> for required digits</li>
-              <li>• Add commas for thousands: <code className="bg-muted px-1 rounded">#,##0</code></li>
-              <li>• Percentages multiply by 100: <code className="bg-muted px-1 rounded">0%</code></li>
-              <li>• Wrap text in quotes: <code className="bg-muted px-1 rounded">"$"0.00</code></li>
-              <li>• Use semicolons for positive;negative;zero formats</li>
-              <li>• <strong>Unicode symbols:</strong> Change color with <code className="bg-muted px-1 rounded">[Red]</code>, <code className="bg-muted px-1 rounded">[Green]</code>, or <code className="bg-muted px-1 rounded">[#FF0000]</code></li>
-              <li>• <strong>Symbol size:</strong> Controlled by the column's font size in the Styling tab</li>
-              <li>• <strong>Combine with values:</strong> <code className="bg-muted px-1 rounded">[Green]"✓ "#,##0</code> shows check + number</li>
-            </ul>
-          </div>
+          {uiMode === 'advanced' && (
+            <CollapsibleSection
+              id="format-tips"
+              title="Format Syntax Guide"
+              description="Learn how to create custom format strings"
+              defaultExpanded={false}
+              helpText="Excel-style format strings support numbers, dates, colors, and custom text"
+            >
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>• Use <code className="bg-muted px-1 rounded">#</code> for optional digits, <code className="bg-muted px-1 rounded">0</code> for required digits</li>
+                <li>• Add commas for thousands: <code className="bg-muted px-1 rounded">#,##0</code></li>
+                <li>• Percentages multiply by 100: <code className="bg-muted px-1 rounded">0%</code></li>
+                <li>• Wrap text in quotes: <code className="bg-muted px-1 rounded">"$"0.00</code></li>
+                <li>• Use semicolons for positive;negative;zero formats</li>
+                <li>• <strong>Unicode symbols:</strong> Change color with <code className="bg-muted px-1 rounded">[Red]</code>, <code className="bg-muted px-1 rounded">[Green]</code>, or <code className="bg-muted px-1 rounded">[#FF0000]</code></li>
+                <li>• <strong>Symbol size:</strong> Controlled by the column's font size in the Styling tab</li>
+                <li>• <strong>Combine with values:</strong> <code className="bg-muted px-1 rounded">[Green]"✓ "#,##0</code> shows check + number</li>
+              </ul>
+            </CollapsibleSection>
+          )}
         </div>
       </div>
 
