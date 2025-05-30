@@ -24,6 +24,13 @@
   transition: opacity 150ms ease-out;
 }
 
+/* Profile switching transition - using transform for better performance */
+.ag-root-wrapper.profile-switching {
+  opacity: 0.98;
+  transform: scale(0.998);
+  transition: opacity 100ms ease-out, transform 100ms ease-out;
+}
+
 /* Prevent layout thrashing */
 .ag-header-viewport,
 .ag-body-viewport {

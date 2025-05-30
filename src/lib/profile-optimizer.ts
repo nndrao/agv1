@@ -196,6 +196,7 @@ class ProfileOptimizer {
       onProgress?: (progress: number) => void;
     } = {}
   ) {
+    const startTime = performance.now();
     perfMonitor.mark('profile-switch-start');
     
     // Ensure profile is preprocessed
@@ -223,13 +224,15 @@ class ProfileOptimizer {
     // Batch all updates
     this.batchUpdates(() => {
       let progress = 0;
-      const totalSteps = 4;
+      const totalSteps = Object.keys(diff).filter(key => diff[key as keyof ProfileDiff]).length;
       
-      // Step 1: Apply column definitions if changed
+      // Collect all updates to apply in a single transaction
+      const gridUpdates: any = {};
+      let needsHeaderRefresh = false;
+      let needsFilterRefresh = false;
+      
+      // Step 1: Prepare column definitions if changed
       if (diff.columnDefsChanged && cached.processedColumnDefs.length > 0) {
-        // Store current filter model to reapply after column update
-        const currentFilterModel = gridApi.getFilterModel();
-        
         // Get current defaultColDef to ensure it's preserved
         const defaultColDef = gridApi.getGridOption('defaultColDef') || {
           flex: 1,
@@ -244,76 +247,69 @@ class ProfileOptimizer {
           useValueFormatterForExport: true,
         };
         
-        // Update both columnDefs and defaultColDef to ensure consistency
-        gridApi.updateGridOptions({
-          columnDefs: cached.processedColumnDefs,
-          defaultColDef: defaultColDef
-        });
+        gridUpdates.columnDefs = cached.processedColumnDefs;
+        gridUpdates.defaultColDef = defaultColDef;
         
-        // After setting column definitions, we need to ensure the grid is fully updated
-        setTimeout(() => {
-          // Force a complete refresh of the grid structure
-          gridApi.refreshHeader();
-          gridApi.refreshCells({ force: true });
-          
-          // Reapply filter model to ensure filters are displayed
-          if (currentFilterModel && Object.keys(currentFilterModel).length > 0) {
-            gridApi.setFilterModel(currentFilterModel);
-          }
-          
-          // Final refresh to ensure floating filters are visible
-          setTimeout(() => {
-            gridApi.refreshFilters();
-          }, 50);
-        }, 100);
+        // Check if we need header refresh
+        needsHeaderRefresh = cached.processedColumnDefs.some(col => 
+          col.floatingFilter !== false || col.headerStyle
+        );
         
         progress++;
         options.onProgress?.(progress / totalSteps);
       }
       
-      // Step 2: Apply column state (most visible change)
-      if (diff.columnStateChanged && profile.gridState.columnState) {
-        this.scheduleUpdate('columnState', () => {
+      // Apply all grid updates in one call
+      if (Object.keys(gridUpdates).length > 0) {
+        gridApi.updateGridOptions(gridUpdates);
+      }
+      
+      // Batch all remaining state updates into a single operation
+      this.scheduleUpdate('profileState', () => {
+        // Apply column state, sort, and filter in optimal order
+        
+        // 1. Column state (includes visibility, width, position)
+        if (diff.columnStateChanged && profile.gridState.columnState) {
           gridApi.applyColumnState({
             state: profile.gridState.columnState,
             applyOrder: true
           });
           progress++;
           options.onProgress?.(progress / totalSteps);
-        }, 1); // Highest priority
-      }
-      
-      // Step 3: Apply filters (lower priority)
-      if (diff.filterModelChanged) {
-        this.scheduleUpdate('filterModel', () => {
-          // Clear existing filters first, then apply new ones
-          gridApi.setFilterModel(null);
-          if (profile.gridState.filterModel && Object.keys(profile.gridState.filterModel).length > 0) {
-            setTimeout(() => {
-              gridApi.setFilterModel(profile.gridState.filterModel);
-            }, 10);
-          }
+        }
+        
+        // 2. Sort model (part of column state)
+        if (diff.sortModelChanged && profile.gridState.sortModel?.length > 0) {
+          const sortState = profile.gridState.sortModel.map(sort => ({
+            colId: sort.colId,
+            sort: sort.sort,
+            sortIndex: sort.sortIndex
+          }));
+          gridApi.applyColumnState({ state: sortState });
           progress++;
           options.onProgress?.(progress / totalSteps);
-        }, 2);
-      }
-      
-      // Step 4: Apply sort (lowest priority)
-      if (diff.sortModelChanged) {
-        this.scheduleUpdate('sortModel', () => {
-          if (profile.gridState.sortModel && profile.gridState.sortModel.length > 0) {
-            gridApi.applyColumnState({
-              state: profile.gridState.sortModel.map(sort => ({
-                colId: sort.colId,
-                sort: sort.sort,
-                sortIndex: sort.sortIndex
-              }))
-            });
-          }
+        }
+        
+        // 3. Filter model (apply after column state)
+        if (diff.filterModelChanged) {
+          gridApi.setFilterModel(profile.gridState.filterModel || {});
+          needsFilterRefresh = true;
           progress++;
           options.onProgress?.(progress / totalSteps);
-        }, 3);
-      }
+        }
+        
+        // 4. Single refresh at the end if needed
+        if (needsHeaderRefresh || needsFilterRefresh) {
+          requestAnimationFrame(() => {
+            if (needsHeaderRefresh) {
+              gridApi.refreshHeader();
+            }
+            if (needsFilterRefresh) {
+              gridApi.refreshFilters();
+            }
+          });
+        }
+      }, 1); // High priority
       
       // Apply grid options if changed
       if (diff.gridOptionsChanged && profile.gridState.gridOptions) {
@@ -327,6 +323,23 @@ class ProfileOptimizer {
             gridApi.setGridOption('headerHeight', options.headerHeight);
           }
         }, 4);
+      }
+    });
+    
+    // Log performance metrics
+    const endTime = performance.now();
+    const switchTime = endTime - startTime;
+    
+    console.log('[ProfileOptimizer] Profile switch completed:', {
+      profileId: profile.id,
+      profileName: profile.name,
+      switchTime: `${switchTime.toFixed(1)}ms`,
+      operations: {
+        columnDefsChanged: diff.columnDefsChanged,
+        columnStateChanged: diff.columnStateChanged,
+        filterModelChanged: diff.filterModelChanged,
+        sortModelChanged: diff.sortModelChanged,
+        gridOptionsChanged: diff.gridOptionsChanged
       }
     });
     
@@ -370,22 +383,19 @@ class ProfileOptimizer {
   }
   
   private showTransitionEffect(gridApi: GridApi) {
-    // Get the grid wrapper element - AG-Grid doesn't have getGridBodyElement()
-    // We need to get the grid's DOM element through the grid's wrapper
+    // Get the grid wrapper element
     const gridElement = document.querySelector('.ag-root-wrapper') as HTMLElement;
     if (!gridElement) return;
     
-    // Add transition class
-    gridElement.style.transition = 'opacity 150ms ease-out';
-    gridElement.style.opacity = '0.7';
+    // Use CSS classes for better performance
+    gridElement.classList.add('profile-switching');
     
-    // Remove transition after animation
-    setTimeout(() => {
-      gridElement.style.opacity = '1';
-      setTimeout(() => {
-        gridElement.style.transition = '';
-      }, 150);
-    }, 50);
+    // Remove class after animation completes
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        gridElement.classList.remove('profile-switching');
+      });
+    });
   }
   
   private hashObject(obj: any): string {
