@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ModuleRegistry, themeQuartz, GridApi, ColDef as AgColDef } from 'ag-grid-community';
 import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
+import { perfMonitor } from '@/lib/performance-monitor';
 import { DataTableToolbar } from './data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
@@ -9,8 +10,10 @@ import { useProfileStore, useActiveProfile, GridProfile } from '@/stores/profile
 import { DebugProfile } from './debug-profile';
 import { useToast } from '@/hooks/use-toast';
 import { createExcelFormatter } from './utils/formatters';
+import { profileOptimizer } from '@/lib/profile-optimizer';
 import './alignment-styles.css';
 import './format-styles.css';
+import './profile-transitions.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 
@@ -56,7 +59,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   
   // Profile management - moved before state initialization
   const activeProfile = useActiveProfile();
-  const { updateProfile } = useProfileStore();
+  const { updateProfile, getColumnDefs, saveColumnCustomizations } = useProfileStore();
   
   const [selectedFont, setSelectedFont] = useState(() => {
     // Initialize with saved font if available
@@ -68,12 +71,15 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const columnDefsWithStylesRef = useRef<ColumnDef[]>([]);
   
   const [currentColumnDefs, setCurrentColumnDefs] = useState<ColumnDef[]>(() => {
-    // Initialize with saved column definitions if available
-    if (activeProfile?.gridState?.columnDefs?.length > 0) {
+    // Try to get column definitions from profile (will use lightweight format if available)
+    const savedColumnDefs = getColumnDefs();
+    
+    if (savedColumnDefs && savedColumnDefs.length > 0) {
       console.log('[DataTable] Initializing with saved columnDefs from profile:', {
-        profileName: activeProfile.name,
-        columnCount: activeProfile.gridState.columnDefs.length,
-        sampleColumns: activeProfile.gridState.columnDefs.slice(0, 3).map(col => ({
+        profileName: activeProfile?.name,
+        columnCount: savedColumnDefs.length,
+        hasLightweightFormat: !!(activeProfile?.gridState?.columnCustomizations),
+        sampleColumns: savedColumnDefs.slice(0, 3).map(col => ({
           field: col.field,
           headerName: col.headerName,
           hasHeaderStyle: !!col.headerStyle,
@@ -83,84 +89,12 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           editable: col.editable
         }))
       });
-      // Process column definitions to restore headerStyle functions
-      const processed = activeProfile.gridState.columnDefs.map(col => {
-        const processedCol = { ...col };
-        
-        // Clean invalid properties
-        delete processedCol.valueFormat;
-        delete processedCol._hasFormatter;
-        delete processedCol.excelFormat;
-        
-        // Convert headerStyle objects back to functions
-        if (processedCol.headerStyle) {
-          if (typeof processedCol.headerStyle === 'object') {
-            const styleConfig = processedCol.headerStyle as HeaderStyleConfig;
-            
-            // Check if it's our special format with regular/floating styles
-            if (styleConfig._isHeaderStyleConfig) {
-              console.log('[DataTable] Initial state - Converting headerStyle config for column:', {
-                field: processedCol.field,
-                hasRegular: !!styleConfig.regular,
-                hasFloating: !!styleConfig.floating
-              });
-              
-              processedCol.headerStyle = ((params: { floatingFilter?: boolean }) => {
-                console.log('[DataTable] Initial headerStyle function called:', {
-                  field: processedCol.field,
-                  floatingFilter: params?.floatingFilter
-                });
-                
-                if (params?.floatingFilter) {
-                  return styleConfig.floating || null;
-                }
-                return styleConfig.regular || null;
-              }) as AgColDef['headerStyle'];
-            } else {
-              // Legacy format - just a style object
-              const styleObject = processedCol.headerStyle as React.CSSProperties;
-              console.log('[DataTable] Initial state - Converting legacy headerStyle for column:', {
-                field: processedCol.field,
-                styleObject: styleObject
-              });
-              
-              processedCol.headerStyle = ((params: { floatingFilter?: boolean }) => {
-                if (!params?.floatingFilter) {
-                  return styleObject;
-                }
-                return null;
-              }) as AgColDef['headerStyle'];
-            }
-          }
-        }
-        
-        // Recreate valueFormatter from saved config
-        if (processedCol.valueFormatter && typeof processedCol.valueFormatter === 'object') {
-          const formatterConfig = processedCol.valueFormatter as FormatterConfig;
-          
-          if (formatterConfig._isFormatterConfig && formatterConfig.type === 'excel' && formatterConfig.formatString) {
-            console.log('[DataTable] Recreating valueFormatter from config:', {
-              field: processedCol.field,
-              formatString: formatterConfig.formatString
-            });
-            
-            // Recreate the formatter function
-            const formatter = createExcelFormatter(formatterConfig.formatString);
-            processedCol.valueFormatter = formatter;
-            processedCol.exportValueFormatter = formatter;
-          } else {
-            // Invalid formatter config, remove it
-            delete processedCol.valueFormatter;
-            delete processedCol.exportValueFormatter;
-          }
-        }
-        
-        return processedCol;
-      });
+      
       // Initialize the ref
-      columnDefsWithStylesRef.current = processed;
-      return processed;
+      columnDefsWithStylesRef.current = savedColumnDefs;
+      return savedColumnDefs;
     }
+    
     console.log('[DataTable] Initializing with default columnDefs');
     columnDefsWithStylesRef.current = columnDefs;
     return columnDefs;
@@ -171,19 +105,16 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Initialize default profile with column definitions if empty
   useEffect(() => {
     if (activeProfile && activeProfile.id === 'default-profile' && 
+        !activeProfile.gridState.columnCustomizations && 
         (!activeProfile.gridState.columnDefs || activeProfile.gridState.columnDefs.length === 0)) {
-      console.log('[DataTable] Initializing default profile with columnDefs:', {
+      console.log('[DataTable] Initializing default profile with base columnDefs:', {
         columnDefsCount: columnDefs.length,
         activeProfileId: activeProfile.id
       });
-      updateProfile('default-profile', {
-        gridState: {
-          ...activeProfile.gridState,
-          columnDefs: columnDefs
-        }
-      });
+      // Save base column definitions for the default profile
+      saveColumnCustomizations(columnDefs, columnDefs);
     }
-  }, [activeProfile, columnDefs, updateProfile]);
+  }, [activeProfile, columnDefs, saveColumnCustomizations]);
 
   const theme = useMemo(() => {
     const lightTheme = {
@@ -302,169 +233,26 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     // Font changes are only saved when Save Profile button is clicked
   };
 
-  // Function to apply grid states after column definitions
-  const applyGridStates = useCallback((api: GridApi, gridState: Partial<GridProfile['gridState']>) => {
-    console.log('[DataTable] Applying grid states after column customizations');
-    
-    // Apply states in a specific order with delays to ensure proper application
-    setTimeout(() => {
-      // 1. Apply column state (order, width, visibility)
-      if (gridState.columnState) {
-        console.log('[DataTable] Applying columnState:', {
-          count: gridState.columnState.length
-        });
-        api.applyColumnState({
-          state: gridState.columnState,
-          applyOrder: true
-        });
-      }
-      
-      // 2. Apply filter model after column state
-      setTimeout(() => {
-        if (gridState.filterModel) {
-          console.log('[DataTable] Applying filterModel:', {
-            filterCount: Object.keys(gridState.filterModel).length
-          });
-          api.setFilterModel(gridState.filterModel);
-        }
-        
-        // 3. Apply sort model after filters
-        setTimeout(() => {
-          if (gridState.sortModel) {
-            console.log('[DataTable] Applying sortModel:', {
-              sortCount: gridState.sortModel.length
-            });
-            api.applyColumnState({
-              state: gridState.sortModel.map(sort => ({
-                colId: sort.colId,
-                sort: sort.sort,
-                sortIndex: sort.sortIndex
-              }))
-            });
-          }
-          
-          // 4. Final refresh to ensure everything is applied
-          setTimeout(() => {
-            console.log('[DataTable] Final refresh after all states applied');
-            api.refreshCells({ force: true });
-            api.refreshHeader();
-            api.redrawRows();
-            
-            // Show success toast for profile application
-            if (activeProfile) {
-              toast({
-                title: 'Profile loaded successfully',
-                description: `Applied settings from "${activeProfile.name}" profile`,
-              });
-            }
-          }, 50);
-        }, 50);
-      }, 50);
-    }, 100); // Initial delay to ensure column definitions are fully applied
-  }, [activeProfile, toast]);
 
   const handleProfileChange = useCallback((profile: GridProfile) => {
     console.log('[DataTable] handleProfileChange:', {
       profileId: profile.id,
       profileName: profile.name,
       hasFont: !!profile.gridState.font,
-      font: profile.gridState.font,
-      hasColumnDefs: !!profile.gridState.columnDefs,
-      columnDefsCount: profile.gridState.columnDefs?.length
+      font: profile.gridState.font
     });
     
-    // IMPORTANT: Clear the column definitions ref to prevent old styles from persisting
-    columnDefsWithStylesRef.current = [];
+    // Get column definitions from profile store (already processed)
+    const profileColumnDefs = getColumnDefs(profile.id);
     
-    // Apply column definitions from profile or reset to original if none
-    if (profile.gridState.columnDefs && profile.gridState.columnDefs.length > 0) {
+    if (profileColumnDefs && profileColumnDefs.length > 0) {
       console.log('[DataTable] Updating currentColumnDefs from profile:', {
         profileName: profile.name,
-        columnCount: profile.gridState.columnDefs.length,
-        sampleColumns: profile.gridState.columnDefs.slice(0, 3).map(col => ({
-          field: col.field,
-          headerName: col.headerName,
-          hasHeaderStyle: !!col.headerStyle,
-          hasCellStyle: !!col.cellStyle,
-          sortable: col.sortable,
-          resizable: col.resizable,
-          editable: col.editable
-        }))
+        columnCount: profileColumnDefs.length
       });
       
-      // Process column definitions to restore headerStyle functions
-      const processedDefs = profile.gridState.columnDefs.map(col => {
-        const processedCol = { ...col };
-        
-        // Clean invalid properties
-        delete processedCol.valueFormat;
-        delete processedCol._hasFormatter;
-        delete processedCol.excelFormat;
-        
-        // Convert headerStyle objects back to functions
-        if (processedCol.headerStyle) {
-          if (typeof processedCol.headerStyle === 'object') {
-            const styleConfig = processedCol.headerStyle as HeaderStyleConfig;
-            
-            // Check if it's our special format with regular/floating styles
-            if (styleConfig._isHeaderStyleConfig) {
-              console.log('[DataTable] Profile change - Converting headerStyle config for column:', {
-                field: processedCol.field,
-                hasRegular: !!styleConfig.regular,
-                hasFloating: !!styleConfig.floating
-              });
-              
-              processedCol.headerStyle = ((params: { floatingFilter?: boolean }) => {
-                if (params?.floatingFilter) {
-                  return styleConfig.floating || null;
-                }
-                return styleConfig.regular || null;
-              }) as AgColDef['headerStyle'];
-            } else {
-              // Legacy format - just a style object
-              const styleObject = processedCol.headerStyle as React.CSSProperties;
-              console.log('[DataTable] Profile change - Converting legacy headerStyle for column:', {
-                field: processedCol.field,
-                styleObject: styleObject
-              });
-              
-              processedCol.headerStyle = ((params: { floatingFilter?: boolean }) => {
-                if (!params?.floatingFilter) {
-                  return styleObject;
-                }
-                return null;
-              }) as AgColDef['headerStyle'];
-            }
-          }
-        }
-        
-        // Recreate valueFormatter from saved config
-        if (processedCol.valueFormatter && typeof processedCol.valueFormatter === 'object') {
-          const formatterConfig = processedCol.valueFormatter as FormatterConfig;
-          
-          if (formatterConfig._isFormatterConfig && formatterConfig.type === 'excel' && formatterConfig.formatString) {
-            console.log('[DataTable] Profile change - Recreating valueFormatter from config:', {
-              field: processedCol.field,
-              formatString: formatterConfig.formatString
-            });
-            
-            // Recreate the formatter function
-            const formatter = createExcelFormatter(formatterConfig.formatString);
-            processedCol.valueFormatter = formatter;
-            processedCol.exportValueFormatter = formatter;
-          } else {
-            // Invalid formatter config, remove it
-            delete processedCol.valueFormatter;
-            delete processedCol.exportValueFormatter;
-          }
-        }
-        
-        return processedCol;
-      });
-      
-      setCurrentColumnDefs(processedDefs);
-      // Update the ref as well
-      columnDefsWithStylesRef.current = processedDefs;
+      setCurrentColumnDefs(profileColumnDefs);
+      columnDefsWithStylesRef.current = profileColumnDefs;
     } else {
       // Reset to original column definitions if profile has none
       console.log('[DataTable] Resetting to original columnDefs');
@@ -475,8 +263,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     // Apply font from profile or reset to default
     setSelectedFont(profile.gridState.font || 'monospace');
     
-    // The profile manager component handles applying the grid state to the grid API
-  }, [columnDefs]);
+    // The profile manager component handles applying the grid state to the grid API using the optimizer
+  }, [columnDefs, getColumnDefs]);
   
   const handleApplyColumnChanges = useCallback((updatedColumns: AgColDef[]) => {
     console.log('[DataTable] handleApplyColumnChanges:', {
@@ -539,6 +327,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           if ('exportValueFormatter' in updatedCol) mergedCol.exportValueFormatter = updatedCol.exportValueFormatter;
           if ('valueGetter' in updatedCol) mergedCol.valueGetter = updatedCol.valueGetter;
           if ('valueSetter' in updatedCol) mergedCol.valueSetter = updatedCol.valueSetter;
+          
           
           // Filter properties
           if (updatedCol.filter !== undefined) mergedCol.filter = updatedCol.filter;
@@ -644,8 +433,13 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       });
     });
     
+    // Clear optimizer cache for active profile since columns changed
+    if (activeProfile) {
+      profileOptimizer.clearCache(activeProfile.id);
+    }
+    
     // Column changes from dialog are only saved when Save Profile button is clicked
-  }, [toast]);
+  }, [activeProfile]);
 
   return (
     <div className="h-full w-full flex flex-col overflow-hidden">
@@ -688,173 +482,42 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
             ],
           }}
           getContextMenuItems={getContextMenuItems}
-          onGridReady={(params) => {
+          onGridReady={async (params) => {
+            perfMonitor.mark('grid-ready');
+            perfMonitor.measureFromStart('gridInitTime');
+            
             gridApiRef.current = params.api;
             
             console.log('[DataTable] onGridReady:', {
               hasActiveProfile: !!activeProfile,
               activeProfileId: activeProfile?.id,
               activeProfileName: activeProfile?.name,
-              hasGridState: !!activeProfile?.gridState,
-              columnDefsInProfile: activeProfile?.gridState?.columnDefs?.length,
-              columnDefsDefault: columnDefs.length
+              hasGridState: !!activeProfile?.gridState
             });
             
-            // Load active profile on grid ready
+            // Load active profile on grid ready using the optimizer
             if (activeProfile && activeProfile.gridState) {
-              const { gridState } = activeProfile;
-              
-              // Apply column definitions first (includes all customizations)
-              if (gridState.columnDefs && gridState.columnDefs.length > 0) {
-                console.log('[DataTable] Applying profile columnDefs on grid ready:', {
-                  count: gridState.columnDefs.length,
-                  hasCustomizations: gridState.columnDefs.some(col => 
-                    col.cellStyle || col.valueFormatter || col.cellClass || col.headerClass
-                  )
-                });
-                
-                // Process column definitions to restore headerStyle functions
-                const processedColumnDefs = gridState.columnDefs.map(col => {
-                  const processed = { ...col };
-                  
-                  // Clean invalid properties
-                  delete processed.valueFormat;
-                  delete processed._hasFormatter;
-                  delete processed.excelFormat;
-                  
-                  // Convert headerStyle objects back to functions
-                  if (processed.headerStyle) {
-                    if (typeof processed.headerStyle === 'object') {
-                      const styleConfig = processed.headerStyle as HeaderStyleConfig;
-                      
-                      // Check if it's our special format with regular/floating styles
-                      if (styleConfig._isHeaderStyleConfig) {
-                        console.log('[DataTable] Converting headerStyle config for column:', {
-                          field: processed.field,
-                          hasRegular: !!styleConfig.regular,
-                          hasFloating: !!styleConfig.floating
-                        });
-                        
-                        processed.headerStyle = ((params: { floatingFilter?: boolean }) => {
-                          console.log('[DataTable] headerStyle function called:', {
-                            field: processed.field,
-                            floatingFilter: params?.floatingFilter
-                          });
-                          
-                          if (params?.floatingFilter) {
-                            return styleConfig.floating || null;
-                          }
-                          return styleConfig.regular || null;
-                        }) as AgColDef['headerStyle'];
-                      } else {
-                        // Legacy format - just a style object
-                        const styleObject = processed.headerStyle as React.CSSProperties;
-                        console.log('[DataTable] Converting legacy headerStyle for column:', {
-                          field: processed.field,
-                          styleObject: styleObject
-                        });
-                        
-                        processed.headerStyle = ((params: { floatingFilter?: boolean }) => {
-                          if (!params?.floatingFilter) {
-                            return styleObject;
-                          }
-                          return null;
-                        }) as AgColDef['headerStyle'];
-                      }
-                    }
+              // The column definitions are already set in the grid from the initial state
+              // Just apply the grid states (column state, filters, sorts)
+              await profileOptimizer.applyProfile(
+                params.api,
+                activeProfile,
+                null, // No previous profile on initial load
+                {
+                  showTransition: false, // No transition on initial load
+                  onProgress: (progress) => {
+                    console.log(`[DataTable] Initial profile load progress: ${Math.round(progress * 100)}%`);
                   }
-                  
-                  // Recreate valueFormatter from saved config
-                  if (processed.valueFormatter && typeof processed.valueFormatter === 'object') {
-                    const formatterConfig = processed.valueFormatter as FormatterConfig;
-                    
-                    if (formatterConfig._isFormatterConfig && formatterConfig.type === 'excel' && formatterConfig.formatString) {
-                      console.log('[DataTable] onGridReady - Recreating valueFormatter from config:', {
-                        field: processed.field,
-                        formatString: formatterConfig.formatString
-                      });
-                      
-                      // Recreate the formatter function
-                      const formatter = createExcelFormatter(formatterConfig.formatString);
-                      processed.valueFormatter = formatter;
-                      processed.exportValueFormatter = formatter;
-                    } else {
-                      // Invalid formatter config, remove it
-                      delete processed.valueFormatter;
-                      delete processed.exportValueFormatter;
-                    }
-                  }
-                  
-                  return processed;
-                });
-                
-                // Log sample columns with customizations
-                const customizedCols = processedColumnDefs.filter(col => 
-                  col.cellClass || col.headerClass || col.cellStyle || col.headerStyle
-                ).slice(0, 5);
-                customizedCols.forEach(col => {
-                  console.log('[DataTable] Column with customizations:', {
-                    field: col.field,
-                    cellClass: col.cellClass,
-                    headerClass: col.headerClass,
-                    hasCellStyle: !!col.cellStyle,
-                    hasHeaderStyle: !!col.headerStyle,
-                    cellStyleType: typeof col.cellStyle,
-                    headerStyleType: typeof col.headerStyle,
-                    cellStyle: typeof col.cellStyle === 'object' ? col.cellStyle : 'function',
-                    headerStyle: typeof col.headerStyle === 'object' ? col.headerStyle : 'function'
-                  });
-                });
-                
-                params.api.setGridOption('columnDefs', processedColumnDefs);
-                setCurrentColumnDefs(processedColumnDefs);
-                // Store the processed columns with styles
-                columnDefsWithStylesRef.current = processedColumnDefs;
-                
-                // Force header refresh to ensure styles are applied
-                params.api.refreshHeader();
-                
-                // Apply states after columnDefs are set
-                applyGridStates(params.api, gridState);
-              } else {
-                console.log('[DataTable] No columnDefs in profile, using default');
-                // Even with default columns, apply saved states
-                if (gridState) {
-                  applyGridStates(params.api, gridState);
                 }
-              }
-                
+              );
               
               // Apply font immediately (doesn't depend on grid state)
-              if (gridState.font) {
-                console.log('[DataTable] Applying font:', gridState.font);
-                setSelectedFont(gridState.font);
+              if (activeProfile.gridState.font) {
+                console.log('[DataTable] Applying font:', activeProfile.gridState.font);
+                setSelectedFont(activeProfile.gridState.font);
               }
               
-              // Debug: Check if classes are actually applied after all states
-              setTimeout(() => {
-                const headerCells = document.querySelectorAll('.ag-header-cell');
-                const cellsWithClasses = Array.from(headerCells).filter(h => 
-                  h.className.includes('header-align-') || h.className.includes('header-valign-')
-                );
-                console.log('[DataTable] Headers with alignment classes:', cellsWithClasses.length);
-                if (cellsWithClasses.length > 0) {
-                  console.log('[DataTable] Sample header classes:', cellsWithClasses[0].className);
-                }
-                
-                const cells = document.querySelectorAll('.ag-cell');
-                const cellsWithAlignment = Array.from(cells).filter(c => 
-                  c.className.includes('cell-align-') || c.className.includes('cell-valign-')
-                );
-                console.log('[DataTable] Cells with alignment classes:', cellsWithAlignment.length);
-                
-                // Check if styles are actually working
-                if (cellsWithAlignment.length > 0) {
-                  const computedStyle = window.getComputedStyle(cellsWithAlignment[0]);
-                  console.log('[DataTable] Cell computed text-align:', computedStyle.textAlign);
-                  console.log('[DataTable] Cell computed justify-content:', computedStyle.justifyContent);
-                }
-              }, 500); // Check after all states have been applied
+              perfMonitor.measureFromStart('gridFullyLoadedTime');
             } else {
               console.log('[DataTable] No active profile or gridState to apply');
             }

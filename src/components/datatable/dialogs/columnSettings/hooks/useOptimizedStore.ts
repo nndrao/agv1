@@ -1,5 +1,6 @@
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { shallow } from 'zustand/shallow';
+import { useMemo } from 'react';
 
 // Optimized selectors for better performance
 export const useSelectedColumns = () => useColumnCustomizationStore(state => state.selectedColumns);
@@ -12,7 +13,7 @@ export const useColumnActions = () => useColumnCustomizationStore(
     updateBulkProperty: state.updateBulkProperty,
     updateBulkProperties: state.updateBulkProperties,
     setSelectedColumns: state.setSelectedColumns,
-    toggleColumn: state.toggleColumn,
+    toggleColumnSelection: state.toggleColumnSelection,
     applyChanges: state.applyChanges,
     resetChanges: state.resetChanges,
   }),
@@ -28,3 +29,41 @@ export const useColumnState = () => useColumnCustomizationStore(
   }),
   shallow
 );
+
+// Optimized hook for apply operations with memoized values
+export const useApplyOperations = () => {
+  const applyChanges = useColumnCustomizationStore(state => state.applyChanges);
+  const pendingChanges = useColumnCustomizationStore(state => state.pendingChanges);
+  
+  // Memoize pending changes count to avoid recalculation on every render
+  const pendingChangesCount = useMemo(() => {
+    return Array.from(pendingChanges.values()).reduce(
+      (acc, changes) => acc + Object.keys(changes).length, 
+      0
+    );
+  }, [pendingChanges]);
+  
+  // Memoize has changes check
+  const hasChanges = pendingChanges.size > 0;
+  
+  return {
+    applyChanges,
+    pendingChangesCount,
+    hasChanges
+  };
+};
+
+// Hook for dialog controls
+export const useDialogControls = () => {
+  return useColumnCustomizationStore(
+    state => ({
+      open: state.open,
+      setOpen: state.setOpen,
+      activeTab: state.activeTab,
+      setActiveTab: state.setActiveTab,
+      bulkActionsPanelCollapsed: state.bulkActionsPanelCollapsed,
+      setBulkActionsPanelCollapsed: state.setBulkActionsPanelCollapsed,
+    }),
+    shallow
+  );
+};

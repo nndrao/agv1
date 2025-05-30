@@ -163,42 +163,33 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
           return;
         }
         
-        // Use the existing Map when possible
-        const newPendingChanges = pendingChanges.size > 0 ? new Map(pendingChanges) : new Map();
+        // Reuse existing Map for better performance
+        const newPendingChanges = new Map(pendingChanges);
 
-        // Don't convert headerStyle to function here - do it only when applying
-        const processedValue = value;
-
-        // Use batch update for better performance
-        const updates: Array<[string, Partial<ColDef>]> = [];
-        
-        selectedColumns.forEach(colId => {
-          const existing = newPendingChanges.get(colId);
-          
-          if (value === undefined) {
+        // Process all updates in a single pass
+        if (value === undefined) {
+          // Delete property from selected columns
+          for (const colId of selectedColumns) {
+            const existing = newPendingChanges.get(colId);
             if (existing && property in existing) {
               const updated = { ...existing };
               delete updated[property as keyof ColDef];
               if (Object.keys(updated).length === 0) {
                 newPendingChanges.delete(colId);
               } else {
-                updates.push([colId, updated]);
+                newPendingChanges.set(colId, updated);
               }
             }
-          } else {
-            const updated = existing ? { ...existing, [property]: processedValue } : { [property]: processedValue };
-            updates.push([colId, updated]);
           }
-        });
-        
-        // Apply all updates at once
-        updates.forEach(([colId, changes]) => {
-          newPendingChanges.set(colId, changes);
-        });
+        } else {
+          // Add/update property for selected columns
+          for (const colId of selectedColumns) {
+            const existing = newPendingChanges.get(colId);
+            newPendingChanges.set(colId, existing ? { ...existing, [property]: value } : { [property]: value });
+          }
+        }
 
         set({ pendingChanges: newPendingChanges });
-
-        // Never apply immediately - changes are only saved when Apply buttons are clicked
       },
 
       updateBulkProperties: (properties) => {
@@ -244,16 +235,8 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       },
 
       applyChanges: () => {
+        const startTime = performance.now();
         const { columnDefinitions, pendingChanges } = get();
-        
-        console.log('[ColumnCustomizationStore] applyChanges called:', {
-          columnDefinitionsCount: columnDefinitions.size,
-          pendingChangesCount: pendingChanges.size,
-          pendingChangesDetails: Array.from(pendingChanges.entries()).map(([colId, changes]) => ({
-            colId,
-            changes: Object.keys(changes)
-          }))
-        });
         
         // Early return if no changes
         if (pendingChanges.size === 0) {
@@ -261,57 +244,36 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
           return Array.from(columnDefinitions.values());
         }
 
-        // Only update columns that have changes
-        const updatedColumns: ColDef[] = [];
-        const changedColIds = new Set(pendingChanges.keys());
-        
-        // Process columns in a single pass
-        for (const [colId, colDef] of columnDefinitions) {
-          if (changedColIds.has(colId)) {
-            const changes = pendingChanges.get(colId)!;
-            // Process changes to handle special cases
-            const processedChanges = { ...changes };
-            
-            // Only spread if we have actual changes
-            const updatedCol = Object.keys(processedChanges).length > 0 ? { ...colDef, ...processedChanges } : colDef;
-            updatedColumns.push(updatedCol);
-            
-            console.log('[ColumnCustomizationStore] Applied changes to column:', {
-              colId,
-              field: colDef.field,
-              headerName: updatedCol.headerName,
-              changesApplied: Object.keys(changes),
-              changesDetail: changes,
-              hasValueFormatter: !!updatedCol.valueFormatter,
-              hasCellStyle: !!updatedCol.cellStyle,
-              hasHeaderStyle: !!updatedCol.headerStyle,
-              hasCellClass: !!updatedCol.cellClass,
-              hasHeaderClass: !!updatedCol.headerClass,
-              cellStyleType: typeof updatedCol.cellStyle,
-              headerStyleType: typeof updatedCol.headerStyle,
-              headerStyle: updatedCol.headerStyle,
-              sortable: updatedCol.sortable,
-              resizable: updatedCol.resizable,
-              editable: updatedCol.editable
-            });
-          } else {
-            // Reuse existing object reference for unchanged columns
-            updatedColumns.push(colDef);
-          }
-        }
-
-        console.log('[ColumnCustomizationStore] Total columns updated:', {
-          totalColumns: updatedColumns.length,
-          columnsWithChanges: changedColIds.size,
-          columnsWithCustomizations: updatedColumns.filter(col => 
-            col.cellStyle || col.valueFormatter || col.cellClass || col.headerClass
-          ).length
+        console.log('[ColumnCustomizationStore] applyChanges called:', {
+          columnDefinitionsCount: columnDefinitions.size,
+          pendingChangesCount: pendingChanges.size
         });
 
-        // Batch state update
-        set({ 
-          pendingChanges: new Map(),
-          columnDefinitions: new Map(Array.from(columnDefinitions.entries()))
+        // Pre-allocate array with exact size for better performance
+        const updatedColumns = new Array(columnDefinitions.size);
+        let index = 0;
+        
+        // Process columns in a single pass with minimal object creation
+        for (const [colId, colDef] of columnDefinitions) {
+          const changes = pendingChanges.get(colId);
+          if (changes && Object.keys(changes).length > 0) {
+            // Only create new object if there are changes
+            updatedColumns[index] = { ...colDef, ...changes };
+          } else {
+            // Reuse existing object reference for unchanged columns
+            updatedColumns[index] = colDef;
+          }
+          index++;
+        }
+
+        // Clear pending changes immediately
+        set({ pendingChanges: new Map() });
+
+        const endTime = performance.now();
+        console.log('[ColumnCustomizationStore] applyChanges completed:', {
+          totalColumns: updatedColumns.length,
+          columnsWithChanges: pendingChanges.size,
+          executionTime: `${(endTime - startTime).toFixed(2)}ms`
         });
 
         return updatedColumns;

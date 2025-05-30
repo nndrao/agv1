@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Select,
   SelectContent,
@@ -45,6 +45,7 @@ import {
   GridProfile 
 } from '@/stores/profile.store';
 import { GridApi, ColDef, ColumnState } from 'ag-grid-community';
+import { profileOptimizer } from '@/lib/profile-optimizer';
 
 // Interface for style configurations
 interface HeaderStyleConfig {
@@ -69,6 +70,8 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     deleteProfile,
     duplicateProfile,
     saveCurrentState,
+    saveColumnCustomizations,
+    getColumnDefs,
     autoSave,
     setAutoSave,
     exportProfile,
@@ -81,6 +84,22 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
   const [profileDescription, setProfileDescription] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const previousProfileRef = useRef<GridProfile | null>(null);
+
+  // Preload profiles on mount
+  useEffect(() => {
+    if (profiles.length > 0) {
+      profileOptimizer.preloadAllProfiles(profiles);
+    }
+  }, [profiles]);
+
+  // Preprocess new profiles
+  useEffect(() => {
+    profiles.forEach(profile => {
+      profileOptimizer.preprocessProfile(profile);
+    });
+  }, [profiles]);
 
   // Function to apply profile states in sequence
   const applyProfileStates = (gridApi: GridApi, gridState: GridProfile['gridState'], profileName: string) => {
@@ -167,7 +186,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     }, 50);
   };
 
-  const handleProfileChange = (profileId: string) => {
+  const handleProfileChange = async (profileId: string) => {
     const profile = profiles.find(p => p.id === profileId);
     if (!profile) {
       console.warn('[ProfileManager] Profile not found:', profileId);
@@ -178,95 +197,72 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       profileId,
       profileName: profile.name,
       hasGridState: !!profile.gridState,
-      columnDefsCount: profile.gridState?.columnDefs?.length,
-      columnStateCount: profile.gridState?.columnState?.length,
       hasGridApi: !!gridApi
     });
 
-    // IMPORTANT: Clear all existing grid state before applying new profile
-    if (gridApi) {
-      console.log('[ProfileManager] Clearing existing grid state before profile switch');
-      
-      // 1. Clear all filters
-      gridApi.setFilterModel(null);
-      
-      // 2. Clear all sorts
-      gridApi.applyColumnState({
-        defaultState: { sort: null }
-      });
-      
-      // 3. Reset column state to defaults
-      gridApi.resetColumnState();
-      
-      // 4. Clear any cell selections
-      gridApi.deselectAll();
-      
-      // 5. Reset row heights to default
-      gridApi.resetRowHeights();
-      
-      // 6. Clear any custom cell styles by forcing a full refresh
-      gridApi.refreshCells({ force: true });
+    // Prevent double-switching
+    if (isSwitching) {
+      console.log('[ProfileManager] Already switching profiles, ignoring');
+      return;
     }
 
-    setActiveProfile(profileId);
-    
-    // Apply profile to grid
-    if (gridApi) {
-      // Always apply profile state, even if it appears empty
-      // (The default profile state might have been populated after initialization)
-      if (profile.gridState && profile.gridState.columnDefs && profile.gridState.columnDefs.length > 0) {
-        // Apply column definitions first (includes all customizations)
-        console.log('[ProfileManager] Applying columnDefs:', {
-          count: profile.gridState.columnDefs.length,
-          firstColumn: profile.gridState.columnDefs[0]?.field,
-          hasCustomizations: profile.gridState.columnDefs.some(col => 
-            col.cellStyle || col.valueFormatter || col.cellClass
-          )
-        });
-        
-        // Process column definitions to ensure they're clean
-        const processedColumnDefs = profile.gridState.columnDefs.map(col => {
-          const cleanCol = { ...col };
-          
-          // Convert headerStyle if needed
-          if (cleanCol.headerStyle && typeof cleanCol.headerStyle === 'object') {
-            const styleConfig = cleanCol.headerStyle as HeaderStyleConfig;
-            if (styleConfig._isHeaderStyleConfig) {
-              cleanCol.headerStyle = ((params: { floatingFilter?: boolean }) => {
-                if (params?.floatingFilter) {
-                  return styleConfig.floating || null;
-                }
-                return styleConfig.regular || null;
-              }) as AgColDef['headerStyle'];
+    setIsSwitching(true);
+    const startTime = performance.now();
+
+    try {
+      // Update store immediately for optimistic UI
+      setActiveProfile(profileId);
+      
+      if (gridApi) {
+        // Use the optimizer for fast switching
+        await profileOptimizer.applyProfile(
+          gridApi,
+          profile,
+          previousProfileRef.current,
+          {
+            showTransition: true,
+            onProgress: (progress) => {
+              console.log(`[ProfileManager] Profile switch progress: ${Math.round(progress * 100)}%`);
             }
           }
-          
-          return cleanCol;
-        });
-        
-        gridApi.setGridOption('columnDefs', processedColumnDefs);
-        
-        // Delay to ensure column definitions are fully applied before applying states
-        setTimeout(() => {
-          // Apply states in sequence with delays
-          applyProfileStates(gridApi, profile.gridState, profile.name);
-        }, 200); // Longer initial delay for profile switching
-      } else {
-        // Profile has no saved state - just show default grid
-        console.log('[ProfileManager] Profile has no saved state, keeping default grid configuration');
-        
-        // Refresh grid to ensure it's in a clean state
-        gridApi.refreshCells({ force: true });
-        gridApi.refreshHeader();
-        
-        toast({
-          title: 'Profile loaded',
-          description: `"${profile.name}" profile has no saved settings yet. Save current state to this profile when ready.`,
-        });
-      }
-    }
+        );
 
-    onProfileChange?.(profile);
+        // Get column definitions for this profile
+        const profileColumnDefs = getColumnDefs(profileId);
+        
+        if (!profileColumnDefs || profileColumnDefs.length === 0) {
+          toast({
+            title: 'Profile loaded',
+            description: `"${profile.name}" profile has no saved settings yet. Save current state to this profile when ready.`,
+          });
+        } else {
+          const switchTime = performance.now() - startTime;
+          console.log(`[ProfileManager] Profile switch completed in ${switchTime.toFixed(0)}ms`);
+          
+          // Only show toast if switch took longer than 100ms
+          if (switchTime > 100) {
+            toast({
+              title: 'Profile applied',
+              description: `Successfully loaded "${profile.name}" profile`,
+            });
+          }
+        }
+      }
+
+      // Update previous profile reference
+      previousProfileRef.current = profile;
+      onProfileChange?.(profile);
+      
+    } catch (error) {
+      console.error('[ProfileManager] Error switching profiles:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to switch profile. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSwitching(false);
+    }
   };
 
   const handleSaveCurrentState = async () => {
@@ -350,6 +346,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       delete cleaned._hasFormatter;
       delete cleaned.excelFormat;
       
+      
       // Store headerStyle as a serializable format that includes the logic
       if (cleaned.headerStyle && typeof cleaned.headerStyle === 'function') {
         try {
@@ -404,14 +401,6 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       paginationPageSize: gridApi.getGridOption('paginationPageSize')
     };
     
-    const gridState = {
-      columnDefs: cleanedColumnDefs,
-      columnState,
-      filterModel,
-      sortModel,
-      gridOptions
-    };
-
     console.log('[ProfileManager] handleSaveCurrentState:', {
       activeProfileId: activeProfile.id,
       activeProfileName: activeProfile.name,
@@ -431,7 +420,19 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       // Add a small delay to show the loading state
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      saveCurrentState(gridState);
+      // Save column customizations using the lightweight format
+      saveColumnCustomizations(cleanedColumnDefs, activeProfile.gridState?.baseColumnDefs || columnDefs);
+      
+      // Save other grid state (not column definitions)
+      saveCurrentState({
+        columnState,
+        filterModel,
+        sortModel,
+        gridOptions
+      });
+      
+      // Clear optimizer cache for this profile so it gets reprocessed
+      profileOptimizer.clearCache(activeProfile.id);
       
       toast({
         title: 'Profile saved',
@@ -562,21 +563,32 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-muted-foreground" />
-          <Select value={activeProfile?.id || ''} onValueChange={handleProfileChange}>
-            <SelectTrigger className="w-[200px] h-8">
-              <SelectValue placeholder="Select profile" />
-            </SelectTrigger>
-            <SelectContent>
-              {profiles.map((profile) => (
-                <SelectItem key={profile.id} value={profile.id}>
-                  {profile.name}
-                  {profile.id === 'default' && (
-                    <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative">
+            <Select 
+              value={activeProfile?.id || ''} 
+              onValueChange={handleProfileChange}
+              disabled={isSwitching}
+            >
+              <SelectTrigger className="w-[200px] h-8">
+                <SelectValue placeholder="Select profile" />
+              </SelectTrigger>
+              <SelectContent>
+                {profiles.map((profile) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.name}
+                    {profile.id === 'default-profile' && (
+                      <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isSwitching && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            )}
+          </div>
         </div>
 
         <Button

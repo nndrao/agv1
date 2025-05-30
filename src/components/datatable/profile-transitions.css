@@ -1,0 +1,69 @@
+/* Profile switching performance optimizations */
+
+/* Use GPU acceleration for grid transitions */
+.ag-root-wrapper {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Optimize column transitions */
+.ag-header-cell,
+.ag-cell {
+  will-change: width, transform;
+  transition: width 150ms ease-out, transform 150ms ease-out;
+}
+
+/* Disable expensive transitions during profile switch */
+.profile-switching .ag-header-cell,
+.profile-switching .ag-cell {
+  transition: none !important;
+}
+
+/* Smooth opacity transition for profile switch */
+.profile-transition {
+  transition: opacity 150ms ease-out;
+}
+
+/* Prevent layout thrashing */
+.ag-header-viewport,
+.ag-body-viewport {
+  contain: layout style paint;
+}
+
+/* Optimize scrolling performance */
+.ag-body-viewport {
+  will-change: scroll-position;
+}
+
+/* Reduce repaints during column resize */
+.ag-header-cell-resize {
+  will-change: width;
+}
+
+/* Loading overlay styles */
+.profile-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(var(--background), 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease-out;
+}
+
+.profile-loading-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Instant feedback for profile selection */
+.profile-select-trigger[data-switching="true"] {
+  opacity: 0.7;
+  pointer-events: none;
+}
