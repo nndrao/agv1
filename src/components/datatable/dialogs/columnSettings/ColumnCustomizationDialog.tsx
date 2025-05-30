@@ -327,7 +327,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
           </div>
 
           {/* Bulk Actions Panel - Contextual */}
-          {selectedColumns.size > 1 && !bulkActionsPanelCollapsed && (
+          {selectedColumns.size > 0 && !bulkActionsPanelCollapsed && (
             <div className="w-[260px] border-l bg-muted/30 overflow-hidden flex flex-col">
               <BulkActionsPanel />
             </div>
