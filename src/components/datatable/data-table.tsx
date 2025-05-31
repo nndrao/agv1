@@ -6,6 +6,7 @@ import { perfMonitor } from '@/lib/performance-monitor';
 import { DataTableToolbar } from './data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
+import { GridOptionsDialog } from './dialogs/gridOptions/GridOptionsDialog';
 import { useProfileStore, useActiveProfile, GridProfile } from '@/stores/profile.store';
 import { DebugProfile } from './debug-profile';
 import { profileOptimizer } from '@/lib/profile-optimizer';
@@ -51,6 +52,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     return activeProfile?.gridState?.font || 'monospace';
   });
   const [showColumnDialog, setShowColumnDialog] = useState(false);
+  const [showGridOptionsDialog, setShowGridOptionsDialog] = useState(false);
   
   // Keep track of column definitions with styles since AG-Grid doesn't return them
   const columnDefsWithStylesRef = useRef<ColumnDef[]>([]);
@@ -251,6 +253,34 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     // The profile manager component handles applying the grid state to the grid API using the optimizer
   }, [columnDefs, getColumnDefs]);
   
+  const handleApplyGridOptions = useCallback((options: Record<string, any>) => {
+    console.log('[DataTable] handleApplyGridOptions:', {
+      optionsCount: Object.keys(options).length,
+      hasGridApi: !!gridApiRef.current,
+      sampleOptions: Object.entries(options).slice(0, 5)
+    });
+    
+    if (gridApiRef.current) {
+      // Apply each option to the grid
+      Object.entries(options).forEach(([key, value]) => {
+        try {
+          gridApiRef.current!.setGridOption(key, value);
+        } catch (error) {
+          console.error(`[DataTable] Failed to set grid option '${key}':`, error);
+        }
+      });
+      
+      // Refresh the grid to ensure all options are applied
+      gridApiRef.current.refreshCells({ force: true });
+      gridApiRef.current.refreshHeader();
+      
+      // Clear optimizer cache since grid options changed
+      if (activeProfile) {
+        profileOptimizer.clearCache(activeProfile.id);
+      }
+    }
+  }, [activeProfile]);
+  
   const handleApplyColumnChanges = useCallback((updatedColumns: AgColDef[]) => {
     console.log('[DataTable] handleApplyColumnChanges:', {
       updatedColumnsCount: updatedColumns.length,
@@ -437,6 +467,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         gridApi={gridApiRef.current}
         onProfileChange={handleProfileChange}
         getColumnDefsWithStyles={() => columnDefsWithStylesRef.current}
+        onOpenGridOptions={() => setShowGridOptionsDialog(true)}
       />
 
       <div className="flex-1 min-h-0 overflow-hidden">
@@ -598,6 +629,56 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           return columnState;
         })()}
         onApply={handleApplyColumnChanges}
+      />
+      
+      <GridOptionsDialog
+        open={showGridOptionsDialog}
+        onOpenChange={setShowGridOptionsDialog}
+        currentOptions={gridApiRef.current?.getGridOption ? 
+          (() => {
+            const api = gridApiRef.current;
+            if (!api) return {};
+            
+            // Get current grid options that we track
+            const trackedOptions = [
+              'rowHeight', 'headerHeight', 'rowModelType', 'animateRows',
+              'rowSelection', 'rowMultiSelectWithClick', 'suppressRowClickSelection',
+              'enableRangeSelection', 'enableFillHandle', 'suppressCopyRowsToClipboard',
+              'sortingOrder', 'accentedSort', 'unSortIcon', 'suppressMultiSort',
+              'alwaysMultiSort', 'multiSortKey', 'suppressMaintainUnsortedOrder',
+              'enableCellTextSelection', 'ensureDomOrder', 'pagination',
+              'paginationPageSize', 'paginationPageSizeSelector', 'suppressPaginationPanel',
+              'paginationAutoPageSize', 'groupDisplayType', 'groupDefaultExpanded',
+              'autoGroupColumnDef', 'groupMaintainOrder', 'groupSelectsChildren',
+              'groupIncludeFooter', 'groupIncludeTotalFooter', 'groupSuppressBlankHeader',
+              'showOpenedGroup', 'maintainColumnOrder', 'suppressDragLeaveHidesColumns',
+              'suppressRowGroupHidesColumns', 'suppressAutoSize', 'skipHeaderOnAutoSize',
+              'singleClickEdit', 'suppressClickEdit', 'stopEditingWhenCellsLoseFocus',
+              'enterNavigatesVertically', 'enterNavigatesVerticallyAfterEdit',
+              'undoRedoCellEditing', 'readOnlyEdit', 'suppressCellFocus',
+              'suppressScrollOnNewData', 'suppressAnimationFrame', 'suppressColumnMoveAnimation',
+              'suppressMovableColumns', 'suppressFieldDotNotation', 'suppressMakeColumnVisibleAfterUnGroup',
+              'suppressRowHoverHighlight', 'suppressRowTransform', 'columnHoverHighlight',
+              'deltaSort', 'enableGroupEdit', 'suppressGroupRowsSticky'
+            ];
+            
+            const options: Record<string, any> = {};
+            trackedOptions.forEach(key => {
+              try {
+                const value = api.getGridOption(key);
+                if (value !== undefined) {
+                  options[key] = value;
+                }
+              } catch (e) {
+                // Option might not be available
+              }
+            });
+            
+            return options;
+          })()
+          : {}
+        }
+        onApply={handleApplyGridOptions}
       />
       
       <DebugProfile />

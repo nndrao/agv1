@@ -28,6 +28,7 @@ interface DataTableToolbarProps {
   onFontChange: (font: string) => void;
   onSpacingChange: (spacing: string) => void;
   onOpenColumnSettings?: () => void;
+  onOpenGridOptions?: () => void;
   gridApi?: GridApi | null;
   onProfileChange?: (profile: GridProfile) => void;
   getColumnDefsWithStyles?: () => AgColDef[];
@@ -36,6 +37,7 @@ interface DataTableToolbarProps {
 export function DataTableToolbar({ 
   onFontChange, 
   onOpenColumnSettings,
+  onOpenGridOptions,
   gridApi,
   onProfileChange,
   getColumnDefsWithStyles 
@@ -184,6 +186,17 @@ export function DataTableToolbar({
           >
             <Settings2 className="mr-2 h-4 w-4" />
             Customize Columns
+          </Button>
+        )}
+        {onOpenGridOptions && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onOpenGridOptions}
+            className="h-8"
+          >
+            <Settings2 className="mr-2 h-4 w-4" />
+            Grid Options
           </Button>
         )}
       </div>
