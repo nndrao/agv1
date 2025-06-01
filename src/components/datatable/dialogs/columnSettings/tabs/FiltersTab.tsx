@@ -14,7 +14,7 @@ import { Info, Settings, Filter, Calendar, Hash, Type, ToggleLeft, X, Plus, Ligh
 interface FilterConfig {
   filter: string;
   filterParams: Record<string, unknown>;
-  suppressMenu: boolean;
+  suppressHeaderMenuButton: boolean;
   suppressFiltersToolPanel: boolean;
 }
 
@@ -120,13 +120,13 @@ export const FiltersTab: React.FC = () => {
       
       const filter = changes?.filter || colDef?.filter || '';
       const filterParams = changes?.filterParams || colDef?.filterParams || {};
-      const suppressMenu = changes?.suppressMenu ?? colDef?.suppressMenu ?? false;
+      const suppressHeaderMenuButton = changes?.suppressHeaderMenuButton ?? colDef?.suppressHeaderMenuButton ?? false;
       const suppressFiltersToolPanel = changes?.suppressFiltersToolPanel ?? colDef?.suppressFiltersToolPanel ?? false;
       
       configs.set(colId, {
         filter,
         filterParams,
-        suppressMenu,
+        suppressHeaderMenuButton,
         suppressFiltersToolPanel,
       });
     });
@@ -337,8 +337,8 @@ export const FiltersTab: React.FC = () => {
                   </div>
                   <Switch
                     id="suppress-menu"
-                    checked={currentFilterConfig?.suppressMenu ?? false}
-                    onCheckedChange={(checked) => updateBulkProperty('suppressMenu', checked)}
+                    checked={currentFilterConfig?.suppressHeaderMenuButton ?? false}
+                    onCheckedChange={(checked) => updateBulkProperty('suppressHeaderMenuButton', checked)}
                     disabled={isDisabled}
                   />
                 </div>
@@ -496,7 +496,7 @@ export const FiltersTab: React.FC = () => {
               onClick={() => handleBulkUpdate({
                 filter: undefined,
                 filterParams: undefined,
-                suppressMenu: false,
+                suppressHeaderMenuButton: false,
                 suppressFiltersToolPanel: false,
               })}
               disabled={isDisabled}

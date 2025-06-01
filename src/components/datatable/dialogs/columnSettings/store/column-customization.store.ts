@@ -34,6 +34,9 @@ export interface DialogState {
 
   // Template columns for quick copy
   templateColumns: Set<string>;
+  
+  // Applied templates tracking
+  appliedTemplates: Map<string, { templateId: string; templateName: string; appliedAt: number }>;
 }
 
 export interface DialogActions {
@@ -72,6 +75,13 @@ export interface DialogActions {
   // Template column actions
   toggleTemplateColumn: (columnId: string) => void;
   clearTemplateColumns: () => void;
+  
+  // Customization removal
+  removeColumnCustomization: (columnId: string, type: string) => void;
+  
+  // Template tracking
+  setAppliedTemplate: (columnId: string, templateId: string, templateName: string) => void;
+  removeAppliedTemplate: (columnId: string) => void;
 }
 
 export type ColumnCustomizationStore = DialogState & DialogActions;
@@ -99,6 +109,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       visibilityFilter: 'all',
       bulkActionsPanelCollapsed: false,
       templateColumns: new Set<string>(),
+      appliedTemplates: new Map<string, { templateId: string; templateName: string; appliedAt: number }>(),
       uiMode: 'simple',
       showPreviewPane: false,
       collapsedSections: new Set<string>(),
@@ -339,6 +350,72 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       },
 
       clearTemplateColumns: () => set({ templateColumns: new Set() }),
+      
+      removeColumnCustomization: (columnId, type) => {
+        const { columnDefinitions, pendingChanges } = get();
+        const column = columnDefinitions.get(columnId);
+        if (!column) return;
+        
+        const newPendingChanges = new Map(pendingChanges);
+        const existing = newPendingChanges.get(columnId) || {};
+        
+        // Remove customizations based on type
+        switch (type) {
+          case 'style':
+            delete existing.cellStyle;
+            delete existing.headerStyle;
+            delete existing.cellClass;
+            delete existing.headerClass;
+            break;
+          case 'formatter':
+            delete existing.valueFormatter;
+            break;
+          case 'filter':
+            delete existing.filter;
+            delete existing.filterParams;
+            break;
+          case 'editor':
+            delete existing.cellEditor;
+            delete existing.cellEditorParams;
+            break;
+          case 'general':
+            delete existing.width;
+            delete existing.minWidth;
+            delete existing.maxWidth;
+            delete existing.pinned;
+            delete existing.lockPosition;
+            delete existing.lockVisible;
+            break;
+        }
+        
+        // If no changes left, remove the entry
+        if (Object.keys(existing).length === 0) {
+          newPendingChanges.delete(columnId);
+        } else {
+          newPendingChanges.set(columnId, existing);
+        }
+        
+        set({ pendingChanges: newPendingChanges });
+      },
+      
+      setAppliedTemplate: (columnId, templateId, templateName) => {
+        const { appliedTemplates } = get();
+        const newAppliedTemplates = new Map(appliedTemplates);
+        newAppliedTemplates.set(columnId, {
+          templateId,
+          templateName,
+          appliedAt: Date.now()
+        });
+        set({ appliedTemplates: newAppliedTemplates });
+      },
+      
+      removeAppliedTemplate: (columnId) => {
+        const { appliedTemplates } = get();
+        const newAppliedTemplates = new Map(appliedTemplates);
+        newAppliedTemplates.delete(columnId);
+        set({ appliedTemplates: newAppliedTemplates });
+        console.log('[Store] Removed template from column:', columnId, 'Remaining templates:', newAppliedTemplates.size);
+      },
       }),
       {
         name: 'column-customization-store',
@@ -351,6 +428,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
           visibilityFilter: state.visibilityFilter,
           bulkActionsPanelCollapsed: state.bulkActionsPanelCollapsed,
           templateColumns: Array.from(state.templateColumns), // Convert Set to Array for serialization
+          appliedTemplates: Array.from(state.appliedTemplates.entries()), // Convert Map to Array
           uiMode: state.uiMode,
           showPreviewPane: state.showPreviewPane,
           collapsedSections: Array.from(state.collapsedSections), // Convert Set to Array
@@ -365,6 +443,9 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
             }
             if (Array.isArray(state.collapsedSections)) {
               state.collapsedSections = new Set(state.collapsedSections);
+            }
+            if (Array.isArray(state.appliedTemplates)) {
+              state.appliedTemplates = new Map(state.appliedTemplates);
             }
           }
         },

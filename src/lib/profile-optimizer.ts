@@ -114,11 +114,11 @@ class ProfileOptimizer {
           // Recreate the formatter function
           const formatter = createExcelFormatter(formatterConfig.formatString);
           processed.valueFormatter = formatter;
-          processed.exportValueFormatter = formatter;
+          // Value formatter will be used for export automatically
         } else {
           // Invalid formatter config, remove it
           delete processed.valueFormatter;
-          delete processed.exportValueFormatter;
+          // No export formatter needed
         }
       }
       

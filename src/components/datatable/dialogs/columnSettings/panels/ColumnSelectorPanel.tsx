@@ -1,14 +1,17 @@
-import React, { useMemo, useRef, useCallback } from 'react';
+import React, { useMemo, useRef, useCallback, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Columns3, Filter, Star, Eye, EyeOff, Hash, Type, Calendar, ToggleLeft, Package, CircleDot, DollarSign } from 'lucide-react';
+import { Search, Columns3, Filter, Star, Eye, EyeOff, Hash, Type, Calendar, ToggleLeft, Package, CircleDot, DollarSign, Palette, Edit3, Settings, X } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { COLUMN_ICONS } from '../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { CustomizationBadges, CustomizationType } from '../components/CustomizationBadges';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 // Helper function to get icon component based on column type
 const getColumnIcon = (type: string) => {
@@ -43,6 +46,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
     cellDataTypeFilter,
     visibilityFilter,
     templateColumns,
+    appliedTemplates,
     toggleColumnSelection,
     selectColumns,
     deselectColumns,
@@ -353,6 +357,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
                         }
                         return colState?.hide || false;
                       })()}
+                      appliedTemplate={appliedTemplates.get(item.id)}
                       onToggle={toggleColumnSelection}
                       onToggleTemplate={toggleTemplateColumn}
                     />
@@ -376,11 +381,80 @@ const ColumnItem: React.FC<{
   selected: boolean;
   isTemplate: boolean;
   isHidden: boolean;
+  appliedTemplate?: { templateId: string; templateName: string; appliedAt: number };
   onToggle: (columnId: string) => void;
   onToggleTemplate: (columnId: string) => void;
-}> = React.memo(({ column, columnId, selected, isTemplate, isHidden, onToggle, onToggleTemplate }) => {
+}> = React.memo(({ column, columnId, selected, isTemplate, isHidden, appliedTemplate, onToggle, onToggleTemplate }) => {
+  const { removeColumnCustomization, removeAppliedTemplate } = useColumnCustomizationStore();
+  const [isHoveringTemplate, setIsHoveringTemplate] = useState(false);
   const iconKey = (column.cellDataType || column.type || 'text') as string;
   const IconComponent = getColumnIcon(iconKey);
+
+  // Detect customizations including template info
+  const customizations = useMemo(() => {
+    const customs: CustomizationType[] = [];
+    
+    // Check for styling customizations
+    const hasStyle = column.cellStyle || column.headerStyle || column.cellClass || column.headerClass;
+    if (hasStyle) {
+      let styleCount = 0;
+      if (column.cellStyle) styleCount++;
+      if (column.headerStyle) styleCount++;
+      if (column.cellClass) styleCount++;
+      if (column.headerClass) styleCount++;
+      customs.push({ 
+        type: 'style', 
+        label: 'Styling customizations', 
+        icon: Palette,
+        count: styleCount
+      });
+    }
+
+    // Check for formatter
+    if (column.valueFormatter) {
+      customs.push({ 
+        type: 'formatter', 
+        label: 'Value formatter', 
+        icon: Hash 
+      });
+    }
+
+    // Check for filter
+    if (column.filter || column.filterParams) {
+      customs.push({ 
+        type: 'filter', 
+        label: 'Filter settings', 
+        icon: Filter 
+      });
+    }
+
+    // Check for editor
+    if (column.cellEditor || column.cellEditorParams) {
+      customs.push({ 
+        type: 'editor', 
+        label: 'Cell editor', 
+        icon: Edit3 
+      });
+    }
+
+    // Check for general settings (width, pinning, etc)
+    const hasGeneral = column.width || column.minWidth || column.maxWidth || 
+                      column.pinned || column.lockPosition || column.lockVisible;
+    if (hasGeneral) {
+      let generalCount = 0;
+      if (column.width || column.minWidth || column.maxWidth) generalCount++;
+      if (column.pinned) generalCount++;
+      if (column.lockPosition || column.lockVisible) generalCount++;
+      customs.push({ 
+        type: 'general', 
+        label: 'General settings', 
+        icon: Settings,
+        count: generalCount
+      });
+    }
+
+    return customs;
+  }, [column]);
 
   const handleToggle = useCallback(() => {
     onToggle(columnId);
@@ -390,6 +464,10 @@ const ColumnItem: React.FC<{
     e.stopPropagation();
     onToggleTemplate(columnId);
   }, [columnId, onToggleTemplate]);
+
+  const handleRemoveCustomization = useCallback((type: string) => {
+    removeColumnCustomization(columnId, type);
+  }, [columnId, removeColumnCustomization]);
 
   return (
     <div 
@@ -405,21 +483,85 @@ const ColumnItem: React.FC<{
         checked={selected}
         onCheckedChange={handleToggle}
         onClick={(e) => e.stopPropagation()}
-        className=""
+        className="shrink-0"
       />
       <IconComponent className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <span className="text-sm flex-1 truncate flex items-center gap-2">
-        <span className={isHidden ? 'opacity-50' : ''}>
+      <span className="text-sm flex-1 flex items-center gap-1 min-w-0">
+        <span className={`truncate ${isHidden ? 'opacity-50' : ''}`}>
           {column.headerName || column.field}
         </span>
         {isHidden && (
-          <EyeOff className="h-3 w-3 text-muted-foreground" />
+          <EyeOff className="h-3 w-3 text-muted-foreground shrink-0" />
         )}
       </span>
+      
+      {/* Customization Count with Popover */}
+      {(customizations.length > 0 || appliedTemplate) && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <div 
+              className="h-5 w-5 shrink-0 rounded-full bg-primary/10 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors"
+              title={`${customizations.length + (appliedTemplate ? 1 : 0)} customization${customizations.length + (appliedTemplate ? 1 : 0) !== 1 ? 's' : ''} applied`}
+            >
+              <span className="text-[10px] font-medium text-primary">{customizations.length + (appliedTemplate ? 1 : 0)}</span>
+            </div>
+          </PopoverTrigger>
+          <PopoverContent side="left" align="center" className="w-auto p-3">
+            <div className="space-y-2">
+              {appliedTemplate && (
+                <div className="mb-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Template:</p>
+                  <div 
+                    className="relative inline-block"
+                    onMouseEnter={() => setIsHoveringTemplate(true)}
+                    onMouseLeave={() => setIsHoveringTemplate(false)}
+                  >
+                    <Badge 
+                      variant="outline" 
+                      className={cn(
+                        "text-xs px-2 py-0.5 transition-all",
+                        isHoveringTemplate && "pr-7"
+                      )}
+                    >
+                      {appliedTemplate.templateName}
+                    </Badge>
+                    {isHoveringTemplate && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('[ColumnSelector] Removing template:', appliedTemplate.templateName, 'from column:', columnId);
+                          removeAppliedTemplate(columnId);
+                          setIsHoveringTemplate(false);
+                        }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-4 w-4 flex items-center justify-center rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                        aria-label="Remove template"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+              {customizations.length > 0 && (
+                <>
+                  <p className="text-xs font-medium mb-2">Customizations:</p>
+                  <CustomizationBadges
+                    customizations={customizations}
+                    onRemove={handleRemoveCustomization}
+                    className="flex-wrap"
+                    maxVisible={10} // Show all in popover
+                  />
+                </>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+      
       <Button
         variant="ghost"
         size="sm"
-        className={`h-5 w-5 p-0 transition-opacity ${
+        className={`h-5 w-5 p-0 transition-opacity shrink-0 ${
           isTemplate ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}
         onClick={handleToggleTemplate}
@@ -440,8 +582,7 @@ const ColumnItem: React.FC<{
     prevProps.isTemplate === nextProps.isTemplate &&
     prevProps.isHidden === nextProps.isHidden &&
     prevProps.columnId === nextProps.columnId &&
-    prevProps.column.field === nextProps.column.field &&
-    prevProps.column.headerName === nextProps.column.headerName &&
-    prevProps.column.cellDataType === nextProps.column.cellDataType
+    prevProps.column === nextProps.column && // Compare entire column object for customization changes
+    prevProps.appliedTemplate?.templateId === nextProps.appliedTemplate?.templateId // Check template changes
   );
 });

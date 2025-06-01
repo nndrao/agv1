@@ -34,7 +34,8 @@ export const BulkActionsPanel: React.FC = () => {
     selectedColumns,
     columnDefinitions,
     pendingChanges,
-    updateBulkProperties
+    updateBulkProperties,
+    setAppliedTemplate
   } = useColumnCustomizationStore();
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
@@ -55,14 +56,14 @@ export const BulkActionsPanel: React.FC = () => {
     
     // Filter configurations
     'filter', 'filterParams', 'floatingFilter', 'floatingFilterComponent', 'floatingFilterComponentParams',
-    'suppressMenu', 'suppressFiltersToolPanel', 'filterValueGetter',
+    'suppressHeaderMenuButton', 'suppressFiltersToolPanel', 'filterValueGetter',
     
     // Editor configurations
     'editable', 'cellEditor', 'cellEditorParams', 'cellEditorPopup', 'cellEditorPopupPosition',
     'singleClickEdit', 'stopEditingWhenCellsLoseFocus', 'cellEditorSelector',
     
     // Format configurations
-    'valueFormatter', 'exportValueFormatter',
+    'valueFormatter', 'useValueFormatterForExport',
     'cellClass', 'cellClassRules', 'cellStyle',
     
     // Header configurations
@@ -133,7 +134,7 @@ export const BulkActionsPanel: React.FC = () => {
         // Special handling for functions - convert to serializable format
         if (typeof value === 'function') {
           // For formatters, we just copy the function reference
-          if (property === 'valueFormatter' || property === 'exportValueFormatter') {
+          if (property === 'valueFormatter') {
             // Store the formatter function directly
             if (value && typeof value === 'function') {
               config[property] = value;
@@ -253,8 +254,9 @@ export const BulkActionsPanel: React.FC = () => {
     if (template.properties.valueFormatter && typeof template.properties.valueFormatter === 'function') {
       propertiesToApply.valueFormatter = template.properties.valueFormatter;
     }
-    if (template.properties.exportValueFormatter && typeof template.properties.exportValueFormatter === 'function') {
-      propertiesToApply.exportValueFormatter = template.properties.exportValueFormatter;
+    // Handle useValueFormatterForExport (boolean flag)
+    if (template.properties.useValueFormatterForExport !== undefined) {
+      propertiesToApply.useValueFormatterForExport = template.properties.useValueFormatterForExport;
     }
     
     // Handle headerStyle - convert back to function if needed
@@ -291,8 +293,13 @@ export const BulkActionsPanel: React.FC = () => {
     // Apply all template properties at once
     updateBulkProperties(propertiesToApply);
     
+    // Track which template was applied to each selected column
+    selectedColumns.forEach(columnId => {
+      setAppliedTemplate(columnId, template.id, template.name);
+    });
+    
     setSelectedTemplateId(''); // Clear selection after applying
-  }, [selectedTemplateId, templates, updateBulkProperties]);
+  }, [selectedTemplateId, templates, updateBulkProperties, selectedColumns, setAppliedTemplate]);
 
   // Delete template
   const deleteTemplate = useCallback(() => {
