@@ -2,14 +2,13 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Palette, Hash, Filter, Edit3, Cog, AlertTriangle } from 'lucide-react';
+import { Settings, Palette, Hash, Filter, Edit3, AlertTriangle } from 'lucide-react';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { GeneralTab } from '../tabs/GeneralTab';
 import { StylingTab } from '../tabs/StylingTab';
 import { FormatTab } from '../tabs/FormatTab';
 import { FiltersTab } from '../tabs/FiltersTab';
 import { EditorsTab } from '../tabs/EditorsTab';
-import { AdvancedTab } from '../tabs/AdvancedTab';
 
 interface PropertyEditorPanelProps {
   uiMode?: 'simple' | 'advanced';
@@ -46,7 +45,6 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({ uiMode
         { id: 'formatters', label: 'Format', icon: Hash },
         { id: 'filters', label: 'Filters', icon: Filter },
         { id: 'editors', label: 'Editors', icon: Edit3 },
-        { id: 'advanced', label: 'Advanced', icon: Cog },
       ];
 
   return (
@@ -85,12 +83,12 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({ uiMode
         onValueChange={setActiveTab}
         className="flex-1 flex flex-col overflow-hidden"
       >
-        <TabsList className="mx-5 mt-3 mb-3 grid w-full grid-cols-6 shrink-0 h-9 bg-muted/30 overflow-x-auto scrollbar-thin">
+        <TabsList className={`mx-5 mt-3 mb-3 grid w-full ${uiMode === 'simple' ? 'grid-cols-3' : 'grid-cols-5'} shrink-0 h-9 bg-muted/30 overflow-x-auto`}>
           {tabConfig.map(({ id, label, icon: Icon }) => (
             <TabsTrigger
               key={id}
               value={id}
-              className="modern-tab text-xs gap-1.5 h-full px-3 font-medium data-[state=active]:bg-primary/10 data-[state=active]:shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
+              className="text-xs gap-1.5 h-full px-3 font-medium data-[state=active]:bg-primary/10 data-[state=active]:shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
               title={label}
               aria-label={label}
             >
@@ -117,9 +115,6 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({ uiMode
               </TabsContent>
               <TabsContent value="editors" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
                 <EditorsTab />
-              </TabsContent>
-              <TabsContent value="advanced" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
-                <AdvancedTab />
               </TabsContent>
             </>
           )}

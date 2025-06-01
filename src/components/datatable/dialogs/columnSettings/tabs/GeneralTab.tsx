@@ -2,7 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
-import { PropertyGroup } from '../components/PropertyGroup';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CollapsibleSection } from '../components/CollapsibleSection';
 import { MixedValueInput } from '../components/MixedValueInput';
 import { NumericInput } from '../components/NumericInput';

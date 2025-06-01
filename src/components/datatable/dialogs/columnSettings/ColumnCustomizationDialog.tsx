@@ -14,7 +14,7 @@ import { Undo2, Redo2, Settings2, Volume2, VolumeX, Columns, Eye } from 'lucide-
 import { useToast } from '@/hooks/use-toast';
 import { useButtonFeedback, useProgressIndicator } from './utils/feedback';
 import { useSoundPreference } from './hooks/useSoundPreference';
-import './column-customization-dialog.css';
+import { cn } from '@/lib/utils';
 
 interface ColumnCustomizationDialogProps {
   open: boolean;
@@ -35,7 +35,6 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     selectedColumns,
     columnDefinitions,
     pendingChanges,
-    bulkActionsPanelCollapsed,
     setOpen,
     setColumnDefinitions,
     setColumnState,
@@ -195,7 +194,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="column-dialog-content max-w-[90vw] w-[1100px] h-[80vh] p-0 flex flex-col bg-background fade-in">
+      <DialogContent className="max-w-[90vw] w-[1100px] h-[80vh] p-0 flex flex-col bg-background">
         {/* Clean, Professional Header */}
         <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
           <div className="flex items-center justify-between">
@@ -211,14 +210,14 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
                   Configure column properties, styling, and behavior for the data grid
                 </DialogDescription>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="modern-badge text-xs px-2 py-0.5">
+                  <Badge variant="secondary" className="text-xs px-2 py-0.5">
                     {selectedCount} selected
                   </Badge>
-                  <Badge variant="outline" className="modern-badge text-xs px-2 py-0.5">
+                  <Badge variant="outline" className="text-xs px-2 py-0.5">
                     {totalColumns} total
                   </Badge>
                   {pendingChanges.size > 0 && (
-                    <Badge variant="default" className="modern-badge text-xs px-2 py-0.5">
+                    <Badge variant="default" className="text-xs px-2 py-0.5">
                       {Array.from(pendingChanges.values()).reduce((acc, changes) => acc + Object.keys(changes).length, 0)} changes
                     </Badge>
                   )}
@@ -256,9 +255,14 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               </Button>
               
               {/* Sound toggle button */}
-              <button
+              <Button
                 onClick={toggleSound}
-                className={`sound-toggle ${soundEnabled ? 'sound-enabled' : ''}`}
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0 rounded-full",
+                  soundEnabled && "bg-primary/10 hover:bg-primary/20"
+                )}
                 aria-label={soundEnabled ? 'Disable sound feedback' : 'Enable sound feedback'}
                 title={soundEnabled ? 'Sound feedback enabled' : 'Sound feedback disabled'}
               >
@@ -267,7 +271,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
                 ) : (
                   <VolumeX className="h-4 w-4 text-muted-foreground" />
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </DialogHeader>
@@ -327,7 +331,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
           </div>
 
           {/* Bulk Actions Panel - Contextual */}
-          {selectedColumns.size > 0 && !bulkActionsPanelCollapsed && (
+          {selectedColumns.size > 0 && (
             <div className="w-[260px] border-l bg-muted/30 overflow-hidden flex flex-col">
               <BulkActionsPanel />
             </div>
@@ -341,7 +345,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               variant="ghost"
               size="sm"
               disabled={true}
-              className="modern-button h-8 px-3 gap-1.5 text-muted-foreground"
+              className="h-8 px-3 gap-1.5 text-muted-foreground"
             >
               <Undo2 className="h-3.5 w-3.5" />
               <span className="text-sm">Undo</span>
@@ -350,7 +354,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               variant="ghost"
               size="sm"
               disabled={true}
-              className="modern-button h-8 px-3 gap-1.5 text-muted-foreground"
+              className="h-8 px-3 gap-1.5 text-muted-foreground"
             >
               <Redo2 className="h-3.5 w-3.5" />
               <span className="text-sm">Redo</span>
@@ -362,7 +366,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               variant="outline"
               size="sm"
               onClick={handleDiscardChanges}
-              className="modern-button h-8 px-4 text-sm"
+              className="h-8 px-4 text-sm"
             >
               Reset
             </Button>
@@ -370,7 +374,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               variant="default"
               size="sm"
               onClick={handleApplyChanges}
-              className="modern-button h-8 px-4 text-sm"
+              className="h-8 px-4 text-sm"
             >
               Apply
             </Button>
@@ -381,16 +385,28 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
                 size="sm"
                 onClick={handleApplyAndClose}
                 disabled={isProcessing}
-                className="modern-button h-8 px-4 text-sm relative overflow-visible"
+                className="h-8 px-4 text-sm relative overflow-visible"
               >
                 {isProcessing ? 'Applying...' : 'Apply & Close'}
               </Button>
-              <div ref={progressRef} className="progress-indicator" />
+              <div 
+                ref={progressRef} 
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-transparent overflow-hidden transition-opacity duration-300"
+                style={{ opacity: 0 }}
+              >
+                <div className="h-full w-full bg-primary animate-[slide_1.5s_ease-in-out_infinite]" 
+                     style={{ 
+                       background: 'linear-gradient(90deg, transparent, hsl(var(--primary) / 0.8), transparent)',
+                       transform: 'translateX(-100%)'
+                     }} 
+                />
+              </div>
             </div>
           </div>
         </DialogFooter>
-      {/* Aria live region for screen reader announcements */}
-      <div id="aria-live-region" className="sr-only" role="status" aria-live="polite" aria-atomic="true" />
+        
+        {/* Aria live region for screen reader announcements */}
+        <div id="aria-live-region" className="sr-only" role="status" aria-live="polite" aria-atomic="true" />
       </DialogContent>
     </Dialog>
   );

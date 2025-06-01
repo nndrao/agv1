@@ -40,17 +40,16 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   return (
     <div
       className={cn(
-        'bg-white/95 dark:bg-gray-800/95 rounded-lg border border-gray-200/80 dark:border-gray-700/80',
+        'bg-card rounded-lg border border-border',
         'shadow-sm hover:shadow-md transition-all duration-200',
-        'backdrop-blur-sm',
         className
       )}
     >
       <div
         className={cn(
           'flex items-center justify-between px-4 py-3 cursor-pointer select-none',
-          'hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors',
-          isExpanded && 'border-b border-gray-200/50 dark:border-gray-700/50'
+          'hover:bg-muted/50 transition-colors',
+          isExpanded && 'border-b border-border/50'
         )}
         onClick={() => toggleSectionCollapse(id)}
       >
@@ -65,15 +64,15 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
             }}
           >
             {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             )}
           </Button>
           
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <h3 className="text-sm font-semibold text-foreground">
                 {title}
               </h3>
               {badge}
@@ -81,7 +80,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs text-xs">{helpText}</p>
@@ -91,7 +90,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
               )}
             </div>
             {description && !isExpanded && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {description}
               </p>
             )}
@@ -113,7 +112,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
       >
         <div className="p-4 space-y-3">
           {description && isExpanded && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700/50">
+            <p className="text-xs text-muted-foreground mb-3 pb-3 border-b border-border/50">
               {description}
             </p>
           )}

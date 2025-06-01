@@ -89,13 +89,20 @@ export const useButtonFeedback = () => {
       if (visual && buttonRef.current) {
         const button = buttonRef.current;
         
-        // Add success class for animation
-        button.classList.add('feedback-success');
+        // Animate using inline styles instead of CSS classes
+        const originalTransform = button.style.transform;
+        const originalTransition = button.style.transition;
         
-        // Remove class after animation completes
-        animationTimeoutRef.current = window.setTimeout(() => {
-          button.classList.remove('feedback-success');
-        }, 1500);
+        button.style.transition = 'transform 0.15s ease-out';
+        button.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+          button.style.transform = 'scale(1.05)';
+          setTimeout(() => {
+            button.style.transform = originalTransform || '';
+            button.style.transition = originalTransition || '';
+          }, 150);
+        }, 50);
       }
       
       // Audio feedback (non-blocking)
@@ -128,13 +135,21 @@ export const useProgressIndicator = () => {
   
   const showProgress = useCallback(() => {
     if (progressRef.current) {
-      progressRef.current.classList.add('progress-active');
+      progressRef.current.style.opacity = '1';
+      const inner = progressRef.current.querySelector('div');
+      if (inner) {
+        inner.style.animation = 'slide 1.5s ease-in-out infinite';
+      }
     }
   }, []);
   
   const hideProgress = useCallback(() => {
     if (progressRef.current) {
-      progressRef.current.classList.remove('progress-active');
+      progressRef.current.style.opacity = '0';
+      const inner = progressRef.current.querySelector('div');
+      if (inner) {
+        inner.style.animation = 'none';
+      }
     }
   }, []);
   

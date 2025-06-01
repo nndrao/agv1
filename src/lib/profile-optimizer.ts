@@ -305,7 +305,9 @@ class ProfileOptimizer {
               gridApi.refreshHeader();
             }
             if (needsFilterRefresh) {
-              gridApi.refreshFilters();
+              // In AG-Grid v33, refreshFilters doesn't exist
+              // Instead, we notify that filters have changed
+              gridApi.onFilterChanged();
             }
           });
         }

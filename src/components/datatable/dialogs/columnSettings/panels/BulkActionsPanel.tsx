@@ -350,7 +350,7 @@ export const BulkActionsPanel: React.FC = () => {
         <div className="p-4 space-y-5">
           {/* Template Management */}
           <div>
-            <h3 className="section-header">
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
               Templates
             </h3>
             <p className="text-xs text-muted-foreground mb-2">
@@ -472,7 +472,7 @@ export const BulkActionsPanel: React.FC = () => {
 
           {/* Clear All */}
           <div>
-            <h3 className="section-header">
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
               Reset
             </h3>
             <Button
@@ -489,7 +489,7 @@ export const BulkActionsPanel: React.FC = () => {
 
           {/* Status */}
           <div className="pt-5 mt-5 border-t">
-            <h3 className="section-header">
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
               Status
             </h3>
             <div className="space-y-2 text-xs">

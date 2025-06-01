@@ -9,7 +9,6 @@ import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { COLUMN_ICONS } from '../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import '../column-customization-dialog.css';
 
 // Helper function to get icon component based on column type
 const getColumnIcon = (type: string) => {
@@ -298,7 +297,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
                 deselectAllFilteredColumns();
               }
             }}
-            className="checkbox-enhanced rounded"
+            className="rounded"
           />
           <span className="text-xs font-medium text-foreground">
             {(searchTerm || cellDataTypeFilter !== 'all' || visibilityFilter !== 'all') ? 'All Filtered' : 'All'}
@@ -400,13 +399,13 @@ const ColumnItem: React.FC<{
       onClick={handleToggle}
     >
       {selected && (
-        <div className="selection-indicator absolute left-0 h-full" />
+        <div className="absolute left-0 h-full w-1 bg-primary rounded-r" />
       )}
       <Checkbox
         checked={selected}
         onCheckedChange={handleToggle}
         onClick={(e) => e.stopPropagation()}
-        className="checkbox-enhanced"
+        className=""
       />
       <IconComponent className="h-4 w-4 shrink-0 text-muted-foreground" />
       <span className="text-sm flex-1 truncate flex items-center gap-2">
