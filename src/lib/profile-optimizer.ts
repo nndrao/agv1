@@ -114,11 +114,11 @@ class ProfileOptimizer {
           // Recreate the formatter function
           const formatter = createExcelFormatter(formatterConfig.formatString);
           processed.valueFormatter = formatter;
-          processed.exportValueFormatter = formatter;
+          // Value formatter will be used for export automatically
         } else {
           // Invalid formatter config, remove it
           delete processed.valueFormatter;
-          delete processed.exportValueFormatter;
+          // No export formatter needed
         }
       }
       
@@ -305,7 +305,9 @@ class ProfileOptimizer {
               gridApi.refreshHeader();
             }
             if (needsFilterRefresh) {
-              gridApi.refreshFilters();
+              // In AG-Grid v33, refreshFilters doesn't exist
+              // Instead, we notify that filters have changed
+              gridApi.onFilterChanged();
             }
           });
         }

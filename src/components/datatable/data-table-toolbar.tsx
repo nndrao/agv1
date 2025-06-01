@@ -59,12 +59,8 @@ export function DataTableToolbar({
         sheetName: 'Data',
         processCellCallback: (params) => {
           const colDef = params.column.getColDef();
-          // Use the exportValueFormatter if available, otherwise valueFormatter
-          if ('exportValueFormatter' in colDef && colDef.exportValueFormatter) {
-            return typeof colDef.exportValueFormatter === 'function' 
-              ? colDef.exportValueFormatter(params as any)
-              : params.value;
-          } else if (colDef.valueFormatter) {
+          // Use valueFormatter for export if available
+          if (colDef.valueFormatter) {
             return typeof colDef.valueFormatter === 'function'
               ? colDef.valueFormatter(params as any)
               : params.value;
@@ -101,12 +97,8 @@ export function DataTableToolbar({
         fileName: `data-export-${new Date().toISOString().split('T')[0]}.csv`,
         processCellCallback: (params) => {
           const colDef = params.column.getColDef();
-          // Use the exportValueFormatter if available, otherwise valueFormatter
-          if ('exportValueFormatter' in colDef && colDef.exportValueFormatter) {
-            return typeof colDef.exportValueFormatter === 'function' 
-              ? colDef.exportValueFormatter(params as any)
-              : params.value;
-          } else if (colDef.valueFormatter) {
+          // Use valueFormatter for export if available
+          if (colDef.valueFormatter) {
             return typeof colDef.valueFormatter === 'function'
               ? colDef.valueFormatter(params as any)
               : params.value;

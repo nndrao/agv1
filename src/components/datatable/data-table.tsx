@@ -20,7 +20,6 @@ export interface ColumnDef extends Omit<AgColDef, 'field' | 'headerName' | 'type
   headerName: string;
   type?: string | string[]; // For legacy/custom use, matching ag-grid's type
   cellDataType?: 'text' | 'number' | 'date' | 'boolean' | string | boolean; // ag-Grid v33+ optimization
-  exportValueFormatter?: AgColDef['valueFormatter']; // Custom property for export formatting
 }
 
 interface DataTableProps {
@@ -311,7 +310,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           
           // Formatter and value properties
           if ('valueFormatter' in updatedCol) mergedCol.valueFormatter = updatedCol.valueFormatter;
-          if ('exportValueFormatter' in updatedCol) mergedCol.exportValueFormatter = updatedCol.exportValueFormatter;
           if ('valueGetter' in updatedCol) mergedCol.valueGetter = updatedCol.valueGetter;
           if ('valueSetter' in updatedCol) mergedCol.valueSetter = updatedCol.valueSetter;
           
@@ -539,12 +537,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
             // Apply column formatting to Excel export
             processCellCallback: (params) => {
               const colDef = params.column.getColDef();
-              // Use the exportValueFormatter if available, otherwise valueFormatter
-              if ('exportValueFormatter' in colDef && colDef.exportValueFormatter) {
-                return typeof colDef.exportValueFormatter === 'function' 
-                  ? colDef.exportValueFormatter(params as any)
-                  : params.value;
-              } else if (colDef.valueFormatter) {
+              // Use valueFormatter for export if available
+              if (colDef.valueFormatter) {
                 return typeof colDef.valueFormatter === 'function'
                   ? colDef.valueFormatter(params as any)
                   : params.value;

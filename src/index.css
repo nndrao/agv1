@@ -1,79 +1,91 @@
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Roboto+Mono:wght@400;500;600&family=Source+Code+Pro:wght@400;500;600&display=swap');
 
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Saving button animation */
-@keyframes pulse-border {
-  0% {
-    box-shadow: 0 0 0 0 rgba(138, 170, 167, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 8px rgba(138, 170, 167, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(138, 170, 167, 0);
-  }
-}
-
-.saving-button {
-  animation: pulse-border 1.5s infinite;
-  border-color: hsl(var(--primary)) !important;
-  background-color: hsl(var(--primary) / 0.1) !important;
-  color: hsl(var(--primary)) !important;
-}
-
-.dark .saving-button {
-  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.5);
-}
-
 @layer base {
   :root {
-    /* AG-Grid Quartz Light Theme Colors */
-    --background: 0 0% 96.9%; /* #F7F7F7 */
-    --foreground: 0 0% 0%; /* #000000 */
-    --card: 0 0% 93.7%; /* #EFEFEF with 84% opacity on white */
-    --card-foreground: 0 0% 0%; /* #000000 */
-    --popover: 0 0% 93.7%; /* #EFEFEF */
-    --popover-foreground: 0 0% 0%; /* #000000 */
-    --primary: 170 15% 58%; /* #8AAAA7 - AG-Grid accent color */
-    --primary-foreground: 0 0% 100%; /* white text on primary */
-    --secondary: 0 0% 93.3%; /* #EEF1F1 with 91% opacity */
-    --secondary-foreground: 0 0% 0%; /* #000000 */
-    --muted: 0 0% 93.3%; /* #EEF1F1 */
-    --muted-foreground: 0 0% 40%; /* dimmed text */
-    --accent: 170 15% 58%; /* #8AAAA7 - AG-Grid accent color */
-    --accent-foreground: 0 0% 0%; /* #000000 */
+    /* Light theme - 10% darker with black/gray backgrounds */
+    --background: 0 0% 90%; /* Light gray */
+    --foreground: 0 0% 10%; /* Dark gray for text */
+    
+    --muted: 0 0% 86.1%; /* Light gray muted */
+    --muted-foreground: 0 0% 36.9%; /* Dark gray muted text */
+    
+    --popover: 0 0% 92%; /* Slightly lighter gray for popover */
+    --popover-foreground: 0 0% 10%; /* Dark gray for text */
+    
+    --card: 0 0% 92%; /* Slightly lighter gray for cards */
+    --card-foreground: 0 0% 10%; /* Dark gray for text */
+    
+    --border: 0 0% 81.4%; /* Light gray border */
+    --input: 0 0% 81.4%; /* Light gray input */
+    
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 88%; /* from 98% */
+    
+    --secondary: 210 40% 86.1%; /* from 96.1% */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    
+    --accent: 210 40% 86.1%; /* from 96.1% */
+    --accent-foreground: 222.2 47.4% 11.2%;
+    
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 87%; /* #23202029 - 16% opacity */
-    --input: 0 0% 93.7%; /* #EFEFEF */
-    --ring: 170 15% 58%; /* #8AAAA7 - focus ring */
-    --radius: 0.375rem; /* 6px to match AG-Grid */
+    --destructive-foreground: 210 40% 88%; /* from 98% */
+    
+    --ring: 222.2 84% 4.9%;
+    
+    --radius: 0.5rem;
+    
+    --sidebar-background: 0 0% 98%;
+    
+    --sidebar-foreground: 240 5.3% 26.1%;
+    
+    --sidebar-primary: 240 5.9% 10%;
+    
+    --sidebar-primary-foreground: 0 0% 98%;
+    
+    --sidebar-accent: 240 4.8% 95.9%;
+    
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    
+    --sidebar-border: 220 13% 91%;
+    
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
-
+  
   .dark {
-    /* AG-Grid Quartz Dark Theme Colors */
-    --background: 213 20% 18%; /* #1f2836 */
-    --foreground: 0 0% 100%; /* #FFFFFF */
-    --card: 213 15% 20%; /* #2A2E35 - odd row color */
-    --card-foreground: 0 0% 100%; /* #FFFFFF */
-    --popover: 213 15% 20%; /* #2A2E35 */
-    --popover-foreground: 0 0% 100%; /* #FFFFFF */
-    --primary: 170 15% 58%; /* #8AAAA7 - AG-Grid accent color */
-    --primary-foreground: 0 0% 100%; /* white text on primary */
-    --secondary: 213 15% 20%; /* #2A2E35 */
-    --secondary-foreground: 0 0% 100%; /* #FFFFFF */
-    --muted: 213 15% 25%; /* slightly lighter than secondary */
-    --muted-foreground: 0 0% 70%; /* dimmed text */
-    --accent: 170 15% 58%; /* #8AAAA7 - AG-Grid accent color */
-    --accent-foreground: 0 0% 100%; /* #FFFFFF */
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 213 15% 30%; /* slightly lighter border for dark mode */
-    --input: 213 15% 25%; /* input background */
-    --ring: 170 15% 58%; /* #8AAAA7 - focus ring */
+    /* Dark theme - 10% lighter with black/gray backgrounds */
+    --background: 0 0% 14.9%; /* Dark gray/black */
+    --foreground: 0 0% 98%; /* Almost white */
+    
+    --muted: 0 0% 27.5%; /* Medium dark gray */
+    --muted-foreground: 0 0% 75.1%; /* Light gray text */
+    
+    --popover: 0 0% 12%; /* Slightly darker for popover */
+    --popover-foreground: 0 0% 98%; /* Almost white */
+    
+    --card: 0 0% 12%; /* Slightly darker for cards */
+    --card-foreground: 0 0% 98%; /* Almost white */
+    
+    --border: 0 0% 27.5%; /* Medium dark gray border */
+    --input: 0 0% 27.5%; /* Medium dark gray input */
+    
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 21.2%; /* from 11.2% */
+    
+    --secondary: 217.2 32.6% 27.5%; /* from 17.5% */
+    --secondary-foreground: 210 40% 98%;
+    
+    --accent: 217.2 32.6% 27.5%; /* from 17.5% */
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 0 62.8% 40.6%; /* from 30.6% */
+    --destructive-foreground: 210 40% 98%;
+    
+    --ring: 212.7 26.8% 93.9%; /* from 83.9% */ --sidebar-background: 240 5.9% 10%; --sidebar-foreground: 240 4.8% 95.9%; --sidebar-primary: 224.3 76.3% 48%; --sidebar-primary-foreground: 0 0% 100%; --sidebar-accent: 240 3.7% 15.9%; --sidebar-accent-foreground: 240 4.8% 95.9%; --sidebar-border: 240 3.7% 15.9%; --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -83,125 +95,5 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-}
-
-
-/* Additional styles to match AG-Grid appearance */
-@layer components {
-  /* Match AG-Grid's subtle shadows and borders */
-  .dialog-content {
-    @apply shadow-lg;
-  }
-  
-  /* Button styles to match AG-Grid */
-  .button-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
-  }
-  
-  /* Input styles to match AG-Grid */
-  .input-field {
-    @apply border-border bg-input;
-  }
-  
-  /* Card hover effects similar to AG-Grid rows */
-  .card-hover {
-    @apply hover:bg-muted/50 transition-colors;
-  }
-  
-  /* Consistent spacing with AG-Grid */
-  .ag-spacing {
-    @apply p-1.5; /* 6px padding to match --ag-grid-size */
-  }
-}
-
-/* Custom Scrollbar Styles - Apply only to non-AG-Grid elements */
-@layer base {
-  /* Apply custom scrollbars to specific UI elements, not globally */
-  .scroll-area,
-  .overflow-auto:not(.ag-root-wrapper *),
-  .overflow-y-auto:not(.ag-root-wrapper *),
-  .overflow-x-auto:not(.ag-root-wrapper *),
-  [class*="dialog"]:not(.ag-root-wrapper *),
-  [class*="sheet"]:not(.ag-root-wrapper *),
-  [class*="dropdown"]:not(.ag-root-wrapper *),
-  [class*="popover"]:not(.ag-root-wrapper *) {
-    /* Firefox */
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
-  }
-
-  /* Webkit browsers (Chrome, Safari, Edge) - for specific elements only */
-  .scroll-area::-webkit-scrollbar,
-  .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar,
-  .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar,
-  .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar,
-  [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar,
-  [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar,
-  [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar,
-  [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-
-  .scroll-area::-webkit-scrollbar-track,
-  .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
-  .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
-  .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
-  [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
-  [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
-  [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar-track,
-  [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.3);
-    border-radius: 5px;
-  }
-
-  .scroll-area::-webkit-scrollbar-thumb,
-  .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 5px;
-    border: 2px solid transparent;
-    background-clip: content-box;
-  }
-
-  .scroll-area::-webkit-scrollbar-thumb:hover,
-  .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.5);
-  }
-
-  /* Dark mode adjustments for custom scrollbars */
-  .dark .scroll-area::-webkit-scrollbar-thumb,
-  .dark .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  .dark .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  .dark .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  .dark [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  .dark [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  .dark [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb,
-  .dark [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.2);
-  }
-
-  .dark .scroll-area::-webkit-scrollbar-thumb:hover,
-  .dark .overflow-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  .dark .overflow-y-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  .dark .overflow-x-auto:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  .dark [class*="dialog"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  .dark [class*="sheet"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  .dark [class*="dropdown"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover,
-  .dark [class*="popover"]:not(.ag-root-wrapper *)::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.4);
   }
 }

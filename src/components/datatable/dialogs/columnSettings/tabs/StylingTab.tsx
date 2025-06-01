@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { PropertyGroup } from '../components/PropertyGroup';
-import { CollapsibleSection } from '../components/CollapsibleSection';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { ThreeStateCheckbox } from '../components/ThreeStateCheckbox';
 import { AlignmentIconPicker } from '../components/AlignmentIconPicker';
 import { Button } from '@/components/ui/button';
@@ -247,21 +247,13 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
     const headerClassRaw = headerClassValue.value;
     const headerClass = (typeof headerClassRaw === 'string' ? headerClassRaw : '').trim();
 
-    if (headerClassValue.isMixed) {
-      return 'default';
-    }
+    if (!headerClass) return 'default';
 
     const prefix = type === 'horizontal' ? 'header-align-' : 'header-valign-';
-    const regex = new RegExp(prefix + '(\\w+)');
+    const regex = new RegExp(`${prefix}(\\w+)`);
     const match = headerClass.match(regex);
 
     return match ? match[1] : 'default';
-  };
-
-  // Check if header alignment is mixed
-  const isHeaderAlignmentMixed = () => {
-    const headerClassValue = getMixedValue('headerClass');
-    return headerClassValue.isMixed;
   };
 
   // Extract current cell alignment from cellClass
@@ -270,220 +262,274 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
     const cellClassRaw = cellClassValue.value;
     const cellClass = (typeof cellClassRaw === 'string' ? cellClassRaw : '').trim();
 
-    if (cellClassValue.isMixed) {
-      return 'default';
-    }
+    if (!cellClass) return 'default';
 
     const prefix = type === 'horizontal' ? 'cell-align-' : 'cell-valign-';
-    const regex = new RegExp(prefix + '(\\w+)');
+    const regex = new RegExp(`${prefix}(\\w+)`);
     const match = cellClass.match(regex);
 
     return match ? match[1] : 'default';
   };
 
+  // Check if header alignment is mixed
+  const isHeaderAlignmentMixed = (type: 'horizontal' | 'vertical') => {
+    const headerClassValue = getMixedValue('headerClass');
+    return headerClassValue.isMixed;
+  };
+
   // Check if cell alignment is mixed
-  const isCellAlignmentMixed = () => {
+  const isCellAlignmentMixed = (type: 'horizontal' | 'vertical') => {
     const cellClassValue = getMixedValue('cellClass');
     return cellClassValue.isMixed;
   };
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Two-column layout for better space utilization */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Left Column */}
-        <div className="space-y-4">
-          {/* Header Alignment */}
-          <PropertyGroup title="Header Alignment">
-            <div className="space-y-3">
-              <AlignmentIconPicker
-                label="Horizontal"
-                type="horizontal"
-                value={getCurrentHeaderAlignment('horizontal')}
-                onChange={(value) => handleHeaderAlignmentChange(value, 'horizontal')}
-                disabled={isDisabled || (isMultipleSelection && isHeaderAlignmentMixed('horizontal'))}
-                isMixed={isMultipleSelection && isHeaderAlignmentMixed('horizontal')}
-              />
+    <ScrollArea className="h-full">
+      <div className="p-6 space-y-6">
+        {/* Two-column layout for better space utilization */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-4">
+            {/* Header Alignment */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base">Header Alignment</CardTitle>
+                <CardDescription className="text-sm">
+                  Set text alignment for column headers
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <AlignmentIconPicker
+                    label="Horizontal"
+                    type="horizontal"
+                    value={getCurrentHeaderAlignment('horizontal')}
+                    onChange={(value) => handleHeaderAlignmentChange(value, 'horizontal')}
+                    disabled={isDisabled || (isMultipleSelection && isHeaderAlignmentMixed('horizontal'))}
+                    isMixed={isMultipleSelection && isHeaderAlignmentMixed('horizontal')}
+                  />
 
-              <AlignmentIconPicker
-                label="Vertical"
-                type="vertical"
-                value={getCurrentHeaderAlignment('vertical')}
-                onChange={(value) => handleHeaderAlignmentChange(value, 'vertical')}
-                disabled={isDisabled || (isMultipleSelection && isHeaderAlignmentMixed('vertical'))}
-                isMixed={isMultipleSelection && isHeaderAlignmentMixed('vertical')}
-              />
-            </div>
-          </PropertyGroup>
+                  <AlignmentIconPicker
+                    label="Vertical"
+                    type="vertical"
+                    value={getCurrentHeaderAlignment('vertical')}
+                    onChange={(value) => handleHeaderAlignmentChange(value, 'vertical')}
+                    disabled={isDisabled || (isMultipleSelection && isHeaderAlignmentMixed('vertical'))}
+                    isMixed={isMultipleSelection && isHeaderAlignmentMixed('vertical')}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Style Editors */}
-          <PropertyGroup title="Style Editors">
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-1.5 h-8 text-xs"
-                disabled={isDisabled}
-                onClick={() => setShowHeaderStyleEditor(true)}
-              >
-                <Palette className="h-3.5 w-3.5" />
-                Edit Header Style
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-1.5 h-8 text-xs"
-                disabled={isDisabled}
-                onClick={() => setShowCellStyleEditor(true)}
-              >
-                <Palette className="h-3.5 w-3.5" />
-                Edit Cell Style
-              </Button>
-            </div>
-          </PropertyGroup>
+            {/* Style Editors */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base">Style Editors</CardTitle>
+                <CardDescription className="text-sm">
+                  Customize visual appearance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-1.5 h-8 text-xs"
+                    disabled={isDisabled}
+                    onClick={() => setShowHeaderStyleEditor(true)}
+                  >
+                    <Palette className="h-3.5 w-3.5" />
+                    Edit Header Style
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-1.5 h-8 text-xs"
+                    disabled={isDisabled}
+                    onClick={() => setShowCellStyleEditor(true)}
+                  >
+                    <Palette className="h-3.5 w-3.5" />
+                    Edit Cell Style
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Text Display Options */}
-          <PropertyGroup title="Text Display">
-            <div className="space-y-2">
-              <ThreeStateCheckbox
-                label="Wrap Text"
-                property="wrapText"
-                mixedValue={getMixedValue('wrapText')}
-                onChange={(value) => updateBulkProperty('wrapText', value)}
-                disabled={isDisabled || (isMultipleSelection && getMixedValue('wrapText').isMixed)}
-                description="Wrap long text within cells"
-              />
+            {/* Text Display Options */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base">Text Display</CardTitle>
+                <CardDescription className="text-sm">
+                  Control how text is displayed in cells
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <ThreeStateCheckbox
+                    label="Wrap Text"
+                    property="wrapText"
+                    mixedValue={getMixedValue('wrapText')}
+                    onChange={(value) => updateBulkProperty('wrapText', value)}
+                    disabled={isDisabled || (isMultipleSelection && getMixedValue('wrapText').isMixed)}
+                    description="Wrap long text within cells"
+                  />
 
-              <ThreeStateCheckbox
-                label="Auto Height"
-                property="autoHeight"
-                mixedValue={getMixedValue('autoHeight')}
-                onChange={(value) => updateBulkProperty('autoHeight', value)}
-                disabled={isDisabled || (isMultipleSelection && getMixedValue('autoHeight').isMixed)}
-                description="Automatically adjust row height to fit content"
-              />
-            </div>
-          </PropertyGroup>
+                  <ThreeStateCheckbox
+                    label="Auto Height"
+                    property="autoHeight"
+                    mixedValue={getMixedValue('autoHeight')}
+                    onChange={(value) => updateBulkProperty('autoHeight', value)}
+                    disabled={isDisabled || (isMultipleSelection && getMixedValue('autoHeight').isMixed)}
+                    description="Automatically adjust row height to fit content"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-4">
+            {/* Cell Alignment */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base">Cell Alignment</CardTitle>
+                <CardDescription className="text-sm">
+                  Set text alignment for cell content
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <AlignmentIconPicker
+                    label="Horizontal"
+                    type="horizontal"
+                    value={getCurrentCellAlignment('horizontal')}
+                    onChange={(value) => handleCellAlignmentChange(value, 'horizontal')}
+                    disabled={isDisabled || (isMultipleSelection && isCellAlignmentMixed('horizontal'))}
+                    isMixed={isMultipleSelection && isCellAlignmentMixed('horizontal')}
+                  />
+
+                  <AlignmentIconPicker
+                    label="Vertical"
+                    type="vertical"
+                    value={getCurrentCellAlignment('vertical')}
+                    onChange={(value) => handleCellAlignmentChange(value, 'vertical')}
+                    disabled={isDisabled || (isMultipleSelection && isCellAlignmentMixed('vertical'))}
+                    isMixed={isMultipleSelection && isCellAlignmentMixed('vertical')}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Clear Styles */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base">Clear Styles</CardTitle>
+                <CardDescription className="text-sm">
+                  Remove applied styling
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-8 text-xs"
+                      disabled={isDisabled}
+                      onClick={clearHeaderStyles}
+                    >
+                      <Eraser className="h-3.5 w-3.5" />
+                      Header
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-8 text-xs"
+                      disabled={isDisabled}
+                      onClick={clearCellStyles}
+                    >
+                      <Eraser className="h-3.5 w-3.5" />
+                      Cell
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-8 text-xs"
+                      disabled={isDisabled}
+                      onClick={clearAlignment}
+                    >
+                      <Eraser className="h-3.5 w-3.5" />
+                      Alignment
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1.5 h-8 text-xs"
+                      disabled={isDisabled}
+                      onClick={clearAllStyles}
+                    >
+                      <Eraser className="h-3.5 w-3.5" />
+                      All
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Header Text Options */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base">Header Text</CardTitle>
+                <CardDescription className="text-sm">
+                  Header text display options
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <ThreeStateCheckbox
+                    label="Wrap Header Text"
+                    property="wrapHeaderText"
+                    mixedValue={getMixedValue('wrapHeaderText')}
+                    onChange={(value) => updateBulkProperty('wrapHeaderText', value)}
+                    disabled={isDisabled || (isMultipleSelection && getMixedValue('wrapHeaderText').isMixed)}
+                    description="Wrap long text in column headers"
+                  />
+
+                  <ThreeStateCheckbox
+                    label="Auto Header Height"
+                    property="autoHeaderHeight"
+                    mixedValue={getMixedValue('autoHeaderHeight')}
+                    onChange={(value) => updateBulkProperty('autoHeaderHeight', value)}
+                    disabled={isDisabled || (isMultipleSelection && getMixedValue('autoHeaderHeight').isMixed)}
+                    description="Automatically adjust header height"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Right Column */}
-        <div className="space-y-4">
-          {/* Cell Alignment */}
-          <PropertyGroup title="Cell Alignment">
-            <div className="space-y-3">
-              <AlignmentIconPicker
-                label="Horizontal"
-                type="horizontal"
-                value={getCurrentCellAlignment('horizontal')}
-                onChange={(value) => handleCellAlignmentChange(value, 'horizontal')}
-                disabled={isDisabled || (isMultipleSelection && isCellAlignmentMixed('horizontal'))}
-                isMixed={isMultipleSelection && isCellAlignmentMixed('horizontal')}
-              />
+        {/* Style Editors */}
+        <StyleEditor
+          open={showCellStyleEditor}
+          onOpenChange={setShowCellStyleEditor}
+          title="Cell Style Editor"
+          initialStyle={currentCellStyle.isMixed ? {} : (getCellStyleObject() as React.CSSProperties || {})}
+          onSave={handleCellStyleSave}
+          isHeaderStyle={false}
+        />
 
-              <AlignmentIconPicker
-                label="Vertical"
-                type="vertical"
-                value={getCurrentCellAlignment('vertical')}
-                onChange={(value) => handleCellAlignmentChange(value, 'vertical')}
-                disabled={isDisabled || (isMultipleSelection && isCellAlignmentMixed('vertical'))}
-                isMixed={isMultipleSelection && isCellAlignmentMixed('vertical')}
-              />
-            </div>
-          </PropertyGroup>
-
-          {/* Clear Styles */}
-          <PropertyGroup title="Clear Styles">
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 h-8 text-xs"
-                  disabled={isDisabled}
-                  onClick={clearHeaderStyles}
-                >
-                  <Eraser className="h-3.5 w-3.5" />
-                  Header
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 h-8 text-xs"
-                  disabled={isDisabled}
-                  onClick={clearCellStyles}
-                >
-                  <Eraser className="h-3.5 w-3.5" />
-                  Cell
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 h-8 text-xs"
-                  disabled={isDisabled}
-                  onClick={clearAlignment}
-                >
-                  <Eraser className="h-3.5 w-3.5" />
-                  Alignment
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="gap-1.5 h-8 text-xs"
-                  disabled={isDisabled}
-                  onClick={clearAllStyles}
-                >
-                  <Eraser className="h-3.5 w-3.5" />
-                  All
-                </Button>
-              </div>
-            </div>
-          </PropertyGroup>
-
-          {/* Header Text Options */}
-          <PropertyGroup title="Header Text">
-            <div className="space-y-2">
-              <ThreeStateCheckbox
-                label="Wrap Header Text"
-                property="wrapHeaderText"
-                mixedValue={getMixedValue('wrapHeaderText')}
-                onChange={(value) => updateBulkProperty('wrapHeaderText', value)}
-                disabled={isDisabled || (isMultipleSelection && getMixedValue('wrapHeaderText').isMixed)}
-                description="Wrap long text in column headers"
-              />
-
-              <ThreeStateCheckbox
-                label="Auto Header Height"
-                property="autoHeaderHeight"
-                mixedValue={getMixedValue('autoHeaderHeight')}
-                onChange={(value) => updateBulkProperty('autoHeaderHeight', value)}
-                disabled={isDisabled || (isMultipleSelection && getMixedValue('autoHeaderHeight').isMixed)}
-                description="Automatically adjust header height"
-              />
-            </div>
-          </PropertyGroup>
-        </div>
+        <StyleEditor
+          open={showHeaderStyleEditor}
+          onOpenChange={setShowHeaderStyleEditor}
+          title="Header Style Editor"
+          initialStyle={currentHeaderStyle.isMixed ? {} : (getHeaderStyleObject() as React.CSSProperties || {})}
+          onSave={handleHeaderStyleSave}
+          isHeaderStyle={true}
+        />
       </div>
-
-      {/* Style Editors */}
-      <StyleEditor
-        open={showCellStyleEditor}
-        onOpenChange={setShowCellStyleEditor}
-        title="Cell Style Editor"
-        initialStyle={currentCellStyle.isMixed ? {} : (getCellStyleObject() as React.CSSProperties || {})}
-        onSave={handleCellStyleSave}
-        isHeaderStyle={false}
-      />
-
-      <StyleEditor
-        open={showHeaderStyleEditor}
-        onOpenChange={setShowHeaderStyleEditor}
-        title="Header Style Editor"
-        initialStyle={currentHeaderStyle.isMixed ? {} : (getHeaderStyleObject() as React.CSSProperties || {})}
-        onSave={handleHeaderStyleSave}
-        isHeaderStyle={true}
-      />
-    </div>
+    </ScrollArea>
   );
 };

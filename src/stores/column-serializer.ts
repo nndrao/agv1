@@ -24,7 +24,7 @@ export interface ColumnCustomization {
   lockPosition?: boolean;
   lockVisible?: boolean;
   lockPinned?: boolean;
-  suppressMenu?: boolean;
+  suppressHeaderMenuButton?: boolean;
   
   // Positioning
   pinned?: 'left' | 'right' | null;
@@ -79,7 +79,7 @@ const COLUMN_DEFAULTS: Partial<ColDef> = {
   lockPosition: false,
   lockVisible: false,
   lockPinned: false,
-  suppressMenu: false,
+  suppressHeaderMenuButton: false,
   flex: 1,
   minWidth: 100,
 };
@@ -142,8 +142,8 @@ function extractCustomizations(col: ColDef, baseCol?: ColDef): ColumnCustomizati
   if (col.lockPinned !== undefined && col.lockPinned !== compareBase.lockPinned) {
     customization.lockPinned = col.lockPinned;
   }
-  if (col.suppressMenu !== undefined && col.suppressMenu !== compareBase.suppressMenu) {
-    customization.suppressMenu = col.suppressMenu;
+  if (col.suppressHeaderMenuButton !== undefined && col.suppressHeaderMenuButton !== compareBase.suppressHeaderMenuButton) {
+    customization.suppressHeaderMenuButton = col.suppressHeaderMenuButton;
   }
   
   // Positioning
@@ -314,7 +314,7 @@ export function deserializeColumnCustomizations(
     if (custom.lockPosition !== undefined) merged.lockPosition = custom.lockPosition;
     if (custom.lockVisible !== undefined) merged.lockVisible = custom.lockVisible;
     if (custom.lockPinned !== undefined) merged.lockPinned = custom.lockPinned;
-    if (custom.suppressMenu !== undefined) merged.suppressMenu = custom.suppressMenu;
+    if (custom.suppressHeaderMenuButton !== undefined) merged.suppressHeaderMenuButton = custom.suppressHeaderMenuButton;
     
     // Apply positioning
     if (custom.pinned !== undefined) merged.pinned = custom.pinned;
@@ -362,7 +362,7 @@ export function deserializeColumnCustomizations(
       if (custom.valueFormatter.type === 'excel') {
         const formatter = createExcelFormatter(custom.valueFormatter.formatString);
         merged.valueFormatter = formatter;
-        merged.exportValueFormatter = formatter;
+        // Value formatter will be used for export automatically
       }
     }
     

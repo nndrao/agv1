@@ -108,7 +108,7 @@ const createDefaultProfile = (): GridProfile => ({
 async function performMigration(state: PersistedState): Promise<PersistedState> {
   perfMonitor.mark('migration-start');
   
-  let newState = { ...state };
+  const newState = { ...state };
   
   // Migrate from version 1 to 2 (clean invalid properties)
   if (state.profiles && Array.isArray(state.profiles)) {

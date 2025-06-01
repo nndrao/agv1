@@ -2,7 +2,6 @@ import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import '../column-customization-dialog.css';
 
 interface ThreeStateCheckboxProps {
   label: string;
@@ -34,7 +33,7 @@ export const ThreeStateCheckbox: React.FC<ThreeStateCheckboxProps> = ({
         checked={isChecked === true ? true : false}
         onCheckedChange={(checked) => onChange(!!checked)}
         disabled={disabled}
-        className="checkbox-enhanced h-4 w-4 rounded"
+        className="h-4 w-4 rounded"
       />
       <Label
         htmlFor={property}

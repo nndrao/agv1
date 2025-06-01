@@ -355,7 +355,7 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
       // Clear all formatting-related properties
       const updates = {
         valueFormatter: undefined,
-        exportValueFormatter: undefined,
+        // Value formatter will be used for export automatically
         cellStyle: undefined,
         cellClass: undefined
       };
@@ -388,7 +388,7 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
     }
     
     updates.valueFormatter = formatter;
-    updates.exportValueFormatter = formatter;
+    // Value formatter will be used for export automatically
     
     // Set appropriate cell class
     const cellClass = getExcelStyleClass(format);
