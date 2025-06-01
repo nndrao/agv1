@@ -10,7 +10,7 @@ import { PropertyEditorPanel } from './panels/PropertyEditorPanel';
 import { BulkActionsPanel } from './panels/BulkActionsPanel';
 import { ColDef, ColumnState } from 'ag-grid-community';
 import { useColumnCustomizationStore } from './store/column-customization.store';
-import { Undo2, Redo2, Settings2, Volume2, VolumeX, Columns, Eye } from 'lucide-react';
+import { Undo2, Redo2, Settings2, Volume2, VolumeX, Columns, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useButtonFeedback, useProgressIndicator } from './utils/feedback';
 import { useSoundPreference } from './hooks/useSoundPreference';
@@ -40,12 +40,10 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     setColumnState,
     applyChanges,
     resetChanges,
-    uiMode,
-    setUiMode,
     showColumnDrawer,
     setShowColumnDrawer,
-    showPreviewPane,
-    setShowPreviewPane
+    bulkActionsPanelCollapsed,
+    setBulkActionsPanelCollapsed
   } = useColumnCustomizationStore();
   const { toast } = useToast();
   const { soundEnabled, toggleSound } = useSoundPreference();
@@ -194,7 +192,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] w-[1100px] h-[80vh] p-0 flex flex-col bg-background">
+      <DialogContent className="max-w-[90vw] w-[1100px] h-[80vh] p-0 flex flex-col bg-background overflow-hidden">
         {/* Clean, Professional Header */}
         <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
           <div className="flex items-center justify-between">
@@ -225,59 +223,29 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               </div>
             </div>
             
-            {/* UI Controls */}
-            <div className="flex items-center gap-4">
-              {/* UI Mode Toggle */}
-              <div className="flex items-center gap-2">
-                <Label htmlFor="ui-mode" className="text-xs text-muted-foreground">
-                  Simple
-                </Label>
-                <Switch
-                  id="ui-mode"
-                  checked={uiMode === 'advanced'}
-                  onCheckedChange={(checked) => setUiMode(checked ? 'advanced' : 'simple')}
-                  className="data-[state=checked]:bg-primary"
-                />
-                <Label htmlFor="ui-mode" className="text-xs text-muted-foreground">
-                  Advanced
-                </Label>
-              </div>
-              
-              {/* Preview Pane Toggle */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPreviewPane(!showPreviewPane)}
-                className="h-8 px-2"
-                title={showPreviewPane ? 'Hide preview' : 'Show preview'}
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-              
-              {/* Sound toggle button */}
-              <Button
-                onClick={toggleSound}
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "h-8 w-8 p-0 rounded-full",
-                  soundEnabled && "bg-primary/10 hover:bg-primary/20"
-                )}
-                aria-label={soundEnabled ? 'Disable sound feedback' : 'Enable sound feedback'}
-                title={soundEnabled ? 'Sound feedback enabled' : 'Sound feedback disabled'}
-              >
-                {soundEnabled ? (
-                  <Volume2 className="h-4 w-4 text-primary" />
-                ) : (
-                  <VolumeX className="h-4 w-4 text-muted-foreground" />
-                )}
-              </Button>
-            </div>
+            {/* Sound toggle button */}
+            <Button
+              onClick={toggleSound}
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 w-8 p-0 rounded-full",
+                soundEnabled && "bg-primary/10 hover:bg-primary/20"
+              )}
+              aria-label={soundEnabled ? 'Disable sound feedback' : 'Enable sound feedback'}
+              title={soundEnabled ? 'Sound feedback enabled' : 'Sound feedback disabled'}
+            >
+              {soundEnabled ? (
+                <Volume2 className="h-4 w-4 text-primary" />
+              ) : (
+                <VolumeX className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
           </div>
         </DialogHeader>
 
         {/* Clean Body Layout */}
-        <div className="flex-1 flex overflow-hidden min-h-0">
+        <div className="flex-1 flex overflow-hidden min-h-0 relative">
           {/* Column Selector - Mobile Drawer or Desktop Panel */}
           {showColumnDrawer ? (
             <>
@@ -308,33 +276,46 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
             </div>
           )}
 
-          {/* Property Editor Panel - With Preview Pane */}
-          <div className="flex-1 flex overflow-hidden">
-            <div className={`flex-1 overflow-hidden flex flex-col min-w-0 bg-background ${showPreviewPane ? 'border-r' : ''}`}>
-              <PropertyEditorPanel uiMode={uiMode} />
-            </div>
-            
-            {/* Preview Pane */}
-            {showPreviewPane && (
-              <div className="w-[300px] bg-muted/10 overflow-hidden flex flex-col p-4">
-                <h3 className="text-sm font-semibold mb-3">Live Preview</h3>
-                <div className="flex-1 overflow-auto">
-                  <div className="space-y-3">
-                    {/* Preview content will be implemented later */}
-                    <div className="text-xs text-muted-foreground">
-                      Preview of changes will appear here
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+          {/* Property Editor Panel */}
+          <div className="flex-1 overflow-hidden flex flex-col min-w-0 bg-background">
+            <PropertyEditorPanel uiMode="advanced" />
           </div>
 
-          {/* Bulk Actions Panel - Contextual */}
+          {/* Quick Actions Panel - Collapsible */}
           {selectedColumns.size > 0 && (
-            <div className="w-[260px] border-l bg-muted/30 overflow-hidden flex flex-col">
-              <BulkActionsPanel />
-            </div>
+            <>
+              {/* Toggle Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setBulkActionsPanelCollapsed(!bulkActionsPanelCollapsed)}
+                className={cn(
+                  "absolute top-1/2 -translate-y-1/2 z-20 h-16 w-6 px-0 py-2 rounded-l-md rounded-r-none border border-r-0 bg-background hover:bg-muted/50 shadow-sm transition-all duration-300",
+                  bulkActionsPanelCollapsed ? "right-0" : "right-[260px]"
+                )}
+                title={bulkActionsPanelCollapsed ? "Show Quick Actions" : "Hide Quick Actions"}
+              >
+                {bulkActionsPanelCollapsed ? (
+                  <ChevronLeft className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+              
+              {/* Collapsible Panel */}
+              <div className={cn(
+                "w-[260px] border-l bg-muted/30 overflow-hidden flex flex-col transition-all duration-300",
+                bulkActionsPanelCollapsed ? "w-0" : "w-[260px]"
+              )}>
+                <div className="px-4 py-3 border-b">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold">Quick Actions</span>
+                  </div>
+                </div>
+                <BulkActionsPanel />
+              </div>
+            </>
           )}
         </div>
 

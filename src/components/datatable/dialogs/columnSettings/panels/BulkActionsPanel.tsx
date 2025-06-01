@@ -338,14 +338,7 @@ export const BulkActionsPanel: React.FC = () => {
   const hasTemplates = templates.length > 0;
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-4 py-3 border-b">
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-semibold">Quick Actions</span>
-        </div>
-      </div>
-
+    <>
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-5">
           {/* Template Management */}
@@ -584,6 +577,6 @@ export const BulkActionsPanel: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
