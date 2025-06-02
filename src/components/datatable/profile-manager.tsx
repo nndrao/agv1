@@ -465,11 +465,19 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       setProfileDescription('');
       setShowCreateDialog(false);
       
-      // Switch to the new profile which will apply the cloned default state
+      // Immediately set the new profile as active in the store
+      setActiveProfile(newProfile.id);
+      
+      // Apply the new profile's settings to the grid
       // Use setTimeout to ensure state updates have propagated
       setTimeout(() => {
         handleProfileChange(newProfile.id);
       }, 100);
+      
+      toast({
+        title: 'Profile created',
+        description: `Profile "${newProfile.name}" has been created and selected.`,
+      });
       
     } catch (error) {
       console.error('[ProfileManager] Error creating profile:', error);
@@ -486,14 +494,22 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
 
     try {
       const newProfile = duplicateProfile(selectedProfileId, profileName);
+      
+      // Immediately set the new profile as active
       setActiveProfile(newProfile.id);
+      
+      // Apply the new profile's settings to the grid
+      setTimeout(() => {
+        handleProfileChange(newProfile.id);
+      }, 100);
+      
       setShowDuplicateDialog(false);
       setProfileName('');
       setSelectedProfileId(null);
       
       toast({
         title: 'Profile duplicated',
-        description: `Profile "${newProfile.name}" has been created.`,
+        description: `Profile "${newProfile.name}" has been created and selected.`,
       });
     } catch {
       toast({
@@ -508,11 +524,26 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     const profile = profiles.find(p => p.id === profileId);
     if (!profile || profile.id === 'default') return;
 
+    // Check if we're deleting the currently active profile
+    const isDeletingActiveProfile = profileId === activeProfile?.id;
+    
+    // Delete the profile (this will automatically switch to default if it was active)
     deleteProfile(profileId);
+    
+    // If we deleted the active profile, apply the default profile settings to the grid
+    if (isDeletingActiveProfile && gridApi) {
+      const defaultProfile = profiles.find(p => p.id === 'default-profile');
+      if (defaultProfile) {
+        console.log('[ProfileManager] Applying default profile settings after deletion');
+        setTimeout(() => {
+          handleProfileChange('default-profile');
+        }, 100);
+      }
+    }
     
     toast({
       title: 'Profile deleted',
-      description: `Profile "${profile.name}" has been deleted.`,
+      description: `Profile "${profile.name}" has been deleted.${isDeletingActiveProfile ? ' Default profile is now active.' : ''}`,
     });
   };
 

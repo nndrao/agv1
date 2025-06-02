@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Search, Columns3, Filter, Star, Eye, EyeOff, Hash, Type, Calendar, ToggleLeft, Package, CircleDot, DollarSign, Palette, Edit3, Settings, X } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
@@ -199,178 +200,180 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
   );
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Modern Header */}
-      <div className="px-4 py-3 border-b border-border/40 bg-gradient-to-r from-muted/15 to-muted/5 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 rounded-md bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
-            <Columns3 className="h-4 w-4 text-primary" />
-          </div>
-          <span className="text-sm font-semibold tracking-tight">Columns</span>
-          <Badge variant="outline" className="text-xs px-2 py-1 ml-auto font-medium rounded-md border-border/60">
-            {filteredColumns.length}
-          </Badge>
-        </div>
-      </div>
-
-      <div className="flex-1 flex flex-col p-4">
-        {/* Modern Search Bar */}
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search columns..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm focus:border-primary/60 focus:ring-primary/20 transition-all duration-200"
-          />
-        </div>
-
-        {/* Filters */}
-        <div className="space-y-3 mb-4">
-          {/* CellDataType Filter */}
-          <Select
-            value={cellDataTypeFilter}
-            onValueChange={setCellDataTypeFilter}
-          >
-            <SelectTrigger className="h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filter by data type" />
-            </SelectTrigger>
-            <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
-              <SelectItem value="all" className="text-sm">All Data Types</SelectItem>
-              {availableCellDataTypes.map(type => {
-                const TypeIcon = getColumnIcon(type);
-                return (
-                  <SelectItem key={type} value={type} className="text-sm">
-                    <div className="flex items-center gap-2">
-                      <TypeIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="capitalize">{type}</span>
-                    </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-
-          {/* Visibility Filter */}
-          <Select
-            value={visibilityFilter}
-            onValueChange={(value: 'all' | 'visible' | 'hidden') => setVisibilityFilter(value)}
-          >
-            <SelectTrigger className="h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
-              {visibilityFilter === 'visible' ? (
-                <Eye className="h-4 w-4 mr-2" />
-              ) : visibilityFilter === 'hidden' ? (
-                <EyeOff className="h-4 w-4 mr-2" />
-              ) : (
-                <Eye className="h-4 w-4 mr-2" />
-              )}
-              <SelectValue placeholder="Filter by visibility" />
-            </SelectTrigger>
-            <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
-              <SelectItem value="all" className="text-sm">
-                <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
-                  <span>All Columns</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="visible" className="text-sm">
-                <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-green-600" />
-                  <span>Visible Columns</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="hidden" className="text-sm">
-                <div className="flex items-center gap-2">
-                  <EyeOff className="h-4 w-4 text-red-600" />
-                  <span>Hidden Columns</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Modern Selection Controls */}
-        <div className="flex items-center gap-2.5 mb-4">
-          <Checkbox
-            checked={isAllSelected ? true : isIndeterminate ? "indeterminate" : false}
-            onCheckedChange={(checked) => {
-              if (checked === true || checked === "indeterminate") {
-                selectAllFilteredColumns();
-              } else {
-                deselectAllFilteredColumns();
-              }
-            }}
-            className="rounded"
-          />
-          <span className="text-xs font-medium text-foreground">
-            {(searchTerm || cellDataTypeFilter !== 'all' || visibilityFilter !== 'all') ? 'All Filtered' : 'All'}
-          </span>
-          {filteredSelectedCount > 0 && (
-            <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium rounded-md bg-secondary/80 border border-secondary/40">
-              {filteredSelectedCount}/{filteredColumns.length}
+    <TooltipProvider>
+      <div className="h-full flex flex-col">
+        {/* Modern Header */}
+        <div className="px-4 py-3 border-b border-border/40 bg-gradient-to-r from-muted/15 to-muted/5 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 rounded-md bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
+              <Columns3 className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-sm font-semibold tracking-tight">Columns</span>
+            <Badge variant="outline" className="text-xs px-2 py-1 ml-auto font-medium rounded-md border-border/60">
+              {filteredColumns.length}
             </Badge>
-          )}
+          </div>
         </div>
 
-        {/* Virtual Column List */}
-        <div className="flex-1 -mx-1">
-          <div
-            ref={parentRef}
-            className="h-full overflow-auto px-1"
-            style={{ contain: 'strict' }}
-          >
-            <div
-              style={{
-                height: `${virtualizer.getTotalSize()}px`,
-                width: '100%',
-                position: 'relative',
-              }}
-            >
-              {virtualizer.getVirtualItems().map((virtualItem) => {
-                const item = flatItems[virtualItem.index];
+        <div className="flex-1 flex flex-col p-4">
+          {/* Modern Search Bar */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search columns..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm focus:border-primary/60 focus:ring-primary/20 transition-all duration-200"
+            />
+          </div>
 
-                return (
-                  <div
-                    key={virtualItem.key}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: `${virtualItem.size}px`,
-                      transform: `translateY(${virtualItem.start}px)`,
-                    }}
-                  >
-                    <ColumnItem
-                      column={item.column}
-                      columnId={item.id}
-                      selected={selectedColumns.has(item.id)}
-                      isTemplate={templateColumns instanceof Set ? templateColumns.has(item.id) : false}
-                      isHidden={(() => {
-                        // Try to find column state by field first, then by colId
-                        const field = item.column.field || '';
-                        const colId = item.column.colId || field;
-                        let colState = columnState.get(field);
-                        if (!colState && field !== colId) {
-                          colState = columnState.get(colId);
-                        }
-                        return colState?.hide || false;
-                      })()}
-                      appliedTemplate={appliedTemplates.get(item.id)}
-                      onToggle={toggleColumnSelection}
-                      onToggleTemplate={toggleTemplateColumn}
-                    />
+          {/* Filters */}
+          <div className="space-y-3 mb-4">
+            {/* CellDataType Filter */}
+            <Select
+              value={cellDataTypeFilter}
+              onValueChange={setCellDataTypeFilter}
+            >
+              <SelectTrigger className="h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter by data type" />
+              </SelectTrigger>
+              <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
+                <SelectItem value="all" className="text-sm">All Data Types</SelectItem>
+                {availableCellDataTypes.map(type => {
+                  const TypeIcon = getColumnIcon(type);
+                  return (
+                    <SelectItem key={type} value={type} className="text-sm">
+                      <div className="flex items-center gap-2">
+                        <TypeIcon className="h-4 w-4 text-muted-foreground" />
+                        <span className="capitalize">{type}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+
+            {/* Visibility Filter */}
+            <Select
+              value={visibilityFilter}
+              onValueChange={(value: 'all' | 'visible' | 'hidden') => setVisibilityFilter(value)}
+            >
+              <SelectTrigger className="h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
+                {visibilityFilter === 'visible' ? (
+                  <Eye className="h-4 w-4 mr-2" />
+                ) : visibilityFilter === 'hidden' ? (
+                  <EyeOff className="h-4 w-4 mr-2" />
+                ) : (
+                  <Eye className="h-4 w-4 mr-2" />
+                )}
+                <SelectValue placeholder="Filter by visibility" />
+              </SelectTrigger>
+              <SelectContent className="rounded-lg border-border/60 bg-background/95 backdrop-blur-md">
+                <SelectItem value="all" className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    <span>All Columns</span>
                   </div>
-                );
-              })}
+                </SelectItem>
+                <SelectItem value="visible" className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-green-600" />
+                    <span>Visible Columns</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="hidden" className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <EyeOff className="h-4 w-4 text-red-600" />
+                    <span>Hidden Columns</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Modern Selection Controls */}
+          <div className="flex items-center gap-2.5 mb-4">
+            <Checkbox
+              checked={isAllSelected ? true : isIndeterminate ? "indeterminate" : false}
+              onCheckedChange={(checked) => {
+                if (checked === true || checked === "indeterminate") {
+                  selectAllFilteredColumns();
+                } else {
+                  deselectAllFilteredColumns();
+                }
+              }}
+              className="rounded"
+            />
+            <span className="text-xs font-medium text-foreground">
+              {(searchTerm || cellDataTypeFilter !== 'all' || visibilityFilter !== 'all') ? 'All Filtered' : 'All'}
+            </span>
+            {filteredSelectedCount > 0 && (
+              <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium rounded-md bg-secondary/80 border border-secondary/40">
+                {filteredSelectedCount}/{filteredColumns.length}
+              </Badge>
+            )}
+          </div>
+
+          {/* Virtual Column List */}
+          <div className="flex-1 -mx-1">
+            <div
+              ref={parentRef}
+              className="h-full overflow-auto px-1"
+              style={{ contain: 'strict' }}
+            >
+              <div
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {virtualizer.getVirtualItems().map((virtualItem) => {
+                  const item = flatItems[virtualItem.index];
+
+                  return (
+                    <div
+                      key={virtualItem.key}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                    >
+                      <ColumnItem
+                        column={item.column}
+                        columnId={item.id}
+                        selected={selectedColumns.has(item.id)}
+                        isTemplate={templateColumns instanceof Set ? templateColumns.has(item.id) : false}
+                        isHidden={(() => {
+                          // Try to find column state by field first, then by colId
+                          const field = item.column.field || '';
+                          const colId = item.column.colId || field;
+                          let colState = columnState.get(field);
+                          if (!colState && field !== colId) {
+                            colState = columnState.get(colId);
+                          }
+                          return colState?.hide || false;
+                        })()}
+                        appliedTemplate={appliedTemplates.get(item.id)}
+                        onToggle={toggleColumnSelection}
+                        onToggleTemplate={toggleTemplateColumn}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
+
+
         </div>
-
-
       </div>
-    </div>
+    </TooltipProvider>
   );
 });
 
@@ -385,7 +388,7 @@ const ColumnItem: React.FC<{
   onToggle: (columnId: string) => void;
   onToggleTemplate: (columnId: string) => void;
 }> = React.memo(({ column, columnId, selected, isTemplate, isHidden, appliedTemplate, onToggle, onToggleTemplate }) => {
-  const { removeColumnCustomization, removeAppliedTemplate } = useColumnCustomizationStore();
+  const { removeColumnCustomization, removeAppliedTemplate, pendingChanges } = useColumnCustomizationStore();
   const [isHoveringTemplate, setIsHoveringTemplate] = useState(false);
   const iconKey = (column.cellDataType || column.type || 'text') as string;
   const IconComponent = getColumnIcon(iconKey);
@@ -394,14 +397,24 @@ const ColumnItem: React.FC<{
   const customizations = useMemo(() => {
     const customs: CustomizationType[] = [];
     
+    // Get pending changes for this column
+    const pending = pendingChanges.get(columnId) || {};
+    
+    // Merge original column with pending changes to get effective column state
+    const effectiveColumn = { ...column, ...pending };
+    
+    // Helper function to check if a value exists and is not undefined
+    const hasValue = (value: any) => value !== undefined && value !== null;
+    
     // Check for styling customizations
-    const hasStyle = column.cellStyle || column.headerStyle || column.cellClass || column.headerClass;
+    const hasStyle = hasValue(effectiveColumn.cellStyle) || hasValue(effectiveColumn.headerStyle) || 
+                     hasValue(effectiveColumn.cellClass) || hasValue(effectiveColumn.headerClass);
     if (hasStyle) {
       let styleCount = 0;
-      if (column.cellStyle) styleCount++;
-      if (column.headerStyle) styleCount++;
-      if (column.cellClass) styleCount++;
-      if (column.headerClass) styleCount++;
+      if (hasValue(effectiveColumn.cellStyle)) styleCount++;
+      if (hasValue(effectiveColumn.headerStyle)) styleCount++;
+      if (hasValue(effectiveColumn.cellClass)) styleCount++;
+      if (hasValue(effectiveColumn.headerClass)) styleCount++;
       customs.push({ 
         type: 'style', 
         label: 'Styling customizations', 
@@ -411,7 +424,7 @@ const ColumnItem: React.FC<{
     }
 
     // Check for formatter
-    if (column.valueFormatter) {
+    if (hasValue(effectiveColumn.valueFormatter)) {
       customs.push({ 
         type: 'formatter', 
         label: 'Value formatter', 
@@ -420,7 +433,7 @@ const ColumnItem: React.FC<{
     }
 
     // Check for filter
-    if (column.filter || column.filterParams) {
+    if (hasValue(effectiveColumn.filter) || hasValue(effectiveColumn.filterParams)) {
       customs.push({ 
         type: 'filter', 
         label: 'Filter settings', 
@@ -429,7 +442,7 @@ const ColumnItem: React.FC<{
     }
 
     // Check for editor
-    if (column.cellEditor || column.cellEditorParams) {
+    if (hasValue(effectiveColumn.cellEditor) || hasValue(effectiveColumn.cellEditorParams)) {
       customs.push({ 
         type: 'editor', 
         label: 'Cell editor', 
@@ -438,13 +451,13 @@ const ColumnItem: React.FC<{
     }
 
     // Check for general settings (width, pinning, etc)
-    const hasGeneral = column.width || column.minWidth || column.maxWidth || 
-                      column.pinned || column.lockPosition || column.lockVisible;
+    const hasGeneral = hasValue(effectiveColumn.width) || hasValue(effectiveColumn.minWidth) || hasValue(effectiveColumn.maxWidth) || 
+                      hasValue(effectiveColumn.pinned) || hasValue(effectiveColumn.lockPosition) || hasValue(effectiveColumn.lockVisible);
     if (hasGeneral) {
       let generalCount = 0;
-      if (column.width || column.minWidth || column.maxWidth) generalCount++;
-      if (column.pinned) generalCount++;
-      if (column.lockPosition || column.lockVisible) generalCount++;
+      if (hasValue(effectiveColumn.width) || hasValue(effectiveColumn.minWidth) || hasValue(effectiveColumn.maxWidth)) generalCount++;
+      if (hasValue(effectiveColumn.pinned)) generalCount++;
+      if (hasValue(effectiveColumn.lockPosition) || hasValue(effectiveColumn.lockVisible)) generalCount++;
       customs.push({ 
         type: 'general', 
         label: 'General settings', 
@@ -454,7 +467,7 @@ const ColumnItem: React.FC<{
     }
 
     return customs;
-  }, [column]);
+  }, [column, columnId, pendingChanges]);
 
   const handleToggle = useCallback(() => {
     onToggle(columnId);
@@ -487,20 +500,27 @@ const ColumnItem: React.FC<{
       />
       <IconComponent className="h-4 w-4 shrink-0 text-muted-foreground" />
       <span className="text-sm flex-1 flex items-center gap-1 min-w-0">
-        <span className={`truncate ${isHidden ? 'opacity-50' : ''}`}>
-          {column.headerName || column.field}
-        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`truncate ${isHidden ? 'opacity-50' : ''}`}>
+              {column.headerName || column.field}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {column.headerName || column.field}
+          </TooltipContent>
+        </Tooltip>
         {isHidden && (
           <EyeOff className="h-3 w-3 text-muted-foreground shrink-0" />
         )}
       </span>
       
-      {/* Customization Count with Popover */}
+      {/* Customization Count with Popover - moved to the right */}
       {(customizations.length > 0 || appliedTemplate) && (
         <Popover>
           <PopoverTrigger asChild>
             <div 
-              className="h-5 w-5 shrink-0 rounded-full bg-primary/10 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors"
+              className="h-5 w-5 shrink-0 rounded-full bg-primary/10 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors ml-auto"
               title={`${customizations.length + (appliedTemplate ? 1 : 0)} customization${customizations.length + (appliedTemplate ? 1 : 0) !== 1 ? 's' : ''} applied`}
             >
               <span className="text-[10px] font-medium text-primary">{customizations.length + (appliedTemplate ? 1 : 0)}</span>
@@ -557,22 +577,6 @@ const ColumnItem: React.FC<{
           </PopoverContent>
         </Popover>
       )}
-      
-      <Button
-        variant="ghost"
-        size="sm"
-        className={`h-5 w-5 p-0 transition-opacity shrink-0 ${
-          isTemplate ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        }`}
-        onClick={handleToggleTemplate}
-        title={isTemplate ? 'Remove from templates' : 'Add to templates'}
-      >
-        <Star 
-          className={`h-3 w-3 transition-colors ${
-            isTemplate ? 'text-yellow-500 fill-current' : 'text-muted-foreground hover:text-yellow-500'
-          }`}
-        />
-      </Button>
     </div>
   );
 }, (prevProps, nextProps) => {

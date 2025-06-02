@@ -64,10 +64,10 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
   const isMultipleSelection = selectedColumns.size > 1;
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="px-6 py-4 space-y-6">
       {uiMode === 'simple' ? (
         // Simple mode - Essential properties only
-        <div className="space-y-4">
+        <div className="space-y-6">
           <CollapsibleSection
             id="general-basic"
             title="Basic Properties"
@@ -75,9 +75,9 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
             defaultExpanded={true}
             badge={selectedColumns.size > 1 && <Badge variant="secondary" className="text-xs">Bulk Edit</Badge>}
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="headerName" className="text-xs font-medium">
+                <Label htmlFor="headerName" className="text-sm font-medium">
                   Header Name
                   {isMultipleSelection && (
                     <span className="text-xs text-muted-foreground ml-2">(Single column only)</span>
@@ -94,7 +94,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="initialWidth" className="text-xs font-medium">Width</Label>
+                <Label htmlFor="initialWidth" className="text-sm font-medium">Width</Label>
                 <NumericInput
                   id="initialWidth"
                   mixedValue={mixedValues.initialWidth}
@@ -107,7 +107,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
               </div>
             </div>
 
-            <div className="space-y-2 mt-4">
+            <div className="space-y-3 pt-2">
               <ThreeStateCheckbox
                 label="Sortable"
                 property="sortable"
@@ -182,9 +182,9 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
         </div>
       ) : (
         // Advanced mode - All properties with better organization
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column */}
-          <div className="space-y-4">
+          <div className="space-y-6">
           {/* Identity & Basic Info */}
           <CollapsibleSection
             id="general-identity"
@@ -192,9 +192,9 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
             description="Core column properties"
             defaultExpanded={true}
           >
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="field" className="text-xs font-medium">Field</Label>
+                <Label htmlFor="field" className="text-sm font-medium">Field</Label>
                 <MixedValueInput
                   id="field"
                   mixedValue={mixedValues.field}
@@ -206,7 +206,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="headerName" className="text-xs font-medium">
+                <Label htmlFor="headerName" className="text-sm font-medium">
                   Header Name
                   {isMultipleSelection && (
                     <span className="text-xs text-muted-foreground ml-2">(Single column only)</span>
@@ -223,13 +223,13 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type" className="text-xs font-medium">Column Type</Label>
+                <Label htmlFor="type" className="text-sm font-medium">Column Type</Label>
                 <Select
                   value={mixedValues.type.value as string || ''}
                   onValueChange={(value) => updateBulkProperty('type', value)}
                   disabled={isDisabled || (isMultipleSelection && mixedValues.type.isMixed)}
                 >
-                  <SelectTrigger id="type" className={`h-8 text-sm ${mixedValues.type.isMixed ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
+                  <SelectTrigger id="type" className={`h-9 ${mixedValues.type.isMixed ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
                     <SelectValue placeholder={mixedValues.type.isMixed ? '~Mixed~' : 'Select type'} />
                   </SelectTrigger>
                   <SelectContent>
@@ -242,13 +242,13 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="cellDataType" className="text-xs font-medium">Cell Data Type</Label>
+                <Label htmlFor="cellDataType" className="text-sm font-medium">Cell Data Type</Label>
                 <Select
                   value={mixedValues.cellDataType.value as string || ''}
                   onValueChange={(value) => updateBulkProperty('cellDataType', value)}
                   disabled={isDisabled || (isMultipleSelection && mixedValues.cellDataType.isMixed)}
                 >
-                  <SelectTrigger id="cellDataType" className={`h-8 text-sm ${mixedValues.cellDataType.isMixed ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
+                  <SelectTrigger id="cellDataType" className={`h-9 ${mixedValues.cellDataType.isMixed ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
                     <SelectValue placeholder={mixedValues.cellDataType.isMixed ? '~Mixed~' : 'Select data type'} />
                   </SelectTrigger>
                   <SelectContent>
@@ -271,9 +271,9 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
             description="Width constraints and defaults"
             defaultExpanded={true}
           >
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="initialWidth" className="text-xs font-medium">Initial Width</Label>
+                <Label htmlFor="initialWidth" className="text-sm font-medium">Initial Width</Label>
                 <NumericInput
                   id="initialWidth"
                   mixedValue={mixedValues.initialWidth}
@@ -285,9 +285,9 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="minWidth" className="text-xs font-medium">Min Width</Label>
+                  <Label htmlFor="minWidth" className="text-sm font-medium">Min Width</Label>
                   <NumericInput
                     id="minWidth"
                     mixedValue={mixedValues.minWidth}
@@ -300,7 +300,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="maxWidth" className="text-xs font-medium">Max Width</Label>
+                  <Label htmlFor="maxWidth" className="text-sm font-medium">Max Width</Label>
                   <NumericInput
                     id="maxWidth"
                     mixedValue={mixedValues.maxWidth}
@@ -317,7 +317,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
         </div>
 
         {/* Right Column */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Column Behavior */}
           <CollapsibleSection
             id="general-behavior"
@@ -325,7 +325,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
             description="Control how users interact with this column"
             defaultExpanded={true}
           >
-            <div className="space-y-2">
+            <div className="space-y-3">
               <ThreeStateCheckbox
                 label="Sortable"
                 property="sortable"
@@ -414,7 +414,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
             description="Control column display and position"
             defaultExpanded={false}
           >
-            <div className="space-y-3">
+            <div className="space-y-4">
               <ThreeStateCheckbox
                 label="Initially Hidden"
                 property="initialHide"
@@ -425,13 +425,13 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
               />
 
               <div className="space-y-2">
-                <Label htmlFor="initialPinned" className="text-xs font-medium">Initial Pinned</Label>
+                <Label htmlFor="initialPinned" className="text-sm font-medium">Initial Pinned</Label>
                 <Select
                   value={mixedValues.initialPinned.value as string || 'none'}
                   onValueChange={(value) => updateBulkProperty('initialPinned', value === 'none' ? null : value)}
                   disabled={isDisabled || (isMultipleSelection && mixedValues.initialPinned.isMixed)}
                 >
-                  <SelectTrigger id="initialPinned" className={`h-8 text-sm ${mixedValues.initialPinned.isMixed ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
+                  <SelectTrigger id="initialPinned" className={`h-9 ${mixedValues.initialPinned.isMixed ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
                     <SelectValue placeholder={mixedValues.initialPinned.isMixed ? '~Mixed~' : 'Not pinned'} />
                   </SelectTrigger>
                   <SelectContent>

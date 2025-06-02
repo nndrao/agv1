@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, memo, useState } from 'react';
+import React, { useCallback, useEffect, memo, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +10,9 @@ import { PropertyEditorPanel } from './panels/PropertyEditorPanel';
 import { BulkActionsPanel } from './panels/BulkActionsPanel';
 import { ColDef, ColumnState } from 'ag-grid-community';
 import { useColumnCustomizationStore } from './store/column-customization.store';
-import { Undo2, Redo2, Settings2, Volume2, VolumeX, Columns, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { Undo2, Redo2, Settings2, Columns, ChevronLeft, ChevronRight, Zap, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useButtonFeedback, useProgressIndicator } from './utils/feedback';
-import { useSoundPreference } from './hooks/useSoundPreference';
 import { cn } from '@/lib/utils';
 
 interface ColumnCustomizationDialogProps {
@@ -40,16 +39,17 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     setColumnState,
     applyChanges,
     resetChanges,
+    clearAllCustomizations,
     showColumnDrawer,
     setShowColumnDrawer,
     bulkActionsPanelCollapsed,
     setBulkActionsPanelCollapsed
   } = useColumnCustomizationStore();
   const { toast } = useToast();
-  const { soundEnabled, toggleSound } = useSoundPreference();
   const { buttonRef: applyCloseButtonRef, triggerFeedback } = useButtonFeedback();
   const { progressRef, showProgress, hideProgress } = useProgressIndicator();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showClearAllConfirmation, setShowClearAllConfirmation] = useState(false);
 
   // Initialize column definitions when dialog opens
   useEffect(() => {
@@ -93,6 +93,53 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
 
   const selectedCount = selectedColumns.size;
   const totalColumns = columnDefinitions.size;
+
+  // Check if there are any customizations to clear
+  const hasAnyCustomizations = useMemo(() => {
+    const customizationProperties = [
+      'cellStyle', 'headerStyle', 'cellClass', 'headerClass',
+      'valueFormatter', 'filter', 'filterParams',
+      'cellEditor', 'cellEditorParams',
+      'width', 'minWidth', 'maxWidth', 'pinned', 'lockPosition', 'lockVisible'
+    ];
+    
+    for (const column of columnDefinitions.values()) {
+      for (const prop of customizationProperties) {
+        const value = (column as any)[prop];
+        if (value !== undefined && value !== null && value !== false && value !== '') {
+          return true;
+        }
+      }
+    }
+    
+    // Also check for applied templates
+    return false;
+  }, [columnDefinitions]);
+
+  // Count customized columns for confirmation dialog
+  const customizedColumnsCount = useMemo(() => {
+    const customizationProperties = [
+      'cellStyle', 'headerStyle', 'cellClass', 'headerClass',
+      'valueFormatter', 'filter', 'filterParams',
+      'cellEditor', 'cellEditorParams',
+      'width', 'minWidth', 'maxWidth', 'pinned', 'lockPosition', 'lockVisible'
+    ];
+    
+    let count = 0;
+    for (const column of columnDefinitions.values()) {
+      let hasCustomizations = false;
+      for (const prop of customizationProperties) {
+        const value = (column as any)[prop];
+        if (value !== undefined && value !== null && value !== false && value !== '') {
+          hasCustomizations = true;
+          break;
+        }
+      }
+      if (hasCustomizations) count++;
+    }
+    
+    return count;
+  }, [columnDefinitions]);
 
   // Apply changes
   const handleApplyChanges = useCallback(() => {
@@ -150,7 +197,6 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
         Promise.resolve().then(() => {
           // Trigger feedback asynchronously
           triggerFeedback({
-            sound: soundEnabled,
             haptic: true,
             visual: true
           });
@@ -178,7 +224,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
         }
       });
     });
-  }, [applyChanges, onApply, onOpenChange, toast, soundEnabled, triggerFeedback, showProgress, hideProgress]);
+  }, [applyChanges, onApply, onOpenChange, toast, triggerFeedback, showProgress, hideProgress]);
 
   // Discard changes
   const handleDiscardChanges = useCallback(() => {
@@ -190,18 +236,33 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     });
   }, [resetChanges, pendingChanges, toast]);
 
+  // Clear all customizations
+  const handleClearAllCustomizations = useCallback(() => {
+    setShowClearAllConfirmation(true);
+  }, []);
+
+  // Confirm clear all customizations
+  const handleConfirmClearAll = useCallback(() => {
+    const clearedCount = clearAllCustomizations();
+    setShowClearAllConfirmation(false);
+    toast({
+      title: 'All columns cleared',
+      description: `Removed customizations from ${clearedCount} column${clearedCount !== 1 ? 's' : ''}`,
+    });
+  }, [clearAllCustomizations, toast]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[90vw] w-[1100px] h-[80vh] p-0 flex flex-col bg-background overflow-hidden">
         {/* Clean, Professional Header */}
-        <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
-          <div className="flex items-center justify-between">
+        <DialogHeader className="px-6 py-4 border-b bg-card/50">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-1.5 rounded-md bg-primary/10">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 border border-primary/20">
                 <Settings2 className="h-4 w-4 text-primary" />
               </div>
               <div className="space-y-1">
-                <DialogTitle className="text-lg font-semibold">
+                <DialogTitle className="text-lg font-semibold leading-none">
                   Column Settings
                 </DialogTitle>
                 <DialogDescription className="sr-only">
@@ -222,30 +283,11 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
                 </div>
               </div>
             </div>
-            
-            {/* Sound toggle button */}
-            <Button
-              onClick={toggleSound}
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-8 w-8 p-0 rounded-full",
-                soundEnabled && "bg-primary/10 hover:bg-primary/20"
-              )}
-              aria-label={soundEnabled ? 'Disable sound feedback' : 'Enable sound feedback'}
-              title={soundEnabled ? 'Sound feedback enabled' : 'Sound feedback disabled'}
-            >
-              {soundEnabled ? (
-                <Volume2 className="h-4 w-4 text-primary" />
-              ) : (
-                <VolumeX className="h-4 w-4 text-muted-foreground" />
-              )}
-            </Button>
           </div>
         </DialogHeader>
 
         {/* Clean Body Layout */}
-        <div className="flex-1 flex overflow-hidden min-h-0 relative">
+        <div className="flex-1 flex overflow-hidden min-h-0 relative bg-background">
           {/* Column Selector - Mobile Drawer or Desktop Panel */}
           {showColumnDrawer ? (
             <>
@@ -277,7 +319,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
           )}
 
           {/* Property Editor Panel */}
-          <div className="flex-1 overflow-hidden flex flex-col min-w-0 bg-background">
+          <div className="flex-1 overflow-hidden flex flex-col min-w-0">
             <PropertyEditorPanel uiMode="advanced" />
           </div>
 
@@ -291,7 +333,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
                 onClick={() => setBulkActionsPanelCollapsed(!bulkActionsPanelCollapsed)}
                 className={cn(
                   "absolute top-1/2 -translate-y-1/2 z-20 h-16 w-6 px-0 py-2 rounded-l-md rounded-r-none border border-r-0 bg-background hover:bg-muted/50 shadow-sm transition-all duration-300",
-                  bulkActionsPanelCollapsed ? "right-0" : "right-[260px]"
+                  bulkActionsPanelCollapsed ? "right-4" : "right-[336px]"
                 )}
                 title={bulkActionsPanelCollapsed ? "Show Quick Actions" : "Hide Quick Actions"}
               >
@@ -304,10 +346,10 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               
               {/* Collapsible Panel */}
               <div className={cn(
-                "w-[260px] border-l bg-muted/30 overflow-hidden flex flex-col transition-all duration-300",
-                bulkActionsPanelCollapsed ? "w-0" : "w-[260px]"
+                "w-[320px] border-l bg-muted/30 overflow-hidden flex flex-col transition-all duration-300 mr-4",
+                bulkActionsPanelCollapsed ? "w-0 mr-0" : "w-[320px] mr-4"
               )}>
-                <div className="px-4 py-3 border-b">
+                <div className="px-4 py-3 border-b bg-card/50">
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-semibold">Quick Actions</span>
@@ -320,7 +362,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
         </div>
 
         {/* Professional Footer */}
-        <DialogFooter className="px-6 py-3 border-t flex items-center justify-between shrink-0 bg-muted/20">
+        <DialogFooter className="px-6 py-3 border-t flex items-center justify-between bg-card/50">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -340,6 +382,21 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               <Redo2 className="h-3.5 w-3.5" />
               <span className="text-sm">Redo</span>
             </Button>
+            
+            {/* Clear All Customizations Button */}
+            <div className="h-4 w-px bg-border mx-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearAllCustomizations}
+              disabled={!hasAnyCustomizations}
+              className="h-8 px-3 gap-1.5 font-bold text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:text-muted-foreground disabled:hover:text-muted-foreground disabled:hover:bg-transparent disabled:font-normal"
+              title={hasAnyCustomizations ? "Remove all customizations from all columns" : "No customizations to clear"}
+              style={{ color: hasAnyCustomizations ? 'tomato' : undefined }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span className="text-sm">Clear All Columns</span>
+            </Button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -348,16 +405,9 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               size="sm"
               onClick={handleDiscardChanges}
               className="h-8 px-4 text-sm"
+              disabled={isProcessing}
             >
               Reset
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleApplyChanges}
-              className="h-8 px-4 text-sm"
-            >
-              Apply
             </Button>
             <div className="relative">
               <Button
@@ -366,9 +416,16 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
                 size="sm"
                 onClick={handleApplyAndClose}
                 disabled={isProcessing}
-                className="h-8 px-4 text-sm relative overflow-visible"
+                className="h-8 px-6 text-sm relative overflow-visible min-w-[120px]"
               >
-                {isProcessing ? 'Applying...' : 'Apply & Close'}
+                {isProcessing ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 border border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    <span>Applying...</span>
+                  </div>
+                ) : (
+                  'Apply & Close'
+                )}
               </Button>
               <div 
                 ref={progressRef} 
@@ -389,6 +446,43 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
         {/* Aria live region for screen reader announcements */}
         <div id="aria-live-region" className="sr-only" role="status" aria-live="polite" aria-atomic="true" />
       </DialogContent>
+      
+      {/* Clear All Customizations Confirmation Dialog */}
+      <Dialog open={showClearAllConfirmation} onOpenChange={setShowClearAllConfirmation}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Clear All Columns
+            </DialogTitle>
+            <DialogDescription>
+              This will remove all customizations from {customizedColumnsCount} column{customizedColumnsCount !== 1 ? 's' : ''}, including:
+              <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                <li>Cell and header styling</li>
+                <li>Value formatters</li>
+                <li>Filters and editors</li>
+                <li>Column sizing and positioning</li>
+                <li>Applied templates</li>
+              </ul>
+              <p className="mt-3 font-medium">This action cannot be undone.</p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowClearAllConfirmation(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmClearAll}
+            >
+              Clear All Columns
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 });

@@ -1,10 +1,12 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { ColDef } from 'ag-grid-community';
 import {
@@ -15,7 +17,8 @@ import {
   Trash2,
   Plus,
   AlertCircle,
-  Edit2
+  Edit2,
+  Sparkles
 } from 'lucide-react';
 
 // Template storage key
@@ -27,7 +30,164 @@ interface ColumnTemplate {
   name: string;
   createdAt: number;
   properties: Partial<ColDef>;
+  isSystem?: boolean; // Flag to identify system templates
 }
+
+// Predefined system templates
+const SYSTEM_TEMPLATES: ColumnTemplate[] = [
+  {
+    id: 'system-currency',
+    name: 'Currency Format',
+    createdAt: Date.now(),
+    isSystem: true,
+    properties: {
+      valueFormatter: (params: any) => {
+        if (params.value == null) return '';
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD'
+        }).format(params.value);
+      },
+      cellStyle: { textAlign: 'right', fontWeight: '500' },
+      headerStyle: () => ({ textAlign: 'right', fontWeight: '600' }),
+      type: 'numericColumn'
+    }
+  },
+  {
+    id: 'system-percentage',
+    name: 'Percentage Format',
+    createdAt: Date.now(),
+    isSystem: true,
+    properties: {
+      valueFormatter: (params: any) => {
+        if (params.value == null) return '';
+        return `${(params.value * 100).toFixed(2)}%`;
+      },
+      cellStyle: { textAlign: 'right', color: '#059669' },
+      headerStyle: () => ({ textAlign: 'right' }),
+      type: 'numericColumn'
+    }
+  },
+  {
+    id: 'system-date',
+    name: 'Date Format',
+    createdAt: Date.now(),
+    isSystem: true,
+    properties: {
+      valueFormatter: (params: any) => {
+        if (!params.value) return '';
+        return new Date(params.value).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      },
+      cellStyle: { textAlign: 'center' },
+      headerStyle: () => ({ textAlign: 'center' }),
+      filter: 'agDateColumnFilter'
+    }
+  },
+  {
+    id: 'system-bold-header',
+    name: 'Bold Headers',
+    createdAt: Date.now(),
+    isSystem: true,
+    properties: {
+      headerStyle: () => ({ 
+        fontWeight: '700', 
+        backgroundColor: '#f8fafc',
+        borderBottom: '2px solid #e2e8f0'
+      }),
+      wrapHeaderText: true,
+      autoHeaderHeight: true
+    }
+  },
+  {
+    id: 'system-center-align',
+    name: 'Center Aligned',
+    createdAt: Date.now(),
+    isSystem: true,
+    properties: {
+      cellStyle: { textAlign: 'center' },
+      headerStyle: () => ({ textAlign: 'center' })
+    }
+  },
+  {
+    id: 'system-highlight',
+    name: 'Highlighted Column',
+    createdAt: Date.now(),
+    isSystem: true,
+    properties: {
+      cellStyle: { 
+        backgroundColor: '#fef3c7', 
+        borderLeft: '3px solid #f59e0b',
+        fontWeight: '500'
+      },
+      headerStyle: () => ({ 
+        backgroundColor: '#fbbf24', 
+        color: '#92400e',
+        fontWeight: '600'
+      })
+    }
+  },
+  {
+    id: 'system-compact',
+    name: 'Compact Layout',
+    createdAt: Date.now(),
+    isSystem: true,
+    properties: {
+      cellStyle: { 
+        fontSize: '12px', 
+        padding: '4px 8px',
+        lineHeight: '1.2'
+      },
+      headerStyle: () => ({ 
+        fontSize: '11px', 
+        fontWeight: '600',
+        padding: '4px 8px'
+      }),
+      autoHeight: false
+    }
+  },
+  {
+    id: 'system-status',
+    name: 'Status Badges',
+    createdAt: Date.now(),
+    isSystem: true,
+    properties: {
+      cellRenderer: (params: any) => {
+        if (!params.value) return '';
+        const status = params.value.toLowerCase();
+        const colors = {
+          active: '#10b981',
+          inactive: '#6b7280',
+          pending: '#f59e0b',
+          completed: '#3b82f6',
+          error: '#ef4444'
+        };
+        const color = colors[status as keyof typeof colors] || '#6b7280';
+        return `<span style="background: ${color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">${params.value}</span>`;
+      },
+      cellStyle: { textAlign: 'center' },
+      headerStyle: () => ({ textAlign: 'center' })
+    }
+  }
+];
+
+// Helper function to get system template descriptions
+const getSystemTemplateDescription = (templateId: string): string => {
+  const descriptions: Record<string, string> = {
+    'system-currency': 'Formats numbers as currency with right alignment',
+    'system-percentage': 'Displays values as percentages with green color',
+    'system-date': 'Formats dates in readable format with center alignment',
+    'system-bold-header': 'Makes headers bold with enhanced styling',
+    'system-center-align': 'Centers text in both cells and headers',
+    'system-highlight': 'Highlights column with yellow background',
+    'system-compact': 'Reduces font size and padding for compact view',
+    'system-status': 'Renders status values as colored badges'
+  };
+  return descriptions[templateId] || 'System template';
+};
 
 export const BulkActionsPanel: React.FC = () => {
   const {
@@ -38,13 +198,18 @@ export const BulkActionsPanel: React.FC = () => {
     setAppliedTemplate
   } = useColumnCustomizationStore();
 
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-  const [templates, setTemplates] = useState<ColumnTemplate[]>([]);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+  const [userTemplates, setUserTemplates] = useState<ColumnTemplate[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templateToDelete, setTemplateToDelete] = useState<string>('');
   const [editingTemplateId, setEditingTemplateId] = useState<string>('');
+
+  // Combine system and user templates
+  const templates = useMemo(() => {
+    return [...SYSTEM_TEMPLATES, ...userTemplates];
+  }, [userTemplates]);
 
   // Properties to save in templates - comprehensive list
   const TEMPLATE_PROPERTIES = [
@@ -101,7 +266,7 @@ export const BulkActionsPanel: React.FC = () => {
     const storedTemplates = localStorage.getItem(TEMPLATES_STORAGE_KEY);
     if (storedTemplates) {
       try {
-        setTemplates(JSON.parse(storedTemplates));
+        setUserTemplates(JSON.parse(storedTemplates));
       } catch (e) {
         console.error('Failed to load templates:', e);
       }
@@ -110,7 +275,7 @@ export const BulkActionsPanel: React.FC = () => {
 
   // Save templates to localStorage
   const saveTemplates = useCallback((newTemplates: ColumnTemplate[]) => {
-    setTemplates(newTemplates);
+    setUserTemplates(newTemplates);
     localStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(newTemplates));
   }, []);
 
@@ -220,101 +385,134 @@ export const BulkActionsPanel: React.FC = () => {
     let newTemplates: ColumnTemplate[];
     if (editingTemplateId) {
       // Update existing template
-      newTemplates = templates.map(t => 
+      newTemplates = userTemplates.map(t => 
         t.id === editingTemplateId ? newTemplate : t
       );
     } else {
       // Add new template
-      newTemplates = [...templates, newTemplate];
+      newTemplates = [...userTemplates, newTemplate];
     }
     
     saveTemplates(newTemplates);
     setShowSaveDialog(false);
     setTemplateName('');
     setEditingTemplateId('');
-  }, [getCurrentColumnConfig, templateName, templates, saveTemplates, editingTemplateId]);
+  }, [getCurrentColumnConfig, templateName, userTemplates, saveTemplates, editingTemplateId]);
 
   // Apply template to selected columns
   const applyTemplate = useCallback(() => {
-    if (!selectedTemplateId) return;
+    if (!selectedTemplateIds.length) return;
     
-    const template = templates.find(t => t.id === selectedTemplateId);
-    if (!template) return;
+    console.log('[BulkActionsPanel] Applying multiple templates:', {
+      templateIds: selectedTemplateIds,
+      templateNames: selectedTemplateIds.map(id => templates.find(t => t.id === id)?.name).filter(Boolean),
+      selectedColumnsCount: selectedColumns.size
+    });
     
-    // Prepare properties to apply
-    const propertiesToApply: Partial<ColDef> = { ...template.properties };
+    // Merge all selected templates - later templates override earlier ones
+    const mergedProperties: Partial<ColDef> = {};
+    const appliedTemplateNames: string[] = [];
     
-    // Remove field and headerName to ensure they're never applied from templates
-    delete propertiesToApply.field;
-    delete propertiesToApply.headerName;
-    
-    // Special handling for certain properties
-    
-    // If template has a valueFormatter, apply it directly
-    if (template.properties.valueFormatter && typeof template.properties.valueFormatter === 'function') {
-      propertiesToApply.valueFormatter = template.properties.valueFormatter;
-    }
-    // Handle useValueFormatterForExport (boolean flag)
-    if (template.properties.useValueFormatterForExport !== undefined) {
-      propertiesToApply.useValueFormatterForExport = template.properties.useValueFormatterForExport;
-    }
-    
-    // Handle headerStyle - convert back to function if needed
-    if (template.properties.headerStyle) {
-      const headerStyle = template.properties.headerStyle;
-      if (headerStyle._isHeaderStyleConfig) {
-        // Convert to function format
-        propertiesToApply.headerStyle = (params: { floatingFilter?: boolean }) => {
-          if (params?.floatingFilter) {
-            return headerStyle.floating || null;
-          }
-          return headerStyle.regular || null;
-        };
-      } else if (typeof headerStyle === 'object') {
-        // Legacy format - just a style object
-        propertiesToApply.headerStyle = (params: { floatingFilter?: boolean }) => {
-          if (!params?.floatingFilter) {
-            return headerStyle;
-          }
-          return null;
-        };
+    selectedTemplateIds.forEach(templateId => {
+      const template = templates.find(t => t.id === templateId);
+      if (!template) return;
+      
+      appliedTemplateNames.push(template.name);
+      
+      // Create a copy of template properties
+      const templateProps = { ...template.properties };
+      
+      // Remove field and headerName to ensure they're never applied from templates
+      delete templateProps.field;
+      delete templateProps.headerName;
+      
+      // Special handling for certain properties
+      
+      // If template has a valueFormatter, apply it directly
+      if (templateProps.valueFormatter && typeof templateProps.valueFormatter === 'function') {
+        mergedProperties.valueFormatter = templateProps.valueFormatter;
       }
-    }
-    
-    console.log('[BulkActionsPanel] Applying template:', {
-      templateName: template.name,
-      templateId: template.id,
-      propertiesCount: Object.keys(propertiesToApply).length,
-      properties: Object.keys(propertiesToApply),
-      hasHeaderStyle: !!propertiesToApply.headerStyle,
-      headerStyleType: propertiesToApply.headerStyle ? typeof propertiesToApply.headerStyle : 'none'
+      // Handle useValueFormatterForExport (boolean flag)
+      if (templateProps.useValueFormatterForExport !== undefined) {
+        mergedProperties.useValueFormatterForExport = templateProps.useValueFormatterForExport;
+      }
+      
+      // Handle headerStyle - convert back to function if needed
+      if (templateProps.headerStyle) {
+        const headerStyle = templateProps.headerStyle;
+        if (headerStyle._isHeaderStyleConfig) {
+          // Convert to function format
+          mergedProperties.headerStyle = (params: { floatingFilter?: boolean }) => {
+            if (params?.floatingFilter) {
+              return headerStyle.floating || null;
+            }
+            return headerStyle.regular || null;
+          };
+        } else if (typeof headerStyle === 'object') {
+          // Legacy format - just a style object
+          mergedProperties.headerStyle = (params: { floatingFilter?: boolean }) => {
+            if (!params?.floatingFilter) {
+              return headerStyle;
+            }
+            return null;
+          };
+        }
+      }
+      
+      // Merge all other properties (later templates override earlier ones)
+      Object.keys(templateProps).forEach(key => {
+        if (key !== 'valueFormatter' && key !== 'headerStyle' && key !== 'useValueFormatterForExport') {
+          mergedProperties[key] = templateProps[key];
+        }
+      });
     });
     
-    // Apply all template properties at once
-    updateBulkProperties(propertiesToApply);
+    console.log('[BulkActionsPanel] Merged template properties:', {
+      appliedTemplates: appliedTemplateNames,
+      mergedPropertiesCount: Object.keys(mergedProperties).length,
+      properties: Object.keys(mergedProperties),
+      hasHeaderStyle: !!mergedProperties.headerStyle,
+      headerStyleType: mergedProperties.headerStyle ? typeof mergedProperties.headerStyle : 'none',
+      hasValueFormatter: !!mergedProperties.valueFormatter
+    });
     
-    // Track which template was applied to each selected column
+    // Apply all merged properties at once
+    updateBulkProperties(mergedProperties);
+    
+    // Track which templates were applied to each selected column
     selectedColumns.forEach(columnId => {
-      setAppliedTemplate(columnId, template.id, template.name);
+      // For multiple templates, we'll track the combined template names
+      const combinedTemplateName = appliedTemplateNames.join(' + ');
+      const combinedTemplateId = selectedTemplateIds.join('+');
+      setAppliedTemplate(columnId, combinedTemplateId, combinedTemplateName);
     });
     
-    setSelectedTemplateId(''); // Clear selection after applying
-  }, [selectedTemplateId, templates, updateBulkProperties, selectedColumns, setAppliedTemplate]);
+    setSelectedTemplateIds([]); // Clear selection after applying
+  }, [selectedTemplateIds, templates, updateBulkProperties, selectedColumns, setAppliedTemplate]);
 
   // Delete template
   const deleteTemplate = useCallback(() => {
     if (!templateToDelete) return;
     
-    const newTemplates = templates.filter(t => t.id !== templateToDelete);
+    // Prevent deleting system templates
+    const templateToDeleteObj = templates.find(t => t.id === templateToDelete);
+    if (templateToDeleteObj?.isSystem) {
+      console.warn('Cannot delete system template');
+      setShowDeleteDialog(false);
+      setTemplateToDelete('');
+      return;
+    }
+    
+    const newTemplates = userTemplates.filter(t => t.id !== templateToDelete);
     saveTemplates(newTemplates);
     setShowDeleteDialog(false);
     setTemplateToDelete('');
     
     // Clear selection if deleted template was selected
-    if (selectedTemplateId === templateToDelete) {
-      setSelectedTemplateId('');
+    if (selectedTemplateIds.includes(templateToDelete)) {
+      setSelectedTemplateIds(selectedTemplateIds.filter(id => id !== templateToDelete));
     }
-  }, [templateToDelete, templates, saveTemplates, selectedTemplateId]);
+  }, [templateToDelete, userTemplates, saveTemplates, selectedTemplateIds, templates]);
 
   // Clear all customizations
   const clearAllCustomizations = useCallback(() => {
@@ -342,173 +540,244 @@ export const BulkActionsPanel: React.FC = () => {
 
   const isDisabled = selectedColumns.size === 0;
   const canSaveTemplate = selectedColumns.size === 1;
-  const hasTemplates = templates.length > 0;
+  const hasTemplates = userTemplates.length > 0;
 
   return (
-    <>
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-5">
-          {/* Template Management */}
-          <div>
-            <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-              Templates
-            </h3>
-            <p className="text-xs text-muted-foreground mb-2">
-              Save and apply column configurations
-            </p>
-            {selectedColumns.size > 1 && (
-              <Alert className="mb-2">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  Select only one column to save as a template
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {/* Template Selection */}
-            <Select
-              value={selectedTemplateId}
-              onValueChange={setSelectedTemplateId}
-              disabled={!hasTemplates}
-            >
-              <SelectTrigger className="h-8 text-sm compact-input">
-                <SelectValue placeholder={
-                  hasTemplates ? "Select a template" : "No templates saved"
-                } />
-              </SelectTrigger>
-              <SelectContent>
-                {!hasTemplates ? (
-                  <div className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    <p className="mb-1">No templates saved</p>
-                    <p className="text-xs opacity-70">Save current settings as a template</p>
-                  </div>
-                ) : (
-                  <>
-                    {templates.map((template) => (
-                      <div key={template.id} className="relative">
-                        <SelectItem value={template.id} className="text-sm pr-16">
-                          {template.name}
-                        </SelectItem>
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+    <div className="h-full flex flex-col">
+      {/* Fixed header section */}
+      <div className="px-4 py-3 border-b bg-card/50">
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+          Templates
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Save and apply column configurations
+        </p>
+        {selectedColumns.size > 1 && (
+          <Alert className="mt-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Select only one column to save as a template
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="p-4">
+          {/* Template Selection */}
+          {!hasTemplates ? (
+            <div className="px-3 py-4 text-center text-xs text-muted-foreground border rounded-md bg-muted/20">
+              <p className="mb-1">No templates saved</p>
+              <p className="text-xs opacity-70">Save current settings as a template</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-muted-foreground">
+                  Select templates ({selectedTemplateIds.length} selected)
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => setSelectedTemplateIds(templates.map(t => t.id))}
+                    disabled={selectedTemplateIds.length === templates.length}
+                  >
+                    All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => setSelectedTemplateIds([])}
+                    disabled={selectedTemplateIds.length === 0}
+                  >
+                    None
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Template list - this is the only scrollable area */}
+              <div className="max-h-64 overflow-y-auto border rounded-lg bg-background">
+                <div className="p-2 space-y-1">
+                  {templates.map((template) => (
+                    <div 
+                      key={template.id} 
+                      className={`group flex items-center gap-3 p-3 rounded-md border transition-all hover:bg-muted/50 ${
+                        selectedTemplateIds.includes(template.id) 
+                          ? 'bg-muted/30 border-primary/20' 
+                          : 'border-transparent hover:border-border'
+                      } ${
+                        template.isSystem 
+                          ? 'bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-950/20 dark:to-transparent' 
+                          : ''
+                      }`}
+                    >
+                      <Checkbox
+                        id={`template-${template.id}`}
+                        checked={selectedTemplateIds.includes(template.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedTemplateIds([...selectedTemplateIds, template.id]);
+                          } else {
+                            setSelectedTemplateIds(selectedTemplateIds.filter(id => id !== template.id));
+                          }
+                        }}
+                        className="shrink-0"
+                      />
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <label 
+                            htmlFor={`template-${template.id}`} 
+                            className="text-sm font-medium cursor-pointer truncate"
+                          >
+                            {template.name}
+                          </label>
+                          {template.isSystem && (
+                            <Sparkles className="h-3 w-3 text-blue-500 shrink-0" title="System template" />
+                          )}
+                        </div>
+                        {template.isSystem && (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                            {getSystemTemplateDescription(template.id)}
+                          </p>
+                        )}
+                      </div>
+                      
+                      {!template.isSystem && (
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0"
+                            className="h-7 w-7 p-0"
                             onClick={(e) => {
-                              e.preventDefault();
                               e.stopPropagation();
                               setEditingTemplateId(template.id);
                               setTemplateName(template.name);
                               setShowSaveDialog(true);
                             }}
+                            title="Edit template"
                           >
                             <Edit2 className="h-3 w-3" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0"
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                             onClick={(e) => {
-                              e.preventDefault();
                               e.stopPropagation();
                               setTemplateToDelete(template.id);
                               setShowDeleteDialog(true);
                             }}
+                            title="Delete template"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
-                      </div>
-                    ))}
-                    <SelectSeparator />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full h-8 justify-start text-sm"
-                      onClick={() => {
-                        setEditingTemplateId('');
-                        setTemplateName('');
-                        setShowSaveDialog(true);
-                      }}
-                      disabled={!canSaveTemplate}
-                    >
-                      <Plus className="h-3 w-3 mr-2" />
-                      Save current as new template
-                    </Button>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2 mt-2">
+      {/* Fixed footer section with all action buttons */}
+      <div className="border-t bg-card/50 p-4 space-y-4">
+        {/* Apply Templates Button */}
+        <div>
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full h-9 text-sm gap-2"
+            onClick={applyTemplate}
+            disabled={!selectedTemplateIds.length}
+            title={selectedTemplateIds.length ? `Apply ${selectedTemplateIds.length} template${selectedTemplateIds.length !== 1 ? 's' : ''}` : "Select templates to apply"}
+          >
+            <Copy className="h-4 w-4" />
+            Apply Templates {selectedTemplateIds.length > 0 && `(${selectedTemplateIds.length})`}
+          </Button>
+        </div>
+
+        {/* Template Management */}
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 h-8 text-sm gap-2"
+              onClick={() => {
+                setEditingTemplateId('');
+                setTemplateName('');
+                setShowSaveDialog(true);
+              }}
+              disabled={!canSaveTemplate}
+              title={!canSaveTemplate ? "Select only one column to save as template" : "Save current column as template"}
+            >
+              <Save className="h-3.5 w-3.5" />
+              Save New
+            </Button>
+            {selectedTemplateIds.length > 0 && (
               <Button
-                variant="default"
-                size="sm"
-                className="flex-1 h-8 text-sm gap-2"
-                onClick={applyTemplate}
-                disabled={!selectedTemplateId}
-              >
-                <Copy className="h-3.5 w-3.5" />
-                Apply Template
-              </Button>
-              <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 className="h-8 text-sm gap-2"
-                onClick={() => {
-                  setEditingTemplateId('');
-                  setTemplateName('');
-                  setShowSaveDialog(true);
-                }}
-                disabled={!canSaveTemplate}
-                title={!canSaveTemplate ? "Select only one column to save as template" : "Save current column as template"}
+                onClick={() => setSelectedTemplateIds([])}
+                title="Clear template selection"
               >
-                <Save className="h-3.5 w-3.5" />
-                Save
+                Clear Selection
               </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Clear All */}
+        <div className="pt-2 border-t">
+          <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
+            Reset
+          </h4>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full h-8 text-sm gap-2"
+            onClick={clearAllCustomizations}
+            disabled={isDisabled}
+          >
+            <Eraser className="h-3.5 w-3.5" />
+            Clear Selected
+          </Button>
+        </div>
+
+        {/* Status */}
+        <div className="pt-2 border-t">
+          <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
+            Status
+          </h4>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center justify-between p-2 rounded bg-muted/30">
+              <span className="text-muted-foreground">Selected</span>
+              <span className="font-medium">{selectedColumns.size}</span>
             </div>
-          </div>
-
-          {/* Clear All */}
-          <div>
-            <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-              Reset
-            </h3>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="w-full h-8 text-sm gap-2"
-              onClick={clearAllCustomizations}
-              disabled={isDisabled}
-            >
-              <Eraser className="h-3.5 w-3.5" />
-              Clear All Customizations
-            </Button>
-          </div>
-
-          {/* Status */}
-          <div className="pt-5 mt-5 border-t">
-            <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-              Status
-            </h3>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between p-2 rounded bg-muted/30">
-                <span className="text-muted-foreground">Selected Columns</span>
-                <span className="font-medium">{selectedColumns.size}</span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded bg-muted/30">
-                <span className="text-muted-foreground">Pending Changes</span>
-                <span className="font-medium">{changeCount}</span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded bg-muted/30">
-                <span className="text-muted-foreground">Saved Templates</span>
-                <span className="font-medium">{templates.length}</span>
-              </div>
+            <div className="flex items-center justify-between p-2 rounded bg-muted/30">
+              <span className="text-muted-foreground">Changes</span>
+              <span className="font-medium">{changeCount}</span>
+            </div>
+            <div className="flex items-center justify-between p-2 rounded bg-blue-50 dark:bg-blue-950/20">
+              <span className="text-muted-foreground">System</span>
+              <span className="font-medium">{SYSTEM_TEMPLATES.length}</span>
+            </div>
+            <div className="flex items-center justify-between p-2 rounded bg-muted/30">
+              <span className="text-muted-foreground">User</span>
+              <span className="font-medium">{userTemplates.length}</span>
             </div>
           </div>
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Save Template Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
@@ -584,6 +853,6 @@ export const BulkActionsPanel: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };

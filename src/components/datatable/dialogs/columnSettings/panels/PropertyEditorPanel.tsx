@@ -48,59 +48,68 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({ uiMode
       ];
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header with improved column display */}
-      <div className="px-5 py-3 border-b shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-sm font-semibold truncate max-w-xs" title={selectedCount > 0 ? Array.from(selectedColumns).join(', ') : undefined}>
-              {renderSelectedColumns()}
-            </span>
-            {selectedCount > 1 && (
-              <Badge variant="destructive" className="text-xs px-1.5 py-0 flex items-center gap-1" aria-label="Bulk Edit">
-                <Edit3 className="h-3 w-3" /> Bulk Edit
-              </Badge>
-            )}
+    <div className="h-full flex flex-col bg-background">
+      {/* Header with improved spacing and layout following shadcn/ui patterns */}
+      <div className="px-6 py-4 border-b border-border bg-card/50">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 border border-primary/20">
+              <Edit3 className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold text-foreground leading-none" title={selectedCount > 0 ? Array.from(selectedColumns).join(', ') : undefined}>
+                {renderSelectedColumns()}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedCount === 0 ? 'Select columns to configure properties' : 
+                 selectedCount === 1 ? 'Configure column properties' : 
+                 'Bulk edit column properties'}
+              </p>
+            </div>
           </div>
+          {selectedCount > 1 && (
+            <Badge variant="secondary" className="text-xs font-medium px-2 py-1 flex items-center gap-1.5">
+              <Edit3 className="h-3 w-3" /> 
+              Bulk Edit
+            </Badge>
+          )}
         </div>
       </div>
 
-      {/* Compact Mixed Values Alert, dismissible */}
+      {/* Mixed Values Alert with improved styling */}
       {selectedCount > 1 && (
-        <div className="mx-5 mt-3 mb-2">
-          <Alert className="py-2 px-3 border-amber-200/50 bg-amber-50/50 dark:border-amber-800/50 dark:bg-amber-950/20" role="alert" aria-live="polite">
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-            <AlertDescription className="text-xs ml-2">
-              Mixed values shown as <span className="font-mono bg-muted/40 px-1 rounded">~Mixed~</span>. Changes apply to all selected columns.
+        <div className="px-6 pt-4">
+          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/20">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-sm text-amber-800 dark:text-amber-200">
+              Mixed values shown as <span className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded text-xs">~Mixed~</span>. Changes apply to all selected columns.
             </AlertDescription>
           </Alert>
         </div>
       )}
 
-      {/* Property Tabs with improved accessibility and tooltips */}
+      {/* Property Tabs with improved styling following shadcn/ui patterns */}
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
         className="flex-1 flex flex-col overflow-hidden"
       >
-        <div className="px-5">
-          <TabsList className={`mt-3 mb-3 grid w-full ${uiMode === 'simple' ? 'grid-cols-3' : 'grid-cols-5'} shrink-0 h-9 bg-muted/30 gap-0.5 p-0.5`}>
+        <div className="px-6 pt-4 pb-2">
+          <TabsList className={`grid w-full ${uiMode === 'simple' ? 'grid-cols-3' : 'grid-cols-5'} h-10 bg-muted p-1`}>
             {tabConfig.map(({ id, label, icon: Icon }) => (
               <TabsTrigger
                 key={id}
                 value={id}
-                className="text-xs gap-1 h-full px-1 font-medium data-[state=active]:bg-primary/10 data-[state=active]:shadow-sm focus-visible:ring-2 focus-visible:ring-primary min-w-0"
-                title={label}
-                aria-label={label}
+                className="text-xs gap-1.5 h-8 px-3 font-medium data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
               >
-                <Icon className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{label}</span>
+                <Icon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{label}</span>
               </TabsTrigger>
             ))}
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-auto px-5 pb-4">
+        <div className="flex-1 overflow-auto">
           <TabsContent value="general" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
             <GeneralTab uiMode={uiMode} />
           </TabsContent>

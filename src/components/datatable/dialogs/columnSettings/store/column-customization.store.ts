@@ -78,6 +78,7 @@ export interface DialogActions {
   
   // Customization removal
   removeColumnCustomization: (columnId: string, type: string) => void;
+  clearAllCustomizations: () => void;
   
   // Template tracking
   setAppliedTemplate: (columnId: string, templateId: string, templateName: string) => void;
@@ -284,8 +285,18 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         for (const [colId, colDef] of columnDefinitions) {
           const changes = pendingChanges.get(colId);
           if (changes && Object.keys(changes).length > 0) {
-            // Only create new object if there are changes
-            updatedColumns[index] = { ...colDef, ...changes };
+            // Merge changes and filter out undefined values (which represent removed customizations)
+            const mergedColumn = { ...colDef };
+            Object.entries(changes).forEach(([key, value]) => {
+              if (value === undefined) {
+                // Remove the property entirely
+                delete (mergedColumn as any)[key];
+              } else {
+                // Set the new value
+                (mergedColumn as any)[key] = value;
+              }
+            });
+            updatedColumns[index] = mergedColumn;
           } else {
             // Reuse existing object reference for unchanged columns
             updatedColumns[index] = colDef;
@@ -358,44 +369,130 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         
         const newPendingChanges = new Map(pendingChanges);
         const existing = newPendingChanges.get(columnId) || {};
+        const updated = { ...existing };
         
-        // Remove customizations based on type
+        // Also update the column definitions immediately for UI feedback
+        const newColumnDefinitions = new Map(columnDefinitions);
+        const updatedColumn = { ...column };
+        
+        // Remove customizations based on type by setting them to undefined
+        // This will override any existing values in the original column definition
         switch (type) {
           case 'style':
-            delete existing.cellStyle;
-            delete existing.headerStyle;
-            delete existing.cellClass;
-            delete existing.headerClass;
+            updated.cellStyle = undefined;
+            updated.headerStyle = undefined;
+            updated.cellClass = undefined;
+            updated.headerClass = undefined;
+            // Also remove from column definition for immediate UI update
+            delete updatedColumn.cellStyle;
+            delete updatedColumn.headerStyle;
+            delete updatedColumn.cellClass;
+            delete updatedColumn.headerClass;
             break;
           case 'formatter':
-            delete existing.valueFormatter;
+            updated.valueFormatter = undefined;
+            delete updatedColumn.valueFormatter;
             break;
           case 'filter':
-            delete existing.filter;
-            delete existing.filterParams;
+            updated.filter = undefined;
+            updated.filterParams = undefined;
+            delete updatedColumn.filter;
+            delete updatedColumn.filterParams;
             break;
           case 'editor':
-            delete existing.cellEditor;
-            delete existing.cellEditorParams;
+            updated.cellEditor = undefined;
+            updated.cellEditorParams = undefined;
+            delete updatedColumn.cellEditor;
+            delete updatedColumn.cellEditorParams;
             break;
           case 'general':
-            delete existing.width;
-            delete existing.minWidth;
-            delete existing.maxWidth;
-            delete existing.pinned;
-            delete existing.lockPosition;
-            delete existing.lockVisible;
+            updated.width = undefined;
+            updated.minWidth = undefined;
+            updated.maxWidth = undefined;
+            updated.pinned = undefined;
+            updated.lockPosition = undefined;
+            updated.lockVisible = undefined;
+            delete updatedColumn.width;
+            delete updatedColumn.minWidth;
+            delete updatedColumn.maxWidth;
+            delete updatedColumn.pinned;
+            delete updatedColumn.lockPosition;
+            delete updatedColumn.lockVisible;
             break;
         }
         
-        // If no changes left, remove the entry
-        if (Object.keys(existing).length === 0) {
-          newPendingChanges.delete(columnId);
-        } else {
-          newPendingChanges.set(columnId, existing);
+        // Update both column definitions and pending changes
+        newColumnDefinitions.set(columnId, updatedColumn);
+        newPendingChanges.set(columnId, updated);
+        
+        set({ 
+          columnDefinitions: newColumnDefinitions,
+          pendingChanges: newPendingChanges 
+        });
+        
+        console.log('[Store] Removed customization:', { columnId, type, updatedChanges: updated });
+      },
+      
+      clearAllCustomizations: () => {
+        const { columnDefinitions } = get();
+        
+        console.log('[Store] Clearing all customizations from all columns');
+        
+        // Create new column definitions with all customizations removed
+        const newColumnDefinitions = new Map(columnDefinitions);
+        const newPendingChanges = new Map<string, Partial<ColDef>>();
+        
+        let clearedCount = 0;
+        
+        // Define all customization properties that we want to clear
+        const customizationProperties = [
+          'cellStyle', 'headerStyle', 'cellClass', 'headerClass',
+          'valueFormatter', 'filter', 'filterParams',
+          'cellEditor', 'cellEditorParams',
+          'width', 'minWidth', 'maxWidth', 'pinned', 'lockPosition', 'lockVisible'
+        ];
+        
+        for (const [columnId, column] of columnDefinitions) {
+          const originalColumn = { ...column };
+          const updatedColumn = { ...column };
+          const pendingChanges: Partial<ColDef> = {};
+          
+          let hasCustomizations = false;
+          
+          // Check each customization property
+          customizationProperties.forEach(prop => {
+            const value = originalColumn[prop as keyof ColDef];
+            // Consider a property customized if it exists and is not a default value
+            if (value !== undefined && value !== null && value !== false && value !== '') {
+              hasCustomizations = true;
+              // Remove from column definition for immediate UI update
+              delete (updatedColumn as any)[prop];
+              // Set to undefined in pending changes to override original
+              (pendingChanges as any)[prop] = undefined;
+            }
+          });
+          
+          if (hasCustomizations) {
+            clearedCount++;
+            newColumnDefinitions.set(columnId, updatedColumn);
+            newPendingChanges.set(columnId, pendingChanges);
+          }
         }
         
-        set({ pendingChanges: newPendingChanges });
+        // Clear applied templates as well
+        const templateCount = get().appliedTemplates.size;
+        const newAppliedTemplates = new Map<string, { templateId: string; templateName: string; appliedAt: number }>();
+        
+        set({ 
+          columnDefinitions: newColumnDefinitions,
+          pendingChanges: newPendingChanges,
+          appliedTemplates: newAppliedTemplates
+        });
+        
+        const totalCleared = clearedCount + (templateCount > 0 ? templateCount : 0);
+        console.log('[Store] Cleared customizations from', clearedCount, 'columns and', templateCount, 'templates');
+        
+        return totalCleared;
       },
       
       setAppliedTemplate: (columnId, templateId, templateName) => {

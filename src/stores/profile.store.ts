@@ -273,7 +273,7 @@ export const useProfileStore = create<ProfileStore>()(
       
       // Delete profile (cannot delete default or active profile)
       deleteProfile: (profileId) => {
-        const { activeProfileId } = get();
+        const { activeProfileId, profiles } = get();
         
         // Cannot delete default profile
         if (profileId === DEFAULT_PROFILE_ID) {
@@ -281,14 +281,35 @@ export const useProfileStore = create<ProfileStore>()(
           return;
         }
         
+        const profileToDelete = profiles.find(p => p.id === profileId);
+        if (!profileToDelete) {
+          console.warn(`Profile ${profileId} not found`);
+          return;
+        }
+        
+        console.log('[ProfileStore] Deleting profile:', {
+          profileId,
+          profileName: profileToDelete.name,
+          isActiveProfile: profileId === activeProfileId,
+          willSwitchToDefault: profileId === activeProfileId
+        });
+        
         // If deleting active profile, switch to default
         if (profileId === activeProfileId) {
+          console.log('[ProfileStore] Switching to default profile after deletion');
           set({ activeProfileId: DEFAULT_PROFILE_ID });
         }
         
+        // Remove the profile from the list
         set(state => ({
           profiles: state.profiles.filter(p => p.id !== profileId)
         }));
+        
+        console.log('[ProfileStore] Profile deleted successfully:', {
+          deletedProfile: profileToDelete.name,
+          newActiveProfileId: profileId === activeProfileId ? DEFAULT_PROFILE_ID : activeProfileId,
+          remainingProfiles: get().profiles.length
+        });
       },
       
       // Rename profile
