@@ -250,10 +250,10 @@ export const FiltersTab: React.FC = () => {
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 space-y-6">
+      <div className="px-6 py-4 space-y-6">
         {/* Header with description */}
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold">Column Filters</h3>
+          <h3 className="text-lg font-semibold leading-none">Column Filters</h3>
           <p className="text-sm text-muted-foreground">
             Configure filtering options for selected columns. Choose a filter type and customize its behavior.
           </p>
@@ -261,7 +261,7 @@ export const FiltersTab: React.FC = () => {
 
         {/* Filter Type Selection */}
         <Card>
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Filter Type</CardTitle>
             <CardDescription className="text-sm">
               Select the appropriate filter type for your data
@@ -294,7 +294,7 @@ export const FiltersTab: React.FC = () => {
             </Select>
             
             {currentFilterType && currentFilterType !== 'none' && (
-              <Alert className="border-muted">
+              <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-sm">
                   {FILTER_TYPES[Object.keys(FILTER_TYPES).find(k => FILTER_TYPES[k as keyof typeof FILTER_TYPES].value === currentFilterType) as keyof typeof FILTER_TYPES]?.description}
@@ -318,14 +318,14 @@ export const FiltersTab: React.FC = () => {
         {/* Filter Options */}
         {currentFilterType && currentFilterType !== 'none' && (
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3">
               <CardTitle className="text-base">Filter Options</CardTitle>
               <CardDescription className="text-sm">
                 Configure how filters are displayed and accessed
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="suppress-menu" className="text-sm font-medium">
@@ -369,7 +369,7 @@ export const FiltersTab: React.FC = () => {
         {/* Filter Parameters */}
         {currentFilterType && currentFilterType !== 'none' && (
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base">Filter Parameters</CardTitle>
@@ -382,7 +382,7 @@ export const FiltersTab: React.FC = () => {
                     variant={activeSection === 'basic' ? 'secondary' : 'ghost'}
                     size="sm"
                     onClick={() => setActiveSection('basic')}
-                    className="h-7 px-3"
+                    className="h-8 px-3"
                   >
                     Basic
                   </Button>
@@ -390,7 +390,7 @@ export const FiltersTab: React.FC = () => {
                     variant={activeSection === 'advanced' ? 'secondary' : 'ghost'}
                     size="sm"
                     onClick={() => setActiveSection('advanced')}
-                    className="h-7 px-3"
+                    className="h-8 px-3"
                   >
                     Advanced
                   </Button>
@@ -454,13 +454,13 @@ export const FiltersTab: React.FC = () => {
 
         {/* Quick Actions */}
         <Card>
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Quick Actions</CardTitle>
             <CardDescription className="text-sm">
               Apply common filter configurations with one click
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             <Button
               variant="outline"
               size="sm"
@@ -506,18 +506,6 @@ export const FiltersTab: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
-
-        {/* Tips */}
-        <Alert>
-          <Lightbulb className="h-4 w-4" />
-          <AlertTitle className="text-sm">Quick Tips</AlertTitle>
-          <AlertDescription className="text-xs space-y-1">
-            <p>• Set filters show a list of unique values for easy selection</p>
-            <p>• Text filters support wildcards and regular expressions</p>
-            <p>• Number and date filters can handle ranges and comparisons</p>
-            <p>• Multi filters combine multiple filter types for flexibility</p>
-          </AlertDescription>
-        </Alert>
       </div>
     </ScrollArea>
   );

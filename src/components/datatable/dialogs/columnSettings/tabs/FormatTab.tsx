@@ -12,7 +12,7 @@ import { useColumnCustomizationStore } from '../store/column-customization.store
 import { CollapsibleSection } from '../components/CollapsibleSection';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { HelpCircle, Copy, Check, Sparkles, Search, X, Eye, EyeOff, History, Star, StarOff, Wand2, Hash, DollarSign, Percent, Calendar, Type } from 'lucide-react';
+import { HelpCircle, Copy, Check, Sparkles, Eye, EyeOff, History, Star, StarOff, Wand2, Hash, DollarSign, Percent, Calendar, Type } from 'lucide-react';
 import { createExcelFormatter, getExcelStyleClass, createCellStyleFunction } from '@/components/datatable/utils/formatters';
 import { debounce } from 'lodash';
 import { FormatWizard } from '../components/FormatWizard';
@@ -165,6 +165,28 @@ const MAX_RECENT_FORMATS = 5;
 // Format favorites storage key
 const FAVORITE_FORMATS_KEY = 'column-format-favorites';
 
+// Flatten all predefined formatters into a single list for the dropdown
+const ALL_FORMATTERS: Array<{ value: string; label: string; category: string; preview: string }> = (() => {
+  const flattened: Array<{ value: string; label: string; category: string; preview: string }> = [];
+  
+  // Add default option
+  flattened.push({ value: 'default', label: 'Default (no formatting)', category: 'basic', preview: '1234.56' });
+  
+  // Add all predefined formatters
+  Object.entries(PREDEFINED_FORMATTERS).forEach(([categoryKey, category]) => {
+    category.options.forEach(option => {
+      flattened.push({
+        value: option.value,
+        label: option.label,
+        category: category.label,
+        preview: option.preview
+      });
+    });
+  });
+  
+  return flattened;
+})();
+
 interface FormatTabProps {
   uiMode?: 'simple' | 'advanced';
 }
@@ -180,7 +202,6 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
   const [selectedFormat, setSelectedFormat] = useState<string>('default');
   const [customFormat, setCustomFormat] = useState<string>('');
   const [showGuide, setShowGuide] = useState(false);
-  const [searchTerm, setSearchTerm] = useState<string>('');
   const [showPreview, setShowPreview] = useState(true);
   const [previewValue, setPreviewValue] = useState<number>(1234.56);
   const [recentFormats, setRecentFormats] = useState<string[]>([]);
@@ -188,8 +209,7 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
   const [showWizard, setShowWizard] = useState(false);
   
   // Refs for performance
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const formatCache = useRef<Map<string, ((params: unknown) => string) | undefined>>(new Map());
+  const formatCache = useRef<Map<string, ((params: any) => string) | undefined>>(new Map());
 
   // Load recent and favorite formats
   useEffect(() => {
@@ -244,31 +264,6 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
     }
     return null;
   }, [currentFormat]);
-
-  // Filter formats based on search
-  const filteredFormats = useMemo(() => {
-    if (!searchTerm) return PREDEFINED_FORMATTERS;
-    
-    const lowerSearch = searchTerm.toLowerCase();
-    const filtered: typeof PREDEFINED_FORMATTERS = {};
-    
-    Object.entries(PREDEFINED_FORMATTERS).forEach(([key, category]) => {
-      const matchingOptions = category.options.filter(opt => 
-        opt.label.toLowerCase().includes(lowerSearch) ||
-        opt.preview.toLowerCase().includes(lowerSearch) ||
-        opt.value.toLowerCase().includes(lowerSearch)
-      );
-      
-      if (matchingOptions.length > 0) {
-        filtered[key as keyof typeof PREDEFINED_FORMATTERS] = {
-          ...category,
-          options: matchingOptions
-        };
-      }
-    });
-    
-    return filtered;
-  }, [searchTerm]);
 
   // Sync selected format with current format
   useEffect(() => {
@@ -473,414 +468,386 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
     { id: 'text', label: 'Text', icon: Type, format: '@', description: 'Text' },
   ];
 
-  const { quickFormatPinned, toggleQuickFormat } = useColumnCustomizationStore();
+  const { quickFormatPinned } = useColumnCustomizationStore();
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6">
-        <div className="space-y-6">
-          {/* Quick Format Buttons - Always visible in simple mode */}
-          {uiMode === 'simple' && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Quick Formats</Label>
-                <div className="flex items-center gap-1">
+      <div className="px-6 py-4 space-y-6">
+        {/* Default Formatters Dropdown - First Item */}
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium">Format Selection</Label>
+            <p className="text-xs text-muted-foreground mt-1">Choose from predefined formats</p>
+          </div>
+          <Select 
+            value={selectedFormat === 'custom' ? 'custom' : selectedFormat} 
+            onValueChange={handleFormatChange}
+            disabled={isDisabled}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a format..." />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px]">
+              {/* Group by category */}
+              {Object.entries(PREDEFINED_FORMATTERS).map(([categoryKey, category]) => (
+                <SelectGroup key={categoryKey}>
+                  <SelectLabel className="flex items-center gap-2">
+                    <span className="text-sm">{category.icon}</span>
+                    {category.label}
+                  </SelectLabel>
+                  {category.options.map((option, index) => (
+                    <SelectItem key={`${categoryKey}-${index}`} value={option.value}>
+                      <div className="flex items-center justify-between w-full">
+                        <span className="flex-1">{option.label}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{option.preview}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                  {categoryKey !== 'symbols' && <SelectSeparator />}
+                </SelectGroup>
+              ))}
+              <SelectSeparator />
+              <SelectItem value="custom">Custom Format...</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Quick Format Buttons - Always visible in simple mode */}
+        {uiMode === 'simple' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Quick Formats</Label>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              {quickFormats.map((format) => {
+                const Icon = format.icon;
+                const isActive = selectedFormat === format.format;
+                return (
                   <Button
-                    variant="ghost"
+                    key={format.id}
+                    variant={isActive ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setShowWizard(true)}
-                    className="h-7 px-2"
+                    onClick={() => handleFormatChange(format.format)}
                     disabled={isDisabled}
-                    title="Format Wizard"
+                    className="h-auto p-3 flex flex-col items-center gap-1"
                   >
-                    <Wand2 className="h-3.5 w-3.5" />
+                    <Icon className="h-4 w-4" />
+                    <span className="text-xs font-medium">{format.label}</span>
+                    <span className="text-xs text-muted-foreground">{format.description}</span>
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowGuide(true)}
-                    className="h-7 px-2"
-                    title="Format Guide"
-                  >
-                    <HelpCircle className="h-3.5 w-3.5" />
-                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Advanced Format Options */}
+        {uiMode === 'advanced' && (
+          <div className="space-y-6">
+            {/* Format Selection */}
+            <CollapsibleSection
+              id="format-selection"
+              title="Format Selection"
+              description="Choose from predefined formats or create custom ones"
+              defaultExpanded={true}
+            >
+              <div className="space-y-4">
+                {/* Quick Format Buttons */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Quick Formats</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    {quickFormats.map((format) => {
+                      const Icon = format.icon;
+                      const isActive = selectedFormat === format.format;
+                      return (
+                        <Button
+                          key={format.id}
+                          variant={isActive ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleFormatChange(format.format)}
+                          disabled={isDisabled}
+                          className="h-auto p-3 flex flex-col items-center gap-1"
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span className="text-xs font-medium">{format.label}</span>
+                          <span className="text-xs text-muted-foreground">{format.description}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-5 gap-2">
-                {quickFormats.filter(qf => quickFormatPinned.includes(qf.id)).map((quickFormat) => {
-                  const Icon = quickFormat.icon;
-                  const isActive = selectedFormat === quickFormat.format;
-                  return (
-                    <button
-                      key={quickFormat.id}
-                      onClick={() => handleFormatChange(quickFormat.format)}
-                      disabled={isDisabled}
-                      className={cn(
-                        "flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all",
-                        "hover:bg-muted/50 hover:border-primary/50",
-                        "disabled:opacity-50 disabled:cursor-not-allowed",
-                        isActive
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background"
-                      )}
-                    >
-                      <Icon className="h-5 w-5 mb-1" />
-                      <span className="text-xs font-medium">{quickFormat.label}</span>
-                      <span className="text-[10px] text-muted-foreground mt-0.5">
-                        {quickFormat.description}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+            </CollapsibleSection>
 
-          {/* Header Section */}
-          <CollapsibleSection
-            id="format-selection"
-            title="Format Selection"
-            description="Choose from predefined formats or create custom ones"
-            defaultExpanded={uiMode === 'advanced'}
-            badge={
-              currentFormat && currentFormat !== 'default' && currentFormat !== 'mixed' ? (
-                <Badge variant="secondary" className="text-xs">
-                  {currentFormat.length > 20 ? currentFormat.substring(0, 20) + '...' : currentFormat}
-                </Badge>
-              ) : null
-            }
-            actionButton={
-              <div className="flex items-center gap-1">
+            {/* Format Categories */}
+            <CollapsibleSection
+              id="format-categories"
+              title="Format Categories"
+              description="Browse formats by category"
+              defaultExpanded={true}
+            >
+              <Tabs defaultValue="popular" className="w-full">
+                <TabsList className="grid w-full grid-cols-4 h-9">
+                  <TabsTrigger value="popular" className="text-xs">Popular</TabsTrigger>
+                  <TabsTrigger value="recent" className="text-xs">Recent</TabsTrigger>
+                  <TabsTrigger value="favorites" className="text-xs">Favorites</TabsTrigger>
+                  <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="popular" className="mt-4">
+                  <div className="grid gap-2">
+                    {POPULAR_FORMATS.map((format, index) => (
+                      <div
+                        key={index}
+                        className={cn(
+                          "flex items-center justify-between p-3 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors",
+                          selectedFormat === format.value && "border-primary bg-primary/5"
+                        )}
+                        onClick={() => handleFormatChange(format.value)}
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{format.label}</div>
+                          <div className="text-xs text-muted-foreground font-mono">{format.value}</div>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {previewFormatter ? previewFormatter({ value: previewValue } as any) : format.value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="recent" className="mt-4">
+                  {recentFormats.length > 0 ? (
+                    <div className="grid gap-2">
+                      {recentFormats.map((format, index) => (
+                        <div
+                          key={index}
+                          className={cn(
+                            "flex items-center justify-between p-3 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors",
+                            selectedFormat === format && "border-primary bg-primary/5"
+                          )}
+                          onClick={() => handleFormatChange(format)}
+                        >
+                          <div className="flex-1">
+                            <div className="text-xs text-muted-foreground font-mono">{format}</div>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {previewFormatter ? previewFormatter({ value: previewValue } as any) : format}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No recent formats</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="favorites" className="mt-4">
+                  {favoriteFormats.size > 0 ? (
+                    <div className="grid gap-2">
+                      {Array.from(favoriteFormats).map((format, index) => (
+                        <div
+                          key={index}
+                          className={cn(
+                            "flex items-center justify-between p-3 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors",
+                            selectedFormat === format && "border-primary bg-primary/5"
+                          )}
+                          onClick={() => handleFormatChange(format)}
+                        >
+                          <div className="flex-1">
+                            <div className="text-xs text-muted-foreground font-mono">{format}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm text-muted-foreground">
+                              {previewFormatter ? previewFormatter({ value: previewValue } as any) : format}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(format);
+                              }}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Star className="h-3 w-3 fill-current" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Star className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No favorite formats</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="all" className="mt-4">
+                  <div className="space-y-4">
+                    {Object.entries(PREDEFINED_FORMATTERS).map(([categoryKey, category]) => (
+                      <Card key={categoryKey}>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <span className="text-lg">{category.icon}</span>
+                            {category.label}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {category.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className={cn(
+                                "flex items-center justify-between p-3 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors",
+                                selectedFormat === option.value && "border-primary bg-primary/5"
+                              )}
+                              onClick={() => handleFormatChange(option.value)}
+                            >
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">{option.label}</div>
+                                <div className="text-xs text-muted-foreground font-mono">{option.value}</div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-sm text-muted-foreground">
+                                  {option.preview}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleFavorite(option.value);
+                                  }}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  {favoriteFormats.has(option.value) ? (
+                                    <Star className="h-3 w-3 fill-current" />
+                                  ) : (
+                                    <StarOff className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CollapsibleSection>
+
+            {/* Custom Format */}
+            <CollapsibleSection
+              id="custom-format"
+              title="Custom Format"
+              description="Create your own format using Excel-style codes"
+              defaultExpanded={selectedFormat === 'custom'}
+            >
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="custom-format" className="text-sm font-medium">Format Code</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="custom-format"
+                      value={customFormat}
+                      onChange={(e) => handleCustomFormatChange(e.target.value)}
+                      placeholder="Enter custom format (e.g., #,##0.00)"
+                      disabled={isDisabled}
+                      className="font-mono flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowWizard(true)}
+                      disabled={isDisabled}
+                      className="h-9 px-3"
+                      title="Format Wizard"
+                    >
+                      <Wand2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowGuide(true)}
+                      disabled={isDisabled}
+                      className="h-9 px-3"
+                      title="Format Guide"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                {showPreview && customFormat && (
+                  <div className="p-3 bg-muted/50 rounded-md">
+                    <div className="text-xs text-muted-foreground mb-1">Preview:</div>
+                    <div className="font-mono text-sm">
+                      {previewFormatter ? previewFormatter({ value: previewValue } as any) : customFormat}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CollapsibleSection>
+          </div>
+        )}
+
+        {/* Preview Section */}
+        {showPreview && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Preview</CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowPreview(!showPreview)}
-                  className="h-7 px-2"
+                  className="h-6 w-6 p-0"
                 >
                   {showPreview ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                 </Button>
               </div>
-            }
-          >
-            <div className="space-y-4">
-
-              {/* Popular Formats - Moved inside CollapsibleSection */}
-              {POPULAR_FORMATS.length > 0 && uiMode === 'advanced' && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Popular Formats</Label>
-                  <div className="flex flex-wrap gap-1">
-                    {POPULAR_FORMATS.map(format => (
-                      <Button
-                        key={format.value}
-                        variant={selectedFormat === format.value ? "default" : "outline"}
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => handleFormatChange(format.value)}
-                        disabled={isDisabled}
-                      >
-                        <span className="font-mono mr-1">{PREDEFINED_FORMATTERS[format.category as keyof typeof PREDEFINED_FORMATTERS].icon}</span>
-                        {format.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-          {/* Recent Formats */}
-          {recentFormats.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <History className="h-3 w-3" />
-                Recent
-              </Label>
-              <div className="flex flex-wrap gap-1">
-                {recentFormats.map(format => (
-                  <Button
-                    key={format}
-                    variant={selectedFormat === format ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs font-mono group"
-                    onClick={() => handleFormatChange(format)}
-                    disabled={isDisabled}
-                  >
-                    {format}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(format);
-                      }}
-                      className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      {favoriteFormats.has(format) ? 
-                        <StarOff className="h-3 w-3" /> : 
-                        <Star className="h-3 w-3" />
-                      }
-                    </button>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Format Selection with Search */}
-          <div className="space-y-2">
-            <Label className="text-sm">Select Format</Label>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search formats..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-8 pl-7 pr-7 text-xs"
-              />
-              {searchTerm && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearchTerm('');
-                    searchInputRef.current?.focus();
-                  }}
-                  className="absolute right-1 top-1 h-6 w-6 p-0"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-            
-            <Select
-              value={selectedFormat}
-              onValueChange={handleFormatChange}
-              disabled={isDisabled}
-            >
-              <SelectTrigger className="w-full h-9">
-                <SelectValue placeholder="Select format" />
-              </SelectTrigger>
-              <SelectContent className="max-h-96">
-                <SelectItem value="default">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">—</span>
-                    <span>Default (No formatting)</span>
-                  </div>
-                </SelectItem>
-                
-                {currentFormat === 'mixed' && (
-                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                    Multiple formats selected
-                  </div>
-                )}
-                
-                {/* Favorites */}
-                {favoriteFormats.size > 0 && (
-                  <>
-                    <SelectSeparator />
-                    <SelectGroup>
-                      <SelectLabel className="font-semibold text-xs px-2 flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-current" />
-                        Favorites
-                      </SelectLabel>
-                      {Array.from(favoriteFormats).map(format => {
-                        const category = Object.entries(PREDEFINED_FORMATTERS).find(([, cat]) => 
-                          cat.options.some(opt => opt.value === format)
-                        );
-                        const option = category?.[1].options.find(opt => opt.value === format);
-                        
-                        return (
-                          <SelectItem key={format} value={format} className="text-sm">
-                            <div className="flex items-center justify-between w-full">
-                              <span className="font-mono text-xs">{format}</span>
-                              {option && (
-                                <span className="ml-4 text-muted-foreground text-xs">
-                                  {option.preview}
-                                </span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectGroup>
-                  </>
-                )}
-                
-                <SelectSeparator />
-                
-                {Object.entries(filteredFormats).map(([category, { label, icon, options }]) => (
-                  <SelectGroup key={category}>
-                    <SelectLabel className="font-semibold text-xs px-2 flex items-center gap-1">
-                      <span>{icon}</span>
-                      {label}
-                    </SelectLabel>
-                    {options.map(option => (
-                      <SelectItem key={option.value} value={option.value} className="text-sm">
-                        <div className="flex items-center justify-between w-full">
-                          <span>{option.label}</span>
-                          <span className="ml-4 text-muted-foreground text-xs font-mono">
-                            {option.preview}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ))}
-                
-                <SelectSeparator />
-                <SelectItem value="custom">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-3 w-3" />
-                    <span>Custom Format...</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Custom format input */}
-          {selectedFormat === 'custom' && (
-            <div className="space-y-2 p-4 bg-muted/30 rounded-lg border">
-              <Label htmlFor="custom-format" className="text-sm flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                Custom Format String
-                {currentFormat && currentFormat !== 'default' && currentFormat !== 'custom' && currentFormat !== 'mixed' && (
-                  <span className="ml-2 text-xs text-muted-foreground font-normal">
-                    (Current: {currentFormat.substring(0, 30)}{currentFormat.length > 30 ? '...' : ''})
-                  </span>
-                )}
-              </Label>
-              <div className="flex gap-2">
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="preview-value" className="text-sm">Test Value:</Label>
                 <Input
-                  id="custom-format"
-                  value={customFormat}
-                  onChange={(e) => handleCustomFormatChange(e.target.value)}
-                  placeholder="Enter format string (e.g., #,##0.00)"
-                  disabled={isDisabled}
-                  className="h-9 font-mono text-sm flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowWizard(true)}
-                  disabled={isDisabled}
-                  className="h-9 px-3"
-                  title="Open Format Wizard"
-                >
-                  <Wand2 className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Use Excel-style format strings. Click the guide for examples and syntax.
-              </p>
-            </div>
-          )}
-            </div>
-          </CollapsibleSection>
-
-          {/* Live Preview */}
-          {showPreview && (selectedFormat !== 'default' || customFormat) && (
-            <CollapsibleSection
-              id="format-preview"
-              title="Live Preview"
-              description="See how your format will appear"
-              defaultExpanded={true}
-              badge={
-                <Badge variant="outline" className="text-xs">
-                  {selectedFormat === 'custom' ? customFormat : selectedFormat}
-                </Badge>
-              }
-            >
-              <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium uppercase text-muted-foreground">Live Preview</Label>
-                <Input
+                  id="preview-value"
                   type="number"
                   value={previewValue}
                   onChange={(e) => setPreviewValue(parseFloat(e.target.value) || 0)}
-                  className="w-24 h-7 text-xs"
+                  className="w-32 h-8"
                   step="0.01"
                 />
               </div>
-              
-              <div className="grid grid-cols-3 gap-3 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Positive</p>
-                  <p className="font-mono">
-                    {previewFormatter ? 
-                      previewFormatter({ value: Math.abs(previewValue) }) : 
-                      Math.abs(previewValue)
-                    }
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Negative</p>
-                  <p className="font-mono">
-                    {previewFormatter ? 
-                      previewFormatter({ value: -Math.abs(previewValue) }) : 
-                      -Math.abs(previewValue)
-                    }
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Zero</p>
-                  <p className="font-mono">
-                    {previewFormatter ? 
-                      previewFormatter({ value: 0 }) : 
-                      '0'
-                    }
-                  </p>
+              <div className="p-3 bg-muted/50 rounded-md">
+                <div className="text-xs text-muted-foreground mb-1">Formatted Result:</div>
+                <div className="font-mono text-sm">
+                  {previewFormatter ? previewFormatter({ value: previewValue } as any) : previewValue.toString()}
                 </div>
               </div>
-              
-              {((selectedFormat !== 'default' && selectedFormat !== 'custom') || 
-                (selectedFormat === 'custom' && customFormat)) && (
-                <div className="pt-2 border-t">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Format String</p>
-                  <code className="text-xs bg-muted px-2 py-1 rounded font-mono block break-all">
-                    {selectedFormat === 'custom' ? customFormat : selectedFormat}
-                  </code>
-                </div>
-              )}
-              </div>
-            </CollapsibleSection>
-          )}
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Quick Tips */}
-          {uiMode === 'advanced' && (
-            <CollapsibleSection
-              id="format-tips"
-              title="Format Syntax Guide"
-              description="Learn how to create custom format strings"
-              defaultExpanded={false}
-              helpText="Excel-style format strings support numbers, dates, colors, and custom text"
-            >
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• Use <code className="bg-muted px-1 rounded">#</code> for optional digits, <code className="bg-muted px-1 rounded">0</code> for required digits</li>
-                <li>• Add commas for thousands: <code className="bg-muted px-1 rounded">#,##0</code></li>
-                <li>• Percentages multiply by 100: <code className="bg-muted px-1 rounded">0%</code></li>
-                <li>• Wrap text in quotes: <code className="bg-muted px-1 rounded">"$"0.00</code></li>
-                <li>• Use semicolons for positive;negative;zero formats</li>
-                <li>• <strong>Unicode symbols:</strong> Change color with <code className="bg-muted px-1 rounded">[Red]</code>, <code className="bg-muted px-1 rounded">[Green]</code>, or <code className="bg-muted px-1 rounded">[#FF0000]</code></li>
-                <li>• <strong>Symbol size:</strong> Controlled by the column's font size in the Styling tab</li>
-                <li>• <strong>Combine with values:</strong> <code className="bg-muted px-1 rounded">[Green]"✓ "#,##0</code> shows check + number</li>
-              </ul>
-            </CollapsibleSection>
-          )}
-        </div>
+        {/* Format Guide Dialog */}
+        <FormatGuideDialog open={showGuide} onOpenChange={setShowGuide} />
+
+        {/* Format Wizard */}
+        <FormatWizard
+          open={showWizard}
+          onOpenChange={setShowWizard}
+          onApply={(format) => {
+            handleFormatChange(format);
+            setShowWizard(false);
+          }}
+        />
       </div>
-
-      {/* Format Guide Dialog */}
-      <FormatGuideDialog open={showGuide} onOpenChange={setShowGuide} />
-      
-      {/* Format Wizard Dialog */}
-      <FormatWizard
-        open={showWizard}
-        onOpenChange={setShowWizard}
-        initialFormat={selectedFormat === 'custom' ? customFormat : (selectedFormat === 'default' ? '' : selectedFormat)}
-        onApply={(format) => {
-          setCustomFormat(format);
-          handleCustomFormatChange(format);
-        }}
-      />
     </ScrollArea>
   );
 });
@@ -905,45 +872,107 @@ const FormatGuideDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean)
       { pattern: '#,##0.00', desc: 'Thousands with decimals', example: '1,234.50' },
       { pattern: '0%', desc: 'Percentage', example: '75%' },
       { pattern: '0.0%', desc: 'Percentage with decimal', example: '75.5%' },
+      { pattern: '0.00%', desc: 'Percentage with 2 decimals', example: '75.25%' },
+      { pattern: '$#,##0', desc: 'Currency integer', example: '$1,234' },
+      { pattern: '$#,##0.00', desc: 'Currency with decimals', example: '$1,234.50' },
+      { pattern: '0.00E+00', desc: 'Scientific notation', example: '1.23E+03' },
+      { pattern: '# ?/?', desc: 'Fractions', example: '1 1/4' },
+      { pattern: '00000', desc: 'Leading zeros (5 digits)', example: '01234' },
+      { pattern: '@', desc: 'Text format', example: 'Hello World' },
     ],
     conditional: [
-      { pattern: '[Red]0', desc: 'Color formatting', example: '1234 (in red)' },
-      { pattern: '[>100]"High";[<50]"Low";"Medium"', desc: 'Conditional text', example: 'High' },
-      { pattern: '[Green]0;[Red]-0', desc: 'Color positive/negative', example: '123 / -123' },
-      { pattern: '[#00FF00]0;[#FF0000]-0', desc: 'Hex colors', example: '123 / -123' },
-      { pattern: '[>0][#16A34A]↑0%;[<0][#DC2626]↓0%', desc: 'Arrows with colors', example: '↑5%' },
+      { pattern: '[Red]0', desc: 'All numbers in red', example: '1234 (red)' },
+      { pattern: '[Green]0;[Red]-0', desc: 'Green positive, red negative', example: '123 (green) / -123 (red)' },
+      { pattern: '[>100][Green]0;[Red]0', desc: 'Green if >100, otherwise red', example: '150 (green) / 50 (red)' },
+      { pattern: '[>=80][Green]0;[>=50][#FFA500]0;[Red]0', desc: 'Traffic light: 80+ green, 50+ orange, <50 red', example: '85 (green) / 65 (orange) / 30 (red)' },
+      { pattern: '[>1000000]#,,"M";[>1000]#,"K";0', desc: 'Scale: millions as M, thousands as K', example: '1.5M / 250K / 500' },
+      { pattern: '[>100]"High";[>50]"Medium";"Low"', desc: 'Text based on value ranges', example: 'High / Medium / Low' },
+      { pattern: '[=0]"Zero";[>0]"Positive";"Negative"', desc: 'Text for zero, positive, negative', example: 'Zero / Positive / Negative' },
+      { pattern: '[>=90][Green]"A";[>=80][#0080FF]"B";[>=70][#FFA500]"C";[Red]"F"', desc: 'Letter grades with colors', example: 'A (green) / B (blue) / C (orange) / F (red)' },
+      { pattern: '[>0][#16A34A]↑#,##0;[<0][#DC2626]↓#,##0;[#6B7280]→0', desc: 'Trend arrows with colors and values', example: '↑1,250 / ↓500 / →0' },
+      { pattern: '[<=20][Green]"Low Risk";[<=50][#FFA500]"Medium Risk";[Red]"High Risk"', desc: 'Risk assessment (lower is better)', example: 'Low Risk / Medium Risk / High Risk' },
+      { pattern: '[#00AA00]#,##0.00;[#FF6347]-#,##0.00;[#808080]"--"', desc: 'Custom hex colors for pos/neg/zero', example: '1,234.50 (green) / -567.89 (red) / -- (gray)' },
+      { pattern: '[Blue][>1000]#,##0" (Large)";[#FFA500][>100]#,##0" (Medium)";#,##0" (Small)"', desc: 'Size categories with colors', example: '5,000 (Large, blue) / 500 (Medium, orange) / 50 (Small)' },
     ],
     prefixSuffix: [
       { pattern: '"$"0', desc: 'Currency prefix', example: '$100' },
       { pattern: '0" USD"', desc: 'Currency suffix', example: '100 USD' },
-      { pattern: '"("0")"', desc: 'Wrap in parentheses', example: '(100)' },
+      { pattern: '"$" #,##0.00', desc: 'Currency with space', example: '$ 1,234.50' },
       { pattern: '0" units"', desc: 'Unit suffix', example: '50 units' },
+      { pattern: '0" kg"', desc: 'Weight units', example: '75 kg' },
+      { pattern: '0" °C"', desc: 'Temperature', example: '25 °C' },
+      { pattern: '0" °F"', desc: 'Fahrenheit', example: '77 °F' },
+      { pattern: '"Score: "0"/"100', desc: 'Score format', example: 'Score: 85/100' },
+      { pattern: '"("0")"', desc: 'Parentheses wrapper', example: '(100)' },
+      { pattern: '"Level "0', desc: 'Level prefix', example: 'Level 5' },
+      { pattern: '0"x"', desc: 'Multiplication suffix', example: '3x' },
+      { pattern: '"+"0;"-"0;"0"', desc: 'Explicit +/- signs', example: '+100 / -50 / 0' },
+      { pattern: '#,##0" people"', desc: 'Population count', example: '1,250 people' },
+      { pattern: '0.0" hours"', desc: 'Time duration', example: '8.5 hours' },
     ],
     emoji: [
-      { pattern: '[>100]"🟢";[>90]"🟡";"🔴"', desc: 'Status emojis only', example: '🟢' },
-      { pattern: '[>100]#,##0" 🟢";[>90]#,##0" 🟡";#,##0" 🔴"', desc: 'Value with emoji', example: '95 🟡' },
-      { pattern: '[>100]"🟢 "#,##0;[>90]"🟡 "#,##0;"🔴 "#,##0', desc: 'Emoji before value', example: '🟡 95' },
-      { pattern: '[>0]"📈";[<0]"📉";"➖"', desc: 'Trend emojis', example: '📈' },
-      { pattern: '[>=100]"🔥";[>=75]"✨";[>=50]"👍";"👎"', desc: 'Performance emojis', example: '✨' },
-      { pattern: '[>100]0"% 🟢";[>90]0"% 🟡";0"% 🔴"', desc: 'Percentage with emoji', example: '95% 🟡' },
+      { pattern: '[>100]"🟢";[>90]"🟡";"🔴"', desc: 'Status indicators only', example: '🟢 / 🟡 / 🔴' },
+      { pattern: '[>100]#,##0" 🟢";[>90]#,##0" 🟡";#,##0" 🔴"', desc: 'Value + status emoji', example: '105 🟢 / 95 🟡 / 80 🔴' },
+      { pattern: '[>100]"🟢 "#,##0;[>90]"🟡 "#,##0;"🔴 "#,##0', desc: 'Status emoji + value', example: '🟢 105 / 🟡 95 / 🔴 80' },
+      { pattern: '[>100]0"% 🟢";[>90]0"% 🟡";0"% 🔴"', desc: 'Percentage with status', example: '105% 🟢 / 95% 🟡 / 80% 🔴' },
+      { pattern: '[>0]"📈";[<0]"📉";"➖"', desc: 'Chart trend indicators', example: '📈 / 📉 / ➖' },
+      { pattern: '[>0]"📈 +"#,##0;[<0]"📉 "#,##0;"➖ 0"', desc: 'Trend with values', example: '📈 +1,250 / 📉 -500 / ➖ 0' },
+      { pattern: '[>=100]"🔥";[>=75]"✨";[>=50]"👍";[>=25]"😐";"👎"', desc: 'Performance ratings', example: '🔥 / ✨ / 👍 / 😐 / 👎' },
+      { pattern: '[>=90]"😍";[>=80]"😊";[>=70]"🙂";[>=60]"😐";[>=50]"😕";"😞"', desc: 'Satisfaction scale', example: '😍 / 😊 / 🙂 / 😐 / 😕 / 😞' },
+      { pattern: '[>0]"➕ "#,##0;[<0]"➖ "#,##0;"0️⃣"', desc: 'Plus/minus with values', example: '➕ 100 / ➖ 50 / 0️⃣' },
+      { pattern: '[>=4]"🌟🌟🌟🌟🌟";[>=3]"🌟🌟🌟🌟⭐";[>=2]"🌟🌟🌟⭐⭐";[>=1]"🌟🌟⭐⭐⭐";"🌟⭐⭐⭐⭐"', desc: '5-star rating with filled/empty stars', example: '🌟🌟🌟🌟🌟 / 🌟🌟🌟🌟⭐' },
+      { pattern: '[>1000]"💰💰💰";[>500]"💰💰";[>100]"💰";"💸"', desc: 'Money levels', example: '💰💰💰 / 💰💰 / 💰 / 💸' },
+      { pattern: '[>=80]"🎯";[>=60]"🎪";[>=40]"🎨";[>=20]"🎭";"🎲"', desc: 'Achievement levels', example: '🎯 / 🎪 / 🎨 / 🎭 / 🎲' },
+      { pattern: '[>0]"🚀 "#,##0" mph";[<0]"🛑 "#,##0" mph";"⏸️ 0 mph"', desc: 'Speed indicators', example: '🚀 65 mph / 🛑 -10 mph / ⏸️ 0 mph' },
+      { pattern: '[>=100]"🏆 Champion";[>=90]"🥇 Gold";[>=80]"🥈 Silver";[>=70]"🥉 Bronze";"📝 Participant"', desc: 'Competition results', example: '🏆 Champion / 🥇 Gold / 🥈 Silver / 🥉 Bronze / 📝 Participant' },
+      { pattern: '[>90]"🌡️ Hot";[>70]"☀️ Warm";[>50]"🌤️ Mild";[>30]"🌥️ Cool";"❄️ Cold"', desc: 'Temperature ranges', example: '🌡️ Hot / ☀️ Warm / 🌤️ Mild / 🌥️ Cool / ❄️ Cold' },
     ],
     symbols: [
-      { pattern: '[Green]"●"', desc: 'Colored circle', example: '● (green)' },
-      { pattern: '[#FF0000]"◆"', desc: 'Hex color diamond', example: '◆ (red)' },
-      { pattern: '[Blue]"▲"', desc: 'Colored triangle', example: '▲ (blue)' },
-      { pattern: '"★★★"', desc: 'Three stars', example: '★★★' },
-      { pattern: '[>0][Green]"↑";[<0][Red]"↓"', desc: 'Conditional arrows', example: '↑' },
-      { pattern: '"█████"', desc: 'Progress bar', example: '█████' },
-      { pattern: '[>0][Green]"✓ "#,##0;[<0][Red]"✗ "#,##0', desc: 'Symbol + value', example: '✓ 100' },
-      { pattern: '#,##0" "[Green]"●"', desc: 'Value + symbol', example: '100 ●' },
-      { pattern: '[>=80]"████░";[>=60]"███░░";[>=40]"██░░░";"█░░░░"', desc: 'Progress levels', example: '███░░' },
-      { pattern: '[>0][#00AA00]"⬆";[<0][#FF0000]"⬇";"➡"', desc: 'Hex color arrows', example: '⬆' },
+      { pattern: '[>0][Green]"●";[<0][Red]"●";"●"', desc: 'Colored circles (basic)', example: '● (green) / ● (red) / ●' },
+      { pattern: '[>0][#00AA00]"◉";[<0][#FF0000]"◉";"◉"', desc: 'Circled dots with hex colors', example: '◉ (green) / ◉ (red) / ◉' },
+      { pattern: '[>0]"○";[<0]"●";"◐"', desc: 'Empty/filled circles + half', example: '○ / ● / ◐' },
+      { pattern: '[>0][Green]"▲";[<0][Red]"▼";"▬"', desc: 'Triangle arrows', example: '▲ (green) / ▼ (red) / ▬' },
+      { pattern: '[>0][#4169E1]"⬆";[<0][#DC143C]"⬇";"➡"', desc: 'Bold arrows with colors', example: '⬆ (blue) / ⬇ (red) / ➡' },
+      { pattern: '[>0][Green]"↗";[<0][Red]"↘";"→"', desc: 'Diagonal trend arrows', example: '↗ (green) / ↘ (red) / →' },
+      { pattern: '[>=4]"★★★★★";[>=3]"★★★★☆";[>=2]"★★★☆☆";[>=1]"★★☆☆☆";"★☆☆☆☆"', desc: '5-star rating system', example: '★★★★★ / ★★★★☆ / ★★★☆☆' },
+      { pattern: '[>=4]"♦♦♦♦♦";[>=3]"♦♦♦♦◇";[>=2]"♦♦♦◇◇";[>=1]"♦♦◇◇◇";"♦◇◇◇◇"', desc: 'Diamond rating system', example: '♦♦♦♦♦ / ♦♦♦♦◇ / ♦♦♦◇◇' },
+      { pattern: '[>0][Green]"✓";[<0][Red]"✗";"○"', desc: 'Check/cross marks', example: '✓ (green) / ✗ (red) / ○' },
+      { pattern: '[>0][#0080FF]"✔";[<0][#FF4040]"✖";"◯"', desc: 'Bold check/cross with colors', example: '✔ (blue) / ✖ (red) / ◯' },
+      { pattern: '[>0][Green]"☑";[<0][Red]"☒";"☐"', desc: 'Checkbox symbols', example: '☑ (green) / ☒ (red) / ☐' },
+      { pattern: '[>0]"■";[<0]"□";"▪"', desc: 'Filled/empty squares', example: '■ / □ / ▪' },
+      { pattern: '[>0][Green]"▪";[<0][Red]"▫";"▫"', desc: 'Small squares with colors', example: '▪ (green) / ▫ (red) / ▫' },
+      { pattern: '[>0][#4169E1]"◆";[<0][#DC143C]"◇";"◈"', desc: 'Diamond shapes', example: '◆ (blue) / ◇ (red) / ◈' },
+      { pattern: '[>=80]"█████";[>=60]"████░";[>=40]"███░░";[>=20]"██░░░";"█░░░░"', desc: 'Progress bars (5 levels)', example: '█████ / ████░ / ███░░ / ##░░░ / █░░░░' },
+      { pattern: '[>=90]"▓▓▓▓▓▓▓▓▓▓";[>=80]"▓▓▓▓▓▓▓▓░░";[>=70]"▓▓▓▓▓▓▓░░░";[>=60]"▓▓▓▓▓▓░░░░";[>=50]"▓▓▓▓▓░░░░░";"▓▓▓▓░░░░░░"', desc: '10-segment progress bar', example: '▓▓▓▓▓▓▓▓▓▓ / ▓▓▓▓▓▓▓▓░░ / ▓▓▓▓▓▓▓░░░' },
+      { pattern: '[>0]"▌";[<0]"▎";"▏"', desc: 'Vertical bars (thickness)', example: '▌ / ▎ / ▏' },
+      { pattern: '[>=75]"♠";[>=50]"♣";[>=25]"♥";"♦"', desc: 'Card suit symbols', example: '♠ / ♣ / ♥ / ♦' },
+      { pattern: '[>0][Green]"⊕";[<0][Red]"⊖";"⊗"', desc: 'Circled operators', example: '⊕ (green) / ⊖ (red) / ⊗' },
+      { pattern: '[>=80]"♨";[>=60]"☀";[>=40]"☁";[>=20]"☂";"❄"', desc: 'Weather symbols by value', example: '♨ / ☀ / ☁ / ☂ / ❄' },
+      { pattern: '[>100]"⚡";[>50]"⭐";[>0]"✦";"○"', desc: 'Energy/power levels', example: '⚡ / ⭐ / ✦ / ○' },
     ],
     advanced: [
       { pattern: '0.00E+00', desc: 'Scientific notation', example: '1.23E+03' },
+      { pattern: '0.0E+0', desc: 'Scientific notation (short)', example: '1.2E+3' },
       { pattern: '# ?/?', desc: 'Fractions', example: '1 1/2' },
-      { pattern: '00000', desc: 'Leading zeros', example: '00123' },
-      { pattern: '@', desc: 'Text placeholder', example: 'Hello' },
+      { pattern: '# ??/??', desc: 'Fractions (auto-denominator)', example: '1 23/64' },
+      { pattern: '00000', desc: 'Leading zeros (5 digits)', example: '00123' },
+      { pattern: '000-00-0000', desc: 'SSN format with leading zeros', example: '123-45-6789' },
+      { pattern: '(000) 000-0000', desc: 'Phone number format', example: '(123) 456-7890' },
+      { pattern: '@', desc: 'Text placeholder', example: 'Hello World' },
+      { pattern: '"Code: "@', desc: 'Text with prefix', example: 'Code: ABC123' },
+      { pattern: '@" (verified)"', desc: 'Text with suffix', example: 'John Smith (verified)' },
+      { pattern: '[>999999]#,,"M";[>999]#,"K";#', desc: 'Auto-scale (M/K abbreviation)', example: '1.2M / 250K / 500' },
+      { pattern: '[>=1000000000]#,,,"B";[>=1000000]#,,"M";[>=1000]#,"K";#', desc: 'Full scale: B/M/K', example: '1.5B / 250M / 15K / 500' },
+      { pattern: '+0;-0;0', desc: 'Show positive/negative signs', example: '+123 / -456 / 0' },
+      { pattern: '(0)', desc: 'Negative in parentheses', example: '123 / (456)' },
+      { pattern: '0_ ', desc: 'Right-aligned with space padding', example: '123  / 1234 / 12345' },
+      { pattern: '_-* #,##0.00_-;_-* -#,##0.00_-;_-* "-"??_-;_-@_-', desc: 'Accounting format (complex)', example: '  $1,234.50  / $(1,234.50) / - / text' },
+      { pattern: '[h]:mm:ss', desc: 'Hours > 24 with minutes:seconds', example: '25:30:45' },
+      { pattern: 'mm:ss.0', desc: 'Minutes:seconds with decimal', example: '03:45.7' },
+      { pattern: 'yyyy-mm-dd', desc: 'ISO date format', example: '2024-12-31' },
+      { pattern: 'dddd, mmmm dd, yyyy', desc: 'Full date format', example: 'Monday, December 31, 2024' },
+      { pattern: '"Q"q yyyy', desc: 'Quarter format', example: 'Q4 2024' },
+      { pattern: 'ww', desc: 'Week number', example: '52' },
     ]
   };
 
@@ -1022,34 +1051,111 @@ const FormatGuideDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean)
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-sm">Format String Syntax</CardTitle>
-                      <CardDescription>Complete reference</CardDescription>
+                      <CardDescription>Complete reference guide</CardDescription>
                     </CardHeader>
-                    <CardContent className="text-xs space-y-2">
-                      <p><strong>0</strong> - Display digit or 0</p>
-                      <p><strong>#</strong> - Display digit or nothing</p>
-                      <p><strong>,</strong> - Thousands separator</p>
-                      <p><strong>.</strong> - Decimal point</p>
-                      <p><strong>%</strong> - Percentage (multiply by 100)</p>
-                      <p><strong>E+, E-</strong> - Scientific notation</p>
-                      <p><strong>"text"</strong> - Display literal text</p>
-                      <p><strong>@</strong> - Text placeholder</p>
-                      <p><strong>[condition]</strong> - Conditional formatting</p>
-                      <p><strong>;</strong> - Section separator (positive;negative;zero;text)</p>
-                      <Separator className="my-2" />
-                      <p className="font-medium">Color & Size Guide:</p>
-                      <p><strong>Colors:</strong> Use <code className="bg-muted px-1">[Red]</code>, <code className="bg-muted px-1">[Green]</code>, <code className="bg-muted px-1">[Blue]</code>, etc.</p>
-                      <p><strong>Hex colors:</strong> Use <code className="bg-muted px-1">[#FF0000]</code> for custom colors</p>
-                      <p><strong>Symbol size:</strong> Set font size in the Styling tab (symbols inherit cell font size)</p>
-                      <p className="mt-2"><strong>Unicode Symbols:</strong></p>
-                      <p>• Circles: ● ◉ ○ ◎ ⊙ ⊚ ⊛</p>
-                      <p>• Squares: ■ □ ▪ ▫ ◼ ◻ ▰ ▱</p>
-                      <p>• Arrows: ▲ ▼ ↑ ↓ ⬆ ⬇ → ← ↔ ⇧ ⇩</p>
-                      <p>• Stars: ★ ☆ ✦ ✧ ⭐</p>
-                      <p>• Marks: ✓ ✗ ✔ ✖ ☑ ☒ ⊕ ⊖</p>
-                      <p>• Diamonds: ◆ ◈ ◇ ⬧ ⬦ ♦</p>
-                      <p>• Bars: █ ▌ ▎ ▏ ░ ▒ ▓</p>
-                      <p>• Progress: ▰▱▱▱▱ ▰▰▰▱▱ ▰▰▰▰▰</p>
-                      <p>• Other: • · ◦ ‣ ⁃ ⁍ ⁎ ⁕</p>
+                    <CardContent className="text-xs space-y-3">
+                      <div>
+                        <p className="font-medium mb-2">Basic Number Formatting:</p>
+                        <p><strong>0</strong> - Display digit or 0 (required digit)</p>
+                        <p><strong>#</strong> - Display digit or nothing (optional digit)</p>
+                        <p><strong>,</strong> - Thousands separator</p>
+                        <p><strong>.</strong> - Decimal point</p>
+                        <p><strong>%</strong> - Percentage (multiply by 100)</p>
+                        <p><strong>E+, E-</strong> - Scientific notation</p>
+                        <p><strong>"text"</strong> - Display literal text</p>
+                        <p><strong>@</strong> - Text placeholder</p>
+                      </div>
+                      <Separator className="my-3" />
+                      <div>
+                        <p className="font-medium mb-2">Conditional Formatting Syntax:</p>
+                        <p><strong>[condition]</strong> - Apply format if condition is true</p>
+                        <p><strong>Operators:</strong> <code className="bg-muted px-1">&gt;</code>, <code className="bg-muted px-1">&lt;</code>, <code className="bg-muted px-1">&gt;=</code>, <code className="bg-muted px-1">&lt;=</code>, <code className="bg-muted px-1">=</code></p>
+                        <p><strong>Examples:</strong></p>
+                        <p className="ml-4">• <code className="bg-muted px-1">[&gt;100]</code> - Values greater than 100</p>
+                        <p className="ml-4">• <code className="bg-muted px-1">[&lt;=50]</code> - Values 50 or less</p>
+                        <p className="ml-4">• <code className="bg-muted px-1">[=0]</code> - Values equal to zero</p>
+                        <p><strong>Multiple conditions:</strong> Use semicolon to separate sections</p>
+                        <p className="ml-4">• <code className="bg-muted px-1">[&gt;100]"High";[&gt;50]"Medium";"Low"</code></p>
+                      </div>
+                      <Separator className="my-3" />
+                      <div>
+                        <p className="font-medium mb-2">Color Formatting:</p>
+                        <p><strong>Named colors:</strong> [Red], [Green], [Blue], [Yellow], [Orange], [Purple], [Black], [White]</p>
+                        <p><strong>Hex colors:</strong> [#FF0000] for red, [#00FF00] for green, [#0080FF] for blue</p>
+                        <p><strong>RGB examples:</strong></p>
+                        <p className="ml-4">• <code className="bg-muted px-1">[#FF6347]</code> - Tomato red</p>
+                        <p className="ml-4">• <code className="bg-muted px-1">[#32CD32]</code> - Lime green</p>
+                        <p className="ml-4">• <code className="bg-muted px-1">[#FFD700]</code> - Gold</p>
+                        <p className="ml-4">• <code className="bg-muted px-1">[#FF1493]</code> - Deep pink</p>
+                      </div>
+                      <Separator className="my-3" />
+                      <div>
+                        <p className="font-medium mb-2">Section Structure:</p>
+                        <p><strong>;</strong> - Section separator (positive;negative;zero;text)</p>
+                        <p><strong>Format order:</strong></p>
+                        <p className="ml-4">1. Positive numbers</p>
+                        <p className="ml-4">2. Negative numbers</p>
+                        <p className="ml-4">3. Zero values</p>
+                        <p className="ml-4">4. Text values</p>
+                        <p><strong>Example:</strong> <code className="bg-muted px-1">[Green]#,##0;[Red]-#,##0;[Blue]"Zero";[Purple]@</code></p>
+                      </div>
+                      <Separator className="my-3" />
+                      <div>
+                        <p className="font-medium mb-2">Scaling & Abbreviations:</p>
+                        <p><strong>,</strong> - Each comma after number divides by 1,000</p>
+                        <p className="ml-4">• <code className="bg-muted px-1">#,##0,</code> - Thousands (1234 → 1.234)</p>
+                        <p className="ml-4">• <code className="bg-muted px-1">#,##0,,</code> - Millions (1234567 → 1.234567)</p>
+                        <p className="ml-4">• <code className="bg-muted px-1">#,##0,,,</code> - Billions</p>
+                        <p><strong>With text:</strong> <code className="bg-muted px-1">#,##0,"K"</code> displays 1234 as "1.234K"</p>
+                      </div>
+                      <Separator className="my-3" />
+                      <div>
+                        <p className="font-medium mb-2">Unicode Symbols Guide:</p>
+                        <p><strong>Circles:</strong> ● ○ ◉ ◎ ⊙ ⊚ ⊛ ◐ ◑ ◒ ◓</p>
+                        <p><strong>Squares:</strong> ■ □ ▪ ▫ ◼ ◻ ▰ ▱ ⬛ ⬜</p>
+                        <p><strong>Arrows:</strong> ↑ ↓ → ← ↔ ⬆ ⬇ ➡ ⬅ ↗ ↘ ↙ ↖</p>
+                        <p><strong>Triangles:</strong> ▲ ▼ ▶ ◀ △ ▽ ▷ ◁</p>
+                        <p><strong>Stars:</strong> ★ ☆ ✦ ✧ ⭐ 🌟 ⋆ ✪ ✫</p>
+                        <p><strong>Marks:</strong> ✓ ✗ ✔ ✖ ☑ ☒ ⊕ ⊖ ⊗ ⊘</p>
+                        <p><strong>Diamonds:</strong> ◆ ◇ ◈ ⬧ ⬦ ♦</p>
+                        <p><strong>Progress bars:</strong> █ ▉ ▊ ▋ ▌ ▍ ▎ ▏ ░ ▒ ▓</p>
+                        <p><strong>Card suits:</strong> ♠ ♣ ♥ ♦</p>
+                        <p><strong>Weather:</strong> ☀ ☁ ☂ ☃ ❄ ⛅ ⛈ 🌧 🌩 ♨</p>
+                        <p><strong>Music:</strong> ♪ ♫ ♬ ♭ ♮ ♯</p>
+                        <p><strong>Math:</strong> ± × ÷ ≈ ≠ ≤ ≥ ∞ ∑ ∆</p>
+                      </div>
+                      <Separator className="my-3" />
+                      <div>
+                        <p className="font-medium mb-2">Emoji Categories:</p>
+                        <p><strong>Status:</strong> 🟢 🟡 🔴 ✅ ❌ ⚠️ 🚫</p>
+                        <p><strong>Trends:</strong> 📈 📉 📊 ➖ ⬆️ ⬇️ ↗️ ↘️</p>
+                        <p><strong>Performance:</strong> 🔥 ✨ 👍 👎 💯 🎯 ⭐</p>
+                        <p><strong>Money:</strong> 💰 💸 💵 💳 💎 🏦</p>
+                        <p><strong>Achievement:</strong> 🏆 🥇 🥈 🥉 🎖️ 🏅</p>
+                        <p><strong>Emotions:</strong> 😍 😊 🙂 😐 😕 😞 😢</p>
+                        <p><strong>Objects:</strong> 🚀 🛑 ⏸️ ⏯️ 🔋 📱 💻</p>
+                        <p><strong>Nature:</strong> 🌡️ ☀️ 🌤️ 🌥️ ❄️ 🌊 🔥</p>
+                      </div>
+                      <Separator className="my-3" />
+                      <div>
+                        <p className="font-medium mb-2">Special Formatting Tips:</p>
+                        <p><strong>Text alignment:</strong> Use <code className="bg-muted px-1">_</code> for space padding</p>
+                        <p><strong>Repeating characters:</strong> Use <code className="bg-muted px-1">*</code> before character</p>
+                        <p><strong>Force text:</strong> Prefix with <code className="bg-muted px-1">@</code> for text treatment</p>
+                        <p><strong>Hide sections:</strong> Use <code className="bg-muted px-1">;;;</code> to hide certain value types</p>
+                        <p><strong>Date/Time codes:</strong> yyyy, mm, dd, hh, mm, ss for date/time formatting</p>
+                        <p><strong>Escape quotes:</strong> Use <code className="bg-muted px-1">""</code> to include literal quotes</p>
+                      </div>
+                      <Separator className="my-3" />
+                      <div>
+                        <p className="font-medium mb-2">Pro Tips:</p>
+                        <p>• Combine conditions with colors for powerful visual indicators</p>
+                        <p>• Use emojis sparingly for maximum impact</p>
+                        <p>• Test your formats with different value ranges</p>
+                        <p>• Consider mobile/accessibility when using symbols</p>
+                        <p>• Unicode symbols work great for dashboards and KPIs</p>
+                        <p>• Use the preview panel to test before applying</p>
+                      </div>
                     </CardContent>
                   </Card>
                 )}

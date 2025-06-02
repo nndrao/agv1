@@ -239,10 +239,10 @@ export const EditorsTab: React.FC = React.memo(() => {
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 space-y-6">
+      <div className="px-6 py-4 space-y-6">
         {/* Header with description */}
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold">Cell Editors</h3>
+          <h3 className="text-lg font-semibold leading-none">Cell Editors</h3>
           <p className="text-sm text-muted-foreground">
             Choose editor types and customize their behavior for selected columns.
           </p>
@@ -250,10 +250,10 @@ export const EditorsTab: React.FC = React.memo(() => {
 
         {/* Cell Editor Selection */}
         <Card>
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Editor Type</CardTitle>
             {recommendedEditor && currentEditor === 'none' && (
-              <Alert className="mt-2">
+              <Alert className="mt-3">
                 <Lightbulb className="h-4 w-4" />
                 <AlertDescription className="text-sm">
                   Recommended: <strong>{CELL_EDITORS[Object.keys(CELL_EDITORS).find(k => CELL_EDITORS[k as keyof typeof CELL_EDITORS].value === recommendedEditor) as keyof typeof CELL_EDITORS]?.label}</strong> based on your column data type
@@ -290,7 +290,7 @@ export const EditorsTab: React.FC = React.memo(() => {
             </Select>
             
             {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && (
-              <Alert className="border-muted">
+              <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-sm">
                   {CELL_EDITORS[Object.keys(CELL_EDITORS).find(k => CELL_EDITORS[k as keyof typeof CELL_EDITORS].value === currentEditor) as keyof typeof CELL_EDITORS]?.description}
@@ -303,7 +303,7 @@ export const EditorsTab: React.FC = React.memo(() => {
         {/* Editor Parameters */}
         {currentEditor && currentEditor !== 'none' && currentEditor !== 'custom' && (
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3">
               <CardTitle className="text-base">Editor Settings</CardTitle>
               <CardDescription className="text-sm">
                 Configure editor-specific options
@@ -359,7 +359,7 @@ export const EditorsTab: React.FC = React.memo(() => {
         {/* Custom Editor Configuration */}
         {currentEditor === 'custom' && (
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3">
               <CardTitle className="text-base">Custom Editor Setup</CardTitle>
               <CardDescription className="text-sm">
                 Steps to implement a custom cell editor
