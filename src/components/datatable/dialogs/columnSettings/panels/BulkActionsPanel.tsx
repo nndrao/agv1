@@ -330,15 +330,28 @@ export const BulkActionsPanel: React.FC = () => {
               }
             }
           } else if (property === 'cellStyle') {
-            // Extract style by calling the function if it's a function
-            try {
-              const extractedStyle = value({});
-              if (extractedStyle && typeof extractedStyle === 'object') {
-                config[property] = extractedStyle;
+            // Check if this is our conditional formatting function with metadata
+            const formatString = (value as any).__formatString;
+            const baseStyle = (value as any).__baseStyle;
+            
+            if (formatString) {
+              // Store as a configuration object that can be recreated
+              config[property] = {
+                type: 'function',
+                formatString: formatString,
+                baseStyle: baseStyle
+              };
+            } else {
+              // Extract style by calling the function if it's a function
+              try {
+                const extractedStyle = value({});
+                if (extractedStyle && typeof extractedStyle === 'object') {
+                  config[property] = extractedStyle;
+                }
+              } catch (e) {
+                // If function fails, try to store as is
+                console.warn(`Failed to extract cellStyle:`, e);
               }
-            } catch (e) {
-              // If function fails, try to store as is
-              console.warn(`Failed to extract cellStyle:`, e);
             }
           } else if (property === 'comparator' || property === 'valueGetter' || property === 'valueSetter' || 
                      property === 'cellRenderer' || property === 'cellEditor' || property === 'filterValueGetter' ||
@@ -459,9 +472,21 @@ export const BulkActionsPanel: React.FC = () => {
         }
       }
       
+      // Handle cellStyle - recreate function if needed
+      if (templateProps.cellStyle) {
+        const cellStyle = templateProps.cellStyle;
+        if (cellStyle.type === 'function' && cellStyle.formatString) {
+          // We'll handle this after merging, store the config for now
+          mergedProperties._cellStyleConfig = cellStyle;
+        } else if (typeof cellStyle === 'object' && !cellStyle.type) {
+          // Static style object
+          mergedProperties.cellStyle = cellStyle;
+        }
+      }
+      
       // Merge all other properties (later templates override earlier ones)
       Object.keys(templateProps).forEach(key => {
-        if (key !== 'valueFormatter' && key !== 'headerStyle' && key !== 'useValueFormatterForExport') {
+        if (key !== 'valueFormatter' && key !== 'headerStyle' && key !== 'useValueFormatterForExport' && key !== 'cellStyle') {
           mergedProperties[key] = templateProps[key];
         }
       });
@@ -475,6 +500,32 @@ export const BulkActionsPanel: React.FC = () => {
       headerStyleType: mergedProperties.headerStyle ? typeof mergedProperties.headerStyle : 'none',
       hasValueFormatter: !!mergedProperties.valueFormatter
     });
+    
+    // Handle cellStyle config if present
+    if (mergedProperties._cellStyleConfig) {
+      const cellStyleConfig = mergedProperties._cellStyleConfig;
+      delete mergedProperties._cellStyleConfig; // Remove temporary config
+      
+      // Import and recreate the cellStyle function
+      import('../../../utils/formatters').then(({ createCellStyleFunction }) => {
+        const styleFunc = createCellStyleFunction(cellStyleConfig.formatString, cellStyleConfig.baseStyle);
+        // Attach metadata for future serialization
+        Object.defineProperty(styleFunc, '__formatString', { 
+          value: cellStyleConfig.formatString, 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(styleFunc, '__baseStyle', { 
+          value: cellStyleConfig.baseStyle, 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        // Update cellStyle separately
+        updateBulkProperties({ cellStyle: styleFunc });
+      });
+    }
     
     // Apply all merged properties at once
     updateBulkProperties(mergedProperties);

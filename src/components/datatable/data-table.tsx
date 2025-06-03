@@ -63,11 +63,13 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         profileName: activeProfile?.name,
         columnCount: savedColumnDefs.length,
         hasLightweightFormat: !!(activeProfile?.gridState?.columnCustomizations),
+        columnsWithFormatters: savedColumnDefs.filter((col: any) => col.valueFormatter).length,
         sampleColumns: savedColumnDefs.slice(0, 3).map(col => ({
           field: col.field,
           headerName: col.headerName,
           hasHeaderStyle: !!col.headerStyle,
           hasCellStyle: !!col.cellStyle,
+          hasFormatter: !!col.valueFormatter,
           sortable: col.sortable,
           resizable: col.resizable,
           editable: col.editable

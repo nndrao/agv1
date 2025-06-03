@@ -464,14 +464,18 @@ export const useProfileStore = create<ProfileStore>()(
           return;
         }
         
+        // Ensure we have base columns - use provided ones or fall back to current columns
+        const actualBaseColumns = baseColumnDefs || activeProfile.gridState.baseColumnDefs || columnDefs;
+        
         const customizations = serializeColumnCustomizations(
           columnDefs, 
-          baseColumnDefs || activeProfile.gridState.baseColumnDefs || columnDefs
+          actualBaseColumns
         );
         
         console.log('[ProfileStore] Saving column customizations:', {
           profileId: activeProfileId,
           customizationsCount: Object.keys(customizations).length,
+          baseColumnsCount: actualBaseColumns.length,
           size: `${(JSON.stringify(customizations).length / 1024).toFixed(2)}KB`
         });
         
@@ -479,7 +483,7 @@ export const useProfileStore = create<ProfileStore>()(
           gridState: {
             ...activeProfile.gridState,
             columnCustomizations: customizations,
-            baseColumnDefs: baseColumnDefs || activeProfile.gridState.baseColumnDefs || columnDefs,
+            baseColumnDefs: actualBaseColumns,
             // Remove legacy full columnDefs
             columnDefs: undefined
           }
@@ -492,18 +496,36 @@ export const useProfileStore = create<ProfileStore>()(
         const id = profileId || activeProfileId;
         const profile = profiles.find(p => p.id === id);
         
+        console.log('[ProfileStore] getColumnDefs called:', {
+          profileId,
+          activeProfileId,
+          found: !!profile,
+          profileName: profile?.name,
+          hasCustomizations: !!(profile?.gridState?.columnCustomizations),
+          hasBaseColumns: !!(profile?.gridState?.baseColumnDefs)
+        });
+        
         if (!profile) return undefined;
         
         // If we have the new lightweight format
         if (profile.gridState.columnCustomizations && profile.gridState.baseColumnDefs) {
-          console.log('[ProfileStore] Reconstructing columnDefs from lightweight format');
-          return deserializeColumnCustomizations(
+          console.log('[ProfileStore] Reconstructing columnDefs from lightweight format', {
+            customizationsCount: Object.keys(profile.gridState.columnCustomizations).length,
+            baseColumnsCount: profile.gridState.baseColumnDefs.length
+          });
+          const reconstructed = deserializeColumnCustomizations(
             profile.gridState.columnCustomizations,
             profile.gridState.baseColumnDefs
           );
+          console.log('[ProfileStore] Column definitions reconstructed:', {
+            totalColumns: reconstructed.length,
+            columnsWithFormatters: reconstructed.filter(col => col.valueFormatter).length
+          });
+          return reconstructed;
         }
         
         // Fall back to legacy format
+        console.log('[ProfileStore] Using legacy columnDefs format');
         return profile.gridState.columnDefs;
       },
       

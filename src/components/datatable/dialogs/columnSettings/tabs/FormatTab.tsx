@@ -415,7 +415,21 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
           }
         }
         // Use enhanced cell style function that extracts colors from format sections
-        updates.cellStyle = createCellStyleFunction(format, baseStyle);
+        const styleFunc = createCellStyleFunction(format, baseStyle);
+        // Attach metadata for serialization - use configurable: true to ensure it persists
+        Object.defineProperty(styleFunc, '__formatString', { 
+          value: format, 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(styleFunc, '__baseStyle', { 
+          value: baseStyle, 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        updates.cellStyle = styleFunc;
       } else {
         // Clear cellStyle if no color codes
         updates.cellStyle = undefined;
