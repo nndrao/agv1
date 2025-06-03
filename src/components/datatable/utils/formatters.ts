@@ -308,8 +308,18 @@ export function createExcelFormatter(formatString: string) {
   
   // Attach format string as metadata for serialization
   // Store metadata on the formatter function
-  Object.defineProperty(formatter, '__formatString', { value: formatString, writable: false });
-  Object.defineProperty(formatter, '__formatterType', { value: 'excel', writable: false });
+  Object.defineProperty(formatter, '__formatString', { 
+    value: formatString, 
+    writable: false,
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(formatter, '__formatterType', { 
+    value: 'excel', 
+    writable: false,
+    enumerable: false,
+    configurable: true
+  });
   
   return formatter;
 }

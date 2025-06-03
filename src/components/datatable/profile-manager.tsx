@@ -424,7 +424,8 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Save column customizations using the lightweight format
-      saveColumnCustomizations(cleanedColumnDefs, activeProfile.gridState?.baseColumnDefs || columnDefs);
+      // IMPORTANT: Use the original columnDefs (without customizations) as base columns
+      saveColumnCustomizations(cleanedColumnDefs, columnDefs);
       
       // Save other grid state (not column definitions)
       saveCurrentState({

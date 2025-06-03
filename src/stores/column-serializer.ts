@@ -157,6 +157,13 @@ function extractCustomizations(col: ColDef, baseCol?: ColDef): ColumnCustomizati
       // Check if it has our metadata
       const metadata = (col.cellStyle as any).__formatString;
       const baseStyle = (col.cellStyle as any).__baseStyle;
+      console.log('[ColumnSerializer] Saving cellStyle function:', {
+        field: col.field,
+        hasMetadata: !!metadata,
+        formatString: metadata,
+        hasBaseStyle: !!baseStyle,
+        baseStyle
+      });
       customization.cellStyle = {
         type: 'function',
         formatString: metadata,
@@ -280,6 +287,12 @@ export function deserializeColumnCustomizations(
   customizations: Record<string, ColumnCustomization>,
   baseColumns: ColDef[]
 ): ColDef[] {
+  // Handle case where baseColumns is empty
+  if (!baseColumns || baseColumns.length === 0) {
+    console.warn('[ColumnSerializer] No base columns provided for deserialization');
+    return [];
+  }
+  
   return baseColumns.map(baseCol => {
     const field = baseCol.field;
     if (!field || !customizations[field]) {
@@ -324,11 +337,27 @@ export function deserializeColumnCustomizations(
       if (custom.cellStyle.type === 'static' && custom.cellStyle.value) {
         merged.cellStyle = custom.cellStyle.value;
       } else if (custom.cellStyle.type === 'function' && custom.cellStyle.formatString) {
+        console.log('[ColumnSerializer] Loading cellStyle function:', {
+          field,
+          formatString: custom.cellStyle.formatString,
+          hasBaseStyle: !!custom.cellStyle.baseStyle,
+          baseStyle: custom.cellStyle.baseStyle
+        });
         // Recreate the cell style function
         const styleFunc = createCellStyleFunction(custom.cellStyle.formatString, custom.cellStyle.baseStyle);
         // Attach metadata for future serialization
-        (styleFunc as any).__formatString = custom.cellStyle.formatString;
-        (styleFunc as any).__baseStyle = custom.cellStyle.baseStyle;
+        Object.defineProperty(styleFunc, '__formatString', { 
+          value: custom.cellStyle.formatString, 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(styleFunc, '__baseStyle', { 
+          value: custom.cellStyle.baseStyle, 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
         merged.cellStyle = styleFunc;
       }
     }
@@ -360,6 +389,10 @@ export function deserializeColumnCustomizations(
     // Apply value formatter
     if (custom.valueFormatter && custom.valueFormatter.formatString) {
       if (custom.valueFormatter.type === 'excel') {
+        console.log('[ColumnSerializer] Recreating formatter for field:', field, {
+          formatString: custom.valueFormatter.formatString,
+          type: custom.valueFormatter.type
+        });
         const formatter = createExcelFormatter(custom.valueFormatter.formatString);
         merged.valueFormatter = formatter;
         // Value formatter will be used for export automatically
