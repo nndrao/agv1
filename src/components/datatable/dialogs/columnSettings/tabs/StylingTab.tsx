@@ -59,15 +59,34 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
     
     selectedColumns.forEach(colId => {
       const colDef = columnDefinitions.get(colId);
-      if (colDef?.valueFormat && colDef.valueFormat.includes('[') && colDef.valueFormat.includes(']')) {
-        hasConditionalFormatting = true;
-        formatString = colDef.valueFormat;
+      const cellStyle = colDef?.cellStyle;
+      
+      // Check if cellStyle is a function with format metadata
+      if (cellStyle && typeof cellStyle === 'function') {
+        const metadata = (cellStyle as any).__formatString;
+        if (metadata) {
+          hasConditionalFormatting = true;
+          formatString = metadata;
+        }
       }
     });
     
     if (hasConditionalFormatting) {
       // Re-create the conditional style function with the new base style
       const cellStyleFn = createCellStyleFunction(formatString, style);
+      // Attach metadata for future serialization
+      Object.defineProperty(cellStyleFn, '__formatString', { 
+        value: formatString, 
+        writable: false,
+        enumerable: false,
+        configurable: true
+      });
+      Object.defineProperty(cellStyleFn, '__baseStyle', { 
+        value: style, 
+        writable: false,
+        enumerable: false,
+        configurable: true
+      });
       updateBulkProperty('cellStyle', cellStyleFn);
     } else {
       // No conditional formatting, just save the style directly
