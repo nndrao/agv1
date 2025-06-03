@@ -277,6 +277,29 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
           pendingChangesCount: pendingChanges.size
         });
 
+        // List of properties that should be explicitly cleared (set to undefined)
+        const clearableProperties = [
+          'cellStyle', 'headerStyle', 'cellClass', 'headerClass', 'cellClassRules',
+          'valueFormatter', 'valueGetter', 'valueSetter', 'useValueFormatterForExport',
+          'filter', 'filterParams', 'floatingFilter', 'floatingFilterComponent', 
+          'floatingFilterComponentParams', 'suppressHeaderMenuButton', 
+          'suppressFiltersToolPanel', 'filterValueGetter',
+          'editable', 'cellEditor', 'cellEditorParams', 'cellEditorPopup',
+          'cellEditorPopupPosition', 'singleClickEdit', 'stopEditingWhenCellsLoseFocus',
+          'cellEditorSelector', 'cellRenderer', 'cellRendererParams', 'cellRendererSelector',
+          'wrapText', 'autoHeight', 'rowSpan', 'colSpan', 'textAlign', 'verticalAlign',
+          'headerTooltip', 'headerComponent', 'headerComponentParams', 'headerTextAlign',
+          'headerCheckboxSelection', 'headerCheckboxSelectionFilteredOnly',
+          'wrapHeaderText', 'autoHeaderHeight', 'sortable', 'sort', 'sortingOrder',
+          'comparator', 'unSortIcon', 'aggFunc', 'allowedAggFuncs',
+          'pinned', 'lockPosition', 'lockPinned', 'lockVisible',
+          'width', 'minWidth', 'maxWidth', 'flex', 'resizable', 'suppressSizeToFit',
+          'initialWidth', 'initialHide', 'initialPinned',
+          'tooltip', 'tooltipField', 'tooltipValueGetter', 'tooltipComponent',
+          'tooltipComponentParams', 'suppressKeyboardEvent', 'suppressNavigable',
+          'suppressPaste', 'checkboxSelection', 'showDisabledCheckboxes'
+        ];
+
         // Pre-allocate array with exact size for better performance
         const updatedColumns = new Array(columnDefinitions.size);
         let index = 0;
@@ -285,17 +308,20 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         for (const [colId, colDef] of columnDefinitions) {
           const changes = pendingChanges.get(colId);
           if (changes && Object.keys(changes).length > 0) {
-            // Merge changes and filter out undefined values (which represent removed customizations)
+            // Start with the original column to preserve all properties
             const mergedColumn = { ...colDef };
+            
+            // Apply changes
             Object.entries(changes).forEach(([key, value]) => {
-              if (value === undefined) {
-                // Remove the property entirely
-                delete (mergedColumn as any)[key];
-              } else {
-                // Set the new value
+              if (value === undefined && clearableProperties.includes(key)) {
+                // Explicitly set clearable properties to undefined
+                (mergedColumn as any)[key] = undefined;
+              } else if (value !== undefined) {
+                // Set new values
                 (mergedColumn as any)[key] = value;
               }
             });
+            
             updatedColumns[index] = mergedColumn;
           } else {
             // Reuse existing object reference for unchanged columns
@@ -438,59 +464,84 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         
         console.log('[Store] Clearing all customizations from all columns');
         
-        // Create new column definitions with all customizations removed
-        const newColumnDefinitions = new Map(columnDefinitions);
+        // Create new pending changes for all columns
         const newPendingChanges = new Map<string, Partial<ColDef>>();
         
         let clearedCount = 0;
         
-        // Define all customization properties that we want to clear
+        // Comprehensive list of all customization properties to clear
         const customizationProperties = [
-          'cellStyle', 'headerStyle', 'cellClass', 'headerClass',
-          'valueFormatter', 'filter', 'filterParams',
-          'cellEditor', 'cellEditorParams',
-          'width', 'minWidth', 'maxWidth', 'pinned', 'lockPosition', 'lockVisible'
+          // Data type and basic properties
+          'cellDataType', 'type', 'valueGetter', 'valueSetter',
+          
+          // Filter configurations
+          'filter', 'filterParams', 'floatingFilter', 'floatingFilterComponent', 'floatingFilterComponentParams',
+          'suppressHeaderMenuButton', 'suppressFiltersToolPanel', 'filterValueGetter',
+          
+          // Editor configurations
+          'editable', 'cellEditor', 'cellEditorParams', 'cellEditorPopup', 'cellEditorPopupPosition',
+          'singleClickEdit', 'stopEditingWhenCellsLoseFocus', 'cellEditorSelector',
+          
+          // Format configurations
+          'valueFormatter', 'useValueFormatterForExport',
+          'cellClass', 'cellClassRules', 'cellStyle',
+          
+          // Header configurations
+          'headerClass', 'headerStyle', 'headerTooltip', 'headerComponent', 'headerComponentParams',
+          'headerTextAlign', 'headerCheckboxSelection', 'headerCheckboxSelectionFilteredOnly',
+          'wrapHeaderText', 'autoHeaderHeight',
+          
+          // Cell renderer
+          'cellRenderer', 'cellRendererParams', 'cellRendererSelector',
+          
+          // Layout and display
+          'wrapText', 'autoHeight', 'rowSpan', 'colSpan',
+          'textAlign', 'verticalAlign',
+          
+          // Sorting and aggregation
+          'sortable', 'sort', 'sortingOrder', 'comparator',
+          'unSortIcon', 'aggFunc', 'allowedAggFuncs',
+          
+          // Pinning and sizing
+          'pinned', 'lockPosition', 'lockPinned', 'lockVisible',
+          'width', 'minWidth', 'maxWidth', 'flex',
+          'resizable', 'suppressSizeToFit',
+          'initialWidth', 'initialHide', 'initialPinned',
+          
+          // Tooltips
+          'tooltip', 'tooltipField', 'tooltipValueGetter', 'tooltipComponent', 'tooltipComponentParams',
+          
+          // Other properties
+          'suppressKeyboardEvent', 'suppressNavigable', 'suppressPaste',
+          'checkboxSelection', 'showDisabledCheckboxes'
         ];
         
+        // Process all columns
         for (const [columnId, column] of columnDefinitions) {
-          const originalColumn = { ...column };
-          const updatedColumn = { ...column };
           const pendingChanges: Partial<ColDef> = {};
           
-          let hasCustomizations = false;
-          
-          // Check each customization property
+          // Set all customization properties to undefined
           customizationProperties.forEach(prop => {
-            const value = originalColumn[prop as keyof ColDef];
-            // Consider a property customized if it exists and is not a default value
-            if (value !== undefined && value !== null && value !== false && value !== '') {
-              hasCustomizations = true;
-              // Remove from column definition for immediate UI update
-              delete (updatedColumn as any)[prop];
-              // Set to undefined in pending changes to override original
-              (pendingChanges as any)[prop] = undefined;
-            }
+            (pendingChanges as any)[prop] = undefined;
           });
           
-          if (hasCustomizations) {
-            clearedCount++;
-            newColumnDefinitions.set(columnId, updatedColumn);
-            newPendingChanges.set(columnId, pendingChanges);
-          }
+          // Add to pending changes (will be applied when user clicks Apply)
+          newPendingChanges.set(columnId, pendingChanges);
+          clearedCount++;
         }
         
         // Clear applied templates as well
         const templateCount = get().appliedTemplates.size;
         const newAppliedTemplates = new Map<string, { templateId: string; templateName: string; appliedAt: number }>();
         
+        // Update store with pending changes (not applied yet)
         set({ 
-          columnDefinitions: newColumnDefinitions,
           pendingChanges: newPendingChanges,
           appliedTemplates: newAppliedTemplates
         });
         
         const totalCleared = clearedCount + (templateCount > 0 ? templateCount : 0);
-        console.log('[Store] Cleared customizations from', clearedCount, 'columns and', templateCount, 'templates');
+        console.log('[Store] Set pending clear for', clearedCount, 'columns and', templateCount, 'templates');
         
         return totalCleared;
       },

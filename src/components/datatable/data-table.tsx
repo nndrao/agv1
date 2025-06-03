@@ -294,58 +294,19 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         const currentCol = currentColMap.get(field);
         
         if (currentCol) {
-          // Start with ALL current column properties to preserve everything
-          const mergedCol = { ...currentCol };
+          // Log what's happening with styles
+          if (field === 'dailyPnL' || field === 'positionId') {
+            console.log(`[DataTable] Column ${field} style update:`, {
+              currentCellStyle: currentCol.cellStyle,
+              updatedCellStyle: updatedCol.cellStyle,
+              currentHeaderStyle: currentCol.headerStyle,
+              updatedHeaderStyle: updatedCol.headerStyle
+            });
+          }
           
-          // Only update properties that are explicitly defined in updatedCol
-          // This ensures we don't accidentally clear any properties
-          if (updatedCol.headerName !== undefined) mergedCol.headerName = updatedCol.headerName;
-          if (updatedCol.field !== undefined) mergedCol.field = updatedCol.field;
-          
-          // Style and class properties - always update these as they might be cleared
-          if ('cellStyle' in updatedCol) mergedCol.cellStyle = updatedCol.cellStyle;
-          if ('headerStyle' in updatedCol) mergedCol.headerStyle = updatedCol.headerStyle;
-          if ('cellClass' in updatedCol) mergedCol.cellClass = updatedCol.cellClass;
-          if ('headerClass' in updatedCol) mergedCol.headerClass = updatedCol.headerClass;
-          
-          // Formatter and value properties
-          if ('valueFormatter' in updatedCol) mergedCol.valueFormatter = updatedCol.valueFormatter;
-          if ('valueGetter' in updatedCol) mergedCol.valueGetter = updatedCol.valueGetter;
-          if ('valueSetter' in updatedCol) mergedCol.valueSetter = updatedCol.valueSetter;
-          
-          
-          // Filter properties
-          if (updatedCol.filter !== undefined) mergedCol.filter = updatedCol.filter;
-          if ('filterParams' in updatedCol) mergedCol.filterParams = updatedCol.filterParams;
-          if (updatedCol.floatingFilter !== undefined) mergedCol.floatingFilter = updatedCol.floatingFilter;
-          
-          // Boolean properties - only update if explicitly set
-          if (updatedCol.sortable !== undefined) mergedCol.sortable = updatedCol.sortable;
-          if (updatedCol.resizable !== undefined) mergedCol.resizable = updatedCol.resizable;
-          if (updatedCol.editable !== undefined) mergedCol.editable = updatedCol.editable;
-          if (updatedCol.wrapText !== undefined) mergedCol.wrapText = updatedCol.wrapText;
-          if (updatedCol.autoHeight !== undefined) mergedCol.autoHeight = updatedCol.autoHeight;
-          if (updatedCol.wrapHeaderText !== undefined) mergedCol.wrapHeaderText = updatedCol.wrapHeaderText;
-          if (updatedCol.autoHeaderHeight !== undefined) mergedCol.autoHeaderHeight = updatedCol.autoHeaderHeight;
-          
-          // Width properties - only update if explicitly set
-          if (updatedCol.initialWidth !== undefined) mergedCol.initialWidth = updatedCol.initialWidth;
-          if (updatedCol.minWidth !== undefined) mergedCol.minWidth = updatedCol.minWidth;
-          if (updatedCol.maxWidth !== undefined) mergedCol.maxWidth = updatedCol.maxWidth;
-          
-          // Initial state properties
-          if (updatedCol.initialHide !== undefined) mergedCol.initialHide = updatedCol.initialHide;
-          if (updatedCol.initialPinned !== undefined) mergedCol.initialPinned = updatedCol.initialPinned;
-          
-          // Type properties
-          if (updatedCol.type !== undefined) mergedCol.type = updatedCol.type;
-          if (updatedCol.cellDataType !== undefined) mergedCol.cellDataType = updatedCol.cellDataType;
-          
-          // Editor properties
-          if ('cellEditor' in updatedCol) mergedCol.cellEditor = updatedCol.cellEditor;
-          if ('cellEditorParams' in updatedCol) mergedCol.cellEditorParams = updatedCol.cellEditorParams;
-          
-          return mergedCol;
+          // For columns being updated, use the updated version entirely
+          // The store has already handled property removal/addition
+          return updatedCol;
         }
         
         // If column not found in current state, return as is
@@ -355,11 +316,36 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       // Apply the merged column definitions
       gridApiRef.current.setGridOption('columnDefs', mergedColumns);
       
+      // Log the applied columns
+      console.log('[DataTable] Applied column definitions:', {
+        totalColumns: mergedColumns.length,
+        sampleColumn: mergedColumns[0],
+        columnsWithCellStyle: mergedColumns.filter(col => col.cellStyle !== undefined).length,
+        columnsWithHeaderStyle: mergedColumns.filter(col => col.headerStyle !== undefined).length
+      });
+      
       // Store the merged columns with styles for later retrieval
       columnDefsWithStylesRef.current = mergedColumns;
       
+      // Update the currentColumnDefs state to ensure consistency
+      setCurrentColumnDefs(mergedColumns);
+      
+      // Force complete grid refresh to ensure all styles are cleared
+      // This is more aggressive but ensures styles are properly updated
+      gridApiRef.current.setGridOption('columnDefs', []);
+      gridApiRef.current.setGridOption('columnDefs', mergedColumns);
+      
       // Force header refresh to ensure styles are applied
       gridApiRef.current.refreshHeader();
+      
+      // Also refresh cells to ensure cell styles are applied/cleared
+      gridApiRef.current.refreshCells({ 
+        force: true,
+        suppressFlash: false 
+      });
+      
+      // Redraw rows to ensure all styling is updated
+      gridApiRef.current.redrawRows();
       
       // Restore the column state, filters, and sorts to preserve user's current view
       // Small delay to ensure column definitions are fully applied

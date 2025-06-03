@@ -456,17 +456,20 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               Clear All Columns
             </DialogTitle>
             <DialogDescription>
-              This will remove all customizations from {customizedColumnsCount} column{customizedColumnsCount !== 1 ? 's' : ''}, including:
-              <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-                <li>Cell and header styling</li>
-                <li>Value formatters</li>
-                <li>Filters and editors</li>
-                <li>Column sizing and positioning</li>
-                <li>Applied templates</li>
-              </ul>
-              <p className="mt-3 font-medium">This action cannot be undone.</p>
+              This will remove all customizations from {customizedColumnsCount} column{customizedColumnsCount !== 1 ? 's' : ''}.
             </DialogDescription>
           </DialogHeader>
+          <div className="py-4 space-y-3">
+            <p className="text-sm text-muted-foreground">The following will be removed:</p>
+            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+              <li>Cell and header styling</li>
+              <li>Value formatters</li>
+              <li>Filters and editors</li>
+              <li>Column sizing and positioning</li>
+              <li>Applied templates</li>
+            </ul>
+            <p className="text-sm font-medium text-foreground">This action cannot be undone.</p>
+          </div>
           <DialogFooter>
             <Button
               variant="outline"

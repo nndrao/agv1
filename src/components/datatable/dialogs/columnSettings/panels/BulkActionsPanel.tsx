@@ -514,8 +514,8 @@ export const BulkActionsPanel: React.FC = () => {
     }
   }, [templateToDelete, userTemplates, saveTemplates, selectedTemplateIds, templates]);
 
-  // Clear all customizations
-  const clearAllCustomizations = useCallback(() => {
+  // Clear all customizations from selected columns
+  const clearSelectedCustomizations = useCallback(() => {
     // Use the same comprehensive list as templates
     const propertiesToClear = TEMPLATE_PROPERTIES.filter(prop => !prop.startsWith('_'));
     
@@ -745,7 +745,7 @@ export const BulkActionsPanel: React.FC = () => {
             variant="destructive"
             size="sm"
             className="w-full h-8 text-sm gap-2"
-            onClick={clearAllCustomizations}
+            onClick={clearSelectedCustomizations}
             disabled={isDisabled}
           >
             <Eraser className="h-3.5 w-3.5" />
