@@ -1,1512 +1,852 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import {
-  Wand2,
-  Plus,
-  Trash2,
-  Copy,
-  Check,
-  ChevronRight,
-  ChevronLeft,
-  Palette,
-  Hash,
-  DollarSign,
-  Percent,
-  Calendar,
-  Clock,
-  Type,
-  Braces,
-  AlertCircle,
-  Sparkles,
-  Eye,
-  EyeOff,
-  Code,
-  Settings2,
-  ArrowUpDown,
-  Filter,
-  Layers,
-  Star,
+import { 
+  DollarSign, 
+  Percent, 
+  Hash, 
+  Calendar, 
+  ArrowUp, 
+  ArrowDown, 
+  Sparkles, 
+  Palette, 
+  Check, 
+  Copy 
 } from 'lucide-react';
-import { createExcelFormatter } from '@/components/datatable/utils/formatters';
-import { ValueFormatterParams } from 'ag-grid-community';
 
 interface FormatWizardProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onFormatChange: (format: string) => void;
   initialFormat?: string;
-  onApply: (format: string) => void;
+  dataType?: 'number' | 'text' | 'date' | 'boolean';
 }
 
-interface FormatSection {
-  type: 'number' | 'currency' | 'percentage' | 'date' | 'time' | 'text' | 'custom';
-  prefix?: string;
-  suffix?: string;
-  decimals?: number;
-  thousands?: boolean;
-  color?: string;
-  condition?: {
-    operator: '>' | '<' | '>=' | '<=' | '=' | '<>';
-    value: number;
-  };
-  customPattern?: string;
-}
-
-
-interface ConditionBuilderProps {
-  onApply: (format: string) => void;
-  initialValue?: string;
-}
-
-const ConditionBuilder: React.FC<ConditionBuilderProps> = ({ onApply }) => {
-  const [operator, setOperator] = useState('>');
-  const [value, setValue] = useState('0');
-  const [color, setColor] = useState('Green');
-  const [useHex, setUseHex] = useState(false);
-  const [hexColor, setHexColor] = useState('#00AA00');
-  const [prefix, setPrefix] = useState('');
-  const [suffix, setSuffix] = useState('');
-  const [numberFormat, setNumberFormat] = useState('#,##0.00');
-
-  const buildCondition = () => {
-    let condition = '';
-    if (operator && value) {
-      condition = `[${operator}${value}]`;
+export const FormatWizard: React.FC<FormatWizardProps> = ({
+  onFormatChange,
+  initialFormat = '',
+  dataType = 'number'
+}) => {
+  const [activeTab, setActiveTab] = useState('number');
+  const [numberFormat, setNumberFormat] = useState({
+    prefix: '',
+    suffix: '',
+    thousandsSeparator: true,
+    decimalPlaces: 2,
+    showNegativeInRed: false,
+    useParentheses: false
+  });
+  
+  const [currencyFormat, setCurrencyFormat] = useState({
+    symbol: '$',
+    position: 'before',
+    decimalPlaces: 2,
+    showNegativeInRed: true,
+    useParentheses: true
+  });
+  
+  const [percentFormat, setPercentFormat] = useState({
+    decimalPlaces: 2,
+    showSymbol: true,
+    showNegativeInRed: true
+  });
+  
+  const [conditionalFormat, setConditionalFormat] = useState({
+    condition: 'greater',
+    threshold: '0',
+    aboveColor: 'Green',
+    belowColor: 'Red',
+    equalColor: 'Blue',
+    showSymbols: true
+  });
+  
+  const [dateFormat, setDateFormat] = useState({
+    format: 'MM/DD/YYYY'
+  });
+  
+  const [customFormat, setCustomFormat] = useState(initialFormat || '');
+  
+  // Generate format string based on current settings
+  const generateNumberFormat = () => {
+    let format = '';
+    
+    // Add prefix if specified
+    if (numberFormat.prefix) {
+      format += `"${numberFormat.prefix}"`;
     }
-    const colorPart = useHex ? `[${hexColor}]` : color ? `[${color}]` : '';
-    const prefixPart = prefix ? `"${prefix}"` : '';
-    const suffixPart = suffix ? `"${suffix}"` : '';
-    return condition + colorPart + prefixPart + numberFormat + suffixPart;
+    
+    // Add number format
+    format += numberFormat.thousandsSeparator ? '#,##0' : '0';
+    
+    // Add decimal places if > 0
+    if (numberFormat.decimalPlaces > 0) {
+      format += '.';
+      for (let i = 0; i < numberFormat.decimalPlaces; i++) {
+        format += '0';
+      }
+    }
+    
+    // Add suffix if specified
+    if (numberFormat.suffix) {
+      format += `"${numberFormat.suffix}"`;
+    }
+    
+    // Handle negative numbers
+    if (numberFormat.showNegativeInRed || numberFormat.useParentheses) {
+      const positiveFormat = format;
+      let negativeFormat = '';
+      
+      if (numberFormat.showNegativeInRed) {
+        negativeFormat += '[Red]';
+      }
+      
+      if (numberFormat.useParentheses) {
+        negativeFormat += '(';
+        negativeFormat += positiveFormat;
+        negativeFormat += ')';
+      } else {
+        negativeFormat += '-';
+        negativeFormat += positiveFormat;
+      }
+      
+      format = `${positiveFormat};${negativeFormat}`;
+    }
+    
+    return format;
   };
-
+  
+  const generateCurrencyFormat = () => {
+    let format = '';
+    
+    // Add currency symbol
+    if (currencyFormat.position === 'before') {
+      format += `"${currencyFormat.symbol}"`;
+    }
+    
+    // Add number format
+    format += '#,##0';
+    
+    // Add decimal places if > 0
+    if (currencyFormat.decimalPlaces > 0) {
+      format += '.';
+      for (let i = 0; i < currencyFormat.decimalPlaces; i++) {
+        format += '0';
+      }
+    }
+    
+    // Add currency symbol if after
+    if (currencyFormat.position === 'after') {
+      format += `"${currencyFormat.symbol}"`;
+    }
+    
+    // Handle negative numbers
+    if (currencyFormat.showNegativeInRed || currencyFormat.useParentheses) {
+      const positiveFormat = format;
+      let negativeFormat = '';
+      
+      if (currencyFormat.showNegativeInRed) {
+        negativeFormat += '[Red]';
+      }
+      
+      if (currencyFormat.useParentheses) {
+        negativeFormat += '(';
+        negativeFormat += positiveFormat;
+        negativeFormat += ')';
+      } else {
+        negativeFormat += '-';
+        negativeFormat += positiveFormat;
+      }
+      
+      format = `${positiveFormat};${negativeFormat}`;
+    }
+    
+    return format;
+  };
+  
+  const generatePercentFormat = () => {
+    let format = '';
+    
+    // Add number format
+    format += '0';
+    
+    // Add decimal places if > 0
+    if (percentFormat.decimalPlaces > 0) {
+      format += '.';
+      for (let i = 0; i < percentFormat.decimalPlaces; i++) {
+        format += '0';
+      }
+    }
+    
+    // Add percent symbol
+    if (percentFormat.showSymbol) {
+      format += '%';
+    }
+    
+    // Handle negative numbers
+    if (percentFormat.showNegativeInRed) {
+      format = `${format};[Red]-${format}`;
+    }
+    
+    return format;
+  };
+  
+  const generateConditionalFormat = () => {
+    let format = '';
+    
+    // Build condition
+    const condition = conditionalFormat.condition;
+    const threshold = conditionalFormat.threshold;
+    
+    // Above threshold format
+    if (condition === 'greater' || condition === 'not-equal') {
+      format += `[>${threshold}]`;
+      if (conditionalFormat.aboveColor) {
+        format += `[${conditionalFormat.aboveColor}]`;
+      }
+      if (conditionalFormat.showSymbols) {
+        format += '"↑ "';
+      }
+      format += '#,##0.00';
+      
+      // Below threshold format
+      format += ';';
+      if (condition === 'greater') {
+        format += `[<=${threshold}]`;
+      } else {
+        format += `[=${threshold}]`;
+      }
+      if (conditionalFormat.belowColor) {
+        format += `[${conditionalFormat.belowColor}]`;
+      }
+      if (conditionalFormat.showSymbols) {
+        format += '"↓ "';
+      }
+      format += '#,##0.00';
+    } 
+    // Below threshold format
+    else if (condition === 'less') {
+      format += `[<${threshold}]`;
+      if (conditionalFormat.belowColor) {
+        format += `[${conditionalFormat.belowColor}]`;
+      }
+      if (conditionalFormat.showSymbols) {
+        format += '"↓ "';
+      }
+      format += '#,##0.00';
+      
+      // Above threshold format
+      format += ';';
+      format += `[>=${threshold}]`;
+      if (conditionalFormat.aboveColor) {
+        format += `[${conditionalFormat.aboveColor}]`;
+      }
+      if (conditionalFormat.showSymbols) {
+        format += '"↑ "';
+      }
+      format += '#,##0.00';
+    }
+    // Equal threshold format
+    else if (condition === 'equal') {
+      format += `[=${threshold}]`;
+      if (conditionalFormat.equalColor) {
+        format += `[${conditionalFormat.equalColor}]`;
+      }
+      if (conditionalFormat.showSymbols) {
+        format += '"= "';
+      }
+      format += '#,##0.00';
+      
+      // Not equal format
+      format += ';';
+      format += `[<>${threshold}]`;
+      if (conditionalFormat.belowColor) {
+        format += `[${conditionalFormat.belowColor}]`;
+      }
+      format += '#,##0.00';
+    }
+    
+    return format;
+  };
+  
+  const generateDateFormat = () => {
+    return dateFormat.format;
+  };
+  
+  // Update format when settings change
+  React.useEffect(() => {
+    let format = '';
+    
+    switch (activeTab) {
+      case 'number':
+        format = generateNumberFormat();
+        break;
+      case 'currency':
+        format = generateCurrencyFormat();
+        break;
+      case 'percent':
+        format = generatePercentFormat();
+        break;
+      case 'conditional':
+        format = generateConditionalFormat();
+        break;
+      case 'date':
+        format = generateDateFormat();
+        break;
+      case 'custom':
+        format = customFormat;
+        break;
+    }
+    
+    onFormatChange(format);
+  }, [
+    activeTab, 
+    numberFormat, 
+    currencyFormat, 
+    percentFormat, 
+    conditionalFormat, 
+    dateFormat, 
+    customFormat
+  ]);
+  
+  // Set initial tab based on data type
+  React.useEffect(() => {
+    if (initialFormat) {
+      setCustomFormat(initialFormat);
+      setActiveTab('custom');
+    } else if (dataType === 'number') {
+      setActiveTab('number');
+    } else if (dataType === 'date') {
+      setActiveTab('date');
+    } else {
+      setActiveTab('number');
+    }
+  }, [initialFormat, dataType]);
+  
+  // Sample data for preview
+  const sampleData = {
+    number: [1234.56, -789.01, 0],
+    currency: [1234.56, -789.01, 0],
+    percent: [0.1234, -0.0567, 0],
+    conditional: [50, 0, -25],
+    date: ['2023-01-15', '2023-12-31', '2024-06-30'],
+    custom: [1234.56, -789.01, 0]
+  };
+  
+  // Format sample data
+  const formatSample = (value: any, format: string) => {
+    try {
+      // Simple formatter for preview
+      if (format.includes('%')) {
+        // Percentage format
+        const num = parseFloat(value);
+        const decimalPlaces = (format.match(/0/g) || []).length - 1;
+        return (num * 100).toFixed(Math.max(0, decimalPlaces)) + '%';
+      } else if (format.includes('$')) {
+        // Currency format
+        const num = parseFloat(value);
+        const decimalPlaces = (format.match(/0/g) || []).length - 1;
+        return '$' + num.toFixed(decimalPlaces).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      } else if (format.includes('#') || format.includes('0')) {
+        // Number format
+        const num = parseFloat(value);
+        const decimalPlaces = (format.match(/0/g) || []).length - 1;
+        return num.toFixed(decimalPlaces).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      } else if (format.includes('YYYY') || format.includes('MM') || format.includes('DD')) {
+        // Date format
+        const date = new Date(value);
+        let formatted = format;
+        formatted = formatted.replace('YYYY', date.getFullYear().toString());
+        formatted = formatted.replace('MM', (date.getMonth() + 1).toString().padStart(2, '0'));
+        formatted = formatted.replace('DD', date.getDate().toString().padStart(2, '0'));
+        return formatted;
+      }
+      
+      // Default
+      return value.toString();
+    } catch (e) {
+      return value.toString();
+    }
+  };
+  
+  // Get current format string
+  const getCurrentFormat = () => {
+    switch (activeTab) {
+      case 'number': return generateNumberFormat();
+      case 'currency': return generateCurrencyFormat();
+      case 'percent': return generatePercentFormat();
+      case 'conditional': return generateConditionalFormat();
+      case 'date': return generateDateFormat();
+      case 'custom': return customFormat;
+      default: return '';
+    }
+  };
+  
+  // Copy format to clipboard
+  const copyFormat = () => {
+    const format = getCurrentFormat();
+    navigator.clipboard.writeText(format);
+  };
+  
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <Label className="text-xs">Operator</Label>
-          <Select value={operator} onValueChange={setOperator}>
-            <SelectTrigger className="h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value=">">Greater than</SelectItem>
-              <SelectItem value="<">Less than</SelectItem>
-              <SelectItem value=">=">Greater or equal</SelectItem>
-              <SelectItem value="<=">Less or equal</SelectItem>
-              <SelectItem value="=">Equal to</SelectItem>
-              <SelectItem value="<>">Not equal to</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-6 w-full">
+          <TabsTrigger value="number" className="flex items-center gap-1.5 text-xs">
+            <Hash className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Number</span>
+          </TabsTrigger>
+          <TabsTrigger value="currency" className="flex items-center gap-1.5 text-xs">
+            <DollarSign className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Currency</span>
+          </TabsTrigger>
+          <TabsTrigger value="percent" className="flex items-center gap-1.5 text-xs">
+            <Percent className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Percent</span>
+          </TabsTrigger>
+          <TabsTrigger value="conditional" className="flex items-center gap-1.5 text-xs">
+            <Sparkles className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Conditional</span>
+          </TabsTrigger>
+          <TabsTrigger value="date" className="flex items-center gap-1.5 text-xs">
+            <Calendar className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Date</span>
+          </TabsTrigger>
+          <TabsTrigger value="custom" className="flex items-center gap-1.5 text-xs">
+            <Palette className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Custom</span>
+          </TabsTrigger>
+        </TabsList>
+        
+        <div className="mt-4 space-y-4">
+          {/* Number Format */}
+          <TabsContent value="number" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Decimal Places</Label>
+                <Select 
+                  value={numberFormat.decimalPlaces.toString()} 
+                  onValueChange={(value) => setNumberFormat({...numberFormat, decimalPlaces: parseInt(value)})}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select decimal places" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0 (1234)</SelectItem>
+                    <SelectItem value="1">1 (1234.5)</SelectItem>
+                    <SelectItem value="2">2 (1234.56)</SelectItem>
+                    <SelectItem value="3">3 (1234.567)</SelectItem>
+                    <SelectItem value="4">4 (1234.5678)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">Thousands Separator</Label>
+                <div className="flex items-center justify-between h-8 px-3 rounded-md border">
+                  <span className="text-sm">Show commas</span>
+                  <Switch 
+                    checked={numberFormat.thousandsSeparator} 
+                    onCheckedChange={(checked) => setNumberFormat({...numberFormat, thousandsSeparator: checked})}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Prefix</Label>
+                <Input 
+                  value={numberFormat.prefix} 
+                  onChange={(e) => setNumberFormat({...numberFormat, prefix: e.target.value})}
+                  placeholder="e.g., $, €, £"
+                  className="h-8"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">Suffix</Label>
+                <Input 
+                  value={numberFormat.suffix} 
+                  onChange={(e) => setNumberFormat({...numberFormat, suffix: e.target.value})}
+                  placeholder="e.g., kg, %, pts"
+                  className="h-8"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm">Negative Numbers</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="show-negative-red" 
+                    checked={numberFormat.showNegativeInRed}
+                    onCheckedChange={(checked) => setNumberFormat({...numberFormat, showNegativeInRed: !!checked})}
+                  />
+                  <label htmlFor="show-negative-red" className="text-sm cursor-pointer">
+                    Show in red
+                  </label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="use-parentheses" 
+                    checked={numberFormat.useParentheses}
+                    onCheckedChange={(checked) => setNumberFormat({...numberFormat, useParentheses: !!checked})}
+                  />
+                  <label htmlFor="use-parentheses" className="text-sm cursor-pointer">
+                    Use parentheses
+                  </label>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          {/* Currency Format */}
+          <TabsContent value="currency" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Currency Symbol</Label>
+                <Select 
+                  value={currencyFormat.symbol} 
+                  onValueChange={(value) => setCurrencyFormat({...currencyFormat, symbol: value})}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select symbol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="$">$ (USD)</SelectItem>
+                    <SelectItem value="€">€ (EUR)</SelectItem>
+                    <SelectItem value="£">£ (GBP)</SelectItem>
+                    <SelectItem value="¥">¥ (JPY/CNY)</SelectItem>
+                    <SelectItem value="₹">₹ (INR)</SelectItem>
+                    <SelectItem value="₽">₽ (RUB)</SelectItem>
+                    <SelectItem value="₩">₩ (KRW)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">Symbol Position</Label>
+                <Select 
+                  value={currencyFormat.position} 
+                  onValueChange={(value) => setCurrencyFormat({...currencyFormat, position: value as 'before' | 'after'})}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="before">Before ($123)</SelectItem>
+                    <SelectItem value="after">After (123$)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Decimal Places</Label>
+                <Select 
+                  value={currencyFormat.decimalPlaces.toString()} 
+                  onValueChange={(value) => setCurrencyFormat({...currencyFormat, decimalPlaces: parseInt(value)})}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select decimal places" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0 ($1,234)</SelectItem>
+                    <SelectItem value="2">2 ($1,234.56)</SelectItem>
+                    <SelectItem value="3">3 ($1,234.567)</SelectItem>
+                    <SelectItem value="4">4 ($1,234.5678)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">Accounting Style</Label>
+                <div className="flex items-center justify-between h-8 px-3 rounded-md border">
+                  <span className="text-sm">Use accounting style</span>
+                  <Switch 
+                    checked={currencyFormat.useParentheses} 
+                    onCheckedChange={(checked) => setCurrencyFormat({
+                      ...currencyFormat, 
+                      useParentheses: checked,
+                      showNegativeInRed: checked ? true : currencyFormat.showNegativeInRed
+                    })}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="currency-negative-red" 
+                checked={currencyFormat.showNegativeInRed}
+                onCheckedChange={(checked) => setCurrencyFormat({...currencyFormat, showNegativeInRed: !!checked})}
+              />
+              <label htmlFor="currency-negative-red" className="text-sm cursor-pointer">
+                Show negative values in red
+              </label>
+            </div>
+          </TabsContent>
+          
+          {/* Percentage Format */}
+          <TabsContent value="percent" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Decimal Places</Label>
+                <Select 
+                  value={percentFormat.decimalPlaces.toString()} 
+                  onValueChange={(value) => setPercentFormat({...percentFormat, decimalPlaces: parseInt(value)})}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select decimal places" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0 (12%)</SelectItem>
+                    <SelectItem value="1">1 (12.3%)</SelectItem>
+                    <SelectItem value="2">2 (12.34%)</SelectItem>
+                    <SelectItem value="3">3 (12.345%)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">Percent Symbol</Label>
+                <div className="flex items-center justify-between h-8 px-3 rounded-md border">
+                  <span className="text-sm">Show % symbol</span>
+                  <Switch 
+                    checked={percentFormat.showSymbol} 
+                    onCheckedChange={(checked) => setPercentFormat({...percentFormat, showSymbol: checked})}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="percent-negative-red" 
+                checked={percentFormat.showNegativeInRed}
+                onCheckedChange={(checked) => setPercentFormat({...percentFormat, showNegativeInRed: !!checked})}
+              />
+              <label htmlFor="percent-negative-red" className="text-sm cursor-pointer">
+                Show negative values in red
+              </label>
+            </div>
+            
+            <div className="p-3 bg-muted/30 rounded-md text-sm">
+              <p className="text-muted-foreground">
+                <strong>Note:</strong> Percentage formatting multiplies the value by 100. For example, 0.12 becomes 12%.
+              </p>
+            </div>
+          </TabsContent>
+          
+          {/* Conditional Format */}
+          <TabsContent value="conditional" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Condition</Label>
+                <Select 
+                  value={conditionalFormat.condition} 
+                  onValueChange={(value) => setConditionalFormat({
+                    ...conditionalFormat, 
+                    condition: value as 'greater' | 'less' | 'equal' | 'not-equal'
+                  })}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select condition" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="greater">Greater than threshold</SelectItem>
+                    <SelectItem value="less">Less than threshold</SelectItem>
+                    <SelectItem value="equal">Equal to threshold</SelectItem>
+                    <SelectItem value="not-equal">Not equal to threshold</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">Threshold Value</Label>
+                <Input 
+                  value={conditionalFormat.threshold} 
+                  onChange={(e) => setConditionalFormat({...conditionalFormat, threshold: e.target.value})}
+                  placeholder="e.g., 0, 100, -50"
+                  className="h-8"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Above Color</Label>
+                <Select 
+                  value={conditionalFormat.aboveColor} 
+                  onValueChange={(value) => setConditionalFormat({...conditionalFormat, aboveColor: value})}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Green">Green</SelectItem>
+                    <SelectItem value="Blue">Blue</SelectItem>
+                    <SelectItem value="Purple">Purple</SelectItem>
+                    <SelectItem value="Orange">Orange</SelectItem>
+                    <SelectItem value="Black">Black</SelectItem>
+                    <SelectItem value="">No Color</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">Below Color</Label>
+                <Select 
+                  value={conditionalFormat.belowColor} 
+                  onValueChange={(value) => setConditionalFormat({...conditionalFormat, belowColor: value})}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Red">Red</SelectItem>
+                    <SelectItem value="Orange">Orange</SelectItem>
+                    <SelectItem value="Purple">Purple</SelectItem>
+                    <SelectItem value="Blue">Blue</SelectItem>
+                    <SelectItem value="Black">Black</SelectItem>
+                    <SelectItem value="">No Color</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">Equal Color</Label>
+                <Select 
+                  value={conditionalFormat.equalColor} 
+                  onValueChange={(value) => setConditionalFormat({...conditionalFormat, equalColor: value})}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Blue">Blue</SelectItem>
+                    <SelectItem value="Green">Green</SelectItem>
+                    <SelectItem value="Purple">Purple</SelectItem>
+                    <SelectItem value="Orange">Orange</SelectItem>
+                    <SelectItem value="Black">Black</SelectItem>
+                    <SelectItem value="">No Color</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="show-symbols" 
+                checked={conditionalFormat.showSymbols}
+                onCheckedChange={(checked) => setConditionalFormat({...conditionalFormat, showSymbols: !!checked})}
+              />
+              <label htmlFor="show-symbols" className="text-sm cursor-pointer">
+                Show arrows or symbols (↑ for above, ↓ for below)
+              </label>
+            </div>
+          </TabsContent>
+          
+          {/* Date Format */}
+          <TabsContent value="date" className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm">Date Format</Label>
+              <Select 
+                value={dateFormat.format} 
+                onValueChange={(value) => setDateFormat({...dateFormat, format: value})}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Select date format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MM/DD/YYYY">MM/DD/YYYY (01/15/2023)</SelectItem>
+                  <SelectItem value="DD/MM/YYYY">DD/MM/YYYY (15/01/2023)</SelectItem>
+                  <SelectItem value="YYYY-MM-DD">YYYY-MM-DD (2023-01-15)</SelectItem>
+                  <SelectItem value="MMMM D, YYYY">MMMM D, YYYY (January 15, 2023)</SelectItem>
+                  <SelectItem value="D MMMM YYYY">D MMMM YYYY (15 January 2023)</SelectItem>
+                  <SelectItem value="MMM D, YYYY">MMM D, YYYY (Jan 15, 2023)</SelectItem>
+                  <SelectItem value="D MMM YYYY">D MMM YYYY (15 Jan 2023)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="p-3 bg-muted/30 rounded-md text-sm">
+              <p className="text-muted-foreground">
+                <strong>Note:</strong> Date formatting requires valid date values in your data. Supported formats include ISO dates (YYYY-MM-DD) and standard date strings.
+              </p>
+            </div>
+          </TabsContent>
+          
+          {/* Custom Format */}
+          <TabsContent value="custom" className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm">Custom Format String</Label>
+              <Input 
+                value={customFormat} 
+                onChange={(e) => setCustomFormat(e.target.value)}
+                placeholder="e.g., $#,##0.00;[Red]($#,##0.00)"
+                className="font-mono text-sm"
+              />
+            </div>
+            
+            <div className="p-3 bg-muted/30 rounded-md text-sm space-y-2">
+              <p className="text-muted-foreground">
+                <strong>Format String Syntax:</strong>
+              </p>
+              <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                <li><code className="bg-muted px-1 py-0.5 rounded">#</code> - Digit placeholder (omit if zero)</li>
+                <li><code className="bg-muted px-1 py-0.5 rounded">0</code> - Digit placeholder (show zero)</li>
+                <li><code className="bg-muted px-1 py-0.5 rounded">,</code> - Thousands separator</li>
+                <li><code className="bg-muted px-1 py-0.5 rounded">.</code> - Decimal point</li>
+                <li><code className="bg-muted px-1 py-0.5 rounded">%</code> - Percentage (multiplies by 100)</li>
+                <li><code className="bg-muted px-1 py-0.5 rounded">"text"</code> - Text literal</li>
+                <li><code className="bg-muted px-1 py-0.5 rounded">[Color]</code> - Color name (Red, Green, Blue, etc.)</li>
+                <li><code className="bg-muted px-1 py-0.5 rounded">[>100]</code> - Condition (>, <, =, >=, <=, <>)</li>
+                <li><code className="bg-muted px-1 py-0.5 rounded">;</code> - Section separator (positive;negative;zero)</li>
+              </ul>
+            </div>
+          </TabsContent>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Value</Label>
-          <Input
-            type="number"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            className="h-8"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs">Color</Label>
-          <Switch
-            checked={useHex}
-            onCheckedChange={setUseHex}
-            className="h-4 w-8"
-          />
-        </div>
-        {useHex ? (
-          <div className="flex gap-2">
-            <Input
-              type="color"
-              value={hexColor}
-              onChange={(e) => setHexColor(e.target.value)}
-              className="w-16 h-8"
-            />
-            <Input
-              value={hexColor}
-              onChange={(e) => setHexColor(e.target.value)}
-              className="h-8 flex-1"
-            />
+        
+        {/* Format Preview */}
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium">Format Preview</h4>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs font-mono">
+                {getCurrentFormat()}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={copyFormat}
+                className="h-6 w-6 p-0"
+                title="Copy format string"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
-        ) : (
-          <Select value={color} onValueChange={setColor}>
-            <SelectTrigger className="h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PRESET_COLORS.map(({ name, value }) => (
-                <SelectItem key={value} value={value}>
-                  <span style={{ color: value.toLowerCase() }}>{name}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <Label className="text-xs">Prefix</Label>
-          <Input
-            value={prefix}
-            onChange={(e) => setPrefix(e.target.value)}
-            placeholder='e.g., ▲ or $'
-            className="h-8"
-          />
+          
+          <div className="grid grid-cols-2 gap-2">
+            {sampleData[activeTab as keyof typeof sampleData].map((value, index) => (
+              <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded-md text-sm">
+                <span className="text-muted-foreground">{value}</span>
+                <span className="font-medium">{formatSample(value, getCurrentFormat())}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Suffix</Label>
-          <Input
-            value={suffix}
-            onChange={(e) => setSuffix(e.target.value)}
-            placeholder="e.g., % or units"
-            className="h-8"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-1">
-        <Label className="text-xs">Number Format</Label>
-        <Input
-          value={numberFormat}
-          onChange={(e) => setNumberFormat(e.target.value)}
-          className="h-8 font-mono"
-        />
-      </div>
-
-      <div className="border-t pt-3">
-        <div className="text-xs text-muted-foreground mb-1">Preview:</div>
-        <code className="text-xs bg-muted px-2 py-1 rounded block">
-          {buildCondition()}
-        </code>
-      </div>
-
-      <Button
-        size="sm"
-        className="w-full"
-        onClick={() => onApply(buildCondition())}
-      >
-        <Check className="h-3 w-3 mr-1" />
-        Apply Condition
-      </Button>
+      </Tabs>
     </div>
   );
 };
 
-const PRESET_COLORS = [
-  { name: 'Black', value: 'Black' },
-  { name: 'Red', value: 'Red' },
-  { name: 'Green', value: 'Green' },
-  { name: 'Blue', value: 'Blue' },
-  { name: 'Yellow', value: 'Yellow' },
-  { name: 'Cyan', value: 'Cyan' },
-  { name: 'Magenta', value: 'Magenta' },
-  { name: 'White', value: 'White' },
-];
-
-const CURRENCY_SYMBOLS = [
-  { symbol: '$', name: 'USD' },
-  { symbol: '€', name: 'EUR' },
-  { symbol: '£', name: 'GBP' },
-  { symbol: '¥', name: 'JPY' },
-  { symbol: '₹', name: 'INR' },
-  { symbol: '₽', name: 'RUB' },
-  { symbol: '₩', name: 'KRW' },
-  { symbol: 'R$', name: 'BRL' },
-];
-
-const DATE_PATTERNS = [
-  { pattern: 'MM/DD/YYYY', label: 'US Date' },
-  { pattern: 'DD/MM/YYYY', label: 'UK Date' },
-  { pattern: 'YYYY-MM-DD', label: 'ISO Date' },
-  { pattern: 'MMM DD, YYYY', label: 'Medium Date' },
-  { pattern: 'MMMM DD, YYYY', label: 'Long Date' },
-  { pattern: 'DD-MMM-YY', label: 'Short Date' },
-];
-
-const TIME_PATTERNS = [
-  { pattern: 'HH:mm', label: '24-hour' },
-  { pattern: 'HH:mm:ss', label: '24-hour with seconds' },
-  { pattern: 'hh:mm AM/PM', label: '12-hour' },
-  { pattern: 'hh:mm:ss AM/PM', label: '12-hour with seconds' },
-  { pattern: '[h]:mm', label: 'Elapsed hours' },
-  { pattern: '[m]:ss', label: 'Elapsed minutes' },
-];
-
-export const FormatWizard: React.FC<FormatWizardProps> = ({
-  open,
-  onOpenChange,
-  initialFormat = '',
-  onApply,
-}) => {
-  const customFormatInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<'simple' | 'conditional' | 'visual' | 'custom'>('simple');
-  const [previewValue, setPreviewValue] = useState<number>(1234.56);
-  const [showPreview, setShowPreview] = useState(true);
-
-  // Simple format state
-  const [formatType, setFormatType] = useState<FormatSection['type']>('number');
-  const [prefix, setPrefix] = useState('');
-  const [suffix, setSuffix] = useState('');
-  const [decimals, setDecimals] = useState(2);
-  const [useThousands, setUseThousands] = useState(true);
-  const [currencySymbol, setCurrencySymbol] = useState('$');
-  const [datePattern, setDatePattern] = useState('MM/DD/YYYY');
-  const [timePattern, setTimePattern] = useState('HH:mm');
-  const [textColor, setTextColor] = useState('none');
-  const [hexColor, setHexColor] = useState('#000000');
-  const [useHexColor, setUseHexColor] = useState(false);
-
-  // Conditional format state - removed as it's not being used
-
-  // Custom format state
-  const [customFormat, setCustomFormat] = useState(initialFormat);
-  const [formatParts, setFormatParts] = useState<string[]>(['', '', '', '']);
-  const [showConditionBuilder, setShowConditionBuilder] = useState(false);
-  const [currentPartIndex, setCurrentPartIndex] = useState(0);
-
-  // Parse initial format if provided
-  useMemo(() => {
-    if (initialFormat && open) {
-      // Try to parse the format string
-      const parts = initialFormat.split(';');
-      if (parts.length > 1) {
-        setActiveTab('conditional');
-        setFormatParts(parts);
-      } else {
-        setCustomFormat(initialFormat);
-      }
-    }
-  }, [initialFormat, open]);
-
-  // Build format string for simple mode
-  const buildSimpleFormat = useCallback(() => {
-    let format = '';
-    const colorPrefix = (textColor !== 'none' ? textColor : '') || (useHexColor ? `[${hexColor}]` : '');
-
-    switch (formatType) {
-      case 'number':
-        if (prefix) format += `"${prefix}"`;
-        format += useThousands ? '#,##' : '';
-        format += '0';
-        if (decimals > 0) format += '.' + '0'.repeat(decimals);
-        if (suffix) format += `"${suffix}"`;
-        break;
-
-      case 'currency':
-        format += currencySymbol;
-        format += useThousands ? '#,##' : '';
-        format += '0';
-        if (decimals > 0) format += '.' + '0'.repeat(decimals);
-        break;
-
-      case 'percentage':
-        format += '0';
-        if (decimals > 0) format += '.' + '0'.repeat(decimals);
-        format += '%';
-        break;
-
-      case 'date':
-        format = datePattern;
-        break;
-
-      case 'time':
-        format = timePattern;
-        break;
-
-      case 'text':
-        format = '@';
-        break;
-    }
-
-    return colorPrefix + format;
-  }, [formatType, prefix, suffix, decimals, useThousands, currencySymbol, datePattern, timePattern, textColor, useHexColor, hexColor]);
-
-  // Build format string for conditional mode
-  const buildConditionalFormat = useCallback(() => {
-    const parts = formatParts.filter(part => part.trim() !== '');
-    return parts.join(';');
-  }, [formatParts]);
-
-  // Visual indicator state
-  const [indicatorType, setIndicatorType] = useState<'traffic-light' | 'arrows' | 'icons' | 'bars' | 'emoji' | 'custom'>('traffic-light');
-  const [thresholdHigh, setThresholdHigh] = useState('80');
-  const [thresholdLow, setThresholdLow] = useState('50');
-  const [showValue, setShowValue] = useState(false);
-  const [indicatorPosition, setIndicatorPosition] = useState<'before' | 'after' | 'replace'>('replace');
-
-  // Build visual indicator format
-  const buildVisualFormat = useCallback(() => {
-    const high = thresholdHigh || '80';
-    const low = thresholdLow || '50';
-    
-    let format = '';
-    switch (indicatorType) {
-      case 'traffic-light':
-        format = `[>=${high}][Green]"●";[>=${low}][#FFA500]"●";[Red]"●"`;
-        break;
-      case 'arrows':
-        format = `[>0][Green]"↑";[<0][Red]"↓";"→"`;
-        break;
-      case 'icons':
-        format = `[>=${high}][Green]"✓";[>=${low}][#FFA500]"!";[Red]"✗"`;
-        break;
-      case 'bars':
-        format = `[>=${high}][Green]"███";[>=${low}][#FFA500]"██";[Red]"█"`;
-        break;
-      case 'emoji':
-        format = `[>=${high}]"🟢";[>=${low}]"🟡";"🔴"`;
-        break;
-    }
-
-    // Add value display if requested
-    if (showValue && indicatorType !== 'custom') {
-      const parts = format.split(';');
-      format = parts.map(part => {
-        const match = part.match(/"([^"]+)"/);
-        if (match) {
-          if (indicatorPosition === 'before') {
-            return part.replace(match[0], `${match[0]}" "#,##0.00`);
-          } else if (indicatorPosition === 'after') {
-            return part.replace(match[0], `#,##0.00" "${match[0]}`);
-          }
-        }
-        return part;
-      }).join(';');
-    }
-
-    return format;
-  }, [indicatorType, thresholdHigh, thresholdLow, showValue, indicatorPosition]);
-
-  // Get final format string
-  const getFinalFormat = useCallback(() => {
-    switch (activeTab) {
-      case 'simple':
-        return buildSimpleFormat();
-      case 'conditional':
-        return buildConditionalFormat();
-      case 'visual':
-        return buildVisualFormat();
-      case 'custom':
-        return customFormat;
-      default:
-        return '';
-    }
-  }, [activeTab, buildSimpleFormat, buildConditionalFormat, buildVisualFormat, customFormat]);
-
-  // Preview formatter
-  const previewFormatter = useMemo(() => {
-    const format = getFinalFormat();
-    if (!format) return null;
-    try {
-      return createExcelFormatter(format);
-    } catch {
-      return null;
-    }
-  }, [getFinalFormat]);
-
-  const handleApply = () => {
-    const format = getFinalFormat();
-    if (format) {
-      onApply(format);
-      onOpenChange(false);
-    }
-  };
-
-  const addFormatPart = () => {
-    if (formatParts.length < 4) {
-      setFormatParts([...formatParts, '']);
-    }
-  };
-
-  const removeFormatPart = (index: number) => {
-    if (formatParts.length > 1) {
-      setFormatParts(formatParts.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateFormatPart = (index: number, value: string) => {
-    const newParts = [...formatParts];
-    newParts[index] = value;
-    setFormatParts(newParts);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wand2 className="h-5 w-5" />
-            Format Wizard
-          </DialogTitle>
-          <DialogDescription>
-            Build complex Excel-style format strings with an intuitive interface
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex-1 overflow-hidden">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="simple">
-                <Settings2 className="h-4 w-4 mr-2" />
-                Simple
-              </TabsTrigger>
-              <TabsTrigger value="conditional">
-                <Filter className="h-4 w-4 mr-2" />
-                Conditional
-              </TabsTrigger>
-              <TabsTrigger value="visual">
-                <Palette className="h-4 w-4 mr-2" />
-                Visual
-              </TabsTrigger>
-              <TabsTrigger value="custom">
-                <Code className="h-4 w-4 mr-2" />
-                Custom
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="mt-4 grid grid-cols-[1fr,300px] gap-4 h-[450px]">
-              <ScrollArea className="h-full">
-                {/* Simple Format Tab */}
-                <TabsContent value="simple" className="mt-0 space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Format Type</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <RadioGroup value={formatType} onValueChange={(v) => setFormatType(v as FormatSection['type'])}>
-                        <div className="grid grid-cols-2 gap-3">
-                          <Label className="flex items-center space-x-2 cursor-pointer">
-                            <RadioGroupItem value="number" />
-                            <Hash className="h-4 w-4" />
-                            <span>Number</span>
-                          </Label>
-                          <Label className="flex items-center space-x-2 cursor-pointer">
-                            <RadioGroupItem value="currency" />
-                            <DollarSign className="h-4 w-4" />
-                            <span>Currency</span>
-                          </Label>
-                          <Label className="flex items-center space-x-2 cursor-pointer">
-                            <RadioGroupItem value="percentage" />
-                            <Percent className="h-4 w-4" />
-                            <span>Percentage</span>
-                          </Label>
-                          <Label className="flex items-center space-x-2 cursor-pointer">
-                            <RadioGroupItem value="date" />
-                            <Calendar className="h-4 w-4" />
-                            <span>Date</span>
-                          </Label>
-                          <Label className="flex items-center space-x-2 cursor-pointer">
-                            <RadioGroupItem value="time" />
-                            <Clock className="h-4 w-4" />
-                            <span>Time</span>
-                          </Label>
-                          <Label className="flex items-center space-x-2 cursor-pointer">
-                            <RadioGroupItem value="text" />
-                            <Type className="h-4 w-4" />
-                            <span>Text</span>
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </CardContent>
-                  </Card>
-
-                  {/* Number/Currency Options */}
-                  {(formatType === 'number' || formatType === 'currency' || formatType === 'percentage') && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-sm">Number Options</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {formatType === 'currency' && (
-                          <div className="space-y-2">
-                            <Label>Currency Symbol</Label>
-                            <Select value={currencySymbol} onValueChange={setCurrencySymbol}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {CURRENCY_SYMBOLS.map(({ symbol, name }) => (
-                                  <SelectItem key={symbol} value={symbol}>
-                                    <span className="flex items-center gap-2">
-                                      <span className="font-mono">{symbol}</span>
-                                      <span className="text-muted-foreground">{name}</span>
-                                    </span>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        <div className="space-y-2">
-                          <Label>Decimal Places: {decimals}</Label>
-                          <Slider
-                            value={[decimals]}
-                            onValueChange={([v]) => setDecimals(v)}
-                            min={0}
-                            max={8}
-                            step={1}
-                          />
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="thousands"
-                            checked={useThousands}
-                            onCheckedChange={(checked) => setUseThousands(!!checked)}
-                          />
-                          <Label htmlFor="thousands">Use thousands separator</Label>
-                        </div>
-
-                        {formatType === 'number' && (
-                          <>
-                            <Separator />
-                            <div className="space-y-2">
-                              <Label>Prefix</Label>
-                              <Input
-                                value={prefix}
-                                onChange={(e) => setPrefix(e.target.value)}
-                                placeholder="e.g., $ or USD "
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Suffix</Label>
-                              <Input
-                                value={suffix}
-                                onChange={(e) => setSuffix(e.target.value)}
-                                placeholder="e.g., USD or units"
-                              />
-                            </div>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Date Options */}
-                  {formatType === 'date' && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-sm">Date Format</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <RadioGroup value={datePattern} onValueChange={setDatePattern}>
-                          <div className="space-y-2">
-                            {DATE_PATTERNS.map(({ pattern, label }) => (
-                              <Label key={pattern} className="flex items-center space-x-2 cursor-pointer">
-                                <RadioGroupItem value={pattern} />
-                                <span className="flex-1">{label}</span>
-                                <span className="text-sm text-muted-foreground font-mono">{pattern}</span>
-                              </Label>
-                            ))}
-                          </div>
-                        </RadioGroup>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Time Options */}
-                  {formatType === 'time' && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-sm">Time Format</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <RadioGroup value={timePattern} onValueChange={setTimePattern}>
-                          <div className="space-y-2">
-                            {TIME_PATTERNS.map(({ pattern, label }) => (
-                              <Label key={pattern} className="flex items-center space-x-2 cursor-pointer">
-                                <RadioGroupItem value={pattern} />
-                                <span className="flex-1">{label}</span>
-                                <span className="text-sm text-muted-foreground font-mono">{pattern}</span>
-                              </Label>
-                            ))}
-                          </div>
-                        </RadioGroup>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Color Options */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Color</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={useHexColor}
-                          onCheckedChange={setUseHexColor}
-                        />
-                        <Label>Use custom hex color</Label>
-                      </div>
-
-                      {useHexColor ? (
-                        <div className="space-y-2">
-                          <Label>Hex Color</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              type="color"
-                              value={hexColor}
-                              onChange={(e) => setHexColor(e.target.value)}
-                              className="w-20 h-9"
-                            />
-                            <Input
-                              value={hexColor}
-                              onChange={(e) => setHexColor(e.target.value)}
-                              placeholder="#000000"
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <Label>Text Color</Label>
-                          <Select value={textColor} onValueChange={setTextColor}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="None" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              {PRESET_COLORS.map(({ name, value }) => (
-                                <SelectItem key={value} value={`[${value}]`}>
-                                  <span style={{ color: value.toLowerCase() }}>{name}</span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Conditional Format Tab */}
-                <TabsContent value="conditional" className="mt-0 space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Format Sections</CardTitle>
-                      <CardDescription>
-                        Define up to 4 sections: positive, negative, zero, and text
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {formatParts.map((part, index) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="w-20">
-                              {index === 0 && 'Positive'}
-                              {index === 1 && 'Negative'}
-                              {index === 2 && 'Zero'}
-                              {index === 3 && 'Text'}
-                            </Badge>
-                            {formatParts.length > 1 && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeFormatPart(index)}
-                                className="h-6 w-6 p-0"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                          <Input
-                            value={part}
-                            onChange={(e) => updateFormatPart(index, e.target.value)}
-                            placeholder={`Format for ${
-                              index === 0 ? 'positive numbers' :
-                              index === 1 ? 'negative numbers' :
-                              index === 2 ? 'zero' :
-                              'text'
-                            }`}
-                            className="font-mono text-sm"
-                          />
-                        </div>
-                      ))}
-                      
-                      {formatParts.length < 4 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={addFormatPart}
-                          className="w-full"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Section
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Quick Templates</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[Green]#,##0.00', '[Red]#,##0.00', '0.00', '@'])}
-                      >
-                        <Palette className="h-4 w-4 mr-2" />
-                        Green positive, Red negative
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>100][Blue]#,##0', '[<0][Red]-#,##0', '#,##0', ''])}
-                      >
-                        <Filter className="h-4 w-4 mr-2" />
-                        Conditional colors with thresholds
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['"$"#,##0.00', '[Red]"-$"#,##0.00', '"-"', ''])}
-                      >
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        Accounting format
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>=80][Green]"✓ "#,##0', '[>=50][#FFA500]"! "#,##0', '[Red]"✗ "#,##0', ''])}
-                      >
-                        <AlertCircle className="h-4 w-4 mr-2" />
-                        Status indicators (✓ ! ✗)
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>0][Green]"▲ "0.0"%"', '[<0][Red]"▼ "0.0"%"', '"→ "0.0"%"', ''])}
-                      >
-                        <ArrowUpDown className="h-4 w-4 mr-2" />
-                        Trend arrows with percentage
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>=1000000]#,##0.0,,"M"', '[>=1000]#,##0.0,"K"', '#,##0', ''])}
-                      >
-                        <Layers className="h-4 w-4 mr-2" />
-                        Abbreviated numbers (K, M)
-                      </Button>
-                      <Separator className="my-2" />
-                      <div className="text-xs text-muted-foreground mb-1">Emoji Formats</div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>100]"🟢"', '[>90]"🟡"', '"🔴"', ''])}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Emoji only (🟢 🟡 🔴)
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>100]#,##0" 🟢"', '[>90]#,##0" 🟡"', '#,##0" 🔴"', ''])}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Value + emoji (100 🟢)
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>100]"🟢 "#,##0', '[>90]"🟡 "#,##0', '"🔴 "#,##0', ''])}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Emoji + value (🟢 100)
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>100]#,##0" (🟢)"', '[>90]#,##0" (🟡)"', '#,##0" (🔴)"', ''])}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        With parentheses (100 (🟢))
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>100]0"% 🟢"', '[>90]0"% 🟡"', '0"% 🔴"', ''])}
-                      >
-                        <Percent className="h-4 w-4 mr-2" />
-                        Percentage + emoji (95% 🟡)
-                      </Button>
-                      <Separator className="my-2" />
-                      <div className="text-xs text-muted-foreground mb-1">Unicode Symbols</div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>0][Green]"●"', '[<0][Red]"●"', '"●"', ''])}
-                      >
-                        <Palette className="h-4 w-4 mr-2" />
-                        Colored circles (● ● ●)
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>0][Green]"▲"', '[<0][Red]"▼"', '"▬"', ''])}
-                      >
-                        <ArrowUpDown className="h-4 w-4 mr-2" />
-                        Triangle arrows (▲ ▼ ▬)
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>=4]"★★★★★"', '[>=3]"★★★★☆"', '[>=2]"★★★☆☆"', '[>=1]"★★☆☆☆";"★☆☆☆☆"'])}
-                      >
-                        <Star className="h-4 w-4 mr-2" />
-                        5-Star rating (★★★★☆)
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>0][Green]"✓"', '[<0][Red]"✗"', '"○"', ''])}
-                      >
-                        <Check className="h-4 w-4 mr-2" />
-                        Check/Cross marks (✓ ✗ ○)
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>=80]"█████"', '[>=60]"████░"', '[>=40]"███░░"', '[>=20]"██░░░";"█░░░░"'])}
-                      >
-                        <Layers className="h-4 w-4 mr-2" />
-                        Progress bars (████░)
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setFormatParts(['[>0][#4169E1]"◆"', '[<0][#DC143C]"◇"', '"◈"', ''])}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Colored diamonds (◆ ◇ ◈)
-                      </Button>
-                      <div className="mt-3 p-2 bg-blue-50/50 dark:bg-blue-950/20 rounded border border-blue-200/50 dark:border-blue-800/50">
-                        <p className="text-xs text-muted-foreground">
-                          <strong>💡 Color Tips:</strong> Use [Red], [Green], [Blue], or hex codes like [#FF0000]<br/>
-                          <strong>📏 Size Tips:</strong> Symbol size inherits from the column's font size (set in Styling tab)
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Conditional Builder</CardTitle>
-                      <CardDescription>
-                        Build conditions visually
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {!showConditionBuilder ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => setShowConditionBuilder(true)}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Open Condition Builder
-                        </Button>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-xs">Build for section:</Label>
-                            <Select
-                              value={currentPartIndex.toString()}
-                              onValueChange={(v) => setCurrentPartIndex(parseInt(v))}
-                            >
-                              <SelectTrigger className="h-7 w-24">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {formatParts.map((_, i) => (
-                                  <SelectItem key={i} value={i.toString()}>
-                                    {i === 0 ? 'Positive' : i === 1 ? 'Negative' : i === 2 ? 'Zero' : 'Text'}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <ConditionBuilder
-                            initialValue={formatParts[currentPartIndex]}
-                            onApply={(condition) => {
-                              updateFormatPart(currentPartIndex, condition);
-                              setShowConditionBuilder(false);
-                            }}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => setShowConditionBuilder(false)}
-                          >
-                            Close Builder
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Visual Indicators Tab */}
-                <TabsContent value="visual" className="mt-0 space-y-4">
-                  <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
-                    <h4 className="text-xs font-medium mb-1 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      Visual Indicators
-                    </h4>
-                    <p className="text-xs text-muted-foreground">
-                      Replace numeric values with visual indicators like traffic lights, arrows, or icons. 
-                      Perfect for dashboards and status reports where visual cues are more important than exact values.
-                    </p>
-                  </div>
-                  
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Visual Indicator Type</CardTitle>
-                      <CardDescription>
-                        Replace numbers with visual indicators based on value thresholds
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <RadioGroup value={indicatorType} onValueChange={(v) => setIndicatorType(v as typeof indicatorType)}>
-                        <div className="space-y-3">
-                          <Label className="flex items-start space-x-2 cursor-pointer p-2 rounded hover:bg-muted/50">
-                            <RadioGroupItem value="traffic-light" className="mt-1" />
-                            <div className="flex-1">
-                              <div className="font-medium">Traffic Lights</div>
-                              <div className="text-xs text-muted-foreground">Green ●, Amber ●, Red ●</div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                Example: Score ≥ 80 = <span className="text-green-500">●</span>, ≥ 50 = <span className="text-amber-500">●</span>, {'<'} 50 = <span className="text-red-500">●</span>
-                              </div>
-                            </div>
-                          </Label>
-                          <Label className="flex items-start space-x-2 cursor-pointer p-2 rounded hover:bg-muted/50">
-                            <RadioGroupItem value="arrows" className="mt-1" />
-                            <div className="flex-1">
-                              <div className="font-medium">Trend Arrows</div>
-                              <div className="text-xs text-muted-foreground">Up ↑, Down ↓, Flat →</div>
-                              <div className="text-xs text-muted-foreground mt-1">Example: Positive = ↑, Negative = ↓, Zero = →</div>
-                            </div>
-                          </Label>
-                          <Label className="flex items-start space-x-2 cursor-pointer p-2 rounded hover:bg-muted/50">
-                            <RadioGroupItem value="icons" className="mt-1" />
-                            <div className="flex-1">
-                              <div className="font-medium">Status Icons</div>
-                              <div className="text-xs text-muted-foreground">Check ✓, Warning !, Cross ✗</div>
-                              <div className="text-xs text-muted-foreground mt-1">Example: Pass = ✓, Warning = !, Fail = ✗</div>
-                            </div>
-                          </Label>
-                          <Label className="flex items-start space-x-2 cursor-pointer p-2 rounded hover:bg-muted/50">
-                            <RadioGroupItem value="bars" className="mt-1" />
-                            <div className="flex-1">
-                              <div className="font-medium">Progress Bars</div>
-                              <div className="text-xs text-muted-foreground">Full ███, Medium ██, Low █</div>
-                              <div className="text-xs text-muted-foreground mt-1">Example: High = ███, Medium = ██, Low = █</div>
-                            </div>
-                          </Label>
-                          <Label className="flex items-start space-x-2 cursor-pointer p-2 rounded hover:bg-muted/50">
-                            <RadioGroupItem value="emoji" className="mt-1" />
-                            <div className="flex-1">
-                              <div className="font-medium">Emoji Circles</div>
-                              <div className="text-xs text-muted-foreground">Green 🟢, Yellow 🟡, Red 🔴</div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                Example: Score ≥ 80 = 🟢, ≥ 50 = 🟡, {'<'} 50 = 🔴
-                              </div>
-                            </div>
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </CardContent>
-                  </Card>
-
-                  {indicatorType !== 'arrows' && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-sm">Thresholds</CardTitle>
-                        <CardDescription>
-                          Set the value thresholds for each indicator level
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label className="text-xs">High Threshold (≥)</Label>
-                            <Input
-                              type="number"
-                              value={thresholdHigh}
-                              onChange={(e) => setThresholdHigh(e.target.value)}
-                              className="h-8"
-                              placeholder="80"
-                            />
-                            <p className="text-xs text-muted-foreground">Values ≥ this show green/high</p>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-xs">Low Threshold (≥)</Label>
-                            <Input
-                              type="number"
-                              value={thresholdLow}
-                              onChange={(e) => setThresholdLow(e.target.value)}
-                              className="h-8"
-                              placeholder="50"
-                            />
-                            <p className="text-xs text-muted-foreground">Values ≥ this show amber/medium</p>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground border-t pt-2">
-                          Values below the low threshold show red/low indicator
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Display Options</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="show-value"
-                          checked={showValue}
-                          onCheckedChange={(checked) => setShowValue(!!checked)}
-                        />
-                        <Label htmlFor="show-value" className="text-sm font-normal">
-                          Also show the numeric value
-                        </Label>
-                      </div>
-                      
-                      {showValue && (
-                        <div className="space-y-2 pl-6">
-                          <Label className="text-xs">Value Position</Label>
-                          <RadioGroup value={indicatorPosition} onValueChange={(v) => setIndicatorPosition(v as typeof indicatorPosition)}>
-                            <div className="space-y-2">
-                              <Label className="flex items-center space-x-2 cursor-pointer">
-                                <RadioGroupItem value="before" />
-                                <span className="text-sm">Before indicator (e.g., "85 ●")</span>
-                              </Label>
-                              <Label className="flex items-center space-x-2 cursor-pointer">
-                                <RadioGroupItem value="after" />
-                                <span className="text-sm">After indicator (e.g., "● 85")</span>
-                              </Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Common Examples</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start text-xs"
-                        onClick={() => {
-                          setIndicatorType('traffic-light');
-                          setThresholdHigh('80');
-                          setThresholdLow('50');
-                          setShowValue(false);
-                        }}
-                      >
-                        <div className="flex items-center justify-between w-full">
-                          <span>Score Traffic Light (80/50)</span>
-                          <span className="font-mono">
-                            <span className="text-green-500">●</span>{' '}
-                            <span className="text-amber-500">●</span>{' '}
-                            <span className="text-red-500">●</span>
-                          </span>
-                        </div>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start text-xs"
-                        onClick={() => {
-                          setIndicatorType('icons');
-                          setThresholdHigh('90');
-                          setThresholdLow('70');
-                          setShowValue(false);
-                        }}
-                      >
-                        <div className="flex items-center justify-between w-full">
-                          <span>Pass/Warning/Fail (90/70)</span>
-                          <span className="font-mono">✓ ! ✗</span>
-                        </div>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start text-xs"
-                        onClick={() => {
-                          setIndicatorType('arrows');
-                          setShowValue(true);
-                          setIndicatorPosition('before');
-                        }}
-                      >
-                        <div className="flex items-center justify-between w-full">
-                          <span>Change with Value</span>
-                          <span className="font-mono">+5.2% ↑</span>
-                        </div>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Custom Format Tab */}
-                <TabsContent value="custom" className="mt-0 space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Custom Format String</CardTitle>
-                      <CardDescription>
-                        Enter your Excel format string directly
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <Input
-                        ref={customFormatInputRef}
-                        value={customFormat}
-                        onChange={(e) => setCustomFormat(e.target.value)}
-                        placeholder='e.g., [Green]"▲"#,##0.00;[Red]"▼"#,##0.00'
-                        className="font-mono"
-                      />
-                      
-                      <div className="space-y-2">
-                        <Label className="text-xs">Quick Insert</Label>
-                        <div className="flex flex-wrap gap-1">
-                          {[
-                            { label: 'Thousands', value: '#,##0' },
-                            { label: 'Decimals', value: '0.00' },
-                            { label: 'Percentage', value: '0%' },
-                            { label: 'Currency', value: '$#,##0.00' },
-                            { label: 'Red', value: '[Red]' },
-                            { label: 'Green', value: '[Green]' },
-                            { label: 'Blue', value: '[Blue]' },
-                            { label: 'Condition', value: '[>0]' },
-                            { label: 'Semicolon', value: ';' },
-                            { label: 'Quote', value: '""' },
-                            { label: 'Up Arrow', value: '"▲"' },
-                            { label: 'Down Arrow', value: '"▼"' },
-                            { label: 'Check', value: '"✓"' },
-                            { label: 'Cross', value: '"✗"' },
-                            { label: '🟢', value: '"🟢"' },
-                            { label: '🟡', value: '"🟡"' },
-                            { label: '🔴', value: '"🔴"' },
-                          ].map(({ label, value }) => (
-                            <Button
-                              key={label}
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs"
-                              onClick={() => {
-                                // Simple append to the end
-                                setCustomFormat(customFormat + value);
-                              }}
-                            >
-                              {label}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-xs">Advanced Patterns</Label>
-                        <div className="grid grid-cols-1 gap-1 text-xs">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="justify-start h-7 text-xs"
-                            onClick={() => setCustomFormat('[>=1000000]#,##0.0,,"M";[>=1000]#,##0.0,"K";#,##0')}
-                          >
-                            <Layers className="h-3 w-3 mr-2" />
-                            Abbreviated (1.2M, 500K)
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="justify-start h-7 text-xs"
-                            onClick={() => setCustomFormat('[>0][Green]"▲ "+0.0%;[<0][Red]"▼ "0.0%;"→ "0.0%')}
-                          >
-                            <ArrowUpDown className="h-3 w-3 mr-2" />
-                            Change indicators
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="justify-start h-7 text-xs"
-                            onClick={() => setCustomFormat('[>=90][Green]"●";[>=70][#FFA500]"●";[Red]"●"')}
-                          >
-                            <Palette className="h-3 w-3 mr-2" />
-                            Traffic lights
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="justify-start h-7 text-xs"
-                            onClick={() => setCustomFormat('[h]:mm:ss')}
-                          >
-                            <Clock className="h-3 w-3 mr-2" />
-                            Elapsed time
-                          </Button>
-                          <Separator className="my-1" />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="justify-start h-7 text-xs"
-                            onClick={() => setCustomFormat('[>100]"🟢";[>90]"🟡";"🔴"')}
-                          >
-                            <Sparkles className="h-3 w-3 mr-2" />
-                            Emoji status (🟢 🟡 🔴)
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="justify-start h-7 text-xs"
-                            onClick={() => setCustomFormat('[>100]#,##0" 🟢";[>90]#,##0" 🟡";#,##0" 🔴"')}
-                          >
-                            <Sparkles className="h-3 w-3 mr-2" />
-                            Value + emoji (100 🟢)
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="justify-start h-7 text-xs"
-                            onClick={() => setCustomFormat('[>100]"🟢 "#,##0;[>90]"🟡 "#,##0;"🔴 "#,##0')}
-                          >
-                            <Sparkles className="h-3 w-3 mr-2" />
-                            Emoji + value (🟢 100)
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Syntax Reference</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs space-y-1">
-                      <p><code className="bg-muted px-1">0</code> - Required digit</p>
-                      <p><code className="bg-muted px-1">#</code> - Optional digit</p>
-                      <p><code className="bg-muted px-1">,</code> - Thousands separator</p>
-                      <p><code className="bg-muted px-1">.</code> - Decimal point</p>
-                      <p><code className="bg-muted px-1">%</code> - Percentage</p>
-                      <p><code className="bg-muted px-1">"text"</code> - Literal text</p>
-                      <p><code className="bg-muted px-1">[Color]</code> - Text color</p>
-                      <p><code className="bg-muted px-1">[condition]</code> - Conditional format</p>
-                      <p><code className="bg-muted px-1">;</code> - Section separator</p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </ScrollArea>
-
-              {/* Preview Panel */}
-              <div className="border-l pl-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Preview</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPreview(!showPreview)}
-                    className="h-7 w-7 p-0"
-                  >
-                    {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-
-                {showPreview && (
-                  <>
-                    <div className="space-y-2">
-                      <Label className="text-xs">Test Value</Label>
-                      <Input
-                        type="number"
-                        value={previewValue}
-                        onChange={(e) => setPreviewValue(parseFloat(e.target.value) || 0)}
-                        step="0.01"
-                        className="h-8"
-                      />
-                    </div>
-
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xs">Format String</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <code className="text-xs bg-muted px-2 py-1 rounded block break-all">
-                          {getFinalFormat() || 'No format defined'}
-                        </code>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xs">Preview Results</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {activeTab === 'visual' ? (
-                          <>
-                            <div className="text-xs text-muted-foreground mb-2">
-                              Test different values to see indicators:
-                            </div>
-                            {indicatorType !== 'arrows' ? (
-                              <>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs">High (≥{thresholdHigh || '80'})</span>
-                                  <span className="font-mono text-lg">
-                                    {previewFormatter ? previewFormatter({ value: parseFloat(thresholdHigh || '80') + 10 } as ValueFormatterParams) : ''}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs">Medium (≥{thresholdLow || '50'})</span>
-                                  <span className="font-mono text-lg">
-                                    {previewFormatter ? previewFormatter({ value: parseFloat(thresholdLow || '50') + 10 } as ValueFormatterParams) : ''}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs">Low ({'<'}{thresholdLow || '50'})</span>
-                                  <span className="font-mono text-lg">
-                                    {previewFormatter ? previewFormatter({ value: parseFloat(thresholdLow || '50') - 10 } as ValueFormatterParams) : ''}
-                                  </span>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs">Positive</span>
-                                  <span className="font-mono text-lg">
-                                    {previewFormatter ? previewFormatter({ value: 10 } as ValueFormatterParams) : ''}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs">Negative</span>
-                                  <span className="font-mono text-lg">
-                                    {previewFormatter ? previewFormatter({ value: -10 } as ValueFormatterParams) : ''}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs">Zero</span>
-                                  <span className="font-mono text-lg">
-                                    {previewFormatter ? previewFormatter({ value: 0 } as ValueFormatterParams) : ''}
-                                  </span>
-                                </div>
-                              </>
-                            )}
-                            <div className="border-t pt-2 mt-2">
-                              <div className="flex justify-between items-center">
-                                <span className="text-xs">Your value ({previewValue})</span>
-                                <span className="font-mono text-lg">
-                                  {previewFormatter ? previewFormatter({ value: previewValue } as ValueFormatterParams) : previewValue}
-                                </span>
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Positive</p>
-                              <p className="font-mono text-sm">
-                                {previewFormatter
-                                  ? previewFormatter({ value: Math.abs(previewValue) } as ValueFormatterParams)
-                                  : Math.abs(previewValue)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Negative</p>
-                              <p className="font-mono text-sm">
-                                {previewFormatter
-                                  ? previewFormatter({ value: -Math.abs(previewValue) } as ValueFormatterParams)
-                                  : -Math.abs(previewValue)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Zero</p>
-                              <p className="font-mono text-sm">
-                                {previewFormatter
-                                  ? previewFormatter({ value: 0 } as ValueFormatterParams)
-                                  : '0'}
-                              </p>
-                            </div>
-                            {activeTab === 'conditional' && formatParts.length > 3 && formatParts[3] && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Text</p>
-                                <p className="font-mono text-sm">
-                                  {previewFormatter
-                                    ? previewFormatter({ value: 'Sample' } as ValueFormatterParams)
-                                    : 'Sample'}
-                                </p>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </>
-                )}
-              </div>
-            </div>
-          </Tabs>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleApply} disabled={!getFinalFormat()}>
-            <Check className="h-4 w-4 mr-2" />
-            Apply Format
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-FormatWizard.displayName = 'FormatWizard';
+export default FormatWizard;

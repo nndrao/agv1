@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback, useState } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -57,7 +57,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
     toggleTemplateColumn
   } = useColumnCustomizationStore();
 
-  const parentRef = useRef<HTMLDivElement>(null);
+  const parentRef = React.useRef<HTMLDivElement>(null);
 
   // Get all columns as array
   const allColumns = useMemo(() => {
@@ -95,16 +95,6 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
 
     // Filter by visibility using column state
     if (visibilityFilter !== 'all') {
-      // Debug logging
-      console.log('[ColumnSelector] Visibility filter:', visibilityFilter);
-      console.log('[ColumnSelector] Column state size:', columnState.size);
-      console.log('[ColumnSelector] All columns count:', allColumns.length);
-      
-      // First, let's see what's in the column state
-      if (columnState.size > 0) {
-        console.log('[ColumnSelector] Column state keys:', Array.from(columnState.keys()).slice(0, 5));
-      }
-      
       filtered = filtered.filter(col => {
         // Try multiple ways to match column with state
         const field = col.field || '';
@@ -121,25 +111,8 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
         // So if a column has no state, it means it's using default settings (visible)
         const isHidden = colState?.hide === true; // Only hidden if explicitly set to true
         
-        // Debug for first few columns
-        const colIndex = allColumns.indexOf(col);
-        if (colIndex < 5) {
-          console.log('[ColumnSelector] Column visibility check:', {
-            index: colIndex,
-            field: col.field,
-            colId: colId,
-            hasColState: !!colState,
-            hide: colState?.hide,
-            isHidden: isHidden,
-            shouldShow: visibilityFilter === 'hidden' ? isHidden : !isHidden
-          });
-        }
-        
         return visibilityFilter === 'hidden' ? isHidden : !isHidden;
       });
-      
-      console.log('[ColumnSelector] Filtered columns count:', filtered.length);
-      console.log('[ColumnSelector] Showing:', visibilityFilter === 'visible' ? 'visible columns' : 'hidden columns');
     }
 
     return filtered;
@@ -319,7 +292,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
           <div className="flex-1 -mx-1">
             <div
               ref={parentRef}
-              className="h-full overflow-auto px-1"
+              className="h-full overflow-auto px-1 scrollbar-thin"
               style={{ contain: 'strict' }}
             >
               <div
@@ -369,13 +342,13 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
               </div>
             </div>
           </div>
-
-
         </div>
       </div>
     </TooltipProvider>
   );
 });
+
+ColumnSelectorPanel.displayName = 'ColumnSelectorPanel';
 
 // Clean Column Item Component
 const ColumnItem: React.FC<{
@@ -484,7 +457,7 @@ const ColumnItem: React.FC<{
 
   return (
     <div 
-      className={`relative flex items-center gap-2 px-3 py-1.5 rounded hover:bg-muted/50 transition-colors group cursor-pointer ${
+      className={`relative flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-muted/50 transition-colors group cursor-pointer ${
         selected ? 'bg-muted/30' : ''
       }`}
       onClick={handleToggle}
@@ -590,3 +563,5 @@ const ColumnItem: React.FC<{
     prevProps.appliedTemplate?.templateId === nextProps.appliedTemplate?.templateId // Check template changes
   );
 });
+
+ColumnItem.displayName = 'ColumnItem';

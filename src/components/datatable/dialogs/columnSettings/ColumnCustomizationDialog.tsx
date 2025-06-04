@@ -10,10 +10,11 @@ import { PropertyEditorPanel } from './panels/PropertyEditorPanel';
 import { BulkActionsPanel } from './panels/BulkActionsPanel';
 import { ColDef, ColumnState } from 'ag-grid-community';
 import { useColumnCustomizationStore } from './store/column-customization.store';
-import { Undo2, Redo2, Settings2, Columns, ChevronLeft, ChevronRight, Zap, Trash2 } from 'lucide-react';
+import { Undo2, Redo2, Settings2, Columns, ChevronLeft, ChevronRight, Zap, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useButtonFeedback, useProgressIndicator } from './utils/feedback';
 import { cn } from '@/lib/utils';
+import { useSoundPreference } from './hooks/useSoundPreference';
 
 interface ColumnCustomizationDialogProps {
   open: boolean;
@@ -50,6 +51,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
   const { progressRef, showProgress, hideProgress } = useProgressIndicator();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showClearAllConfirmation, setShowClearAllConfirmation] = useState(false);
+  const { soundEnabled, toggleSound } = useSoundPreference();
 
   // Initialize column definitions when dialog opens
   useEffect(() => {
@@ -198,7 +200,8 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
           // Trigger feedback asynchronously
           triggerFeedback({
             haptic: true,
-            visual: true
+            visual: true,
+            sound: soundEnabled
           });
           
           // Show toast if customizations were applied
@@ -224,7 +227,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
         }
       });
     });
-  }, [applyChanges, onApply, onOpenChange, toast, triggerFeedback, showProgress, hideProgress]);
+  }, [applyChanges, onApply, onOpenChange, toast, triggerFeedback, showProgress, hideProgress, soundEnabled]);
 
   // Discard changes
   const handleDiscardChanges = useCallback(() => {
@@ -254,8 +257,8 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[90vw] w-[1100px] h-[80vh] p-0 flex flex-col bg-background overflow-hidden">
-        {/* Clean, Professional Header */}
-        <DialogHeader className="px-6 py-4 border-b bg-card/50">
+        {/* Modern, Sophisticated Header */}
+        <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-background to-muted/30">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 border border-primary/20">
@@ -282,6 +285,22 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
                   )}
                 </div>
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleSound}
+                className="h-8 w-8 p-0 rounded-full"
+                title={soundEnabled ? "Disable sound effects" : "Enable sound effects"}
+              >
+                {soundEnabled ? (
+                  <Volume2 className="h-4 w-4" />
+                ) : (
+                  <VolumeX className="h-4 w-4" />
+                )}
+                <span className="sr-only">{soundEnabled ? "Disable sound effects" : "Enable sound effects"}</span>
+              </Button>
             </div>
           </div>
         </DialogHeader>
@@ -349,9 +368,9 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
                 "w-[320px] border-l bg-muted/30 overflow-hidden flex flex-col transition-all duration-300 mr-4",
                 bulkActionsPanelCollapsed ? "w-0 mr-0" : "w-[320px] mr-4"
               )}>
-                <div className="px-4 py-3 border-b bg-card/50">
+                <div className="px-4 py-3 border-b bg-gradient-to-r from-muted/30 to-background">
                   <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-muted-foreground" />
+                    <Zap className="h-4 w-4 text-primary" />
                     <span className="text-sm font-semibold">Quick Actions</span>
                   </div>
                 </div>
@@ -361,8 +380,8 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
           )}
         </div>
 
-        {/* Professional Footer */}
-        <DialogFooter className="px-6 py-3 border-t flex items-center justify-between bg-card/50">
+        {/* Modern Footer */}
+        <DialogFooter className="px-6 py-3 border-t flex items-center justify-between bg-gradient-to-r from-muted/30 to-background">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
