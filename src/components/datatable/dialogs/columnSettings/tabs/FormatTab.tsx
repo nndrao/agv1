@@ -21,7 +21,9 @@ import {
   Palette, 
   Info, 
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Eye,
+  X
 } from 'lucide-react';
 
 interface FormatTabProps {
@@ -241,7 +243,7 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode = 'simple' }) => {
       id: 'conditional-color', 
       name: 'Conditional Color', 
       icon: Palette, 
-      format: '[>0][Green]#,##0.00;[<0][Red]#,##0.00;0.00', 
+      format: '[&gt;0][Green]#,##0.00;[&lt;0][Red]#,##0.00;0.00', 
       description: 'Green for positive, red for negative',
       dataTypes: ['number', 'numericColumn']
     },
@@ -249,7 +251,7 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode = 'simple' }) => {
       id: 'traffic-light', 
       name: 'Traffic Light', 
       icon: Sparkles, 
-      format: '[>=90]"🟢 "#0;[>=70]"🟡 "#0;"🔴 "#0', 
+      format: '[&gt;=90]"🟢 "#0;[&gt;=70]"🟡 "#0;"🔴 "#0', 
       description: 'Colored indicators based on value',
       dataTypes: ['number', 'numericColumn']
     },
@@ -257,7 +259,7 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode = 'simple' }) => {
       id: 'arrows', 
       name: 'Arrows', 
       icon: ArrowUp, 
-      format: '[>0]"↑ "#,##0.00;[<0]"↓ "#,##0.00;"-"', 
+      format: '[&gt;0]"↑ "#,##0.00;[&lt;0]"↓ "#,##0.00;"-"', 
       description: 'Up/down arrows for positive/negative',
       dataTypes: ['number', 'numericColumn']
     }
@@ -474,7 +476,7 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode = 'simple' }) => {
                     <p><strong>Basic:</strong> <code className="bg-muted px-1 py-0.5 rounded">#,##0.00</code> - Number with thousands separator and 2 decimals</p>
                     <p><strong>Currency:</strong> <code className="bg-muted px-1 py-0.5 rounded">$#,##0.00</code> - Currency with symbol</p>
                     <p><strong>Percentage:</strong> <code className="bg-muted px-1 py-0.5 rounded">0.00%</code> - Percentage with 2 decimals</p>
-                    <p><strong>Conditional:</strong> <code className="bg-muted px-1 py-0.5 rounded">[>0][Green]#,##0;[Red]#,##0</code> - Color based on value</p>
+                    <p><strong>Conditional:</strong> <code className="bg-muted px-1 py-0.5 rounded">[&gt;0][Green]#,##0;[Red]#,##0</code> - Color based on value</p>
                   </div>
                 </div>
               </>
