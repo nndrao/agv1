@@ -82,18 +82,18 @@ async function generateDataAsync(rowCount: number): Promise<FixedIncomePosition[
     // Use requestIdleCallback if available, otherwise setTimeout
     if ('requestIdleCallback' in window) {
       requestIdleCallback(() => {
-        perfMonitor.mark('data-generation-start');
+        // perfMonitor.mark('data-generation-start');
         const data = generateFixedIncomeData(rowCount);
-        perfMonitor.mark('data-generation-end');
-        perfMonitor.measure('dataGenerationTime', 'data-generation-start', 'data-generation-end');
+        // perfMonitor.mark('data-generation-end');
+        // perfMonitor.measure('dataGenerationTime', 'data-generation-start', 'data-generation-end');
         resolve(data);
       });
     } else {
       setTimeout(() => {
-        perfMonitor.mark('data-generation-start');
+        // perfMonitor.mark('data-generation-start');
         const data = generateFixedIncomeData(rowCount);
-        perfMonitor.mark('data-generation-end');
-        perfMonitor.measure('dataGenerationTime', 'data-generation-start', 'data-generation-end');
+        // perfMonitor.mark('data-generation-end');
+        // perfMonitor.measure('dataGenerationTime', 'data-generation-start', 'data-generation-end');
         resolve(data);
       }, 0);
     }
@@ -118,7 +118,7 @@ function App() {
       setColumns(inferredColumns);
       setIsLoading(false);
       
-      perfMonitor.measureFromStart('dataReadyTime');
+      // perfMonitor.measureFromStart('dataReadyTime');
     } catch (error) {
       console.error('Failed to generate data:', error);
       setIsLoading(false);
@@ -132,8 +132,8 @@ function App() {
   useEffect(() => {
     // Mark when app is fully loaded
     if (!isLoading && data.length > 0) {
-      perfMonitor.measureFromStart('fullyLoadedTime');
-      perfMonitor.logSummary();
+      // perfMonitor.measureFromStart('fullyLoadedTime');
+      // perfMonitor.logSummary();
     }
   }, [isLoading, data.length]);
 

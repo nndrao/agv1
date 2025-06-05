@@ -152,7 +152,7 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
       setColumnState: (columnStateArray) => {
         const stateMap = new Map();
         if (columnStateArray) {
-          console.log('[Store] Setting column state, array length:', columnStateArray.length);
+          // console.log('[Store] Setting column state, array length:', columnStateArray.length);
           let visibleCount = 0;
           let hiddenCount = 0;
           
@@ -165,12 +165,12 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
             }
           });
           
-          console.log('[Store] Column state summary:', {
-            total: columnStateArray.length,
-            visible: visibleCount,
-            hidden: hiddenCount,
-            stateMapSize: stateMap.size
-          });
+          // console.log('[Store] Column state summary:', {
+          //   total: columnStateArray.length,
+          //   visible: visibleCount,
+          //   hidden: hiddenCount,
+          //   stateMapSize: stateMap.size
+          // });
         }
         set({ columnState: stateMap });
       },

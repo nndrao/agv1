@@ -106,7 +106,7 @@ const createDefaultProfile = (): GridProfile => ({
 
 // Deferred migration function
 async function performMigration(state: PersistedState): Promise<PersistedState> {
-  perfMonitor.mark('migration-start');
+        // perfMonitor.mark('migration-start');
   
   const newState = { ...state };
   
@@ -174,8 +174,8 @@ async function performMigration(state: PersistedState): Promise<PersistedState> 
     });
   }
   
-  perfMonitor.mark('migration-end');
-  perfMonitor.measure('migrationTime', 'migration-start', 'migration-end');
+      // perfMonitor.mark('migration-end');
+    // perfMonitor.measure('migrationTime', 'migration-start', 'migration-end');
   
   return newState;
 }
@@ -611,12 +611,12 @@ export const useProfileStore = create<ProfileStore>()(
 // Convenience hooks
 export const useProfiles = () => useProfileStore(state => state.profiles);
 export const useActiveProfile = () => {
-  perfMonitor.mark('profile-load-start');
+  // perfMonitor.mark('profile-load-start');
   const profile = useProfileStore(state => 
     state.profiles.find(p => p.id === state.activeProfileId)
   );
-  perfMonitor.mark('profile-load-end');
-  perfMonitor.measure('profileLoadTime', 'profile-load-start', 'profile-load-end');
+  // perfMonitor.mark('profile-load-end');
+  // perfMonitor.measure('profileLoadTime', 'profile-load-start', 'profile-load-end');
   return profile;
 };
 

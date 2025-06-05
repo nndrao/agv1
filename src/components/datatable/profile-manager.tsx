@@ -103,16 +103,16 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
 
   // Function to apply profile states in sequence
   const applyProfileStates = (gridApi: GridApi, gridState: GridProfile['gridState'], profileName: string) => {
-    console.log('[ProfileManager] Applying profile states in sequence');
+    // console.log('[ProfileManager] Applying profile states in sequence');
     
     // 1. Apply column state first
     if (gridState.columnState) {
-      console.log('[ProfileManager] Applying columnState:', {
-        totalColumns: gridState.columnState.length,
-        visibleColumns: gridState.columnState.filter((col: ColumnState) => !col.hide).length,
-        hiddenColumns: gridState.columnState.filter((col: ColumnState) => col.hide).length,
-        columnOrder: gridState.columnState.slice(0, 5).map((col: ColumnState) => col.colId)
-      });
+      // console.log('[ProfileManager] Applying columnState:', {
+      //   totalColumns: gridState.columnState.length,
+      //   visibleColumns: gridState.columnState.filter((col: ColumnState) => !col.hide).length,
+      //   hiddenColumns: gridState.columnState.filter((col: ColumnState) => col.hide).length,
+      //   columnOrder: gridState.columnState.slice(0, 5).map((col: ColumnState) => col.colId)
+      // });
       
       gridApi.applyColumnState({
         state: gridState.columnState,
@@ -121,25 +121,25 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       
       // Verify column state was applied
       const newState = gridApi.getColumnState();
-      console.log('[ProfileManager] Column state after apply:', {
-        totalColumns: newState.length,
-        visibleColumns: newState.filter(col => !col.hide).length,
-        hiddenColumns: newState.filter(col => col.hide).length,
-        columnOrder: newState.slice(0, 5).map(col => col.colId)
-      });
+      // console.log('[ProfileManager] Column state after apply:', {
+      //   totalColumns: newState.length,
+      //   visibleColumns: newState.filter(col => !col.hide).length,
+      //   hiddenColumns: newState.filter(col => col.hide).length,
+      //   columnOrder: newState.slice(0, 5).map(col => col.colId)
+      // });
     }
     
     // 2. Apply filters after column state
     setTimeout(() => {
       if (gridState.filterModel) {
-        console.log('[ProfileManager] Applying filterModel');
+        // console.log('[ProfileManager] Applying filterModel');
         gridApi.setFilterModel(gridState.filterModel);
       }
       
       // 3. Apply sorting after filters
       setTimeout(() => {
         if (gridState.sortModel) {
-          console.log('[ProfileManager] Applying sortModel');
+          // console.log('[ProfileManager] Applying sortModel');
           gridApi.applyColumnState({
             state: gridState.sortModel.map(sort => ({
               colId: sort.colId,
@@ -152,7 +152,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
         // 4. Apply grid options if available
         setTimeout(() => {
           if (gridState.gridOptions) {
-            console.log('[ProfileManager] Applying grid options:', gridState.gridOptions);
+            // console.log('[ProfileManager] Applying grid options:', gridState.gridOptions);
             
             if (gridState.gridOptions.rowHeight) {
               gridApi.resetRowHeights();
@@ -170,7 +170,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
           
           // 5. Final refresh
           setTimeout(() => {
-            console.log('[ProfileManager] Final refresh');
+            // console.log('[ProfileManager] Final refresh');
             gridApi.refreshCells({ force: true });
             gridApi.refreshHeader();
             gridApi.redrawRows();
@@ -202,7 +202,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
 
     // Prevent double-switching
     if (isSwitching) {
-      console.log('[ProfileManager] Already switching profiles, ignoring');
+      // console.log('[ProfileManager] Already switching profiles, ignoring');
       return;
     }
 
@@ -222,7 +222,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
           {
             showTransition: true,
             onProgress: (progress) => {
-              console.log(`[ProfileManager] Profile switch progress: ${Math.round(progress * 100)}%`);
+              // console.log(`[ProfileManager] Profile switch progress: ${Math.round(progress * 100)}%`);
             }
           }
         );
@@ -237,7 +237,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
           });
         } else {
           const switchTime = performance.now() - startTime;
-          console.log(`[ProfileManager] Profile switch completed in ${switchTime.toFixed(0)}ms`);
+          // console.log(`[ProfileManager] Profile switch completed in ${switchTime.toFixed(0)}ms`);
           
           // Only show toast if switch took longer than 100ms
           if (switchTime > 100) {
@@ -280,39 +280,39 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     // Debug: Check if headerStyle exists in column definitions
     const columnsWithHeaderStyle = columnDefs.filter(col => col.headerStyle);
     const columnsWithCellStyle = columnDefs.filter(col => col.cellStyle);
-    console.log('[ProfileManager] Styles from grid:', {
-      usingStoredRef: !!getColumnDefsWithStyles,
-      headerStyleCount: columnsWithHeaderStyle.length,
-      cellStyleCount: columnsWithCellStyle.length,
-      headerStyleSamples: columnsWithHeaderStyle.slice(0, 3).map(col => ({
-        field: col.field,
-        headerStyleType: typeof col.headerStyle,
-        headerStyle: typeof col.headerStyle === 'function' ? 'function' : col.headerStyle
-      })),
-      cellStyleSamples: columnsWithCellStyle.slice(0, 3).map(col => ({
-        field: col.field,
-        cellStyleType: typeof col.cellStyle,
-        cellStyle: typeof col.cellStyle === 'function' ? 'function' : col.cellStyle
-      }))
-    });
+    // console.log('[ProfileManager] Styles from grid:', {
+    //   usingStoredRef: !!getColumnDefsWithStyles,
+    //   headerStyleCount: columnsWithHeaderStyle.length,
+    //   cellStyleCount: columnsWithCellStyle.length,
+    //   headerStyleSamples: columnsWithHeaderStyle.slice(0, 3).map(col => ({
+    //     field: col.field,
+    //     headerStyleType: typeof col.headerStyle,
+    //     headerStyle: typeof col.headerStyle === 'function' ? 'function' : col.headerStyle
+    //   })),
+    //   cellStyleSamples: columnsWithCellStyle.slice(0, 3).map(col => ({
+    //     field: col.field,
+    //     cellStyleType: typeof col.cellStyle,
+    //     cellStyle: typeof col.cellStyle === 'function' ? 'function' : col.cellStyle
+    //   }))
+    // });
     
     const columnState = gridApi.getColumnState();
     
     // Log column state details
-    console.log('[ProfileManager] Column state details:', {
-      totalColumns: columnState.length,
-      visibleColumns: columnState.filter(col => !col.hide).length,
-      hiddenColumns: columnState.filter(col => col.hide).length,
-      pinnedColumns: columnState.filter(col => col.pinned).length,
-      sampleState: columnState.slice(0, 3).map(col => ({
-        colId: col.colId,
-        hide: col.hide,
-        width: col.width,
-        pinned: col.pinned,
-        sort: col.sort,
-        sortIndex: col.sortIndex
-      }))
-    });
+    // console.log('[ProfileManager] Column state details:', {
+    //   totalColumns: columnState.length,
+    //   visibleColumns: columnState.filter(col => !col.hide).length,
+    //   hiddenColumns: columnState.filter(col => col.hide).length,
+    //   pinnedColumns: columnState.filter(col => col.pinned).length,
+    //   sampleState: columnState.slice(0, 3).map(col => ({
+    //     colId: col.colId,
+    //     hide: col.hide,
+    //     width: col.width,
+    //     pinned: col.pinned,
+    //     sort: col.sort,
+    //     sortIndex: col.sortIndex
+    //   }))
+    // });
     
     const filterModel = gridApi.getFilterModel();
     const sortModel = gridApi.getColumnState()
@@ -328,21 +328,21 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       const cleaned = { ...col };
       
       // Log what we're saving for each column
-      console.log('[ProfileManager] Saving column properties:', {
-        field: col.field,
-        headerName: col.headerName,
-        hasHeaderStyle: !!col.headerStyle,
-        hasCellStyle: !!col.cellStyle,
-        sortable: col.sortable,
-        resizable: col.resizable,
-        editable: col.editable,
-        filter: col.filter,
-        floatingFilter: col.floatingFilter,
-        suppressHeaderMenuButton: col.suppressHeaderMenuButton,
-        suppressFiltersToolPanel: col.suppressFiltersToolPanel,
-        minWidth: col.minWidth,
-        maxWidth: col.maxWidth
-      });
+      // console.log('[ProfileManager] Saving column properties:', {
+      //   field: col.field,
+      //   headerName: col.headerName,
+      //   hasHeaderStyle: !!col.headerStyle,
+      //   hasCellStyle: !!col.cellStyle,
+      //   sortable: col.sortable,
+      //   resizable: col.resizable,
+      //   editable: col.editable,
+      //   filter: col.filter,
+      //   floatingFilter: col.floatingFilter,
+      //   suppressHeaderMenuButton: col.suppressHeaderMenuButton,
+      //   suppressFiltersToolPanel: col.suppressFiltersToolPanel,
+      //   minWidth: col.minWidth,
+      //   maxWidth: col.maxWidth
+      // });
       
       // Remove invalid properties that AG-Grid doesn't recognize
       delete cleaned.valueFormat;
@@ -364,10 +364,10 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
             floating: floatingStyle
           };
           
-          console.log('[ProfileManager] Converted headerStyle for:', col.field, {
-            regular: regularStyle,
-            floating: floatingStyle
-          });
+          // console.log('[ProfileManager] Converted headerStyle for:', col.field, {
+          //   regular: regularStyle,
+          //   floating: floatingStyle
+          // });
         } catch (e) {
           console.error('[ProfileManager] Error converting headerStyle:', e);
           cleaned.headerStyle = undefined;
@@ -384,7 +384,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
             type: 'excel',
             formatString: formatterFunc.__formatString
           };
-          console.log('[ProfileManager] Saved valueFormatter config:', cleaned.valueFormatter);
+          // console.log('[ProfileManager] Saved valueFormatter config:', cleaned.valueFormatter);
         } else {
           // Can't serialize custom functions without metadata
           console.warn('[ProfileManager] valueFormatter has no format string metadata, removing');

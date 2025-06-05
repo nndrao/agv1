@@ -22,7 +22,7 @@ class PerformanceMonitor {
   mark(name: string) {
     const time = performance.now();
     this.marks.set(name, time);
-    console.log(`[Performance] ${name}: ${time.toFixed(2)}ms`);
+    // console.log(`[Performance] ${name}: ${time.toFixed(2)}ms`);
   }
 
   measure(name: string, startMark: string, endMark?: string) {
@@ -31,7 +31,7 @@ class PerformanceMonitor {
     const duration = endTime - startTime;
     
     this.metrics[name] = duration;
-    console.log(`[Performance] ${name}: ${duration.toFixed(2)}ms`);
+    // console.log(`[Performance] ${name}: ${duration.toFixed(2)}ms`);
     
     return duration;
   }
@@ -39,7 +39,7 @@ class PerformanceMonitor {
   measureFromStart(name: string) {
     const duration = performance.now() - this.metrics.appStartTime;
     this.metrics[name] = duration;
-    console.log(`[Performance] ${name} from start: ${duration.toFixed(2)}ms`);
+    // console.log(`[Performance] ${name} from start: ${duration.toFixed(2)}ms`);
     return duration;
   }
 
@@ -48,13 +48,13 @@ class PerformanceMonitor {
   }
 
   logSummary() {
-    console.group('📊 Performance Summary');
-    Object.entries(this.metrics).forEach(([key, value]) => {
-      if (value !== undefined) {
-        console.log(`${key}: ${value.toFixed(2)}ms`);
-      }
-    });
-    console.groupEnd();
+    // console.group('📊 Performance Summary');
+    // Object.entries(this.metrics).forEach(([key, value]) => {
+    //   if (value !== undefined) {
+    //     console.log(`${key}: ${value.toFixed(2)}ms`);
+    //   }
+    // });
+    // console.groupEnd();
   }
 }
 

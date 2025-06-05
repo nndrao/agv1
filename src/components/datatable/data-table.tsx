@@ -456,8 +456,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           }}
           getContextMenuItems={getContextMenuItems}
           onGridReady={async (params) => {
-            perfMonitor.mark('grid-ready');
-            perfMonitor.measureFromStart('gridInitTime');
+                // perfMonitor.mark('grid-ready');
+    // perfMonitor.measureFromStart('gridInitTime');
             
             gridApiRef.current = params.api;
             
@@ -490,7 +490,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
                 setSelectedFont(activeProfile.gridState.font);
               }
               
-              perfMonitor.measureFromStart('gridFullyLoadedTime');
+              // perfMonitor.measureFromStart('gridFullyLoadedTime');
             } else {
               console.log('[DataTable] No active profile or gridState to apply');
             }

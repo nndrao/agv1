@@ -53,7 +53,7 @@ class ProfileOptimizer {
   }
   
   private processProfile(profile: GridProfile) {
-    perfMonitor.mark('profile-process-start');
+    // perfMonitor.mark('profile-process-start');
     
     let processedColumnDefs: ColDef[] = [];
     
@@ -80,7 +80,7 @@ class ProfileOptimizer {
       timestamp: Date.now()
     });
     
-    perfMonitor.measure('profileProcessTime', 'profile-process-start');
+          // perfMonitor.measure('profileProcessTime', 'profile-process-start');
   }
   
   private processLegacyColumnDefs(columnDefs: ColDef[]): ColDef[] {
@@ -197,7 +197,7 @@ class ProfileOptimizer {
     } = {}
   ) {
     const startTime = performance.now();
-    perfMonitor.mark('profile-switch-start');
+    // perfMonitor.mark('profile-switch-start');
     
     // Ensure profile is preprocessed
     if (!this.cache.has(profile.id)) {
@@ -345,7 +345,7 @@ class ProfileOptimizer {
       }
     });
     
-    perfMonitor.measure('profileSwitchTime', 'profile-switch-start');
+    // perfMonitor.measure('profileSwitchTime', 'profile-switch-start');
   }
   
   private batchUpdates(callback: () => void) {
