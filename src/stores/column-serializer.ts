@@ -394,6 +394,109 @@ export function serializeColumnCustomizations(
 }
 
 /**
+ * Check if a format string contains conditional styling that requires a cellStyle function
+ */
+function hasConditionalStyling(formatString: string): boolean {
+  if (!formatString || !formatString.includes('[')) return false;
+  
+  return (
+    // Basic conditional colors
+    formatString.toLowerCase().includes('[green]') || 
+    formatString.toLowerCase().includes('[red]') || 
+    formatString.toLowerCase().includes('[blue]') || 
+    formatString.toLowerCase().includes('[yellow]') || 
+    formatString.toLowerCase().includes('[orange]') || 
+    formatString.toLowerCase().includes('[purple]') || 
+    formatString.toLowerCase().includes('[gray]') || 
+    formatString.toLowerCase().includes('[grey]') || 
+    formatString.toLowerCase().includes('[magenta]') || 
+    formatString.toLowerCase().includes('[cyan]') || 
+    // Conditions
+    formatString.includes('[>') || 
+    formatString.includes('[<') || 
+    formatString.includes('[=') || 
+    formatString.includes('[#') || // Hex colors
+    formatString.includes('[@=') || // Text equality 
+    formatString.includes('[<>') ||
+    // Extended styling directives
+    formatString.includes('Weight:') ||
+    formatString.includes('FontWeight:') ||
+    formatString.includes('Background:') ||
+    formatString.includes('BG:') ||
+    formatString.includes('Border:') ||
+    formatString.includes('B:') ||
+    formatString.includes('Size:') ||
+    formatString.includes('FontSize:') ||
+    formatString.includes('Align:') ||
+    formatString.includes('TextAlign:') ||
+    formatString.includes('Padding:') ||
+    formatString.includes('P:') ||
+    // Keyword styles
+    formatString.includes('[Bold]') ||
+    formatString.includes('[Italic]') ||
+    formatString.includes('[Underline]') ||
+    formatString.includes('[Strikethrough]') ||
+    formatString.includes('[Center]') ||
+    formatString.includes('[Left]') ||
+    formatString.includes('[Right]')
+  );
+}
+
+/**
+ * Ensure a column has a cellStyle function if its valueFormatter has conditional styling
+ */
+function ensureCellStyleForConditionalFormatting(merged: ColDef, custom: ColumnCustomization): void {
+  // Check if valueFormatter has conditional styling
+  if (merged.valueFormatter && typeof merged.valueFormatter === 'function') {
+    const formatString = (merged.valueFormatter as any).__formatString;
+    
+    if (formatString && hasConditionalStyling(formatString)) {
+      // Check if cellStyle already exists and is properly configured
+      if (!merged.cellStyle || 
+          (typeof merged.cellStyle === 'function' && 
+           (merged.cellStyle as any).__formatString !== formatString)) {
+        
+        console.log('[ColumnSerializer] Creating cellStyle for conditional formatting:', {
+          field: merged.field,
+          formatString,
+          hasExistingCellStyle: !!merged.cellStyle,
+          existingCellStyleType: typeof merged.cellStyle
+        });
+        
+        // Extract base style if it exists
+        let baseStyle: React.CSSProperties = {};
+        if (merged.cellStyle) {
+          if (typeof merged.cellStyle === 'object') {
+            baseStyle = merged.cellStyle;
+          } else if (typeof merged.cellStyle === 'function' && (merged.cellStyle as any).__baseStyle) {
+            baseStyle = (merged.cellStyle as any).__baseStyle;
+          }
+        }
+        
+        // Create cellStyle function
+        const styleFunc = createCellStyleFunction(formatString, baseStyle);
+        
+        // Attach metadata for future serialization
+        Object.defineProperty(styleFunc, '__formatString', { 
+          value: formatString, 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(styleFunc, '__baseStyle', { 
+          value: baseStyle, 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        
+        merged.cellStyle = styleFunc;
+      }
+    }
+  }
+}
+
+/**
  * Apply customizations to base columns
  */
 export function deserializeColumnCustomizations(
@@ -546,6 +649,9 @@ export function deserializeColumnCustomizations(
     if (custom.pivot !== undefined) merged.pivot = custom.pivot;
     if (custom.aggFunc !== undefined) merged.aggFunc = custom.aggFunc;
     if (custom.cellClassRules !== undefined) merged.cellClassRules = custom.cellClassRules;
+    
+    // Ensure cellStyle is created if valueFormatter has conditional styling
+    ensureCellStyleForConditionalFormatting(merged, custom);
     
     return merged;
   });

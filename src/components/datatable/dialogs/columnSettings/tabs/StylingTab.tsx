@@ -59,12 +59,29 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
     
     selectedColumns.forEach(colId => {
       const colDef = columnDefinitions.get(colId);
-      const cellStyle = colDef?.cellStyle;
+      const pendingChange = pendingChanges.get(colId);
       
-      // Check if cellStyle is a function with format metadata
-      if (cellStyle && typeof cellStyle === 'function') {
+      // Check pending changes first, then column definition
+      const valueFormatter = pendingChange?.valueFormatter || colDef?.valueFormatter;
+      const cellStyle = pendingChange?.cellStyle || colDef?.cellStyle;
+      
+      // First check if valueFormatter has format string metadata
+      if (valueFormatter && typeof valueFormatter === 'function') {
+        const metadata = (valueFormatter as any).__formatString;
+        if (metadata && metadata.includes('[') && metadata.includes(']')) {
+          // Check if format string contains style directives OR color specifications
+          const hasStyleDirectives = metadata.match(/\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right|#[0-9A-Fa-f]{3,6}|Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan)/i);
+          if (hasStyleDirectives) {
+            hasConditionalFormatting = true;
+            formatString = metadata;
+          }
+        }
+      }
+      
+      // Also check if existing cellStyle has format string metadata
+      if (!hasConditionalFormatting && cellStyle && typeof cellStyle === 'function') {
         const metadata = (cellStyle as any).__formatString;
-        if (metadata) {
+        if (metadata && metadata.includes('[') && metadata.includes(']')) {
           hasConditionalFormatting = true;
           formatString = metadata;
         }
@@ -72,8 +89,28 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
     });
     
     if (hasConditionalFormatting) {
-      // Re-create the conditional style function with the new base style
-      const cellStyleFn = createCellStyleFunction(formatString, style);
+      // We have conditional formatting from valueFormatter
+      // Create a cellStyle function that merges base styles with conditional styles
+      // Conditional styles take precedence (similar to the reference implementation)
+      // Create a custom cellStyle function that always merges base and conditional styles
+      // This is different from createCellStyleFunction which returns EITHER conditional OR base styles
+      const cellStyleFn = (params: { value: unknown }) => {
+        // Always start with base styles
+        const baseStyles = style && Object.keys(style).length > 0 ? { ...style } : {};
+        
+        // Get conditional styles using createCellStyleFunction with empty base
+        // This ensures we only get the conditional styles when conditions match
+        const conditionalStyleFn = createCellStyleFunction(formatString, {});
+        const conditionalStyles = conditionalStyleFn(params) || {};
+        
+        // Always merge base and conditional styles, with conditional taking precedence
+        // This matches the reference implementation pattern
+        const mergedStyles = { ...baseStyles, ...conditionalStyles };
+        
+        // Return merged styles if we have any, otherwise undefined
+        return Object.keys(mergedStyles).length > 0 ? mergedStyles : undefined;
+      };
+      
       // Attach metadata for future serialization
       Object.defineProperty(cellStyleFn, '__formatString', { 
         value: formatString, 
@@ -123,21 +160,59 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
 
   // Clear only cell styles
   const clearCellStyles = () => {
-    // Check if we have conditional formatting that needs to be preserved
+    // Check if we have conditional formatting from valueFormatter that needs to be preserved
     let hasConditionalFormatting = false;
     let formatString = '';
     
     selectedColumns.forEach(colId => {
       const colDef = columnDefinitions.get(colId);
-      if (colDef?.valueFormat && colDef.valueFormat.includes('[') && colDef.valueFormat.includes(']')) {
-        hasConditionalFormatting = true;
-        formatString = colDef.valueFormat;
+      const pendingChange = pendingChanges.get(colId);
+      
+      // Check pending changes first, then column definition
+      const valueFormatter = pendingChange?.valueFormatter || colDef?.valueFormatter;
+      
+      // Check if valueFormatter has format string metadata (from conditional formatting)
+      if (valueFormatter && typeof valueFormatter === 'function') {
+        const metadata = (valueFormatter as any).__formatString;
+        if (metadata && metadata.includes('[') && metadata.includes(']')) {
+          // Check if format string contains style directives OR color specifications
+          const hasStyleDirectives = metadata.match(/\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right|#[0-9A-Fa-f]{3,6}|Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan)/i);
+          if (hasStyleDirectives) {
+            hasConditionalFormatting = true;
+            formatString = metadata;
+          }
+        }
       }
     });
     
     if (hasConditionalFormatting) {
-      // Re-create the conditional style function without base styles
-      const cellStyleFn = createCellStyleFunction(formatString, {});
+      // Keep conditional formatting but clear base styles
+      // This is the same as handleCellStyleSave but with empty base styles
+      const cellStyleFn = (params: { value: unknown }) => {
+        // No base styles (cleared)
+        const baseStyles = {};
+        
+        // Get conditional styles using createCellStyleFunction with empty base
+        const conditionalStyleFn = createCellStyleFunction(formatString, {});
+        const conditionalStyles = conditionalStyleFn(params) || {};
+        
+        // Return only conditional styles since base styles are cleared
+        return Object.keys(conditionalStyles).length > 0 ? conditionalStyles : undefined;
+      };
+      
+      // Attach metadata for future serialization
+      Object.defineProperty(cellStyleFn, '__formatString', { 
+        value: formatString, 
+        writable: false,
+        enumerable: false,
+        configurable: true
+      });
+      Object.defineProperty(cellStyleFn, '__baseStyle', { 
+        value: {}, 
+        writable: false,
+        enumerable: false,
+        configurable: true
+      });
       updateBulkProperty('cellStyle', cellStyleFn);
     } else {
       updateBulkProperty('cellStyle', undefined);
@@ -198,7 +273,12 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
   // Extract style object from cellStyle if it's a function
   const getCellStyleObject = () => {
     if (currentCellStyle.value && typeof currentCellStyle.value === 'function') {
-      // Don't pass function-based styles to the editor
+      // Check if this function has base style metadata
+      const baseStyle = (currentCellStyle.value as any).__baseStyle;
+      if (baseStyle) {
+        return baseStyle;
+      }
+      // Don't pass function-based styles to the editor without base style
       return {};
     }
     return currentCellStyle.value;
@@ -291,13 +371,13 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
   };
 
   // Check if header alignment is mixed
-  const isHeaderAlignmentMixed = (type: 'horizontal' | 'vertical') => {
+  const isHeaderAlignmentMixed = (_type: 'horizontal' | 'vertical') => {
     const headerClassValue = getMixedValue('headerClass');
     return headerClassValue.isMixed;
   };
 
   // Check if cell alignment is mixed
-  const isCellAlignmentMixed = (type: 'horizontal' | 'vertical') => {
+  const isCellAlignmentMixed = (_type: 'horizontal' | 'vertical') => {
     const cellClassValue = getMixedValue('cellClass');
     return cellClassValue.isMixed;
   };

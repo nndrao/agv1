@@ -715,11 +715,12 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
         }
         
         if (hasConditionalStyles) {
-          // Return only conditional styles (no base styles from formatting)
+          // Merge base styles with conditional styles (conditional takes precedence)
+          const mergedStyles = { ...baseStyle, ...extendedStyles };
           if (isDebugFormat && isDebugValue) {
-            console.log('  ✅ Returning conditional styles:', extendedStyles);
+            console.log('  ✅ Returning merged styles:', mergedStyles);
           }
-          return extendedStyles;
+          return mergedStyles;
         }
         
         // Condition matched but no conditional styles - only apply explicit base styles if they exist
@@ -785,9 +786,10 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
         const hasFallbackStyles = Object.keys(fallbackStyles).length > 0;
         
                  if (hasFallbackStyles) {
-           // Return only fallback styles (no base styles from formatting)
-           console.log('🎨 Fallback conditional styles applied:', fallbackStyles);
-           return fallbackStyles;
+           // Merge base styles with fallback styles (fallback takes precedence)
+           const mergedStyles = { ...baseStyle, ...fallbackStyles };
+           console.log('🎨 Fallback conditional styles merged with base:', mergedStyles);
+           return mergedStyles;
          }
          
          // Fallback section has no conditional styles - only apply explicit base styles if they exist
