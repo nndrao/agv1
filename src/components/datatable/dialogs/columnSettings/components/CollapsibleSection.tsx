@@ -46,7 +46,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
     >
       <div
         className={cn(
-          'flex items-center justify-between px-4 py-3 cursor-pointer select-none',
+          'flex items-center justify-between px-3 py-2 cursor-pointer select-none',
           'hover:bg-muted/50 transition-colors duration-200',
           'rounded-t-lg',
           isExpanded && 'border-b'
@@ -110,13 +110,13 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
           isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
         )}
       >
-        <div className="p-4">
+        <div className="p-3">
           {description && isExpanded && (
-            <p className="text-xs text-muted-foreground mb-4 pb-3 border-b">
+            <p className="text-xs text-muted-foreground mb-2 pb-2 border-b">
               {description}
             </p>
           )}
-          <div className="space-y-3">
+          <div className="space-y-2">
             {children}
           </div>
         </div>

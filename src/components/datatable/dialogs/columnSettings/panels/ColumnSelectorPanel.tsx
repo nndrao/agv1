@@ -203,38 +203,38 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
     <TooltipProvider>
       <div className="h-full flex flex-col">
         {/* Modern Header */}
-        <div className="px-4 py-3 border-b border-border/40 bg-gradient-to-r from-muted/15 to-muted/5 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-md bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
-              <Columns3 className="h-4 w-4 text-primary" />
+        <div className="px-3 py-2 border-b border-border/40 bg-gradient-to-r from-muted/15 to-muted/5 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <div className="p-1 rounded-md bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
+              <Columns3 className="h-3.5 w-3.5 text-primary" />
             </div>
             <span className="text-sm font-semibold tracking-tight">Columns</span>
-            <Badge variant="outline" className="text-xs px-2 py-1 ml-auto font-medium rounded-md border-border/60">
+            <Badge variant="outline" className="text-xs px-1.5 py-0.5 ml-auto font-medium rounded-md border-border/60">
               {filteredColumns.length}
             </Badge>
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col p-4">
+        <div className="flex-1 flex flex-col p-3">
           {/* Modern Search Bar */}
-          <div className="relative mb-3">
+          <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search columns..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm focus:border-primary/60 focus:ring-primary/20 transition-all duration-200"
+              className="pl-9 h-8 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm focus:border-primary/60 focus:ring-primary/20 transition-all duration-200"
             />
           </div>
 
           {/* Filters */}
-          <div className="space-y-3 mb-4">
+          <div className="space-y-2 mb-3">
             {/* CellDataType Filter */}
             <Select
               value={cellDataTypeFilter}
               onValueChange={setCellDataTypeFilter}
             >
-              <SelectTrigger className="h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
+              <SelectTrigger className="h-8 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter by data type" />
               </SelectTrigger>
@@ -259,7 +259,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
               value={visibilityFilter}
               onValueChange={(value: 'all' | 'visible' | 'hidden') => setVisibilityFilter(value)}
             >
-              <SelectTrigger className="h-9 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
+              <SelectTrigger className="h-8 text-sm rounded-lg border-border/60 bg-background/80 backdrop-blur-sm">
                 {visibilityFilter === 'visible' ? (
                   <Eye className="h-4 w-4 mr-2" />
                 ) : visibilityFilter === 'hidden' ? (
@@ -293,7 +293,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
           </div>
 
           {/* Modern Selection Controls */}
-          <div className="flex items-center gap-2.5 mb-4">
+          <div className="flex items-center gap-2.5 mb-2">
             <Checkbox
               checked={isAllSelected ? true : isIndeterminate ? "indeterminate" : false}
               onCheckedChange={(checked) => {

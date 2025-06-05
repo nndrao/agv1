@@ -64,10 +64,10 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
   const isMultipleSelection = selectedColumns.size > 1;
 
   return (
-    <div className="px-6 py-4 space-y-6">
+    <div className="px-4 py-3 space-y-4">
       {uiMode === 'simple' ? (
         // Simple mode - Essential properties only
-        <div className="space-y-6">
+        <div className="space-y-4">
           <CollapsibleSection
             id="general-basic"
             title="Basic Properties"
@@ -75,7 +75,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
             defaultExpanded={true}
             badge={selectedColumns.size > 1 && <Badge variant="secondary" className="text-xs">Bulk Edit</Badge>}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="headerName" className="text-sm font-medium">
                   Header Name
@@ -182,9 +182,9 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
         </div>
       ) : (
         // Advanced mode - All properties with better organization
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left Column */}
-          <div className="space-y-6">
+          <div className="space-y-4">
           {/* Identity & Basic Info */}
           <CollapsibleSection
             id="general-identity"
@@ -317,7 +317,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
         </div>
 
         {/* Right Column */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Column Behavior */}
           <CollapsibleSection
             id="general-behavior"

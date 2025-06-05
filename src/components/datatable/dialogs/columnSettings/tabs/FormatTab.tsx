@@ -486,12 +486,12 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
 
   return (
     <ScrollArea className="h-full">
-      <div className="px-6 py-4 space-y-6">
+      <div className="px-4 py-3 space-y-4">
         {/* Default Formatters Dropdown - First Item */}
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div>
             <Label className="text-sm font-medium">Format Selection</Label>
-            <p className="text-xs text-muted-foreground mt-1">Choose from predefined formats</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Choose from predefined formats</p>
           </div>
           <Select 
             value={selectedFormat === 'custom' ? 'custom' : selectedFormat} 
@@ -528,11 +528,11 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
 
         {/* Quick Format Buttons - Always visible in simple mode */}
         {uiMode === 'simple' && (
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">Quick Formats</Label>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-1.5">
               {quickFormats.map((format) => {
                 const Icon = format.icon;
                 const isActive = selectedFormat === format.format;
@@ -543,11 +543,11 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
                     size="sm"
                     onClick={() => handleFormatChange(format.format)}
                     disabled={isDisabled}
-                    className="h-auto p-3 flex flex-col items-center gap-1"
+                    className="h-auto p-2 flex flex-col items-center gap-0.5"
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-3.5 w-3.5" />
                     <span className="text-xs font-medium">{format.label}</span>
-                    <span className="text-xs text-muted-foreground">{format.description}</span>
+                    <span className="text-xs text-muted-foreground leading-tight">{format.description}</span>
                   </Button>
                 );
               })}
@@ -557,7 +557,7 @@ export const FormatTab: React.FC<FormatTabProps> = React.memo(({ uiMode = 'simpl
 
         {/* Advanced Format Options */}
         {uiMode === 'advanced' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Format Selection */}
             <CollapsibleSection
               id="format-selection"

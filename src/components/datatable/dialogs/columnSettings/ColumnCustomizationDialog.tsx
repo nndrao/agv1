@@ -255,13 +255,13 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[90vw] w-[1100px] h-[80vh] p-0 flex flex-col bg-background overflow-hidden">
         {/* Clean, Professional Header */}
-        <DialogHeader className="px-6 py-4 border-b bg-card/50">
+        <DialogHeader className="px-4 py-3 border-b bg-card/50">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 border border-primary/20">
-                <Settings2 className="h-4 w-4 text-primary" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 border border-primary/20">
+                <Settings2 className="h-3.5 w-3.5 text-primary" />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <DialogTitle className="text-lg font-semibold leading-none">
                   Column Settings
                 </DialogTitle>
@@ -333,7 +333,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
                 onClick={() => setBulkActionsPanelCollapsed(!bulkActionsPanelCollapsed)}
                 className={cn(
                   "absolute top-1/2 -translate-y-1/2 z-20 h-16 w-6 px-0 py-2 rounded-l-md rounded-r-none border border-r-0 bg-background hover:bg-muted/50 shadow-sm transition-all duration-300",
-                  bulkActionsPanelCollapsed ? "right-4" : "right-[336px]"
+                  bulkActionsPanelCollapsed ? "right-0" : "right-[320px]"
                 )}
                 title={bulkActionsPanelCollapsed ? "Show Quick Actions" : "Hide Quick Actions"}
               >
@@ -346,23 +346,29 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
               
               {/* Collapsible Panel */}
               <div className={cn(
-                "w-[320px] border-l bg-muted/30 overflow-hidden flex flex-col transition-all duration-300 mr-4",
-                bulkActionsPanelCollapsed ? "w-0 mr-0" : "w-[320px] mr-4"
+                "border-l bg-muted/30 flex flex-col transition-all duration-300",
+                bulkActionsPanelCollapsed ? "w-0" : "w-[320px]"
               )}>
-                <div className="px-4 py-3 border-b bg-card/50">
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-semibold">Quick Actions</span>
-                  </div>
-                </div>
-                <BulkActionsPanel />
+                {!bulkActionsPanelCollapsed && (
+                  <>
+                    <div className="px-4 py-3 border-b bg-card/50 flex-shrink-0">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-semibold">Quick Actions</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <BulkActionsPanel />
+                    </div>
+                  </>
+                )}
               </div>
             </>
           )}
         </div>
 
         {/* Professional Footer */}
-        <DialogFooter className="px-6 py-3 border-t flex items-center justify-between bg-card/50">
+        <DialogFooter className="px-4 py-2.5 border-t flex items-center justify-between bg-card/50">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"

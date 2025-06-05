@@ -50,17 +50,17 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({ uiMode
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header with improved spacing and layout following shadcn/ui patterns */}
-      <div className="px-6 py-4 border-b border-border bg-card/50">
+      <div className="px-4 py-2.5 border-b border-border bg-card/50">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 border border-primary/20">
-              <Edit3 className="h-4 w-4 text-primary" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 border border-primary/20">
+              <Edit3 className="h-3.5 w-3.5 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-sm font-semibold text-foreground leading-none" title={selectedCount > 0 ? Array.from(selectedColumns).join(', ') : undefined}>
                 {renderSelectedColumns()}
               </h3>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {selectedCount === 0 ? 'Select columns to configure properties' : 
                  selectedCount === 1 ? 'Configure column properties' : 
                  'Bulk edit column properties'}
@@ -78,11 +78,11 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({ uiMode
 
       {/* Mixed Values Alert with improved styling */}
       {selectedCount > 1 && (
-        <div className="px-6 pt-4">
-          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/20">
-            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <AlertDescription className="text-sm text-amber-800 dark:text-amber-200">
-              Mixed values shown as <span className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded text-xs">~Mixed~</span>. Changes apply to all selected columns.
+        <div className="px-4 pt-2">
+          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/20 py-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
+              Mixed values shown as <span className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 py-0.5 rounded text-xs">~Mixed~</span>. Changes apply to all selected columns.
             </AlertDescription>
           </Alert>
         </div>
@@ -94,13 +94,13 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({ uiMode
         onValueChange={setActiveTab}
         className="flex-1 flex flex-col overflow-hidden"
       >
-        <div className="px-6 pt-4 pb-2">
-          <TabsList className={`grid w-full ${uiMode === 'simple' ? 'grid-cols-3' : 'grid-cols-5'} h-10 bg-muted p-1`}>
+        <div className="px-4 pt-2 pb-1">
+          <TabsList className={`grid w-full ${uiMode === 'simple' ? 'grid-cols-3' : 'grid-cols-5'}`}>
             {tabConfig.map(({ id, label, icon: Icon }) => (
               <TabsTrigger
                 key={id}
                 value={id}
-                className="text-xs gap-1.5 h-8 px-3 font-medium data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+                className="gap-1.5"
               >
                 <Icon className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{label}</span>
@@ -109,22 +109,22 @@ export const PropertyEditorPanel: React.FC<PropertyEditorPanelProps> = ({ uiMode
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-auto">
-          <TabsContent value="general" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
+        <div className="flex-1 overflow-hidden">
+          <TabsContent value="general" className="h-full overflow-auto data-[state=active]:flex data-[state=active]:flex-col">
             <GeneralTab uiMode={uiMode} />
           </TabsContent>
-          <TabsContent value="styling" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
+          <TabsContent value="styling" className="h-full overflow-auto data-[state=active]:flex data-[state=active]:flex-col">
             <StylingTab uiMode={uiMode} />
           </TabsContent>
-          <TabsContent value="formatters" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
+          <TabsContent value="formatters" className="h-full overflow-auto data-[state=active]:flex data-[state=active]:flex-col">
             <FormatTab uiMode={uiMode} />
           </TabsContent>
           {uiMode === 'advanced' && (
             <>
-              <TabsContent value="filters" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
+              <TabsContent value="filters" className="h-full overflow-auto data-[state=active]:flex data-[state=active]:flex-col">
                 <FiltersTab />
               </TabsContent>
-              <TabsContent value="editors" className="h-full mt-0 data-[state=active]:flex data-[state=active]:flex-col">
+              <TabsContent value="editors" className="h-full overflow-auto data-[state=active]:flex data-[state=active]:flex-col">
                 <EditorsTab />
               </TabsContent>
             </>
