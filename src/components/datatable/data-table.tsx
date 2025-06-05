@@ -9,6 +9,7 @@ import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustom
 import { useProfileStore, useActiveProfile, GridProfile } from '@/stores/profile.store';
 import { DebugProfile } from './debug-profile';
 import { profileOptimizer } from '@/lib/profile-optimizer';
+import { createCellStyleFunction } from './utils/formatters';
 import './alignment-styles.css';
 import './format-styles.css';
 import './profile-transitions.css';
@@ -35,6 +36,57 @@ function setDarkMode(enabled: boolean) {
 // Initialize AG Grid with dark mode by default
 setDarkMode(true);
 
+/**
+ * Check if a format string contains conditional styling that requires a cellStyle function
+ */
+function hasConditionalStyling(formatString: string): boolean {
+  if (!formatString || !formatString.includes('[')) return false;
+  
+  return (
+    // Basic conditional colors
+    formatString.toLowerCase().includes('[green]') || 
+    formatString.toLowerCase().includes('[red]') || 
+    formatString.toLowerCase().includes('[blue]') || 
+    formatString.toLowerCase().includes('[yellow]') || 
+    formatString.toLowerCase().includes('[orange]') || 
+    formatString.toLowerCase().includes('[purple]') || 
+    formatString.toLowerCase().includes('[gray]') || 
+    formatString.toLowerCase().includes('[grey]') || 
+    formatString.toLowerCase().includes('[magenta]') || 
+    formatString.toLowerCase().includes('[cyan]') || 
+    // Conditions
+    formatString.includes('[>') || 
+    formatString.includes('[<') || 
+    formatString.includes('[=') || 
+    formatString.includes('[#') || // Hex colors
+    formatString.includes('[@=') || // Text equality 
+    formatString.includes('[<>') ||
+    // Extended styling directives
+    formatString.includes('Weight:') ||
+    formatString.includes('FontWeight:') ||
+    formatString.includes('Background:') ||
+    formatString.includes('BG:') ||
+    formatString.includes('Border:') ||
+    formatString.includes('B:') ||
+    formatString.includes('Size:') ||
+    formatString.includes('FontSize:') ||
+    formatString.includes('Align:') ||
+    formatString.includes('TextAlign:') ||
+    formatString.includes('Padding:') ||
+    formatString.includes('P:') ||
+    // Keyword styles
+    formatString.includes('[Bold]') ||
+    formatString.includes('[Italic]') ||
+    formatString.includes('[Underline]') ||
+    formatString.includes('[Strikethrough]') ||
+    formatString.includes('[Center]') ||
+    formatString.includes('[Left]') ||
+    formatString.includes('[Right]')
+  );
+}
+
+
+
 export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const gridRef = useRef<AgGridReact>(null);
   const { theme: currentTheme } = useTheme();
@@ -54,6 +106,61 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Keep track of column definitions with styles since AG-Grid doesn't return them
   const columnDefsWithStylesRef = useRef<ColumnDef[]>([]);
   
+  // Helper function to ensure cellStyle is created for conditional formatting
+  const ensureCellStyleForColumns = (columns: ColumnDef[]): ColumnDef[] => {
+    return columns.map(col => {
+      // Check if valueFormatter has conditional styling that needs cellStyle
+      if (col.valueFormatter && typeof col.valueFormatter === 'function') {
+        const formatString = (col.valueFormatter as any).__formatString;
+        
+        if (formatString && hasConditionalStyling(formatString)) {
+          // Check if cellStyle needs to be created or updated
+          const needsCellStyle = !col.cellStyle || 
+                                (typeof col.cellStyle === 'function' && 
+                                 (col.cellStyle as any).__formatString !== formatString);
+          
+          if (needsCellStyle) {
+            console.log('[DataTable] Creating cellStyle for conditional formatting:', {
+              field: col.field,
+              formatString,
+              hasExistingCellStyle: !!col.cellStyle
+            });
+            
+            // Get base styles if any
+            let baseStyle = {};
+            if (col.cellStyle) {
+              if (typeof col.cellStyle === 'object') {
+                baseStyle = col.cellStyle;
+              } else if (typeof col.cellStyle === 'function' && (col.cellStyle as any).__baseStyle) {
+                baseStyle = (col.cellStyle as any).__baseStyle;
+              }
+            }
+            
+            // Create cellStyle function with proper base style merging
+            const cellStyleFn = createCellStyleFunction(formatString, baseStyle);
+            
+            // Attach metadata for future serialization
+            Object.defineProperty(cellStyleFn, '__formatString', { 
+              value: formatString, 
+              writable: false,
+              enumerable: false,
+              configurable: true
+            });
+            Object.defineProperty(cellStyleFn, '__baseStyle', { 
+              value: baseStyle, 
+              writable: false,
+              enumerable: false,
+              configurable: true
+            });
+            
+            return { ...col, cellStyle: cellStyleFn };
+          }
+        }
+      }
+      return col;
+    });
+  };
+
   const [currentColumnDefs, setCurrentColumnDefs] = useState<ColumnDef[]>(() => {
     // Try to get column definitions from profile (will use lightweight format if available)
     const savedColumnDefs = getColumnDefs();
@@ -76,14 +183,19 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         }))
       });
       
+      // Ensure cellStyle functions are created for conditional formatting
+      const processedColumnDefs = ensureCellStyleForColumns(savedColumnDefs as ColumnDef[]);
+      
       // Initialize the ref
-      columnDefsWithStylesRef.current = savedColumnDefs as ColumnDef[];
-      return savedColumnDefs as ColumnDef[];
+      columnDefsWithStylesRef.current = processedColumnDefs;
+      return processedColumnDefs;
     }
     
     console.log('[DataTable] Initializing with default columnDefs');
-    columnDefsWithStylesRef.current = columnDefs;
-    return columnDefs;
+    // Ensure cellStyle functions are created for conditional formatting
+    const processedColumnDefs = ensureCellStyleForColumns(columnDefs);
+    columnDefsWithStylesRef.current = processedColumnDefs;
+    return processedColumnDefs;
   });
   // Fixed spacing value of 6 (normal)
   const gridSpacing = 6;
@@ -184,7 +296,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       "paste",
       "separator",
       "export",
-    ] as string[];
+    ];
   }, []);
 
   // Excel export configuration
@@ -237,13 +349,16 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         columnCount: profileColumnDefs.length
       });
       
-      setCurrentColumnDefs(profileColumnDefs as ColumnDef[]);
-      columnDefsWithStylesRef.current = profileColumnDefs as ColumnDef[];
+      // Ensure cellStyle functions are created for conditional formatting
+      const processedDefs = ensureCellStyleForColumns(profileColumnDefs as ColumnDef[]);
+      setCurrentColumnDefs(processedDefs);
+      columnDefsWithStylesRef.current = processedDefs;
     } else {
       // Reset to original column definitions if profile has none
       console.log('[DataTable] Resetting to original columnDefs');
-      setCurrentColumnDefs(columnDefs);
-      columnDefsWithStylesRef.current = columnDefs;
+      const processedDefs = ensureCellStyleForColumns(columnDefs);
+      setCurrentColumnDefs(processedDefs);
+      columnDefsWithStylesRef.current = processedDefs;
     }
     
     // Apply font from profile or reset to default
@@ -291,18 +406,27 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       });
       
       // Merge the customizations with existing column definitions
-      const mergedColumns = updatedColumns.map(updatedCol => {
+      // Also ensure cellStyle functions are created for conditional formatting
+      const mergedColumns = ensureCellStyleForColumns(updatedColumns.map(updatedCol => {
         const field = updatedCol.field || updatedCol.colId;
         const currentCol = currentColMap.get(field);
         
         if (currentCol) {
-          // Log what's happening with styles
-          if (field === 'dailyPnL' || field === 'positionId') {
-            console.log(`[DataTable] Column ${field} style update:`, {
-              currentCellStyle: currentCol.cellStyle,
-              updatedCellStyle: updatedCol.cellStyle,
-              currentHeaderStyle: currentCol.headerStyle,
-              updatedHeaderStyle: updatedCol.headerStyle
+          // Enhanced logging for debugging style application
+          const hasCellStyle = updatedCol.cellStyle !== undefined;
+          const hasValueFormatter = updatedCol.valueFormatter !== undefined;
+          
+          if (hasCellStyle || hasValueFormatter) {
+            console.log(`[DataTable] Column ${field} style/formatter update:`, {
+              field,
+              hasCellStyle,
+              cellStyleType: typeof updatedCol.cellStyle,
+              hasFormatString: typeof updatedCol.cellStyle === 'function' && !!(updatedCol.cellStyle as any).__formatString,
+              formatString: typeof updatedCol.cellStyle === 'function' ? (updatedCol.cellStyle as any).__formatString : undefined,
+              hasBaseStyle: typeof updatedCol.cellStyle === 'function' && !!(updatedCol.cellStyle as any).__baseStyle,
+              hasValueFormatter,
+              valueFormatterType: typeof updatedCol.valueFormatter,
+              valueFormatterFormatString: typeof updatedCol.valueFormatter === 'function' ? (updatedCol.valueFormatter as any).__formatString : undefined
             });
           }
           
@@ -313,7 +437,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         
         // If column not found in current state, return as is
         return updatedCol;
-      });
+      }));
       
       // Apply the merged column definitions
       gridApiRef.current.setGridOption('columnDefs', mergedColumns);
@@ -332,9 +456,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       // Update the currentColumnDefs state to ensure consistency
       setCurrentColumnDefs(mergedColumns);
       
-      // Force complete grid refresh to ensure all styles are cleared
-      // This is more aggressive but ensures styles are properly updated
-      gridApiRef.current.setGridOption('columnDefs', []);
+      // Apply the merged column definitions directly without clearing first
+      // This preserves cellStyle functions and other column properties
       gridApiRef.current.setGridOption('columnDefs', mergedColumns);
       
       // Force header refresh to ensure styles are applied
@@ -456,8 +579,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           }}
           getContextMenuItems={getContextMenuItems}
           onGridReady={async (params) => {
-            perfMonitor.mark('grid-ready');
-            perfMonitor.measureFromStart('gridInitTime');
+                // perfMonitor.mark('grid-ready');
+    // perfMonitor.measureFromStart('gridInitTime');
             
             gridApiRef.current = params.api;
             
@@ -490,7 +613,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
                 setSelectedFont(activeProfile.gridState.font);
               }
               
-              perfMonitor.measureFromStart('gridFullyLoadedTime');
+              // perfMonitor.measureFromStart('gridFullyLoadedTime');
             } else {
               console.log('[DataTable] No active profile or gridState to apply');
             }

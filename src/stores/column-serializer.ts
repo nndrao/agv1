@@ -1,6 +1,79 @@
 import { ColDef } from 'ag-grid-community';
-import { ColumnDef } from '@/components/datatable/data-table';
 import { createExcelFormatter, createCellStyleFunction } from '@/components/datatable/utils/formatters';
+
+// Minimal types for visual formatter data (to avoid circular imports)
+interface SerializedFormattingRule {
+  id: string;
+  condition: {
+    type: 'equals' | 'contains' | 'startsWith' | 'endsWith' | 'greaterThan' | 'lessThan' | 'greaterEqual' | 'lessEqual' | 'between' | 'isEmpty' | 'isNotEmpty';
+    value: string;
+    value2?: string;
+  };
+  display: {
+    type: 'text' | 'original' | 'custom';
+    text: string;
+  };
+  styling: {
+    backgroundColor?: string;
+    textColor?: string;
+    fontSize?: number;
+    fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
+    fontStyle?: 'normal' | 'italic';
+    textDecoration?: 'none' | 'underline' | 'line-through';
+    textAlign?: 'left' | 'center' | 'right';
+    border?: {
+      width: number;
+      style: 'solid' | 'dashed' | 'dotted' | 'double';
+      color: string;
+      sides: {
+        top: boolean;
+        right: boolean;
+        bottom: boolean;
+        left: boolean;
+      };
+    };
+    padding?: {
+      top: number;
+      right: number;
+      bottom: number;
+      left: number;
+    };
+  };
+  enabled: boolean;
+}
+
+interface SerializedDefaultFallback {
+  display: {
+    type: 'original' | 'text';
+    text: string;
+  };
+  styling: {
+    backgroundColor?: string;
+    textColor?: string;
+    fontSize?: number;
+    fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
+    fontStyle?: 'normal' | 'italic';
+    textDecoration?: 'none' | 'underline' | 'line-through';
+    textAlign?: 'left' | 'center' | 'right';
+    border?: {
+      width: number;
+      style: 'solid' | 'dashed' | 'dotted' | 'double';
+      color: string;
+      sides: {
+        top: boolean;
+        right: boolean;
+        bottom: boolean;
+        left: boolean;
+      };
+    };
+    padding?: {
+      top: number;
+      right: number;
+      bottom: number;
+      left: number;
+    };
+  };
+}
 
 // Type for serialized column customizations
 export interface ColumnCustomization {
@@ -48,8 +121,11 @@ export interface ColumnCustomization {
   
   // Formatters (metadata only)
   valueFormatter?: {
-    type: 'excel' | 'custom';
+    type: 'excel' | 'visual' | 'custom';
     formatString?: string;
+    // Visual editor data (for full round-trip editing)
+    rules?: SerializedFormattingRule[];
+    defaultFallback?: SerializedDefaultFallback;
   };
   
   // Cell data type
@@ -216,25 +292,62 @@ function extractCustomizations(col: ColDef, baseCol?: ColDef): ColumnCustomizati
   
   // Value formatter
   if (col.valueFormatter) {
+    console.log('[ColumnSerializer] Processing valueFormatter for field:', col.field, {
+      type: typeof col.valueFormatter,
+      isFunction: typeof col.valueFormatter === 'function'
+    });
+    
     if (typeof col.valueFormatter === 'function') {
       const formatString = (col.valueFormatter as any).__formatString;
       const formatterType = (col.valueFormatter as any).__formatterType;
+      const visualRules = (col.valueFormatter as any).__visualRules;
+      const visualDefaultFallback = (col.valueFormatter as any).__visualDefaultFallback;
+      
+      console.log('[ColumnSerializer] Function formatter metadata:', {
+        field: col.field,
+        hasFormatString: !!formatString,
+        formatString: formatString,
+        formatterType: formatterType,
+        hasVisualRules: !!visualRules,
+        hasDefaultFallback: !!visualDefaultFallback
+      });
       
       if (formatString) {
         customization.valueFormatter = {
           type: formatterType || 'excel',
-          formatString
+          formatString,
+          // Include visual editor data if available
+          ...(visualRules && { rules: visualRules }),
+          ...(visualDefaultFallback && { defaultFallback: visualDefaultFallback })
         };
+        console.log('[ColumnSerializer] ✅ Serialized formatter for field:', col.field);
+      } else {
+        console.warn('[ColumnSerializer] ⚠️ Formatter function has no __formatString metadata for field:', col.field);
+        // Try to serialize as custom formatter without format string
+        customization.valueFormatter = {
+          type: 'custom',
+          formatString: `// Custom formatter function for ${col.field}\n// (Function body not serializable)`
+        };
+        console.log('[ColumnSerializer] ⚠️ Serialized as custom formatter without metadata for field:', col.field);
       }
     } else if (typeof col.valueFormatter === 'object') {
       // Handle saved formatter config
-      const config = col.valueFormatter as any;
+      const config = col.valueFormatter as Record<string, unknown>;
+      console.log('[ColumnSerializer] Object formatter config:', config);
+      
       if (config._isFormatterConfig) {
         customization.valueFormatter = {
-          type: config.type,
-          formatString: config.formatString
+          type: (config.type as 'excel' | 'visual' | 'custom') || 'excel',
+          formatString: config.formatString as string,
+          ...(config.rules && { rules: config.rules as SerializedFormattingRule[] }),
+          ...(config.defaultFallback && { defaultFallback: config.defaultFallback as SerializedDefaultFallback })
         };
+        console.log('[ColumnSerializer] ✅ Serialized object formatter for field:', col.field);
+      } else {
+        console.warn('[ColumnSerializer] ⚠️ Object formatter is not a recognized config for field:', col.field);
       }
+    } else {
+      console.warn('[ColumnSerializer] ⚠️ Unknown formatter type for field:', col.field, typeof col.valueFormatter);
     }
   }
   
@@ -278,6 +391,109 @@ export function serializeColumnCustomizations(
   });
   
   return customizations;
+}
+
+/**
+ * Check if a format string contains conditional styling that requires a cellStyle function
+ */
+function hasConditionalStyling(formatString: string): boolean {
+  if (!formatString || !formatString.includes('[')) return false;
+  
+  return (
+    // Basic conditional colors
+    formatString.toLowerCase().includes('[green]') || 
+    formatString.toLowerCase().includes('[red]') || 
+    formatString.toLowerCase().includes('[blue]') || 
+    formatString.toLowerCase().includes('[yellow]') || 
+    formatString.toLowerCase().includes('[orange]') || 
+    formatString.toLowerCase().includes('[purple]') || 
+    formatString.toLowerCase().includes('[gray]') || 
+    formatString.toLowerCase().includes('[grey]') || 
+    formatString.toLowerCase().includes('[magenta]') || 
+    formatString.toLowerCase().includes('[cyan]') || 
+    // Conditions
+    formatString.includes('[>') || 
+    formatString.includes('[<') || 
+    formatString.includes('[=') || 
+    formatString.includes('[#') || // Hex colors
+    formatString.includes('[@=') || // Text equality 
+    formatString.includes('[<>') ||
+    // Extended styling directives
+    formatString.includes('Weight:') ||
+    formatString.includes('FontWeight:') ||
+    formatString.includes('Background:') ||
+    formatString.includes('BG:') ||
+    formatString.includes('Border:') ||
+    formatString.includes('B:') ||
+    formatString.includes('Size:') ||
+    formatString.includes('FontSize:') ||
+    formatString.includes('Align:') ||
+    formatString.includes('TextAlign:') ||
+    formatString.includes('Padding:') ||
+    formatString.includes('P:') ||
+    // Keyword styles
+    formatString.includes('[Bold]') ||
+    formatString.includes('[Italic]') ||
+    formatString.includes('[Underline]') ||
+    formatString.includes('[Strikethrough]') ||
+    formatString.includes('[Center]') ||
+    formatString.includes('[Left]') ||
+    formatString.includes('[Right]')
+  );
+}
+
+/**
+ * Ensure a column has a cellStyle function if its valueFormatter has conditional styling
+ */
+function ensureCellStyleForConditionalFormatting(merged: ColDef, custom: ColumnCustomization): void {
+  // Check if valueFormatter has conditional styling
+  if (merged.valueFormatter && typeof merged.valueFormatter === 'function') {
+    const formatString = (merged.valueFormatter as any).__formatString;
+    
+    if (formatString && hasConditionalStyling(formatString)) {
+      // Check if cellStyle already exists and is properly configured
+      if (!merged.cellStyle || 
+          (typeof merged.cellStyle === 'function' && 
+           (merged.cellStyle as any).__formatString !== formatString)) {
+        
+        console.log('[ColumnSerializer] Creating cellStyle for conditional formatting:', {
+          field: merged.field,
+          formatString,
+          hasExistingCellStyle: !!merged.cellStyle,
+          existingCellStyleType: typeof merged.cellStyle
+        });
+        
+        // Extract base style if it exists
+        let baseStyle: React.CSSProperties = {};
+        if (merged.cellStyle) {
+          if (typeof merged.cellStyle === 'object') {
+            baseStyle = merged.cellStyle;
+          } else if (typeof merged.cellStyle === 'function' && (merged.cellStyle as any).__baseStyle) {
+            baseStyle = (merged.cellStyle as any).__baseStyle;
+          }
+        }
+        
+        // Create cellStyle function
+        const styleFunc = createCellStyleFunction(formatString, baseStyle);
+        
+        // Attach metadata for future serialization
+        Object.defineProperty(styleFunc, '__formatString', { 
+          value: formatString, 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(styleFunc, '__baseStyle', { 
+          value: baseStyle, 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        
+        merged.cellStyle = styleFunc;
+      }
+    }
+  }
 }
 
 /**
@@ -388,12 +604,34 @@ export function deserializeColumnCustomizations(
     
     // Apply value formatter
     if (custom.valueFormatter && custom.valueFormatter.formatString) {
-      if (custom.valueFormatter.type === 'excel') {
+      if (custom.valueFormatter.type === 'excel' || custom.valueFormatter.type === 'visual') {
         console.log('[ColumnSerializer] Recreating formatter for field:', field, {
           formatString: custom.valueFormatter.formatString,
-          type: custom.valueFormatter.type
+          type: custom.valueFormatter.type,
+          hasRules: !!custom.valueFormatter.rules,
+          hasDefaultFallback: !!custom.valueFormatter.defaultFallback
         });
         const formatter = createExcelFormatter(custom.valueFormatter.formatString);
+        
+        // Attach visual editor metadata if available
+        if (custom.valueFormatter.rules) {
+          Object.defineProperty(formatter, '__visualRules', { 
+            value: custom.valueFormatter.rules, 
+            writable: false,
+            enumerable: false,
+            configurable: true
+          });
+        }
+        
+        if (custom.valueFormatter.defaultFallback) {
+          Object.defineProperty(formatter, '__visualDefaultFallback', { 
+            value: custom.valueFormatter.defaultFallback, 
+            writable: false,
+            enumerable: false,
+            configurable: true
+          });
+        }
+        
         merged.valueFormatter = formatter;
         // Value formatter will be used for export automatically
       }
@@ -411,6 +649,9 @@ export function deserializeColumnCustomizations(
     if (custom.pivot !== undefined) merged.pivot = custom.pivot;
     if (custom.aggFunc !== undefined) merged.aggFunc = custom.aggFunc;
     if (custom.cellClassRules !== undefined) merged.cellClassRules = custom.cellClassRules;
+    
+    // Ensure cellStyle is created if valueFormatter has conditional styling
+    ensureCellStyleForConditionalFormatting(merged, custom);
     
     return merged;
   });

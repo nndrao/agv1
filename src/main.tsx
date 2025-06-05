@@ -7,7 +7,7 @@ import './index.css';
 import { perfMonitor } from './lib/performance-monitor';
 
 // Mark app start
-perfMonitor.mark('app-start');
+// perfMonitor.mark('app-start');
 
 // Defer non-critical imports
 if ('requestIdleCallback' in window) {
@@ -25,7 +25,7 @@ if ('requestIdleCallback' in window) {
 }
 
 const root = document.getElementById('root')!;
-perfMonitor.mark('render-start');
+  // perfMonitor.mark('render-start');
 
 createRoot(root).render(
   <StrictMode>
@@ -36,4 +36,4 @@ createRoot(root).render(
   </StrictMode>
 );
 
-perfMonitor.measureFromStart('firstRenderTime');
+    // perfMonitor.measureFromStart('firstRenderTime');

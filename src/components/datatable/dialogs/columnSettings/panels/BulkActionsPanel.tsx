@@ -595,16 +595,13 @@ export const BulkActionsPanel: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Fixed header section */}
-      <div className="px-4 py-3 border-b bg-card/50">
+      {/* Compact header section */}
+      <div className="px-4 py-2 border-b bg-card/50">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
           Templates
         </h3>
-        <p className="text-xs text-muted-foreground">
-          Save and apply column configurations
-        </p>
         {selectedColumns.size > 1 && (
-          <Alert className="mt-2">
+          <Alert className="mt-1">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-xs">
               Select only one column to save as a template
@@ -613,9 +610,9 @@ export const BulkActionsPanel: React.FC = () => {
         )}
       </div>
 
-      {/* Scrollable content area */}
+      {/* Scrollable content area - expanded */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="p-4">
+        <div className="p-3">
           {/* Template Selection */}
           {!hasTemplates ? (
             <div className="px-3 py-4 text-center text-xs text-muted-foreground border rounded-md bg-muted/20">
@@ -623,10 +620,10 @@ export const BulkActionsPanel: React.FC = () => {
               <p className="text-xs opacity-70">Save current settings as a template</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-muted-foreground">
-                  Select templates ({selectedTemplateIds.length} selected)
+                  {selectedTemplateIds.length} selected
                 </div>
                 <div className="flex gap-1">
                   <Button
@@ -650,13 +647,13 @@ export const BulkActionsPanel: React.FC = () => {
                 </div>
               </div>
               
-              {/* Template list - this is the only scrollable area */}
-              <div className="max-h-64 overflow-y-auto border rounded-lg bg-background">
+              {/* Template list - expanded height */}
+              <div className="max-h-80 overflow-y-auto border rounded-lg bg-background">
                 <div className="p-2 space-y-1">
                   {templates.map((template) => (
                     <div 
                       key={template.id} 
-                      className={`group flex items-center gap-3 p-3 rounded-md border transition-all hover:bg-muted/50 ${
+                      className={`group flex items-center gap-3 p-2 rounded-md border transition-all hover:bg-muted/50 ${
                         selectedTemplateIds.includes(template.id) 
                           ? 'bg-muted/30 border-primary/20' 
                           : 'border-transparent hover:border-border'
@@ -703,7 +700,7 @@ export const BulkActionsPanel: React.FC = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 w-7 p-0"
+                            className="h-6 w-6 p-0"
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingTemplateId(template.id);
@@ -717,7 +714,7 @@ export const BulkActionsPanel: React.FC = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive"
                             onClick={(e) => {
                               e.stopPropagation();
                               setTemplateToDelete(template.id);
@@ -738,94 +735,59 @@ export const BulkActionsPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Fixed footer section with all action buttons */}
-      <div className="border-t bg-card/50 p-4 space-y-4">
-        {/* Apply Templates Button */}
-        <div>
+      {/* Compact footer section with horizontal layouts */}
+      <div className="border-t bg-card/50 p-3 space-y-3">
+        {/* Apply Templates Button - full width */}
+        <Button
+          variant="default"
+          size="sm"
+          className="w-full h-8 text-sm gap-2"
+          onClick={applyTemplate}
+          disabled={!selectedTemplateIds.length}
+          title={selectedTemplateIds.length ? `Apply ${selectedTemplateIds.length} template${selectedTemplateIds.length !== 1 ? 's' : ''}` : "Select templates to apply"}
+        >
+          <Copy className="h-4 w-4" />
+          Apply Templates {selectedTemplateIds.length > 0 && `(${selectedTemplateIds.length})`}
+        </Button>
+
+        {/* Action buttons - horizontal layout */}
+        <div className="flex gap-2">
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
-            className="w-full h-9 text-sm gap-2"
-            onClick={applyTemplate}
-            disabled={!selectedTemplateIds.length}
-            title={selectedTemplateIds.length ? `Apply ${selectedTemplateIds.length} template${selectedTemplateIds.length !== 1 ? 's' : ''}` : "Select templates to apply"}
+            className="flex-1 h-8 text-sm gap-1"
+            onClick={() => {
+              setEditingTemplateId('');
+              setTemplateName('');
+              setShowSaveDialog(true);
+            }}
+            disabled={!canSaveTemplate}
+            title={!canSaveTemplate ? "Select only one column to save as template" : "Save current column as template"}
           >
-            <Copy className="h-4 w-4" />
-            Apply Templates {selectedTemplateIds.length > 0 && `(${selectedTemplateIds.length})`}
+            <Save className="h-3 w-3" />
+            Save New
           </Button>
-        </div>
-
-        {/* Template Management */}
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 h-8 text-sm gap-2"
-              onClick={() => {
-                setEditingTemplateId('');
-                setTemplateName('');
-                setShowSaveDialog(true);
-              }}
-              disabled={!canSaveTemplate}
-              title={!canSaveTemplate ? "Select only one column to save as template" : "Save current column as template"}
-            >
-              <Save className="h-3.5 w-3.5" />
-              Save New
-            </Button>
-            {selectedTemplateIds.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-sm gap-2"
-                onClick={() => setSelectedTemplateIds([])}
-                title="Clear template selection"
-              >
-                Clear Selection
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Clear All */}
-        <div className="pt-2 border-t">
-          <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
-            Reset
-          </h4>
           <Button
             variant="destructive"
             size="sm"
-            className="w-full h-8 text-sm gap-2"
+            className="flex-1 h-8 text-sm gap-1"
             onClick={clearSelectedCustomizations}
             disabled={isDisabled}
           >
-            <Eraser className="h-3.5 w-3.5" />
+            <Eraser className="h-3 w-3" />
             Clear Selected
           </Button>
         </div>
 
-        {/* Status */}
-        <div className="pt-2 border-t">
-          <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
-            Status
-          </h4>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center justify-between p-2 rounded bg-muted/30">
-              <span className="text-muted-foreground">Selected</span>
-              <span className="font-medium">{selectedColumns.size}</span>
-            </div>
-            <div className="flex items-center justify-between p-2 rounded bg-muted/30">
-              <span className="text-muted-foreground">Changes</span>
-              <span className="font-medium">{changeCount}</span>
-            </div>
-            <div className="flex items-center justify-between p-2 rounded bg-blue-50 dark:bg-blue-950/20">
-              <span className="text-muted-foreground">System</span>
-              <span className="font-medium">{SYSTEM_TEMPLATES.length}</span>
-            </div>
-            <div className="flex items-center justify-between p-2 rounded bg-muted/30">
-              <span className="text-muted-foreground">User</span>
-              <span className="font-medium">{userTemplates.length}</span>
-            </div>
+        {/* Compact status grid */}
+        <div className="grid grid-cols-2 gap-1 text-xs">
+          <div className="flex items-center justify-between p-1.5 rounded bg-muted/30">
+            <span className="text-muted-foreground">Selected</span>
+            <span className="font-medium">{selectedColumns.size}</span>
+          </div>
+          <div className="flex items-center justify-between p-1.5 rounded bg-muted/30">
+            <span className="text-muted-foreground">Changes</span>
+            <span className="font-medium">{changeCount}</span>
           </div>
         </div>
       </div>

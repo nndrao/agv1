@@ -4,7 +4,7 @@ import { perfMonitor } from '@/lib/performance-monitor';
 
 // Lazy load AG-Grid modules
 const loadAgGridModules = () => {
-  perfMonitor.mark('ag-grid-load-start');
+  // perfMonitor.mark('ag-grid-load-start');
   
   return Promise.all([
     import('ag-grid-community'),
@@ -14,8 +14,8 @@ const loadAgGridModules = () => {
     // Register modules
     community.ModuleRegistry.registerModules([enterprise.AllEnterpriseModule]);
     
-    perfMonitor.mark('ag-grid-load-end');
-    perfMonitor.measure('agGridLoadTime', 'ag-grid-load-start', 'ag-grid-load-end');
+    // perfMonitor.mark('ag-grid-load-end');
+    // perfMonitor.measure('agGridLoadTime', 'ag-grid-load-start', 'ag-grid-load-end');
     
     return {
       ...community,
@@ -80,11 +80,11 @@ export const GridSkeleton = () => {
 
 // Export the lazy-loaded DataTable
 export const LazyDataTable = lazy(() => {
-  perfMonitor.mark('datatable-import-start');
+  // perfMonitor.mark('datatable-import-start');
   
   return import('./data-table').then(module => {
-    perfMonitor.mark('datatable-import-end');
-    perfMonitor.measure('dataTableImportTime', 'datatable-import-start', 'datatable-import-end');
+    // perfMonitor.mark('datatable-import-end');
+    // perfMonitor.measure('dataTableImportTime', 'datatable-import-start', 'datatable-import-end');
     
     return {
       default: module.DataTable
