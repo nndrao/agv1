@@ -243,7 +243,7 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode = 'simple' }) => {
       id: 'conditional-color', 
       name: 'Conditional Color', 
       icon: Palette, 
-      format: '[&gt;0][Green]#,##0.00;[&lt;0][Red]#,##0.00;0.00', 
+      format: '[>0][Green]#,##0.00;[<0][Red]#,##0.00;0.00', 
       description: 'Green for positive, red for negative',
       dataTypes: ['number', 'numericColumn']
     },
@@ -251,7 +251,7 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode = 'simple' }) => {
       id: 'traffic-light', 
       name: 'Traffic Light', 
       icon: Sparkles, 
-      format: '[&gt;=90]"🟢 "#0;[&gt;=70]"🟡 "#0;"🔴 "#0', 
+      format: '[>=90]"🟢 "#0;[>=70]"🟡 "#0;"🔴 "#0', 
       description: 'Colored indicators based on value',
       dataTypes: ['number', 'numericColumn']
     },
@@ -259,7 +259,7 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode = 'simple' }) => {
       id: 'arrows', 
       name: 'Arrows', 
       icon: ArrowUp, 
-      format: '[&gt;0]"↑ "#,##0.00;[&lt;0]"↓ "#,##0.00;"-"', 
+      format: '[>0]"↑ "#,##0.00;[<0]"↓ "#,##0.00;"-"', 
       description: 'Up/down arrows for positive/negative',
       dataTypes: ['number', 'numericColumn']
     }

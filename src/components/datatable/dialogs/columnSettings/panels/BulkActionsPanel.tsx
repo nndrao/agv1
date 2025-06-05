@@ -656,7 +656,7 @@ export const BulkActionsPanel: React.FC = () => {
                   {templates.map((template) => (
                     <div 
                       key={template.id} 
-                      className={`group flex items-center gap-3 p-3 rounded-md border transition-all hover:bg-muted/50 ${
+                      className={`group/menu-item relative flex items-center gap-3 p-3 rounded-md border transition-all hover:bg-muted/50 ${
                         selectedTemplateIds.includes(template.id) 
                           ? 'bg-muted/30 border-primary/20' 
                           : 'border-transparent hover:border-border'
@@ -699,7 +699,7 @@ export const BulkActionsPanel: React.FC = () => {
                       </div>
                       
                       {!template.isSystem && (
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1 opacity-0 group-hover/menu-item:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
                             size="sm"
