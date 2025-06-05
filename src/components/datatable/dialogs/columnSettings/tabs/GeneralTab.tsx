@@ -73,7 +73,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
             title="Basic Properties"
             description="Essential column settings"
             defaultExpanded={true}
-            badge={selectedColumns.size > 1 && <Badge variant="secondary" className="text-xs">Bulk Edit</Badge>}
+            badge={selectedColumns.size > 1 && <Badge variant="secondary\" className="text-xs">Bulk Edit</Badge>}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
