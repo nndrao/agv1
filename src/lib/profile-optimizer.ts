@@ -1,7 +1,6 @@
-import { ColDef, ColumnState, FilterModel, SortModelItem, GridApi } from 'ag-grid-community';
+import { ColDef, ColumnState, SortModelItem, GridApi } from 'ag-grid-community';
 import { GridProfile } from '@/stores/profile.store';
 import { deserializeColumnCustomizations } from '@/stores/column-serializer';
-import { perfMonitor } from './performance-monitor';
 import { createExcelFormatter } from '@/components/datatable/utils/formatters';
 
 interface ProfileCache {
@@ -384,7 +383,7 @@ class ProfileOptimizer {
     this.updateFrameId = null;
   }
   
-  private showTransitionEffect(gridApi: GridApi) {
+  private showTransitionEffect(_gridApi: GridApi) {
     // Get the grid wrapper element
     const gridElement = document.querySelector('.ag-root-wrapper') as HTMLElement;
     if (!gridElement) return;

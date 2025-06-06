@@ -1,6 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { perfMonitor } from '@/lib/performance-monitor';
 
 // Lazy load AG-Grid modules
 const loadAgGridModules = () => {

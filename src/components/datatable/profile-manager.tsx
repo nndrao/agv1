@@ -44,11 +44,11 @@ import {
   useProfiles,
   GridProfile 
 } from '@/stores/profile.store';
-import { GridApi, ColDef, ColumnState } from 'ag-grid-community';
+import { GridApi, ColDef } from 'ag-grid-community';
 import { profileOptimizer } from '@/lib/profile-optimizer';
 
 // Interface for style configurations
-interface HeaderStyleConfig {
+interface _HeaderStyleConfig {
   _isHeaderStyleConfig: boolean;
   regular?: React.CSSProperties;
   floating?: React.CSSProperties;
@@ -102,7 +102,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
   }, [profiles]);
 
   // Function to apply profile states in sequence
-  const applyProfileStates = (gridApi: GridApi, gridState: GridProfile['gridState'], profileName: string) => {
+  const _applyProfileStates = (gridApi: GridApi, gridState: GridProfile['gridState'], profileName: string) => {
     // console.log('[ProfileManager] Applying profile states in sequence');
     
     // 1. Apply column state first
@@ -120,7 +120,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       });
       
       // Verify column state was applied
-      const newState = gridApi.getColumnState();
+      const _newState = gridApi.getColumnState();
       // console.log('[ProfileManager] Column state after apply:', {
       //   totalColumns: newState.length,
       //   visibleColumns: newState.filter(col => !col.hide).length,
@@ -221,8 +221,8 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
           previousProfileRef.current,
           {
             showTransition: true,
-            onProgress: (progress) => {
-              // console.log(`[ProfileManager] Profile switch progress: ${Math.round(progress * 100)}%`);
+            onProgress: (_progress) => {
+              // console.log(`[ProfileManager] Profile switch progress: ${Math.round(_progress * 100)}%`);
             }
           }
         );
@@ -278,8 +278,8 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     const columnDefs = getColumnDefsWithStyles ? getColumnDefsWithStyles() : gridApi.getColumnDefs() || [];
     
     // Debug: Check if headerStyle exists in column definitions
-    const columnsWithHeaderStyle = columnDefs.filter(col => col.headerStyle);
-    const columnsWithCellStyle = columnDefs.filter(col => col.cellStyle);
+    const _columnsWithHeaderStyle = columnDefs.filter(col => col.headerStyle);
+    const _columnsWithCellStyle = columnDefs.filter(col => col.cellStyle);
     // console.log('[ProfileManager] Styles from grid:', {
     //   usingStoredRef: !!getColumnDefsWithStyles,
     //   headerStyleCount: columnsWithHeaderStyle.length,

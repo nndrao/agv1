@@ -1,5 +1,6 @@
 import { ColDef } from 'ag-grid-community';
 import { createExcelFormatter, createCellStyleFunction } from '@/components/datatable/utils/formatters';
+import { hasConditionalStyling } from '@/components/datatable/utils/style-utils';
 
 // Minimal types for visual formatter data (to avoid circular imports)
 interface SerializedFormattingRule {
@@ -378,7 +379,7 @@ export function serializeColumnCustomizations(
 ): Record<string, ColumnCustomization> {
   const customizations: Record<string, ColumnCustomization> = {};
   
-  columns.forEach((col, index) => {
+  columns.forEach((col, _index) => {
     if (!col.field) return;
     
     const baseCol = baseColumns?.find(base => base.field === col.field);
@@ -393,59 +394,11 @@ export function serializeColumnCustomizations(
   return customizations;
 }
 
-/**
- * Check if a format string contains conditional styling that requires a cellStyle function
- */
-function hasConditionalStyling(formatString: string): boolean {
-  if (!formatString || !formatString.includes('[')) return false;
-  
-  return (
-    // Basic conditional colors
-    formatString.toLowerCase().includes('[green]') || 
-    formatString.toLowerCase().includes('[red]') || 
-    formatString.toLowerCase().includes('[blue]') || 
-    formatString.toLowerCase().includes('[yellow]') || 
-    formatString.toLowerCase().includes('[orange]') || 
-    formatString.toLowerCase().includes('[purple]') || 
-    formatString.toLowerCase().includes('[gray]') || 
-    formatString.toLowerCase().includes('[grey]') || 
-    formatString.toLowerCase().includes('[magenta]') || 
-    formatString.toLowerCase().includes('[cyan]') || 
-    // Conditions
-    formatString.includes('[>') || 
-    formatString.includes('[<') || 
-    formatString.includes('[=') || 
-    formatString.includes('[#') || // Hex colors
-    formatString.includes('[@=') || // Text equality 
-    formatString.includes('[<>') ||
-    // Extended styling directives
-    formatString.includes('Weight:') ||
-    formatString.includes('FontWeight:') ||
-    formatString.includes('Background:') ||
-    formatString.includes('BG:') ||
-    formatString.includes('Border:') ||
-    formatString.includes('B:') ||
-    formatString.includes('Size:') ||
-    formatString.includes('FontSize:') ||
-    formatString.includes('Align:') ||
-    formatString.includes('TextAlign:') ||
-    formatString.includes('Padding:') ||
-    formatString.includes('P:') ||
-    // Keyword styles
-    formatString.includes('[Bold]') ||
-    formatString.includes('[Italic]') ||
-    formatString.includes('[Underline]') ||
-    formatString.includes('[Strikethrough]') ||
-    formatString.includes('[Center]') ||
-    formatString.includes('[Left]') ||
-    formatString.includes('[Right]')
-  );
-}
 
 /**
  * Ensure a column has a cellStyle function if its valueFormatter has conditional styling
  */
-function ensureCellStyleForConditionalFormatting(merged: ColDef, custom: ColumnCustomization): void {
+function ensureCellStyleForConditionalFormatting(merged: ColDef, _custom: ColumnCustomization): void {
   // Check if valueFormatter has conditional styling
   if (merged.valueFormatter && typeof merged.valueFormatter === 'function') {
     const formatString = (merged.valueFormatter as any).__formatString;

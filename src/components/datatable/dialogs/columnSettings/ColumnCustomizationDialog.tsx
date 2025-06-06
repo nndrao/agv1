@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, memo, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ColumnSelectorPanel } from './panels/ColumnSelectorPanel';
 import { PropertyEditorPanel } from './panels/PropertyEditorPanel';
@@ -91,7 +89,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
       }
     }
     setOpen(open);
-  }, [open, columnDefs, columnState, columnDefinitions.size, setColumnDefinitions, setColumnState, setOpen]);
+  }, [open, columnDefs, columnState, columnDefinitions, setColumnDefinitions, setColumnState, setOpen]);
 
   const selectedCount = selectedColumns.size;
   const totalColumns = columnDefinitions.size;
@@ -107,7 +105,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     
     for (const column of columnDefinitions.values()) {
       for (const prop of customizationProperties) {
-        const value = (column as any)[prop];
+        const value = column[prop as keyof typeof column];
         if (value !== undefined && value !== null && value !== false && value !== '') {
           return true;
         }
@@ -131,7 +129,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     for (const column of columnDefinitions.values()) {
       let hasCustomizations = false;
       for (const prop of customizationProperties) {
-        const value = (column as any)[prop];
+        const value = column[prop as keyof typeof column];
         if (value !== undefined && value !== null && value !== false && value !== '') {
           hasCustomizations = true;
           break;
@@ -144,7 +142,7 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
   }, [columnDefinitions]);
 
   // Apply changes
-  const handleApplyChanges = useCallback(() => {
+  const _handleApplyChanges = useCallback(() => {
     console.log('[ColumnCustomizationDialog] handleApplyChanges called');
     // Use requestAnimationFrame for smooth UI updates
     requestAnimationFrame(() => {

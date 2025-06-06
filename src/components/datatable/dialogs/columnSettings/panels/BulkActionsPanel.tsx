@@ -1,21 +1,16 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
-import { ColDef } from 'ag-grid-community';
+import { ColDef, ValueFormatterParams } from 'ag-grid-community';
 import {
   Copy,
   Eraser,
-  Zap,
   Save,
   Trash2,
-  Plus,
   AlertCircle,
   Edit2,
   Sparkles
@@ -33,6 +28,71 @@ interface ColumnTemplate {
   isSystem?: boolean; // Flag to identify system templates
 }
 
+// Properties to save in templates - comprehensive list
+const TEMPLATE_PROPERTIES = [
+  // NOTE: 'field' and 'headerName' are intentionally excluded from templates
+  // They should only be applied to single columns, not in bulk
+  
+  // Data type and basic properties
+  'cellDataType', 'type', 'valueGetter', 'valueSetter',
+  
+  // Filter configurations
+  'filter', 'filterParams', 'floatingFilter', 'floatingFilterComponent', 'floatingFilterComponentParams',
+  'suppressHeaderMenuButton', 'suppressFiltersToolPanel', 'filterValueGetter',
+  
+  // Editor configurations
+  'editable', 'cellEditor', 'cellEditorParams', 'cellEditorPopup', 'cellEditorPopupPosition',
+  'singleClickEdit', 'stopEditingWhenCellsLoseFocus', 'cellEditorSelector',
+  
+  // Renderer configurations
+  'cellRenderer', 'cellRendererParams', 'cellRendererSelector', 'autoHeight', 'wrapText',
+  
+  // Styling and visual properties
+  'cellStyle', 'cellClass', 'cellClassRules',
+  'headerClass', 'headerStyle', 'headerComponent', 'headerComponentParams',
+  'headerTooltip', 'tooltipField', 'tooltipValueGetter', 'tooltipComponent', 'tooltipComponentParams',
+  
+  // Column behavior
+  'hide', 'lockVisible', 'lockPosition', 'suppressMovable',
+  'suppressMenu', 'suppressColumnsToolPanel', 'suppressSizeToFit',
+  
+  // Sizing configurations
+  'width', 'minWidth', 'maxWidth', 'flex', 'resizable', 'suppressAutoSize',
+  'wrapHeaderText', 'autoHeaderHeight',
+  
+  // Sorting configurations
+  'sortable', 'sort', 'sortIndex', 'sortingOrder', 'comparator', 'unSortIcon',
+  
+  // Row grouping and aggregation
+  'rowGroup', 'rowGroupIndex', 'enableRowGroup', 'enablePivot', 'enableValue',
+  'aggFunc', 'allowedAggFuncs', 'pivotIndex', 'pivotComparator',
+  
+  // Pinning configurations
+  'pinned', 'lockPinned',
+  
+  // Cell selection
+  'checkboxSelection', 'showDisabledCheckboxes', 'headerCheckboxSelection',
+  'headerCheckboxSelectionFilteredOnly', 'headerCheckboxSelectionCurrentPageOnly',
+  
+  // Column spanning
+  'colSpan', 'rowSpan',
+  
+  // Value formatting
+  'valueFormatter', 'useValueFormatterForExport',
+  
+  // Quick filter
+  'quickFilterText', 'includeHiddenColumnsInQuickFilter',
+  
+  // Column group properties
+  'children', 'groupId', 'openByDefault', 'marryChildren', 'toolPanelClass',
+  
+  // Menu tabs
+  'menuTabs', 'columnsMenuParams', 'suppressColumnsToolPanel',
+  
+  // Custom metadata (internal)
+  '_hasCustomStyles', '_userModified', '_templateApplied'
+];
+
 // Predefined system templates
 const SYSTEM_TEMPLATES: ColumnTemplate[] = [
   {
@@ -41,7 +101,7 @@ const SYSTEM_TEMPLATES: ColumnTemplate[] = [
     createdAt: Date.now(),
     isSystem: true,
     properties: {
-      valueFormatter: (params: any) => {
+      valueFormatter: (params: ValueFormatterParams) => {
         if (params.value == null) return '';
         return new Intl.NumberFormat('en-US', {
           style: 'currency',
@@ -59,7 +119,7 @@ const SYSTEM_TEMPLATES: ColumnTemplate[] = [
     createdAt: Date.now(),
     isSystem: true,
     properties: {
-      valueFormatter: (params: any) => {
+      valueFormatter: (params: ValueFormatterParams) => {
         if (params.value == null) return '';
         return `${(params.value * 100).toFixed(2)}%`;
       },
@@ -74,7 +134,7 @@ const SYSTEM_TEMPLATES: ColumnTemplate[] = [
     createdAt: Date.now(),
     isSystem: true,
     properties: {
-      valueFormatter: (params: any) => {
+      valueFormatter: (params: ValueFormatterParams) => {
         if (!params.value) return '';
         return new Date(params.value).toLocaleDateString('en-US', {
           year: 'numeric',
@@ -210,56 +270,6 @@ export const BulkActionsPanel: React.FC = () => {
   const templates = useMemo(() => {
     return [...SYSTEM_TEMPLATES, ...userTemplates];
   }, [userTemplates]);
-
-  // Properties to save in templates - comprehensive list
-  const TEMPLATE_PROPERTIES = [
-    // NOTE: 'field' and 'headerName' are intentionally excluded from templates
-    // They should only be applied to single columns, not in bulk
-    
-    // Data type and basic properties
-    'cellDataType', 'type', 'valueGetter', 'valueSetter',
-    
-    // Filter configurations
-    'filter', 'filterParams', 'floatingFilter', 'floatingFilterComponent', 'floatingFilterComponentParams',
-    'suppressHeaderMenuButton', 'suppressFiltersToolPanel', 'filterValueGetter',
-    
-    // Editor configurations
-    'editable', 'cellEditor', 'cellEditorParams', 'cellEditorPopup', 'cellEditorPopupPosition',
-    'singleClickEdit', 'stopEditingWhenCellsLoseFocus', 'cellEditorSelector',
-    
-    // Format configurations
-    'valueFormatter', 'useValueFormatterForExport',
-    'cellClass', 'cellClassRules', 'cellStyle',
-    
-    // Header configurations
-    'headerClass', 'headerStyle', 'headerTooltip', 'headerComponent', 'headerComponentParams',
-    'headerTextAlign', 'headerCheckboxSelection', 'headerCheckboxSelectionFilteredOnly',
-    'wrapHeaderText', 'autoHeaderHeight',  // Added from StylingTab
-    
-    // Cell renderer
-    'cellRenderer', 'cellRendererParams', 'cellRendererSelector',
-    
-    // Layout and display
-    'wrapText', 'autoHeight', 'rowSpan', 'colSpan',
-    'textAlign', 'verticalAlign',
-    
-    // Sorting and aggregation
-    'sortable', 'sort', 'sortingOrder', 'comparator',
-    'unSortIcon', 'aggFunc', 'allowedAggFuncs',
-    
-    // Pinning and sizing
-    'pinned', 'lockPosition', 'lockPinned', 'lockVisible',
-    'width', 'minWidth', 'maxWidth', 'flex',
-    'resizable', 'suppressSizeToFit',
-    'initialWidth', 'initialHide', 'initialPinned',  // Added from GeneralTab
-    
-    // Tooltips
-    'tooltip', 'tooltipField', 'tooltipValueGetter', 'tooltipComponent', 'tooltipComponentParams',
-    
-    // Other properties
-    'suppressKeyboardEvent', 'suppressNavigable', 'suppressPaste',
-    'checkboxSelection', 'showDisabledCheckboxes'
-  ];
 
   // Load templates from localStorage
   useEffect(() => {

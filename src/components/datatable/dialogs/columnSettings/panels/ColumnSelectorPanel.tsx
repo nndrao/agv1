@@ -1,14 +1,12 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Search, Columns3, Filter, Star, Eye, EyeOff, Hash, Type, Calendar, ToggleLeft, Package, CircleDot, DollarSign, Palette, Edit3, Settings, X } from 'lucide-react';
+import { Search, Columns3, Filter, Eye, EyeOff, Hash, Type, Calendar, ToggleLeft, Package, CircleDot, DollarSign, Palette, Edit3, Settings, X } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { useColumnCustomizationStore } from '../store/column-customization.store';
-import { COLUMN_ICONS } from '../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { CustomizationBadges, CustomizationType } from '../components/CustomizationBadges';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -360,7 +358,7 @@ const ColumnItem: React.FC<{
   appliedTemplate?: { templateId: string; templateName: string; appliedAt: number };
   onToggle: (columnId: string) => void;
   onToggleTemplate: (columnId: string) => void;
-}> = React.memo(({ column, columnId, selected, isTemplate, isHidden, appliedTemplate, onToggle, onToggleTemplate }) => {
+}> = React.memo(({ column, columnId, selected, isTemplate: _isTemplate, isHidden, appliedTemplate, onToggle, onToggleTemplate: _onToggleTemplate }) => {
   const { removeColumnCustomization, removeAppliedTemplate, pendingChanges } = useColumnCustomizationStore();
   const [isHoveringTemplate, setIsHoveringTemplate] = useState(false);
   const iconKey = (column.cellDataType || column.type || 'text') as string;
@@ -446,10 +444,10 @@ const ColumnItem: React.FC<{
     onToggle(columnId);
   }, [columnId, onToggle]);
 
-  const handleToggleTemplate = useCallback((e: React.MouseEvent) => {
+  const _handleToggleTemplate = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    onToggleTemplate(columnId);
-  }, [columnId, onToggleTemplate]);
+    _onToggleTemplate(columnId);
+  }, [columnId, _onToggleTemplate]);
 
   const handleRemoveCustomization = useCallback((type: string) => {
     removeColumnCustomization(columnId, type);

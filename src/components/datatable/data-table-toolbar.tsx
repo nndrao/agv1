@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Settings2, Download, FileSpreadsheet } from "lucide-react";
 import { ProfileManager } from "./profile-manager";
-import { GridApi, ColDef as AgColDef } from "ag-grid-community";
+import { GridApi, ColDef as AgColDef, ProcessCellForExportParams } from "ag-grid-community";
 import { GridProfile } from "@/stores/profile.store";
 import { useToast } from "@/hooks/use-toast";
 
@@ -57,13 +57,20 @@ export function DataTableToolbar({
         fileName: `data-export-${new Date().toISOString().split('T')[0]}.xlsx`,
         author: 'AG-Grid Export',
         sheetName: 'Data',
-        processCellCallback: (params) => {
+        processCellCallback: (params: ProcessCellForExportParams) => {
           const colDef = params.column.getColDef();
           // Use valueFormatter for export if available
-          if (colDef.valueFormatter) {
-            return typeof colDef.valueFormatter === 'function'
-              ? colDef.valueFormatter(params as any)
-              : params.value;
+          if (colDef.valueFormatter && typeof colDef.valueFormatter === 'function') {
+            return colDef.valueFormatter({
+              value: params.value,
+              data: params.node.data,
+              node: params.node,
+              colDef: colDef,
+              column: params.column,
+              api: params.api,
+              columnApi: params.columnApi,
+              context: params.context
+            });
           }
           return params.value;
         }
@@ -95,13 +102,20 @@ export function DataTableToolbar({
     try {
       gridApi.exportDataAsCsv({
         fileName: `data-export-${new Date().toISOString().split('T')[0]}.csv`,
-        processCellCallback: (params) => {
+        processCellCallback: (params: ProcessCellForExportParams) => {
           const colDef = params.column.getColDef();
           // Use valueFormatter for export if available
-          if (colDef.valueFormatter) {
-            return typeof colDef.valueFormatter === 'function'
-              ? colDef.valueFormatter(params as any)
-              : params.value;
+          if (colDef.valueFormatter && typeof colDef.valueFormatter === 'function') {
+            return colDef.valueFormatter({
+              value: params.value,
+              data: params.node.data,
+              node: params.node,
+              colDef: colDef,
+              column: params.column,
+              api: params.api,
+              columnApi: params.columnApi,
+              context: params.context
+            });
           }
           return params.value;
         }

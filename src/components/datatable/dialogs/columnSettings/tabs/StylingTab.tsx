@@ -13,7 +13,7 @@ interface StylingTabProps {
   uiMode?: 'simple' | 'advanced';
 }
 
-export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => {
+export const StylingTab: React.FC<StylingTabProps> = ({ uiMode: _uiMode = 'simple' }) => {
   const {
     selectedColumns,
     columnDefinitions,
@@ -151,7 +151,7 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
   };
 
   // Clear all styles
-  const clearAllStyles = () => {
+  const _clearAllStyles = () => {
     updateBulkProperty('cellStyle', undefined);
     updateBulkProperty('headerStyle', undefined);
     updateBulkProperty('cellClass', undefined);
@@ -190,7 +190,7 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
       // This is the same as handleCellStyleSave but with empty base styles
       const cellStyleFn = (params: { value: unknown }) => {
         // No base styles (cleared)
-        const baseStyles = {};
+        const _baseStyles = {};
         
         // Get conditional styles using createCellStyleFunction with empty base
         const conditionalStyleFn = createCellStyleFunction(formatString, {});
@@ -236,7 +236,7 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode = 'simple' }) => 
   };
 
   // Clear only alignment classes (keep other styles)
-  const clearAlignment = () => {
+  const _clearAlignment = () => {
     const currentHeaderClass = getMixedValue('headerClass');
     const currentCellClass = getMixedValue('cellClass');
 
