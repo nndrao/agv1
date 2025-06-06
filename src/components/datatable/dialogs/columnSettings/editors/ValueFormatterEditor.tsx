@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { FormatterFunction } from '@/components/datatable/types';
 import {
   Dialog,
   DialogContent,
@@ -13,16 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Plus, 
   Trash2, 
   Eye, 
-  Palette, 
-  Type, 
-  Move,
+  Palette,
   ArrowUp,
   ArrowDown,
   Settings,
@@ -186,8 +184,8 @@ export const ValueFormatterEditor: React.FC<ValueFormatterEditorProps> = ({
   useEffect(() => {
     if (initialFormatter && typeof initialFormatter === 'function') {
       // Check if the formatter has visual editor metadata
-      const visualRules = (initialFormatter as any).__visualRules;
-      const visualDefaultFallback = (initialFormatter as any).__visualDefaultFallback;
+      const visualRules = (initialFormatter as FormatterFunction).__visualRules;
+      const visualDefaultFallback = (initialFormatter as FormatterFunction).__visualDefaultFallback;
       
       console.log('[ValueFormatterEditor] Initializing from existing formatter:', {
         hasVisualRules: !!visualRules,
@@ -384,7 +382,7 @@ export const ValueFormatterEditor: React.FC<ValueFormatterEditorProps> = ({
      const sections: string[] = [];
      
      // Process each rule to create format sections
-     rules.forEach((rule, index) => {
+     rules.forEach((rule, _index) => {
        if (!rule.enabled) return;
        
        let section = '';
@@ -722,7 +720,7 @@ export const ValueFormatterEditor: React.FC<ValueFormatterEditorProps> = ({
        formatted: formatter({ value }),
        style: styleFunc({ value })
      }));
-   }, [rules, defaultFallback, columnType]);
+   }, [rules, defaultFallback, generateFormatter, generateCellStyle]);
 
      const handleSave = () => {
      const formatter = generateFormatter();
@@ -1101,7 +1099,7 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
   onUpdate,
   onDelete,
   onMove,
-  columnType
+  columnType: _columnType
 }) => {
   const conditionOption = CONDITION_OPTIONS.find(opt => opt.value === rule.condition.type);
 

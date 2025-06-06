@@ -5,8 +5,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LazyDataTable, GridSkeleton, usePreloadAgGrid } from '@/components/datatable/lazy-ag-grid';
 import { generateFixedIncomeData, type FixedIncomePosition } from '@/lib/data-generator';
-import { perfMonitor } from '@/lib/performance-monitor';
-import { type ColumnDef } from '@/components/datatable/data-table';
+import { type ColumnDef } from '@/components/datatable/types';
 
 // Error fallback component
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {

@@ -18,14 +18,12 @@ import {
   Type, 
   Lightbulb, 
   ArrowUp, 
-  ArrowDown, 
   Palette, 
   Info, 
   HelpCircle,
   Sparkles,
   Eye,
-  X,
-  ChevronDown
+  X
 } from 'lucide-react';
 
 interface FormatTabProps {
@@ -326,12 +324,12 @@ const RICH_FORMATTERS = {
   ]
 };
 
-export const FormatTab: React.FC<FormatTabProps> = ({ uiMode = 'simple' }) => {
+export const FormatTab: React.FC<FormatTabProps> = ({ uiMode: _uiMode = 'simple' }) => {
   const {
     selectedColumns,
     columnDefinitions,
     pendingChanges,
-    updateBulkProperty,
+    updateBulkProperty: _updateBulkProperty,
     updateBulkProperties,
     quickFormatPinned,
   } = useColumnCustomizationStore();

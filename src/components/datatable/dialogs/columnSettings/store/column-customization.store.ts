@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { ColDef as AgColDef, ColumnState } from 'ag-grid-community';
+import { createCellStyleFunction, hasConditionalStyling } from '@/components/datatable/utils/style-utils';
+import { FormatterFunction, CellStyleFunction } from '@/components/datatable/types';
 
 // Use AG-Grid's ColDef directly
 export type ColDef = AgColDef;
@@ -87,54 +89,6 @@ export interface DialogActions {
 
 export type ColumnCustomizationStore = DialogState & DialogActions;
 
-/**
- * Check if a format string contains conditional styling that requires a cellStyle function
- */
-function hasConditionalStyling(formatString: string): boolean {
-  if (!formatString || !formatString.includes('[')) return false;
-  
-  return (
-    // Basic conditional colors
-    formatString.toLowerCase().includes('[green]') || 
-    formatString.toLowerCase().includes('[red]') || 
-    formatString.toLowerCase().includes('[blue]') || 
-    formatString.toLowerCase().includes('[yellow]') || 
-    formatString.toLowerCase().includes('[orange]') || 
-    formatString.toLowerCase().includes('[purple]') || 
-    formatString.toLowerCase().includes('[gray]') || 
-    formatString.toLowerCase().includes('[grey]') || 
-    formatString.toLowerCase().includes('[magenta]') || 
-    formatString.toLowerCase().includes('[cyan]') || 
-    // Conditions
-    formatString.includes('[>') || 
-    formatString.includes('[<') || 
-    formatString.includes('[=') || 
-    formatString.includes('[#') || // Hex colors
-    formatString.includes('[@=') || // Text equality 
-    formatString.includes('[<>') ||
-    // Extended styling directives
-    formatString.includes('Weight:') ||
-    formatString.includes('FontWeight:') ||
-    formatString.includes('Background:') ||
-    formatString.includes('BG:') ||
-    formatString.includes('Border:') ||
-    formatString.includes('B:') ||
-    formatString.includes('Size:') ||
-    formatString.includes('FontSize:') ||
-    formatString.includes('Align:') ||
-    formatString.includes('TextAlign:') ||
-    formatString.includes('Padding:') ||
-    formatString.includes('P:') ||
-    // Keyword styles
-    formatString.includes('[Bold]') ||
-    formatString.includes('[Italic]') ||
-    formatString.includes('[Underline]') ||
-    formatString.includes('[Strikethrough]') ||
-    formatString.includes('[Center]') ||
-    formatString.includes('[Left]') ||
-    formatString.includes('[Right]')
-  );
-}
 
 /**
  * Ensure a column has a cellStyle function if its valueFormatter has conditional styling
@@ -143,13 +97,13 @@ function hasConditionalStyling(formatString: string): boolean {
 function ensureCellStyleForValueFormatter(column: ColDef): boolean {
   // Check if valueFormatter has conditional styling
   if (column.valueFormatter && typeof column.valueFormatter === 'function') {
-    const formatString = (column.valueFormatter as any).__formatString;
+    const formatString = (column.valueFormatter as FormatterFunction).__formatString;
     
     if (formatString && hasConditionalStyling(formatString)) {
       // Check if cellStyle already exists and is properly configured
       if (!column.cellStyle || 
           (typeof column.cellStyle === 'function' && 
-           (column.cellStyle as any).__formatString !== formatString)) {
+           (column.cellStyle as CellStyleFunction).__formatString !== formatString)) {
         
         console.log('[Store] Creating cellStyle for conditional formatting:', {
           field: column.field,
@@ -163,8 +117,8 @@ function ensureCellStyleForValueFormatter(column: ColDef): boolean {
         if (column.cellStyle) {
           if (typeof column.cellStyle === 'object') {
             baseStyle = column.cellStyle;
-          } else if (typeof column.cellStyle === 'function' && (column.cellStyle as any).__baseStyle) {
-            baseStyle = (column.cellStyle as any).__baseStyle;
+          } else if (typeof column.cellStyle === 'function' && (column.cellStyle as CellStyleFunction).__baseStyle) {
+            baseStyle = (column.cellStyle as CellStyleFunction).__baseStyle || {};
           }
         }
         
@@ -259,15 +213,15 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         const stateMap = new Map();
         if (columnStateArray) {
           // console.log('[Store] Setting column state, array length:', columnStateArray.length);
-          let visibleCount = 0;
-          let hiddenCount = 0;
+          let _visibleCount = 0;
+          let _hiddenCount = 0;
           
           columnStateArray.forEach(colState => {
             stateMap.set(colState.colId, colState);
             if (colState.hide) {
-              hiddenCount++;
+              _hiddenCount++;
             } else {
-              visibleCount++;
+              _visibleCount++;
             }
           });
           
@@ -421,10 +375,10 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
             Object.entries(changes).forEach(([key, value]) => {
               if (value === undefined && clearableProperties.includes(key)) {
                 // Explicitly set clearable properties to undefined
-                (mergedColumn as any)[key] = undefined;
+                delete (mergedColumn as Record<string, unknown>)[key];
               } else if (value !== undefined) {
                 // Set new values
-                (mergedColumn as any)[key] = value;
+                (mergedColumn as Record<string, unknown>)[key] = value;
               }
             });
             
@@ -632,12 +586,12 @@ export const useColumnCustomizationStore = create<ColumnCustomizationStore>()(
         ];
         
         // Process all columns
-        for (const [columnId, column] of columnDefinitions) {
+        for (const [columnId, _column] of columnDefinitions) {
           const pendingChanges: Partial<ColDef> = {};
           
           // Set all customization properties to undefined
           customizationProperties.forEach(prop => {
-            (pendingChanges as any)[prop] = undefined;
+            delete (pendingChanges as Record<string, unknown>)[prop];
           });
           
           // Add to pending changes (will be applied when user clicks Apply)

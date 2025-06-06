@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ColDef, ColumnState, FilterModel, SortModelItem } from 'ag-grid-community';
 import { ColumnCustomization, serializeColumnCustomizations, deserializeColumnCustomizations } from './column-serializer';
-import { perfMonitor } from '@/lib/performance-monitor';
 
 interface PersistedState {
   profiles?: GridProfile[];

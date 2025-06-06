@@ -4,7 +4,6 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import App from './App.tsx';
 import './index.css';
-import { perfMonitor } from './lib/performance-monitor';
 
 // Mark app start
 // perfMonitor.mark('app-start');

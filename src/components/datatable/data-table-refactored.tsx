@@ -1,3 +1,4 @@
+import React from 'react';
 import { DataTableContainer } from './DataTableContainer';
 import { DataTableErrorBoundary } from './DataTableErrorBoundary';
 import { DataTableProps } from './types';

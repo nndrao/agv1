@@ -1,0 +1,157 @@
+import React, { memo, useMemo } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import { ModuleRegistry, themeQuartz, GridApi } from 'ag-grid-community';
+import { AllEnterpriseModule } from 'ag-grid-enterprise';
+import { useTheme } from '@/components/theme-provider';
+import { DebugProfile } from './debug-profile';
+import { useGridCallbacks } from './hooks/useGridCallbacks';
+import { useDataTableContext } from './hooks/useDataTableContext';
+import { ColumnDef } from './types';
+import { DEFAULT_COL_DEF, DEFAULT_GRID_SPACING } from './utils/constants';
+import './alignment-styles.css';
+import './format-styles.css';
+import './profile-transitions.css';
+
+// Register AG-Grid modules
+ModuleRegistry.registerModules([AllEnterpriseModule]);
+
+interface DataTableGridProps {
+  columnDefs: ColumnDef[];
+  rowData: Record<string, unknown>[];
+  gridApiRef: React.MutableRefObject<GridApi | null>;
+}
+
+/**
+ * Pure presentational component that renders the AG-Grid.
+ * All state management and logic is handled by the container.
+ */
+export const DataTableGrid = memo(({ 
+  columnDefs, 
+  rowData,
+  gridApiRef 
+}: DataTableGridProps) => {
+  const { theme: currentTheme } = useTheme();
+  const { selectedFont } = useDataTableContext();
+  const isDarkMode = currentTheme === 'dark';
+  
+  // Get memoized callbacks
+  const {
+    getContextMenuItems,
+    onGridReady,
+    onColumnMoved,
+    onColumnResized,
+    onColumnVisible,
+    onToolPanelVisibleChanged,
+    onSortChanged,
+    onFilterChanged,
+    excelStyles,
+    defaultExcelExportParams,
+  } = useGridCallbacks(gridApiRef, () => {});
+  
+  // Create theme configuration
+  const theme = useMemo(() => {
+    const lightTheme = {
+      accentColor: "#8AAAA7",
+      backgroundColor: "#F7F7F7",
+      borderColor: "#23202029",
+      browserColorScheme: "light",
+      buttonBorderRadius: 2,
+      cellTextColor: "#000000",
+      checkboxBorderRadius: 2,
+      columnBorder: true,
+      fontFamily: selectedFont,
+      fontSize: 14,
+      headerBackgroundColor: "#EFEFEFD6",
+      headerFontFamily: selectedFont,
+      headerFontSize: 14,
+      headerFontWeight: 500,
+      iconButtonBorderRadius: 1,
+      iconSize: 12,
+      inputBorderRadius: 2,
+      oddRowBackgroundColor: "#EEF1F1E8",
+      spacing: DEFAULT_GRID_SPACING,
+      wrapperBorderRadius: 2,
+    };
+
+    const darkTheme = {
+      accentColor: "#8AAAA7",
+      backgroundColor: "#1f2836",
+      borderRadius: 2,
+      checkboxBorderRadius: 2,
+      columnBorder: true,
+      fontFamily: selectedFont,
+      browserColorScheme: "dark",
+      chromeBackgroundColor: {
+        ref: "foregroundColor",
+        mix: 0.07,
+        onto: "backgroundColor",
+      },
+      fontSize: 14,
+      foregroundColor: "#FFF",
+      headerFontFamily: selectedFont,
+      headerFontSize: 14,
+      iconSize: 12,
+      inputBorderRadius: 2,
+      oddRowBackgroundColor: "#2A2E35",
+      spacing: DEFAULT_GRID_SPACING,
+      wrapperBorderRadius: 2,
+    };
+
+    return themeQuartz
+      .withParams(lightTheme, "light")
+      .withParams(darkTheme, "dark");
+  }, [selectedFont]);
+  
+  // Update document theme mode
+  React.useEffect(() => {
+    document.body.dataset.agThemeMode = isDarkMode ? "dark" : "light";
+  }, [isDarkMode]);
+  
+  return (
+    <div className="flex-1 min-h-0 overflow-hidden">
+      <AgGridReact
+        rowData={rowData}
+        columnDefs={columnDefs}
+        defaultColDef={DEFAULT_COL_DEF}
+        maintainColumnOrder={true}
+        cellSelection={true}
+        suppressMenuHide={true}
+        suppressHorizontalScroll={false}
+        alwaysShowVerticalScroll={true}
+        sideBar={{
+          toolPanels: [
+            {
+              id: 'columns',
+              labelDefault: 'Columns',
+              labelKey: 'columns',
+              iconKey: 'columns',
+              toolPanel: 'agColumnsToolPanel',
+            },
+            {
+              id: 'filters',
+              labelDefault: 'Filters',
+              labelKey: 'filters',
+              iconKey: 'filter',
+              toolPanel: 'agFiltersToolPanel',
+            },
+          ],
+        }}
+        getContextMenuItems={getContextMenuItems}
+        onGridReady={onGridReady}
+        onColumnMoved={onColumnMoved}
+        onColumnResized={onColumnResized}
+        onColumnVisible={onColumnVisible}
+        onToolPanelVisibleChanged={onToolPanelVisibleChanged}
+        onSortChanged={onSortChanged}
+        onFilterChanged={onFilterChanged}
+        theme={theme}
+        excelStyles={excelStyles}
+        defaultExcelExportParams={defaultExcelExportParams}
+      />
+      
+      <DebugProfile />
+    </div>
+  );
+});
+
+DataTableGrid.displayName = 'DataTableGrid';
