@@ -19,23 +19,44 @@ export function useColumnOperations(
   // Debounced column update to prevent rapid re-renders
   const applyColumnChangesDebounced = useMemo(
     () => debounce((columns: ColDef[]) => {
-      if (gridApiRef.current) {
+      if (gridApiRef.current && activeProfile) {
+        console.log('[useColumnOperations] Applying column definitions to grid');
+        
+        // Simply update the column definitions
         gridApiRef.current.setGridOption('columnDefs', columns);
         
-        // Force header refresh to ensure styles are applied
-        gridApiRef.current.refreshHeader();
+        // Apply the column state from the active profile
+        if (activeProfile.gridState.columnState && activeProfile.gridState.columnState.length > 0) {
+          console.log('[useColumnOperations] Applying column state from active profile:', {
+            profileName: activeProfile.name,
+            columnStateCount: activeProfile.gridState.columnState.length
+          });
+          
+          gridApiRef.current.applyColumnState({
+            state: activeProfile.gridState.columnState,
+            applyOrder: true
+          });
+        }
         
-        // Also refresh cells to ensure cell styles are applied/cleared
+        // Apply sort model from profile
+        if (activeProfile.gridState.sortModel) {
+          gridApiRef.current.setSortModel(activeProfile.gridState.sortModel);
+        }
+        
+        // Apply filter model from profile
+        if (activeProfile.gridState.filterModel) {
+          gridApiRef.current.setFilterModel(activeProfile.gridState.filterModel);
+        }
+        
+        // Refresh the grid to show the changes
+        gridApiRef.current.refreshHeader();
         gridApiRef.current.refreshCells({ 
           force: true,
-          suppressFlash: false 
+          suppressFlash: true 
         });
-        
-        // Redraw rows to ensure all styling is updated
-        gridApiRef.current.redrawRows();
       }
     }, COLUMN_UPDATE_DEBOUNCE_MS),
-    []
+    [activeProfile]
   );
   
   const handleApplyColumnChanges = useCallback((updatedColumns: ColDef[]) => {
@@ -48,111 +69,28 @@ export function useColumnOperations(
       firstColumn: updatedColumns[0]?.field
     });
     
-    // IMPORTANT: We need to preserve the current column state (width, position, visibility)
-    // and only update the customization properties
+    // Store the columns with styles for later retrieval
+    columnDefsWithStylesRef.current = updatedColumns as ColumnDef[];
+    
+    // Update the currentColumnDefs state
+    setCurrentColumnDefs(updatedColumns as ColumnDef[]);
+    
+    // Apply the changes to the grid
     if (gridApiRef.current) {
-      // Get current column state to preserve
-      const currentColumnState = gridApiRef.current.getColumnState();
-      const currentFilterModel = gridApiRef.current.getFilterModel();
-      const currentSortModel = gridApiRef.current.getColumnState().filter(col => col.sort);
-      const currentColumnDefs = gridApiRef.current.getColumnDefs() || [];
-      
-      console.log('[useColumnOperations] Preserving AG-Grid state:', {
-        columnStateCount: currentColumnState.length,
-        visibleColumns: currentColumnState.filter(cs => !cs.hide).length,
-        hiddenColumns: currentColumnState.filter(cs => cs.hide).length,
-        pinnedColumns: currentColumnState.filter(cs => cs.pinned).length,
-        sortedColumns: currentSortModel.length,
-        hasFilters: Object.keys(currentFilterModel).length > 0
+      // Since maintainColumnOrder is true, this should preserve column state
+      applyColumnChangesDebounced(updatedColumns);
+    }
+    
+    // Log what was updated for debugging
+    const updatedFields = updatedColumns.filter(col => 
+      col.cellStyle || col.valueFormatter || col.cellClass
+    ).map(col => col.field);
+    
+    if (updatedFields.length > 0) {
+      console.log('[useColumnOperations] Column customizations applied:', {
+        updatedFields,
+        totalColumns: updatedColumns.length
       });
-      
-      // Create a map of current columns for quick lookup
-      const currentColMap = new Map();
-      currentColumnDefs.forEach(col => {
-        if ('field' in col && col.field) {
-          currentColMap.set(col.field, col);
-        } else if ('colId' in col && col.colId) {
-          currentColMap.set(col.colId, col);
-        }
-      });
-      
-      // Merge the customizations with existing column definitions
-      const mergedColumns = updatedColumns.map(updatedCol => {
-        const field = updatedCol.field || updatedCol.colId;
-        const currentCol = currentColMap.get(field);
-        
-        if (currentCol) {
-          // Enhanced logging for debugging style application
-          const hasCellStyle = updatedCol.cellStyle !== undefined;
-          const hasValueFormatter = updatedCol.valueFormatter !== undefined;
-          
-          if (hasCellStyle || hasValueFormatter) {
-            console.log(`[useColumnOperations] Column ${field} style/formatter update:`, {
-              field,
-              hasCellStyle,
-              cellStyleType: typeof updatedCol.cellStyle,
-              hasValueFormatter,
-              valueFormatterType: typeof updatedCol.valueFormatter,
-            });
-          }
-          
-          // For columns being updated, use the updated version entirely
-          // The store has already handled property removal/addition
-          return updatedCol;
-        }
-        
-        // If column not found in current state, return as is
-        return updatedCol;
-      });
-      
-      // Store the merged columns with styles for later retrieval
-      columnDefsWithStylesRef.current = mergedColumns as ColumnDef[];
-      
-      // Update the currentColumnDefs state to ensure consistency
-      setCurrentColumnDefs(mergedColumns as ColumnDef[]);
-      
-      // Apply the merged column definitions with debouncing
-      applyColumnChangesDebounced(mergedColumns);
-      
-      // Restore the column state, filters, and sorts to preserve user's current view
-      // Small delay to ensure column definitions are fully applied
-      setTimeout(() => {
-        if (gridApiRef.current) {
-          // Restore column state (width, position, visibility, pinning)
-          if (currentColumnState) {
-            console.log('[useColumnOperations] Restoring column state after customization');
-            gridApiRef.current.applyColumnState({
-              state: currentColumnState,
-              applyOrder: true
-            });
-          }
-          
-          // Restore filters
-          if (currentFilterModel && Object.keys(currentFilterModel).length > 0) {
-            console.log('[useColumnOperations] Restoring filters:', currentFilterModel);
-            gridApiRef.current.setFilterModel(currentFilterModel);
-          }
-          
-          // Restore sorts
-          if (currentSortModel && currentSortModel.length > 0) {
-            console.log('[useColumnOperations] Restoring sorts:', currentSortModel);
-            const sortState = currentSortModel.map(col => ({
-              colId: col.colId,
-              sort: col.sort,
-              sortIndex: col.sortIndex
-            }));
-            gridApiRef.current.applyColumnState({
-              state: sortState
-            });
-          }
-          
-          // Force a final refresh to ensure everything is applied correctly
-          gridApiRef.current.refreshCells({ force: true });
-        }
-        
-        // Don't show toast here as this is called frequently during editing
-        // Toast will be shown when the user saves the profile
-      }, STATE_RESTORATION_DELAY_MS); // Small delay to ensure column definitions are fully applied
     }
     
     // Update React state
