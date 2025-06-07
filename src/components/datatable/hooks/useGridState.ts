@@ -25,9 +25,12 @@ export function useGridState(initialColumnDefs: ColumnDef[]) {
     if (savedColumnDefs && savedColumnDefs.length > 0) {
       console.log('[useGridState] Initializing with saved columnDefs from profile:', {
         profileName: activeProfile?.name,
+        profileId: activeProfile?.id,
         columnCount: savedColumnDefs.length,
         hasLightweightFormat: !!(activeProfile?.gridState?.columnCustomizations),
-        columnsWithFormatters: savedColumnDefs.filter((col: any) => col.valueFormatter).length,
+        hasBaseColumnDefs: !!(activeProfile?.gridState?.baseColumnDefs),
+        sampleColumn: savedColumnDefs[0],
+        columnsWithFormatters: savedColumnDefs.filter((col: any) => col.valueFormatter).length
       });
       
       return savedColumnDefs as ColumnDef[];

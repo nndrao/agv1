@@ -45,7 +45,6 @@ import {
   GridProfile 
 } from '@/stores/profile.store';
 import { GridApi, ColDef } from 'ag-grid-community';
-import { profileOptimizer } from '@/lib/profile-optimizer';
 
 // Interface for style configurations
 interface _HeaderStyleConfig {
@@ -214,21 +213,63 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       setActiveProfile(profileId);
       
       if (gridApi) {
-        // Use the optimizer for fast switching
-        await profileOptimizer.applyProfile(
-          gridApi,
-          profile,
-          previousProfileRef.current,
-          {
-            showTransition: true,
-            onProgress: (_progress) => {
-              // console.log(`[ProfileManager] Profile switch progress: ${Math.round(_progress * 100)}%`);
-            }
-          }
-        );
-
+        // SIMPLIFIED DETERMINISTIC PROFILE APPLICATION
+        console.log('[ProfileManager] Switching to profile:', profile.name);
+        
         // Get column definitions for this profile
         const profileColumnDefs = getColumnDefs(profileId);
+        
+        // Notify parent component about profile change
+        if (onProfileChange) {
+          onProfileChange(profile);
+        }
+        
+        if (profileColumnDefs && profileColumnDefs.length > 0) {
+          // Update column definitions directly in the grid
+          console.log('[ProfileManager] Updating column definitions');
+          gridApi.setGridOption('columnDefs', profileColumnDefs);
+          
+          // Small delay to ensure column definitions are processed
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        // Apply profile states in order
+        if (profile.gridState) {
+          // 1. Apply column state (visibility, width, position, sort)
+          if (profile.gridState.columnState && profile.gridState.columnState.length > 0) {
+            console.log('[ProfileManager] Applying column state');
+            const result = gridApi.applyColumnState({
+              state: profile.gridState.columnState,
+              applyOrder: true
+            });
+            console.log('[ProfileManager] Column state applied:', result);
+          }
+          
+          // 2. Apply filter model
+          if (profile.gridState.filterModel) {
+            console.log('[ProfileManager] Applying filter model');
+            gridApi.setFilterModel(profile.gridState.filterModel);
+          }
+          
+          // 3. Apply grid options
+          if (profile.gridState.gridOptions) {
+            console.log('[ProfileManager] Applying grid options');
+            const options = profile.gridState.gridOptions;
+            if (options.rowHeight) {
+              gridApi.resetRowHeights();
+              gridApi.setGridOption('rowHeight', options.rowHeight);
+            }
+            if (options.headerHeight) {
+              gridApi.setGridOption('headerHeight', options.headerHeight);
+            }
+          }
+          
+          // 4. Apply font
+          if (profile.gridState.font) {
+            console.log('[ProfileManager] Applying font:', profile.gridState.font);
+            handleFontChange(profile.gridState.font);
+          }
+        }
         
         if (!profileColumnDefs || profileColumnDefs.length === 0) {
           toast({
@@ -251,7 +292,6 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
 
       // Update previous profile reference
       previousProfileRef.current = profile;
-      onProfileChange?.(profile);
       
     } catch (error) {
       console.error('[ProfileManager] Error switching profiles:', error);
@@ -296,7 +336,39 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     //   }))
     // });
     
-    const columnState = gridApi.getColumnState();
+    // Get complete column state including all columns (not just modified ones)
+    const columnState = (() => {
+      const state = gridApi.getColumnState();
+      const allColumns = gridApi.getColumns();
+      
+      if (!allColumns) return state;
+      
+      // Create a complete state that includes all columns
+      // AG-Grid's getColumnState() only returns columns that have been modified
+      const completeState = allColumns.map(column => {
+        const colId = column.getColId();
+        const existingState = state?.find(cs => cs.colId === colId);
+        
+        return {
+          colId: colId,
+          hide: !column.isVisible(),
+          width: column.getActualWidth(),
+          pinned: column.getPinned() || null,
+          sort: column.getSort() || null,
+          sortIndex: column.getSortIndex() != null ? column.getSortIndex() : null,
+          ...existingState // Override with any existing state
+        };
+      });
+      
+      console.log('[ProfileManager] Complete column state:', {
+        totalColumns: completeState.length,
+        visibleColumns: completeState.filter(col => !col.hide).length,
+        hiddenColumns: completeState.filter(col => col.hide).length,
+        withExplicitState: state?.length || 0
+      });
+      
+      return completeState;
+    })();
     
     // Log column state details
     // console.log('[ProfileManager] Column state details:', {
@@ -424,8 +496,9 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Save column customizations using the lightweight format
-      // IMPORTANT: Use the original columnDefs (without customizations) as base columns
-      saveColumnCustomizations(cleanedColumnDefs, columnDefs);
+      // Get the base columns from the active profile if available, otherwise use current
+      const baseColumns = activeProfile.gridState.baseColumnDefs || columnDefs;
+      saveColumnCustomizations(cleanedColumnDefs, baseColumns);
       
       // Save other grid state (not column definitions)
       saveCurrentState({

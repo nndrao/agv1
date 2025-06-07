@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { GridApi, GridReadyEvent } from 'ag-grid-community';
-import { profileOptimizer } from '@/lib/profile-optimizer';
 import { useActiveProfile } from '@/stores/profile.store';
+import { useDataTableContext } from './useDataTableContext';
 
 /**
  * Custom hook for memoized grid callbacks to prevent unnecessary re-renders
@@ -11,6 +11,7 @@ export function useGridCallbacks(
   setSelectedFont: (font: string) => void
 ) {
   const activeProfile = useActiveProfile();
+  const { setGridApi } = useDataTableContext();
   
   // Context menu items - memoized as they never change
   const getContextMenuItems = useCallback(() => {
@@ -30,6 +31,11 @@ export function useGridCallbacks(
   const onGridReady = useCallback(async (params: GridReadyEvent) => {
     gridApiRef.current = params.api;
     
+    // Update the state version of gridApi for components that need it
+    if (setGridApi) {
+      setGridApi(params.api);
+    }
+    
     console.log('[useGridCallbacks] onGridReady:', {
       hasActiveProfile: !!activeProfile,
       activeProfileId: activeProfile?.id,
@@ -37,31 +43,60 @@ export function useGridCallbacks(
       hasGridState: !!activeProfile?.gridState
     });
     
-    // Load active profile on grid ready using the optimizer
+    // Load active profile on grid ready - SIMPLIFIED APPROACH
     if (activeProfile && activeProfile.gridState) {
-      // The column definitions are already set in the grid from the initial state
-      // Just apply the grid states (column state, filters, sorts)
-      await profileOptimizer.applyProfile(
-        params.api,
-        activeProfile,
-        null, // No previous profile on initial load
-        {
-          showTransition: false, // No transition on initial load
-          onProgress: (progress) => {
-            console.log(`[useGridCallbacks] Initial profile load progress: ${Math.round(progress * 100)}%`);
+      console.log('[useGridCallbacks] Applying active profile on grid ready:', {
+        profileId: activeProfile.id,
+        profileName: activeProfile.name,
+        hasColumnState: !!activeProfile.gridState.columnState,
+        columnStateLength: activeProfile.gridState.columnState?.length
+      });
+      
+      try {
+        // Apply states in a deterministic order with proper timing
+        
+        // 1. Apply column state (visibility, width, position, sort)
+        if (activeProfile.gridState.columnState && activeProfile.gridState.columnState.length > 0) {
+          console.log('[useGridCallbacks] Applying column state');
+          params.api.applyColumnState({
+            state: activeProfile.gridState.columnState,
+            applyOrder: true
+          });
+        }
+        
+        // 2. Apply filter model
+        if (activeProfile.gridState.filterModel) {
+          console.log('[useGridCallbacks] Applying filter model');
+          params.api.setFilterModel(activeProfile.gridState.filterModel);
+        }
+        
+        // 3. Apply grid options
+        if (activeProfile.gridState.gridOptions) {
+          console.log('[useGridCallbacks] Applying grid options');
+          const options = activeProfile.gridState.gridOptions;
+          if (options.rowHeight) {
+            params.api.resetRowHeights();
+            params.api.setGridOption('rowHeight', options.rowHeight);
+          }
+          if (options.headerHeight) {
+            params.api.setGridOption('headerHeight', options.headerHeight);
           }
         }
-      );
-      
-      // Apply font immediately (doesn't depend on grid state)
-      if (activeProfile.gridState.font) {
-        console.log('[useGridCallbacks] Applying font:', activeProfile.gridState.font);
-        setSelectedFont(activeProfile.gridState.font);
+        
+        // 4. Apply font
+        if (activeProfile.gridState.font) {
+          console.log('[useGridCallbacks] Applying font:', activeProfile.gridState.font);
+          setSelectedFont(activeProfile.gridState.font);
+        }
+        
+        console.log('[useGridCallbacks] Profile applied successfully');
+      } catch (error) {
+        console.error('[useGridCallbacks] Error applying profile:', error);
       }
     } else {
       console.log('[useGridCallbacks] No active profile or gridState to apply');
     }
-  }, [activeProfile, setSelectedFont]);
+  }, [activeProfile, setSelectedFont, setGridApi]);
   
   // Column event handlers - no auto-save, only saved when Save Profile button is clicked
   const onColumnMoved = useCallback(() => {

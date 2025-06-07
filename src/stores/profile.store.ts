@@ -506,8 +506,8 @@ export const useProfileStore = create<ProfileStore>()(
         
         if (!profile) return undefined;
         
-        // If we have the new lightweight format
-        if (profile.gridState.columnCustomizations && profile.gridState.baseColumnDefs) {
+        // If we have the new lightweight format with valid base columns
+        if (profile.gridState.columnCustomizations && profile.gridState.baseColumnDefs && profile.gridState.baseColumnDefs.length > 0) {
           console.log('[ProfileStore] Reconstructing columnDefs from lightweight format', {
             customizationsCount: Object.keys(profile.gridState.columnCustomizations).length,
             baseColumnsCount: profile.gridState.baseColumnDefs.length
@@ -523,9 +523,14 @@ export const useProfileStore = create<ProfileStore>()(
           return reconstructed;
         }
         
-        // Fall back to legacy format
-        console.log('[ProfileStore] Using legacy columnDefs format');
-        return profile.gridState.columnDefs;
+        // Fall back to legacy format if available
+        if (profile.gridState.columnDefs) {
+          console.log('[ProfileStore] Using legacy columnDefs format');
+          return profile.gridState.columnDefs;
+        }
+        
+        // Return empty array if no column definitions available
+        return [];
       },
       
       // Auto-save settings

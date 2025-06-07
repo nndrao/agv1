@@ -39,8 +39,13 @@ export function useColumnOperations(
         }
         
         // Apply sort model from profile
-        if (activeProfile.gridState.sortModel) {
-          gridApiRef.current.setSortModel(activeProfile.gridState.sortModel);
+        if (activeProfile.gridState.sortModel && activeProfile.gridState.sortModel.length > 0) {
+          const sortState = activeProfile.gridState.sortModel.map(sort => ({
+            colId: sort.colId,
+            sort: sort.sort,
+            sortIndex: sort.sortIndex
+          }));
+          gridApiRef.current.applyColumnState({ state: sortState });
         }
         
         // Apply filter model from profile

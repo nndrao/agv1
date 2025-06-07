@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useRef } from 'react';
+import React, { memo, useMemo, useRef, useState } from 'react';
 import { GridApi } from 'ag-grid-community';
 import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
@@ -10,6 +10,7 @@ import { useProfileSync } from './hooks/useProfileSync';
 import { useColumnOperations } from './hooks/useColumnOperations';
 import { DataTableProps } from './types';
 import { useProfileStore } from '@/stores/profile.store';
+import { useTheme } from '@/components/theme-provider';
 
 /**
  * Container component that manages the state and logic for the DataTable.
@@ -17,7 +18,9 @@ import { useProfileStore } from '@/stores/profile.store';
  */
 export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps) => {
   const gridApiRef = useRef<GridApi | null>(null);
+  const [gridApi, setGridApi] = useState<GridApi | null>(null);
   const { saveColumnCustomizations } = useProfileStore();
+  const { theme } = useTheme();
   
   // Initialize grid state
   const {
@@ -49,6 +52,8 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
         !activeProfile.gridState.columnCustomizations && 
         (!activeProfile.gridState.columnDefs || activeProfile.gridState.columnDefs.length === 0)) {
       console.log('[DataTableContainer] Initializing default profile with base columnDefs');
+      // Pass columnDefs as both current and base since this is the initial setup
+      // The first parameter is current state, second is the original base columns
       saveColumnCustomizations(columnDefs, columnDefs);
     }
   }, [columnDefs, saveColumnCustomizations]);
@@ -60,6 +65,17 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       gridApiRef.current.refreshCells({ force: true });
     }
   }, [setSelectedFont]);
+  
+  // Refresh cells when theme changes to update conditional formatting colors
+  React.useEffect(() => {
+    if (gridApiRef.current || gridApi) {
+      // Small delay to ensure DOM classes are updated
+      setTimeout(() => {
+        gridApiRef.current?.refreshCells({ force: true });
+        gridApi?.refreshCells({ force: true });
+      }, 50);
+    }
+  }, [theme, gridApi]);
   
   // Get column state for dialog
   const getColumnState = React.useCallback(() => {
@@ -103,6 +119,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
     setShowColumnDialog,
     gridApiRef,
     getColumnDefsWithStyles,
+    setGridApi,
   }), [
     processedColumns,
     selectedFont,
@@ -119,7 +136,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
           onFontChange={handleFontChange}
           onSpacingChange={() => {}} // Empty function to satisfy prop requirements
           onOpenColumnSettings={() => setShowColumnDialog(true)}
-          gridApi={gridApiRef.current}
+          gridApi={gridApi}
           onProfileChange={handleProfileChange}
           getColumnDefsWithStyles={getColumnDefsWithStyles}
         />

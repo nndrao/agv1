@@ -4,7 +4,6 @@ import { ColDef } from 'ag-grid-community';
  * Default column properties for AG-Grid
  */
 export const DEFAULT_COL_DEF: Partial<ColDef> = {
-  flex: 1,
   minWidth: 100,
   filter: true,
   floatingFilter: true,
@@ -31,7 +30,6 @@ export const COLUMN_DEFAULTS: Partial<ColDef> = {
   lockVisible: false,
   lockPinned: false,
   suppressHeaderMenuButton: false,
-  flex: 1,
   minWidth: 100,
 };
 

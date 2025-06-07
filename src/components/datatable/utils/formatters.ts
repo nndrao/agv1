@@ -217,8 +217,13 @@ function processFormatSection(format: string, value: unknown, _params?: ValueFor
     formattedNumber = displayValue.toString();
   }
   
+  // Check if this format section has a condition that already handles negative display
+  // If the format has conditions like [<0] or [Red], don't add minus sign
+  const hasNegativeCondition = format.match(/\[<0\]|\[Red\]/i);
+  
   // Add minus sign back if needed and value is negative
-  if (numValue < 0) {
+  // But skip if this section has explicit negative handling
+  if (numValue < 0 && !hasNegativeCondition) {
     formattedNumber = '-' + formattedNumber;
   }
   
@@ -469,8 +474,11 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
     const value = params.value;
     const isDebugValue = value === 'A' || value === 'B' || value === 'Excel';
     
+    // Dynamically check if dark mode is active
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    
     if (isDebugFormat && isDebugValue) {
-      console.log(`🎨 Applying cell styles for value "${value}" with format: ${formatString}`);
+      console.log(`🎨 Applying cell styles for value "${value}" with format: ${formatString}, dark mode: ${isDarkMode}`);
     }
     
     // Check if we have explicit base styles from styling tab (not from formatting)
@@ -495,7 +503,7 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
         }
         
         // Parse extended style directives first
-        const extendedStyles = parseStyleDirectives(section);
+        const extendedStyles = parseStyleDirectives(section, isDarkMode);
         if (isDebugFormat && isDebugValue) {
           console.log('  🎯 Extended styles found:', extendedStyles);
         }
@@ -542,7 +550,7 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
             if (isDebugFormat && isDebugValue) {
               console.log(`    🎯 Found named color: "${content}"`);
             }
-            extendedStyles.color = parseColorValue(content);
+            extendedStyles.color = parseColorValue(content, isDarkMode);
             break;
           }
         }
@@ -596,7 +604,7 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
       
       if (!fallbackHasConditions) {
         // Parse extended style directives from fallback section
-        const fallbackStyles = parseStyleDirectives(fallbackSection);
+        const fallbackStyles = parseStyleDirectives(fallbackSection, isDarkMode);
         
         // Check for traditional color syntax in fallback
         const fallbackBrackets = fallbackSection.match(/\[[^\]]+\]/g) || [];
@@ -616,7 +624,7 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
           // Check if it's a named color
           const namedColors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'gray', 'grey', 'black', 'white', 'magenta', 'cyan'];
           if (namedColors.includes(content.toLowerCase())) {
-            fallbackStyles.color = parseColorValue(content);
+            fallbackStyles.color = parseColorValue(content, isDarkMode);
             break;
           }
         }

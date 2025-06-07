@@ -54,18 +54,29 @@ export function hasConditionalStyling(formatString: string): boolean {
 
 /**
  * Parse color value (supports named colors and hex)
+ * Now with theme-aware vibrant colors for trading applications
  */
-export function parseColorValue(colorValue: string): string {
+export function parseColorValue(colorValue: string, isDarkMode: boolean = false): string {
   if (colorValue.startsWith('#')) {
     return colorValue;
   }
   
-  const colorMap: Record<string, string> = {
-    'red': '#dc2626',
-    'green': '#16a34a',
+  // Theme-aware color mappings for vibrant trading colors
+  const lightModeColors: Record<string, string> = {
+    // Vibrant teal shades for positive/green (darker for better contrast)
+    'green': '#0f766e',     // Teal-700
+    'lightgreen': '#0d9488', // Teal-600
+    'darkgreen': '#115e59',  // Teal-800
+    
+    // Vibrant orange-red shades for negative/red
+    'red': '#f97316',       // Orange-500
+    'lightred': '#fb923c',  // Orange-400
+    'darkred': '#ea580c',   // Orange-600
+    
+    // Other colors
     'blue': '#2563eb',
     'yellow': '#fbbf24',
-    'orange': '#ea580c',
+    'orange': '#f97316',
     'purple': '#9333ea',
     'pink': '#ec4899',
     'gray': '#6b7280',
@@ -77,12 +88,41 @@ export function parseColorValue(colorValue: string): string {
     'darkgray': '#374151',
     'darkgrey': '#374151',
     'lightblue': '#3b82f6',
-    'lightgreen': '#22c55e',
-    'lightred': '#ef4444',
     'magenta': '#ff00ff',
     'cyan': '#00ffff'
   };
   
+  const darkModeColors: Record<string, string> = {
+    // Vibrant teal shades for positive/green (brighter for dark mode)
+    'green': '#2dd4bf',     // Teal-400
+    'lightgreen': '#5eead4', // Teal-300
+    'darkgreen': '#14b8a6',  // Teal-500
+    
+    // Vibrant orange-red shades for negative/red (brighter for dark mode)
+    'red': '#fb923c',       // Orange-400
+    'lightred': '#fdba74',  // Orange-300
+    'darkred': '#f97316',   // Orange-500
+    
+    // Other colors adjusted for dark mode
+    'blue': '#3b82f6',
+    'yellow': '#fde047',
+    'orange': '#fb923c',
+    'purple': '#a855f7',
+    'pink': '#f472b6',
+    'gray': '#9ca3af',
+    'grey': '#9ca3af',
+    'black': '#ffffff',
+    'white': '#000000',
+    'lightgray': '#374151',
+    'lightgrey': '#374151',
+    'darkgray': '#d1d5db',
+    'darkgrey': '#d1d5db',
+    'lightblue': '#60a5fa',
+    'magenta': '#ff66ff',
+    'cyan': '#66ffff'
+  };
+  
+  const colorMap = isDarkMode ? darkModeColors : lightModeColors;
   return colorMap[colorValue.toLowerCase()] || colorValue;
 }
 
@@ -117,7 +157,7 @@ export function isStyleDirective(content: string): boolean {
 /**
  * Parse extended style directives from format string
  */
-export function parseStyleDirectives(section: string): React.CSSProperties {
+export function parseStyleDirectives(section: string, isDarkMode: boolean = false): React.CSSProperties {
   const styles: React.CSSProperties = {};
   const brackets = section.match(/\[[^\]]+\]/g) || [];
   
@@ -128,7 +168,7 @@ export function parseStyleDirectives(section: string): React.CSSProperties {
     // Background color
     if (content.match(/^(BG|Background):/i)) {
       const colorValue = content.split(':')[1];
-      styles.backgroundColor = parseColorValue(colorValue);
+      styles.backgroundColor = parseColorValue(colorValue, isDarkMode);
     }
     
     // Border
@@ -139,14 +179,14 @@ export function parseStyleDirectives(section: string): React.CSSProperties {
       if (borderParts.length >= 3) {
         const width = borderParts[0];
         const style = borderParts[1];
-        const color = parseColorValue(borderParts.slice(2).join('-'));
+        const color = parseColorValue(borderParts.slice(2).join('-'), isDarkMode);
         styles.border = `${width} ${style} ${color}`;
       } else if (borderParts.length === 2) {
         const width = borderParts[0];
-        const color = parseColorValue(borderParts[1]);
+        const color = parseColorValue(borderParts[1], isDarkMode);
         styles.border = `${width} solid ${color}`;
       } else {
-        const color = parseColorValue(borderValue);
+        const color = parseColorValue(borderValue, isDarkMode);
         styles.border = `1px solid ${color}`;
       }
     }
