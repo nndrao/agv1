@@ -288,62 +288,62 @@ export const FloatingRibbonUI: React.FC = () => {
         </div>
       </div>
       
-      {/* Row 2: Section Tabs */}
+      {/* Row 2: Section Tabs - Slimmer Design */}
       <div className="border-b bg-muted/10">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full h-12 bg-transparent border-0 p-0">
+          <TabsList className="w-full h-8 bg-transparent border-0 p-0">
             <TabsTrigger 
               value="general" 
               className="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
             >
-              <div className="flex flex-col items-center gap-1">
-                <FileText className="h-4 w-4" />
-                <span className="text-xs">General</span>
+              <div className="flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">General</span>
               </div>
             </TabsTrigger>
             <TabsTrigger 
               value="styling" 
               className="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
             >
-              <div className="flex flex-col items-center gap-1">
-                <Palette className="h-4 w-4" />
-                <span className="text-xs">Styling</span>
+              <div className="flex items-center gap-1.5">
+                <Palette className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">Styling</span>
               </div>
             </TabsTrigger>
             <TabsTrigger 
               value="format" 
               className="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
             >
-              <div className="flex flex-col items-center gap-1">
-                <Hash className="h-4 w-4" />
-                <span className="text-xs">Format</span>
+              <div className="flex items-center gap-1.5">
+                <Hash className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">Format</span>
               </div>
             </TabsTrigger>
             <TabsTrigger 
               value="filter" 
               className="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
             >
-              <div className="flex flex-col items-center gap-1">
-                <Filter className="h-4 w-4" />
-                <span className="text-xs">Filter</span>
+              <div className="flex items-center gap-1.5">
+                <Filter className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">Filter</span>
               </div>
             </TabsTrigger>
             <TabsTrigger 
               value="editor" 
               className="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
             >
-              <div className="flex flex-col items-center gap-1">
-                <Edit3 className="h-4 w-4" />
-                <span className="text-xs">Editor</span>
+              <div className="flex items-center gap-1.5">
+                <Edit3 className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">Editor</span>
               </div>
             </TabsTrigger>
             <TabsTrigger 
               value="preview" 
               className="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
             >
-              <div className="flex flex-col items-center gap-1">
-                <Eye className="h-4 w-4" />
-                <span className="text-xs">Preview</span>
+              <div className="flex items-center gap-1.5">
+                <Eye className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">Preview</span>
               </div>
             </TabsTrigger>
           </TabsList>
@@ -351,7 +351,7 @@ export const FloatingRibbonUI: React.FC = () => {
       </div>
       
       {/* Row 3: Dynamic Content */}
-      <div className="p-4">
+      <div className="p-3">
         {activeTab === 'format' && (
           <div className="flex items-center gap-6">
             {/* Quick Format Group */}
