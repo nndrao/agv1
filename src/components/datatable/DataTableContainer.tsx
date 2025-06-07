@@ -4,7 +4,6 @@ import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
 import { DataTableToolbar } from './data-table-toolbar';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
-import { FloatingRibbon } from './FloatingRibbon';
 import { FloatingRibbonUI } from './FloatingRibbonUI';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
 import { useGridState } from './hooks/useGridState';
@@ -200,18 +199,14 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
           onApply={handleApplyColumnChanges}
         />
         
-        {/* Temporary: showing the new UI design */}
-        <FloatingRibbonUI />
-        
-        {/* Original implementation - commented out for now
+        {/* Show FloatingRibbonUI when ribbon is invoked from context menu */}
         {ribbonConfig && (
-          <FloatingRibbon 
+          <FloatingRibbonUI 
             targetColumn={ribbonConfig.targetColumn}
             initialPosition={ribbonConfig.position}
             onClose={() => setRibbonConfig(null)}
           />
         )}
-        */}
       </div>
     </DataTableProvider>
   );
