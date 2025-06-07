@@ -292,20 +292,41 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode: _uiMode = 'simpl
     const currentClasses = (typeof currentClassesRaw === 'string' ? currentClassesRaw : '').trim();
     const classArray = currentClasses ? currentClasses.split(' ').filter(c => c) : [];
 
-    // Remove existing alignment classes
+    // Remove existing alignment classes (both custom and Tailwind)
     const filteredClasses = classArray.filter(c => {
       if (type === 'horizontal') {
-        return !c.startsWith('header-align-');
+        return !c.startsWith('header-align-') && 
+               c !== 'text-left' && c !== 'text-center' && c !== 'text-right' &&
+               c !== 'justify-start' && c !== 'justify-center' && c !== 'justify-end';
       } else {
-        return !c.startsWith('header-valign-');
+        return !c.startsWith('header-valign-') &&
+               c !== 'items-start' && c !== 'items-center' && c !== 'items-end';
       }
     });
 
-    // Add new alignment class if not default
+    // Add new Tailwind alignment classes if not default
     if (alignment !== 'default') {
-      const prefix = type === 'horizontal' ? 'header-align-' : 'header-valign-';
-      const newClass = prefix + alignment;
-      filteredClasses.push(newClass);
+      if (type === 'horizontal') {
+        // For headers, we need both text alignment and flex justification
+        const alignmentMap: Record<string, string[]> = {
+          'left': ['text-left', 'justify-start'],
+          'center': ['text-center', 'justify-center'],
+          'right': ['text-right', 'justify-end']
+        };
+        if (alignmentMap[alignment]) {
+          filteredClasses.push(...alignmentMap[alignment]);
+        }
+      } else {
+        // Vertical alignment
+        const alignmentMap: Record<string, string> = {
+          'top': 'items-start',
+          'middle': 'items-center',
+          'bottom': 'items-end'
+        };
+        if (alignmentMap[alignment]) {
+          filteredClasses.push(alignmentMap[alignment]);
+        }
+      }
     }
 
     const newHeaderClass = filteredClasses.join(' ').trim();
@@ -320,20 +341,41 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode: _uiMode = 'simpl
     const currentClasses = (typeof currentClassesRaw === 'string' ? currentClassesRaw : '').trim();
     const classArray = currentClasses ? currentClasses.split(' ').filter(c => c) : [];
 
-    // Remove existing alignment classes
+    // Remove existing alignment classes (both custom and Tailwind)
     const filteredClasses = classArray.filter(c => {
       if (type === 'horizontal') {
-        return !c.startsWith('cell-align-');
+        return !c.startsWith('cell-align-') && 
+               c !== 'text-left' && c !== 'text-center' && c !== 'text-right' &&
+               c !== 'justify-start' && c !== 'justify-center' && c !== 'justify-end';
       } else {
-        return !c.startsWith('cell-valign-');
+        return !c.startsWith('cell-valign-') &&
+               c !== 'items-start' && c !== 'items-center' && c !== 'items-end';
       }
     });
 
-    // Add new alignment class if not default
+    // Add new Tailwind alignment classes if not default
     if (alignment !== 'default') {
-      const prefix = type === 'horizontal' ? 'cell-align-' : 'cell-valign-';
-      const newClass = prefix + alignment;
-      filteredClasses.push(newClass);
+      if (type === 'horizontal') {
+        // For cells, we need both text alignment and flex justification
+        const alignmentMap: Record<string, string[]> = {
+          'left': ['text-left', 'justify-start'],
+          'center': ['text-center', 'justify-center'],
+          'right': ['text-right', 'justify-end']
+        };
+        if (alignmentMap[alignment]) {
+          filteredClasses.push(...alignmentMap[alignment]);
+        }
+      } else {
+        // Vertical alignment
+        const alignmentMap: Record<string, string> = {
+          'top': 'items-start',
+          'middle': 'items-center',
+          'bottom': 'items-end'
+        };
+        if (alignmentMap[alignment]) {
+          filteredClasses.push(alignmentMap[alignment]);
+        }
+      }
     }
 
     const newCellClass = filteredClasses.join(' ').trim();
@@ -348,11 +390,29 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode: _uiMode = 'simpl
 
     if (!headerClass) return 'default';
 
-    const prefix = type === 'horizontal' ? 'header-align-' : 'header-valign-';
-    const regex = new RegExp(`${prefix}(\\w+)`);
-    const match = headerClass.match(regex);
-
-    return match ? match[1] : 'default';
+    if (type === 'horizontal') {
+      // Check for Tailwind classes first
+      if (headerClass.includes('text-left') || headerClass.includes('justify-start')) return 'left';
+      if (headerClass.includes('text-center') || headerClass.includes('justify-center')) return 'center';
+      if (headerClass.includes('text-right') || headerClass.includes('justify-end')) return 'right';
+      
+      // Fall back to custom classes
+      const prefix = 'header-align-';
+      const regex = new RegExp(`${prefix}(\\w+)`);
+      const match = headerClass.match(regex);
+      return match ? match[1] : 'default';
+    } else {
+      // Check for Tailwind classes
+      if (headerClass.includes('items-start')) return 'top';
+      if (headerClass.includes('items-center')) return 'middle';
+      if (headerClass.includes('items-end')) return 'bottom';
+      
+      // Fall back to custom classes
+      const prefix = 'header-valign-';
+      const regex = new RegExp(`${prefix}(\\w+)`);
+      const match = headerClass.match(regex);
+      return match ? match[1] : 'default';
+    }
   };
 
   // Extract current cell alignment from cellClass
@@ -363,11 +423,29 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode: _uiMode = 'simpl
 
     if (!cellClass) return 'default';
 
-    const prefix = type === 'horizontal' ? 'cell-align-' : 'cell-valign-';
-    const regex = new RegExp(`${prefix}(\\w+)`);
-    const match = cellClass.match(regex);
-
-    return match ? match[1] : 'default';
+    if (type === 'horizontal') {
+      // Check for Tailwind classes first
+      if (cellClass.includes('text-left') || cellClass.includes('justify-start')) return 'left';
+      if (cellClass.includes('text-center') || cellClass.includes('justify-center')) return 'center';
+      if (cellClass.includes('text-right') || cellClass.includes('justify-end')) return 'right';
+      
+      // Fall back to custom classes
+      const prefix = 'cell-align-';
+      const regex = new RegExp(`${prefix}(\\w+)`);
+      const match = cellClass.match(regex);
+      return match ? match[1] : 'default';
+    } else {
+      // Check for Tailwind classes
+      if (cellClass.includes('items-start')) return 'top';
+      if (cellClass.includes('items-center')) return 'middle';
+      if (cellClass.includes('items-end')) return 'bottom';
+      
+      // Fall back to custom classes
+      const prefix = 'cell-valign-';
+      const regex = new RegExp(`${prefix}(\\w+)`);
+      const match = cellClass.match(regex);
+      return match ? match[1] : 'default';
+    }
   };
 
   // Check if header alignment is mixed

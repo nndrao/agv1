@@ -10,6 +10,7 @@ import { useProfileSync } from './hooks/useProfileSync';
 import { useColumnOperations } from './hooks/useColumnOperations';
 import { DataTableProps } from './types';
 import { useProfileStore } from '@/stores/profile.store';
+import { useTheme } from '@/components/theme-provider';
 
 /**
  * Container component that manages the state and logic for the DataTable.
@@ -19,6 +20,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   const gridApiRef = useRef<GridApi | null>(null);
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
   const { saveColumnCustomizations } = useProfileStore();
+  const { theme } = useTheme();
   
   // Initialize grid state
   const {
@@ -63,6 +65,17 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       gridApiRef.current.refreshCells({ force: true });
     }
   }, [setSelectedFont]);
+  
+  // Refresh cells when theme changes to update conditional formatting colors
+  React.useEffect(() => {
+    if (gridApiRef.current || gridApi) {
+      // Small delay to ensure DOM classes are updated
+      setTimeout(() => {
+        gridApiRef.current?.refreshCells({ force: true });
+        gridApi?.refreshCells({ force: true });
+      }, 50);
+    }
+  }, [theme, gridApi]);
   
   // Get column state for dialog
   const getColumnState = React.useCallback(() => {

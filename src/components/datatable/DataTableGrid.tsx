@@ -8,7 +8,6 @@ import { useGridCallbacks } from './hooks/useGridCallbacks';
 import { useDataTableContext } from './hooks/useDataTableContext';
 import { ColumnDef } from './types';
 import { DEFAULT_COL_DEF, DEFAULT_GRID_SPACING } from './utils/constants';
-import './alignment-styles.css';
 import './format-styles.css';
 import './profile-transitions.css';
 
