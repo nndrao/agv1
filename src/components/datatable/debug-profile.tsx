@@ -1,4 +1,4 @@
-import { useProfileStore } from '@/stores/profile.store';
+import { useProfileStore } from '@/components/datatable/stores/profile.store';
 import { Button } from '@/components/ui/button';
 
 export function DebugProfile() {

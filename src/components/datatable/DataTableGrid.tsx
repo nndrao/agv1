@@ -2,7 +2,7 @@ import React, { memo, useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, themeQuartz, GridApi } from 'ag-grid-community';
 import { AllEnterpriseModule } from 'ag-grid-enterprise';
-import { useTheme } from '@/components/theme-provider';
+import { useTheme } from '@/components/datatable/components/theme-provider';
 import { DebugProfile } from './debug-profile';
 import { useGridCallbacks } from './hooks/useGridCallbacks';
 import { useDataTableContext } from './hooks/useDataTableContext';

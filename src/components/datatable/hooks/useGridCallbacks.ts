@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { GridApi, GridReadyEvent } from 'ag-grid-community';
-import { useActiveProfile } from '@/stores/profile.store';
+import { useActiveProfile } from '@/components/datatable/stores/profile.store';
 import { useDataTableContext } from './useDataTableContext';
 
 /**

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { GridProfile, useProfileStore } from '@/stores/profile.store';
+import { GridProfile, useProfileStore } from '@/components/datatable/stores/profile.store';
 import { ColumnDef } from '../types';
 
 /**

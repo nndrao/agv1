@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useProfileStore, useActiveProfile } from '@/stores/profile.store';
+import { useProfileStore, useActiveProfile } from '@/components/datatable/stores/profile.store';
 import { ColumnDef } from '../types';
 
 /**

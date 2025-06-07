@@ -10,8 +10,9 @@ import { useGridState } from './hooks/useGridState';
 import { useProfileSync } from './hooks/useProfileSync';
 import { useColumnOperations } from './hooks/useColumnOperations';
 import { DataTableProps } from './types';
-import { useProfileStore } from '@/stores/profile.store';
-import { useTheme } from '@/components/theme-provider';
+import { useProfileStore } from '@/components/datatable/stores/profile.store';
+import { useTheme } from '@/components/datatable/components/theme-provider';
+import './datatable.css';
 
 /**
  * Container component that manages the state and logic for the DataTable.
