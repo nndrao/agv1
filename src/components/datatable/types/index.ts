@@ -126,6 +126,7 @@ export interface DataTableContextValue {
   setShowColumnDialog: (show: boolean) => void;
   gridApiRef: React.MutableRefObject<GridApi | null>;
   getColumnDefsWithStyles: () => ColumnDef[];
+  setGridApi?: (api: GridApi | null) => void;
 }
 
 /**

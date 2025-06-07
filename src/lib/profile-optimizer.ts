@@ -57,7 +57,7 @@ class ProfileOptimizer {
     let processedColumnDefs: ColDef[] = [];
     
     // Process column definitions
-    if (profile.gridState.columnCustomizations && profile.gridState.baseColumnDefs) {
+    if (profile.gridState.columnCustomizations && profile.gridState.baseColumnDefs && profile.gridState.baseColumnDefs.length > 0) {
       processedColumnDefs = deserializeColumnCustomizations(
         profile.gridState.columnCustomizations,
         profile.gridState.baseColumnDefs
@@ -90,6 +90,9 @@ class ProfileOptimizer {
       delete (processed as any).valueFormat;
       delete (processed as any)._hasFormatter;
       delete (processed as any).excelFormat;
+      
+      // Remove hide property - visibility should be controlled by column state
+      delete (processed as any).hide;
       
       // Convert headerStyle objects back to functions
       if (processed.headerStyle && typeof processed.headerStyle === 'object') {
@@ -220,21 +223,48 @@ class ProfileOptimizer {
     // Optimistic update - immediately update visual indicators
     this.currentProfileId = profile.id;
     
-    // Batch all updates
-    this.batchUpdates(() => {
-      let progress = 0;
-      const totalSteps = Object.keys(diff).filter(key => diff[key as keyof ProfileDiff]).length;
+    // Cancel any pending updates from previous profile switches
+    if (this.updateFrameId !== null) {
+      cancelAnimationFrame(this.updateFrameId);
+      this.updateFrameId = null;
+    }
+    this.pendingUpdates.clear();
+    
+    // Apply updates synchronously for consistency
+    let progress = 0;
+    const totalSteps = Object.keys(diff).filter(key => diff[key as keyof ProfileDiff]).length;
+    
+    try {
+      // Step 1: Clear existing state to prevent bleeding
+      if (diff.columnDefsChanged || diff.columnStateChanged) {
+        // Force a clean state by resetting filters and sorts
+        gridApi.setFilterModel({});
+        // Clear sort using applyColumnState with empty sort state
+        const allColumns = gridApi.getColumns();
+        if (allColumns) {
+          const clearSortState = allColumns.map(col => ({
+            colId: col.getColId(),
+            sort: null,
+            sortIndex: null
+          }));
+          gridApi.applyColumnState({ state: clearSortState });
+        }
+      }
       
       // Collect all updates to apply in a single transaction
       const gridUpdates: any = {};
       let needsHeaderRefresh = false;
       let needsFilterRefresh = false;
       
-      // Step 1: Prepare column definitions if changed
-      if (diff.columnDefsChanged && cached.processedColumnDefs.length > 0) {
+      // Step 1: Prepare column definitions if changed OR if this is the initial load
+      const isInitialLoad = currentProfile === null;
+      if ((diff.columnDefsChanged || isInitialLoad) && cached.processedColumnDefs.length > 0) {
+        // IMPORTANT: When updating column definitions, AG-Grid resets column state
+        // So we need to capture the target column state and ensure it's applied after
+        // the column definitions are updated
+        
         // Get current defaultColDef to ensure it's preserved
         const defaultColDef = gridApi.getGridOption('defaultColDef') || {
-          flex: 1,
           minWidth: 100,
           filter: true,
           floatingFilter: true,
@@ -246,7 +276,31 @@ class ProfileOptimizer {
           useValueFormatterForExport: true,
         };
         
-        gridUpdates.columnDefs = cached.processedColumnDefs;
+        // Remove any hide properties from column definitions
+        // Column visibility should only be controlled by column state
+        // Also ensure we start with clean column definitions to prevent style bleeding
+        const cleanedColumnDefs = cached.processedColumnDefs.map(col => {
+          // Create a fresh copy to avoid any reference issues
+          const cleaned = { ...col };
+          delete (cleaned as any).hide;
+          
+          // Ensure styles are properly set (not carrying over from previous profile)
+          if (cleaned.cellStyle && typeof cleaned.cellStyle === 'function') {
+            // Re-create the function to ensure it's not a stale reference
+            const originalFunc = cleaned.cellStyle;
+            cleaned.cellStyle = originalFunc;
+          }
+          
+          if (cleaned.headerStyle && typeof cleaned.headerStyle === 'function') {
+            // Re-create the function to ensure it's not a stale reference
+            const originalFunc = cleaned.headerStyle;
+            cleaned.headerStyle = originalFunc;
+          }
+          
+          return cleaned;
+        });
+        
+        gridUpdates.columnDefs = cleanedColumnDefs;
         gridUpdates.defaultColDef = defaultColDef;
         
         // Check if we need header refresh
@@ -260,72 +314,123 @@ class ProfileOptimizer {
       
       // Apply all grid updates in one call
       if (Object.keys(gridUpdates).length > 0) {
+        console.log('[ProfileOptimizer] Applying grid updates:', {
+          hasColumnDefs: !!gridUpdates.columnDefs,
+          columnDefsCount: gridUpdates.columnDefs?.length,
+          hasDefaultColDef: !!gridUpdates.defaultColDef
+        });
         gridApi.updateGridOptions(gridUpdates);
+        
+        // IMPORTANT: If we updated column definitions, we need to apply column state immediately
+        // AG-Grid resets column state when columnDefs change, so we can't defer this
+        needsHeaderRefresh = true;
+        
+        // Give AG-Grid a moment to process the column definition changes
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
       
-      // Batch all remaining state updates into a single operation
-      this.scheduleUpdate('profileState', () => {
-        // Apply column state, sort, and filter in optimal order
+      // Apply column state, sort, and filter immediately (not deferred)
+      // This ensures proper state application after column definition changes
+      
+      // 1. Column state (includes visibility, width, position)
+      // IMPORTANT: Always apply column state if we updated column definitions
+      // because AG-Grid resets state when columnDefs change
+      if ((diff.columnStateChanged || diff.columnDefsChanged || isInitialLoad) && profile.gridState.columnState) {
+        console.log('[ProfileOptimizer] Applying column state:', {
+          stateCount: profile.gridState.columnState.length,
+          hiddenColumns: profile.gridState.columnState.filter((col: any) => col.hide).length,
+          visibleColumns: profile.gridState.columnState.filter((col: any) => !col.hide).length,
+          sample: profile.gridState.columnState.slice(0, 3)
+        });
         
-        // 1. Column state (includes visibility, width, position)
-        if (diff.columnStateChanged && profile.gridState.columnState) {
-          gridApi.applyColumnState({
-            state: profile.gridState.columnState,
-            applyOrder: true
-          });
-          progress++;
-          options.onProgress?.(progress / totalSteps);
-        }
+        // Log the state we're about to apply
+        console.log('[ProfileOptimizer] Column state to apply:', 
+          profile.gridState.columnState.map((s: any) => ({
+            colId: s.colId,
+            hide: s.hide,
+            width: s.width,
+            pinned: s.pinned
+          }))
+        );
         
-        // 2. Sort model (part of column state)
-        if (diff.sortModelChanged && profile.gridState.sortModel?.length > 0) {
-          const sortState = profile.gridState.sortModel.map(sort => ({
-            colId: sort.colId,
-            sort: sort.sort,
-            sortIndex: sort.sortIndex
-          }));
-          gridApi.applyColumnState({ state: sortState });
-          progress++;
-          options.onProgress?.(progress / totalSteps);
-        }
+        const result = gridApi.applyColumnState({
+          state: profile.gridState.columnState,
+          applyOrder: true
+        });
         
-        // 3. Filter model (apply after column state)
-        if (diff.filterModelChanged) {
-          gridApi.setFilterModel(profile.gridState.filterModel || {});
-          needsFilterRefresh = true;
-          progress++;
-          options.onProgress?.(progress / totalSteps);
-        }
+        console.log('[ProfileOptimizer] applyColumnState result:', result);
         
-        // 4. Single refresh at the end if needed
-        if (needsHeaderRefresh || needsFilterRefresh) {
-          requestAnimationFrame(() => {
-            if (needsHeaderRefresh) {
-              gridApi.refreshHeader();
-            }
-            if (needsFilterRefresh) {
-              // In AG-Grid v33, refreshFilters doesn't exist
-              // Instead, we notify that filters have changed
-              gridApi.onFilterChanged();
-            }
-          });
-        }
-      }, 1); // High priority
+        // Verify the state was applied
+        const appliedState = gridApi.getColumnState();
+        const allColumns = gridApi.getColumns();
+        console.log('[ProfileOptimizer] Column state after apply:', {
+          stateCount: appliedState.length,
+          hiddenColumns: appliedState.filter(col => col.hide).length,
+          visibleColumns: appliedState.filter(col => !col.hide).length,
+          appliedSuccessfully: result === true,
+          actualVisibleColumns: allColumns?.filter(c => c.isVisible()).length,
+          actualColumns: allColumns?.map(c => ({
+            colId: c.getColId(),
+            visible: c.isVisible()
+          }))
+        });
+        
+        progress++;
+        options.onProgress?.(progress / totalSteps);
+      }
+      
+      // 2. Sort model (part of column state)
+      if (diff.sortModelChanged && profile.gridState.sortModel?.length > 0) {
+        const sortState = profile.gridState.sortModel.map(sort => ({
+          colId: sort.colId,
+          sort: sort.sort,
+          sortIndex: sort.sortIndex
+        }));
+        gridApi.applyColumnState({ state: sortState });
+        progress++;
+        options.onProgress?.(progress / totalSteps);
+      }
+      
+      // 3. Filter model (apply after column state)
+      if (diff.filterModelChanged) {
+        gridApi.setFilterModel(profile.gridState.filterModel || {});
+        needsFilterRefresh = true;
+        progress++;
+        options.onProgress?.(progress / totalSteps);
+      }
+      
+      // 4. Single refresh at the end if needed
+      if (needsHeaderRefresh || needsFilterRefresh) {
+        requestAnimationFrame(() => {
+          if (needsHeaderRefresh) {
+            gridApi.refreshHeader();
+          }
+          if (needsFilterRefresh) {
+            // In AG-Grid v33, refreshFilters doesn't exist
+            // Instead, we notify that filters have changed
+            gridApi.onFilterChanged();
+          }
+        });
+      }
       
       // Apply grid options if changed
       if (diff.gridOptionsChanged && profile.gridState.gridOptions) {
-        this.scheduleUpdate('gridOptions', () => {
-          const options = profile.gridState.gridOptions!;
-          if (options.rowHeight) {
-            gridApi.resetRowHeights();
-            gridApi.setGridOption('rowHeight', options.rowHeight);
-          }
-          if (options.headerHeight) {
-            gridApi.setGridOption('headerHeight', options.headerHeight);
-          }
-        }, 4);
+        const options = profile.gridState.gridOptions!;
+        if (options.rowHeight) {
+          gridApi.resetRowHeights();
+          gridApi.setGridOption('rowHeight', options.rowHeight);
+        }
+        if (options.headerHeight) {
+          gridApi.setGridOption('headerHeight', options.headerHeight);
+        }
+        progress++;
+        options.onProgress?.(progress / totalSteps);
       }
-    });
+    } catch (error) {
+      console.error('[ProfileOptimizer] Error switching profile:', error);
+      // Re-throw to let caller handle
+      throw error;
+    }
     
     // Log performance metrics
     const endTime = performance.now();

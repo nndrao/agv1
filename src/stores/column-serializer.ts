@@ -157,7 +157,6 @@ const COLUMN_DEFAULTS: Partial<ColDef> = {
   lockVisible: false,
   lockPinned: false,
   suppressHeaderMenuButton: false,
-  flex: 1,
   minWidth: 100,
 };
 
@@ -492,7 +491,8 @@ export function deserializeColumnCustomizations(
     if (custom.editable !== undefined) merged.editable = custom.editable;
     if (custom.filter !== undefined) merged.filter = custom.filter;
     if (custom.floatingFilter !== undefined) merged.floatingFilter = custom.floatingFilter;
-    if (custom.hide !== undefined) merged.hide = custom.hide;
+    // Don't apply hide property from customizations - column visibility should be controlled by column state only
+    // if (custom.hide !== undefined) merged.hide = custom.hide;
     if (custom.lockPosition !== undefined) merged.lockPosition = custom.lockPosition;
     if (custom.lockVisible !== undefined) merged.lockVisible = custom.lockVisible;
     if (custom.lockPinned !== undefined) merged.lockPinned = custom.lockPinned;

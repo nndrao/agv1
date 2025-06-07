@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useRef } from 'react';
+import React, { memo, useMemo, useRef, useState } from 'react';
 import { GridApi } from 'ag-grid-community';
 import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
@@ -17,6 +17,7 @@ import { useProfileStore } from '@/stores/profile.store';
  */
 export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps) => {
   const gridApiRef = useRef<GridApi | null>(null);
+  const [gridApi, setGridApi] = useState<GridApi | null>(null);
   const { saveColumnCustomizations } = useProfileStore();
   
   // Initialize grid state
@@ -49,6 +50,8 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
         !activeProfile.gridState.columnCustomizations && 
         (!activeProfile.gridState.columnDefs || activeProfile.gridState.columnDefs.length === 0)) {
       console.log('[DataTableContainer] Initializing default profile with base columnDefs');
+      // Pass columnDefs as both current and base since this is the initial setup
+      // The first parameter is current state, second is the original base columns
       saveColumnCustomizations(columnDefs, columnDefs);
     }
   }, [columnDefs, saveColumnCustomizations]);
@@ -103,6 +106,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
     setShowColumnDialog,
     gridApiRef,
     getColumnDefsWithStyles,
+    setGridApi,
   }), [
     processedColumns,
     selectedFont,
@@ -119,7 +123,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
           onFontChange={handleFontChange}
           onSpacingChange={() => {}} // Empty function to satisfy prop requirements
           onOpenColumnSettings={() => setShowColumnDialog(true)}
-          gridApi={gridApiRef.current}
+          gridApi={gridApi}
           onProfileChange={handleProfileChange}
           getColumnDefsWithStyles={getColumnDefsWithStyles}
         />

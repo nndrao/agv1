@@ -446,7 +446,42 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode: _uiMode = 'simple'
       }
       
       // Get CSS classes for this format
-      const cssClass = getExcelStyleClass(formatString);
+      const newFormatClasses = getExcelStyleClass(formatString);
+      
+      // Preserve existing alignment classes for each column individually
+      // We'll apply the format classes but preserve each column's alignment
+      const properties: any = {
+        valueFormatter: formatter,
+        // Enable export with formatter
+        useValueFormatterForExport: true
+      };
+      
+      // For cellClass, we need to handle each column individually to preserve their alignment
+      const cellClassUpdates: Record<string, string> = {};
+      selectedColumns.forEach(colId => {
+        const colDef = columnDefinitions.get(colId);
+        const pendingChange = pendingChanges.get(colId);
+        const existingCellClass = pendingChange?.cellClass || colDef?.cellClass || '';
+        
+        // Extract alignment classes from existing cellClass
+        const existingClasses = existingCellClass.split(' ').filter(Boolean);
+        const alignmentClasses = existingClasses.filter((cls: string) => 
+          cls.startsWith('cell-align-') || cls.startsWith('cell-valign-')
+        );
+        
+        // Combine new format classes with preserved alignment classes
+        const allClasses = [...new Set([...newFormatClasses.split(' '), ...alignmentClasses])];
+        cellClassUpdates[colId] = allClasses.filter(Boolean).join(' ');
+      });
+      
+      // If all columns have the same cellClass, we can use bulk update
+      const uniqueCellClasses = new Set(Object.values(cellClassUpdates));
+      if (uniqueCellClasses.size === 1) {
+        properties.cellClass = Array.from(uniqueCellClasses)[0];
+      } else {
+        // Otherwise, we need to update each column individually after bulk update
+        // We'll do this after the main properties are applied
+      }
       
       // Check if this format has conditional formatting or styling that needs cellStyle function
       const hasStyledContent = formatString.includes('[') && (
@@ -488,13 +523,6 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode: _uiMode = 'simple'
         formatString.includes('[Left]') ||
         formatString.includes('[Right]')
       );
-      
-      const properties: any = {
-        valueFormatter: formatter,
-        cellClass: cssClass,
-        // Enable export with formatter
-        useValueFormatterForExport: true
-      };
       
       // If format has conditional colors, styling directives, or any conditional formatting
       // We'll handle cellStyle creation in StylingTab to avoid conflicts
@@ -561,10 +589,17 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode: _uiMode = 'simple'
       
       // Apply all properties at once
       updateBulkProperties(properties);
+      
+      // Apply individual cellClass updates if needed
+      if (uniqueCellClasses.size > 1) {
+        selectedColumns.forEach(colId => {
+          updateSingleProperty(colId, 'cellClass', cellClassUpdates[colId]);
+        });
+      }
     } catch (error) {
       console.error('Error applying format:', error);
     }
-  }, [selectedColumns, updateBulkProperties, columnDefinitions, pendingChanges]);
+  }, [selectedColumns, updateBulkProperties, updateSingleProperty, columnDefinitions, pendingChanges]);
 
   // Clear format from selected columns
   const clearFormat = useCallback(() => {
@@ -585,11 +620,31 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode: _uiMode = 'simple'
       }
     }
     
+    // Preserve alignment classes when clearing format
+    const cellClassUpdates: Record<string, string | undefined> = {};
+    selectedColumns.forEach(colId => {
+      const colDef = columnDefinitions.get(colId);
+      const pendingChange = pendingChanges.get(colId);
+      const existingCellClass = pendingChange?.cellClass || colDef?.cellClass || '';
+      
+      // Extract only alignment classes to preserve
+      const alignmentClasses = existingCellClass.split(' ').filter((cls: string) => 
+        cls.startsWith('cell-align-') || cls.startsWith('cell-valign-')
+      );
+      
+      cellClassUpdates[colId] = alignmentClasses.length > 0 ? alignmentClasses.join(' ') : undefined;
+    });
+    
     // If we have base styles, preserve them; otherwise clear cellStyle
     const properties: any = {
-      valueFormatter: undefined,
-      cellClass: undefined
+      valueFormatter: undefined
     };
+    
+    // Handle cellClass updates
+    const uniqueCellClasses = new Set(Object.values(cellClassUpdates));
+    if (uniqueCellClasses.size === 1) {
+      properties.cellClass = Array.from(uniqueCellClasses)[0];
+    }
     
     if (Object.keys(baseStyle).length > 0) {
       // Preserve base styles
@@ -600,7 +655,14 @@ export const FormatTab: React.FC<FormatTabProps> = ({ uiMode: _uiMode = 'simple'
     }
     
     updateBulkProperties(properties);
-  }, [selectedColumns, updateBulkProperties, columnDefinitions, pendingChanges]);
+    
+    // Apply individual cellClass updates if needed
+    if (uniqueCellClasses.size > 1) {
+      selectedColumns.forEach(colId => {
+        updateSingleProperty(colId, 'cellClass', cellClassUpdates[colId]);
+      });
+    }
+  }, [selectedColumns, updateBulkProperties, updateSingleProperty, columnDefinitions, pendingChanges]);
 
   // Format presets
   const formatPresets = useMemo(() => [
