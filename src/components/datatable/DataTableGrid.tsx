@@ -50,31 +50,31 @@ export const DataTableGrid = memo(({
   // Create theme configuration
   const theme = useMemo(() => {
     const lightTheme = {
-      accentColor: "#8AAAA7",
-      backgroundColor: "#F7F7F7",
-      borderColor: "#23202029",
+      accentColor: "#6B7280",
+      backgroundColor: "#F5F5F5",
+      borderColor: "#D1D5DB",
       browserColorScheme: "light",
       buttonBorderRadius: 2,
-      cellTextColor: "#000000",
+      cellTextColor: "#374151",
       checkboxBorderRadius: 2,
       columnBorder: true,
       fontFamily: selectedFont,
       fontSize: 14,
-      headerBackgroundColor: "#EFEFEFD6",
+      headerBackgroundColor: "#EEEFF1",
       headerFontFamily: selectedFont,
       headerFontSize: 14,
       headerFontWeight: 500,
       iconButtonBorderRadius: 1,
       iconSize: 12,
       inputBorderRadius: 2,
-      oddRowBackgroundColor: "#EEF1F1E8",
+      oddRowBackgroundColor: "#F4F5F6",
       spacing: DEFAULT_GRID_SPACING,
       wrapperBorderRadius: 2,
     };
 
     const darkTheme = {
       accentColor: "#8AAAA7",
-      backgroundColor: "#1f2836",
+      backgroundColor: "#161b22",
       borderRadius: 2,
       checkboxBorderRadius: 2,
       columnBorder: true,
@@ -91,7 +91,7 @@ export const DataTableGrid = memo(({
       headerFontSize: 14,
       iconSize: 12,
       inputBorderRadius: 2,
-      oddRowBackgroundColor: "#2A2E35",
+      oddRowBackgroundColor: "#1f2328",
       spacing: DEFAULT_GRID_SPACING,
       wrapperBorderRadius: 2,
     };

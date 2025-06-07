@@ -13,9 +13,9 @@ export function useGridCallbacks(
   const activeProfile = useActiveProfile();
   const { setGridApi } = useDataTableContext();
   
-  // Context menu items - memoized as they never change
-  const getContextMenuItems = useCallback(() => {
-    return [
+  // Context menu items - now includes Format Column option
+  const getContextMenuItems = useCallback((params: any) => {
+    const defaultItems = [
       "autoSizeAll",
       "resetColumns",
       "separator",
@@ -25,6 +25,32 @@ export function useGridCallbacks(
       "separator",
       "export",
     ];
+    
+    // Only add Format Column for column headers, not cell context menus
+    if (params.column) {
+      return [
+        {
+          name: 'Format Column',
+          action: () => {
+            // Dispatch custom event with column info and click position
+            const event = new CustomEvent('format-column', {
+              detail: {
+                colId: params.column.getColId(),
+                colDef: params.column.getColDef(),
+                x: params.event?.clientX || 0,
+                y: params.event?.clientY || 0
+              }
+            });
+            window.dispatchEvent(event);
+          },
+          icon: '<span class="ag-icon ag-icon-columns" style="font-size: 14px;">🎨</span>'
+        },
+        "separator",
+        ...defaultItems
+      ];
+    }
+    
+    return defaultItems;
   }, []);
   
   // Grid ready handler
