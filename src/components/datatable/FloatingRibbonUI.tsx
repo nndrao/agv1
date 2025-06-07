@@ -116,6 +116,9 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
   const [formatCategory, setFormatCategory] = useState('numbers');
   const [currentFormat, setCurrentFormat] = useState('#,##0.00');
   const [showConditionalDialog, setShowConditionalDialog] = useState(false);
+  
+  // Track advanced filter tab state
+  const [advancedFilterTab, setAdvancedFilterTab] = useState('general');
 
   // Handle dragging
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -1172,44 +1175,920 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
         )}
         
         {activeTab === 'filter' && (
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <ListFilter className="h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Quick filter..." 
-                className="h-8 max-w-xs"
-              />
-              <Select defaultValue="contains">
-                <SelectTrigger className="w-[120px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="contains">Contains</SelectItem>
-                  <SelectItem value="equals">Equals</SelectItem>
-                  <SelectItem value="starts">Starts with</SelectItem>
-                  <SelectItem value="ends">Ends with</SelectItem>
-                  <SelectItem value="greater">Greater than</SelectItem>
-                  <SelectItem value="less">Less than</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-3">
+            {/* Row 1: Filter Type Selection */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Filter Type:</Label>
+                <Select defaultValue="agTextColumnFilter">
+                  <SelectTrigger className="h-7 w-[160px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Filter</SelectItem>
+                    <SelectItem value="agTextColumnFilter">
+                      <div className="flex items-center gap-2">
+                        <Type className="h-3 w-3" />
+                        Text Filter
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agNumberColumnFilter">
+                      <div className="flex items-center gap-2">
+                        <Hash className="h-3 w-3" />
+                        Number Filter
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agDateColumnFilter">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3 w-3" />
+                        Date Filter
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agSetColumnFilter">
+                      <div className="flex items-center gap-2">
+                        <ListFilter className="h-3 w-3" />
+                        Set Filter
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agMultiColumnFilter">
+                      <div className="flex items-center gap-2">
+                        <Settings className="h-3 w-3" />
+                        Multi Filter
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator orientation="vertical" className="h-6" />
+              
+              {/* Filter Options */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="hide-menu" className="text-xs text-muted-foreground">Hide Menu:</Label>
+                  <Switch id="hide-menu" className="h-4 w-7" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="hide-panel" className="text-xs text-muted-foreground">Hide Panel:</Label>
+                  <Switch id="hide-panel" className="h-4 w-7" />
+                </div>
+              </div>
+              
+              <div className="ml-auto">
+                <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                  <Sparkles className="h-3 w-3" />
+                  Auto-Detect
+                </Button>
+              </div>
             </div>
             
-            <Separator orientation="vertical" className="h-8" />
+            {/* Row 2: Filter Parameters (Dynamic based on selected type) */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                {/* Text Filter Parameters */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <Type className="h-3 w-3" />
+                      Text Options
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="start">
+                    <div className="space-y-4">
+                      <Label className="text-sm font-medium">Text Filter Parameters</Label>
+                      
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Default Option</Label>
+                          <Select defaultValue="contains">
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">Contains</SelectItem>
+                              <SelectItem value="equals">Equals</SelectItem>
+                              <SelectItem value="startsWith">Starts With</SelectItem>
+                              <SelectItem value="endsWith">Ends With</SelectItem>
+                              <SelectItem value="notContains">Not Contains</SelectItem>
+                              <SelectItem value="notEqual">Not Equal</SelectItem>
+                              <SelectItem value="blank">Blank</SelectItem>
+                              <SelectItem value="notBlank">Not Blank</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="trim-input" className="text-xs">Trim Input</Label>
+                          <Switch id="trim-input" className="h-4 w-7" defaultChecked />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="case-sensitive" className="text-xs">Case Sensitive</Label>
+                          <Switch id="case-sensitive" className="h-4 w-7" />
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <Label className="text-xs">Debounce (ms)</Label>
+                          <Input 
+                            type="number" 
+                            className="h-7 text-xs" 
+                            defaultValue="200"
+                            min="0"
+                            max="2000"
+                            step="50"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                {/* Set Filter Parameters */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <ListFilter className="h-3 w-3" />
+                      Set Options
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="start">
+                    <div className="space-y-4">
+                      <Label className="text-sm font-medium">Set Filter Parameters</Label>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="suppress-mini-filter" className="text-xs">Hide Search Box</Label>
+                          <Switch id="suppress-mini-filter" className="h-4 w-7" />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="suppress-select-all" className="text-xs">Hide Select All</Label>
+                          <Switch id="suppress-select-all" className="h-4 w-7" />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="show-tooltips" className="text-xs">Show Tooltips</Label>
+                          <Switch id="show-tooltips" className="h-4 w-7" defaultChecked />
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <Label className="text-xs">Sort Order</Label>
+                          <Select defaultValue="default">
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="default">Default (Alphabetical)</SelectItem>
+                              <SelectItem value="caseInsensitive">Case Insensitive</SelectItem>
+                              <SelectItem value="natural">Natural Sort</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                {/* Multi Filter Configuration */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <Settings className="h-3 w-3" />
+                      Multi Config
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-96" align="start">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Multi Filter Setup</Label>
+                        <Button size="sm" variant="outline" className="h-6 text-xs">
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Filter
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {/* Filter 1 */}
+                        <div className="p-2 border rounded space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs px-1">Filter 1</Badge>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto">
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Type</Label>
+                              <Select defaultValue="agTextColumnFilter">
+                                <SelectTrigger className="h-7 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="agTextColumnFilter">Text Filter</SelectItem>
+                                  <SelectItem value="agNumberColumnFilter">Number Filter</SelectItem>
+                                  <SelectItem value="agDateColumnFilter">Date Filter</SelectItem>
+                                  <SelectItem value="agSetColumnFilter">Set Filter</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <Label className="text-xs">Display</Label>
+                              <Select defaultValue="subMenu">
+                                <SelectTrigger className="h-7 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="inline">Inline (Tabs)</SelectItem>
+                                  <SelectItem value="subMenu">Sub Menu</SelectItem>
+                                  <SelectItem value="accordion">Accordion</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label className="text-xs">Title (optional)</Label>
+                            <Input className="h-7 text-xs" placeholder="Custom filter name" />
+                          </div>
+                        </div>
+                        
+                        {/* Filter 2 */}
+                        <div className="p-2 border rounded space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs px-1">Filter 2</Badge>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto">
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Type</Label>
+                              <Select defaultValue="agSetColumnFilter">
+                                <SelectTrigger className="h-7 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="agTextColumnFilter">Text Filter</SelectItem>
+                                  <SelectItem value="agNumberColumnFilter">Number Filter</SelectItem>
+                                  <SelectItem value="agDateColumnFilter">Date Filter</SelectItem>
+                                  <SelectItem value="agSetColumnFilter">Set Filter</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <Label className="text-xs">Display</Label>
+                              <Select defaultValue="inline">
+                                <SelectTrigger className="h-7 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="inline">Inline (Tabs)</SelectItem>
+                                  <SelectItem value="subMenu">Sub Menu</SelectItem>
+                                  <SelectItem value="accordion">Accordion</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="hide-child-buttons" className="text-xs">Hide Child Filter Buttons</Label>
+                            <Switch id="hide-child-buttons" className="h-4 w-7" />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label className="text-xs">Default Display Style</Label>
+                            <Select defaultValue="inline">
+                              <SelectTrigger className="h-7 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="inline">Inline (Tabs)</SelectItem>
+                                <SelectItem value="subMenu">Sub Menu</SelectItem>
+                                <SelectItem value="accordion">Accordion</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {/* Advanced Parameters */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <Settings className="h-3 w-3" />
+                      Advanced
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-96" align="start">
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Advanced Filter Parameters</Label>
+                      
+                      <div className="w-full">
+                        <div className="flex border-b">
+                          {[
+                            { id: 'general', label: 'General', icon: Settings },
+                            { id: 'date', label: 'Date', icon: Calendar },
+                            { id: 'number', label: 'Number', icon: Hash },
+                            { id: 'set', label: 'Set', icon: ListFilter },
+                          ].map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = advancedFilterTab === tab.id;
+                            return (
+                              <button
+                                key={tab.id}
+                                onClick={() => setAdvancedFilterTab(tab.id)}
+                                className={cn(
+                                  "flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors",
+                                  "border-b-2 border-transparent hover:text-foreground",
+                                  isActive ? "border-primary text-primary" : "text-muted-foreground"
+                                )}
+                              >
+                                <Icon className="h-3 w-3" />
+                                {tab.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        
+                        <div className="py-3">
+                          {/* General Tab Content */}
+                          {advancedFilterTab === 'general' && (
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Debounce Delay (ms)</Label>
+                                <Input 
+                                  type="number" 
+                                  className="h-7 text-xs" 
+                                  defaultValue="200"
+                                  min="0"
+                                  max="2000"
+                                  step="50"
+                                />
+                                <p className="text-xs text-muted-foreground">Delay before applying filter changes</p>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="close-on-apply" className="text-xs">Close on Apply</Label>
+                                <Switch id="close-on-apply" className="h-4 w-7" />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="apply-min-width" className="text-xs">Apply Min Width</Label>
+                                <Switch id="apply-min-width" className="h-4 w-7" defaultChecked />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="reset-on-data-change" className="text-xs">Reset on Data Change</Label>
+                                <Switch id="reset-on-data-change" className="h-4 w-7" />
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Date Tab Content */}
+                          {advancedFilterTab === 'date' && (
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Max Valid Year</Label>
+                                <Input 
+                                  type="number" 
+                                  className="h-7 text-xs" 
+                                  defaultValue="2099"
+                                  min="1900"
+                                  max="2199"
+                                />
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <Label className="text-xs">Min Valid Year</Label>
+                                <Input 
+                                  type="number" 
+                                  className="h-7 text-xs" 
+                                  defaultValue="1900"
+                                  min="1000"
+                                  max="2099"
+                                />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="include-blanks-date" className="text-xs">Include Blanks in Date Range</Label>
+                                <Switch id="include-blanks-date" className="h-4 w-7" />
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <Label className="text-xs">Date Format</Label>
+                                <Select defaultValue="auto">
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="auto">Auto Detect</SelectItem>
+                                    <SelectItem value="dd/mm/yyyy">DD/MM/YYYY</SelectItem>
+                                    <SelectItem value="mm/dd/yyyy">MM/DD/YYYY</SelectItem>
+                                    <SelectItem value="yyyy-mm-dd">YYYY-MM-DD</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Number Tab Content */}
+                          {advancedFilterTab === 'number' && (
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="include-blanks-equals" className="text-xs">Include Blanks in Equals</Label>
+                                <Switch id="include-blanks-equals" className="h-4 w-7" />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="include-blanks-less" className="text-xs">Include Blanks in Less Than</Label>
+                                <Switch id="include-blanks-less" className="h-4 w-7" />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="include-blanks-greater" className="text-xs">Include Blanks in Greater Than</Label>
+                                <Switch id="include-blanks-greater" className="h-4 w-7" />
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <Label className="text-xs">Number Parser</Label>
+                                <Select defaultValue="default">
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="default">Default</SelectItem>
+                                    <SelectItem value="strict">Strict</SelectItem>
+                                    <SelectItem value="relaxed">Relaxed</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <Label className="text-xs">Decimal Places</Label>
+                                <Input 
+                                  type="number" 
+                                  className="h-7 text-xs" 
+                                  defaultValue="2"
+                                  min="0"
+                                  max="10"
+                                />
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Set Tab Content */}
+                          {advancedFilterTab === 'set' && (
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Excel Mode</Label>
+                                <Select defaultValue="windows">
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="windows">Windows</SelectItem>
+                                    <SelectItem value="mac">Mac</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <Label className="text-xs">New Rows Action</Label>
+                                <Select defaultValue="keep">
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="keep">Keep Filter</SelectItem>
+                                    <SelectItem value="clear">Clear Filter</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="suppress-remove-entries" className="text-xs">Suppress Remove Entries</Label>
+                                <Switch id="suppress-remove-entries" className="h-4 w-7" />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="suppress-sorting" className="text-xs">Suppress Sorting</Label>
+                                <Switch id="suppress-sorting" className="h-4 w-7" />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="case-sensitive-sort" className="text-xs">Case Sensitive Sort</Label>
+                                <Switch id="case-sensitive-sort" className="h-4 w-7" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                {/* Quick Actions */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <Sparkles className="h-3 w-3" />
+                      Quick Actions
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel className="text-xs">Quick Filter Configs</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-xs">
+                      <ListFilter className="h-3 w-3 mr-2" />
+                      Enable Set Filter with Search
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-xs">
+                      <Settings className="h-3 w-3 mr-2" />
+                      Apply Recommended Filter
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-xs">
+                      <Type className="h-3 w-3 mr-2" />
+                      Text Filter + Set Filter Combo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-xs">
+                      <Hash className="h-3 w-3 mr-2" />
+                      Number Range Filter
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-xs text-destructive">
+                      <X className="h-3 w-3 mr-2" />
+                      Remove All Filters
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {activeTab === 'editor' && (
+          <div className="space-y-3">
+            {/* Row 1: Editor Type & Enable Editing */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Edit3 className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Editor Type:</Label>
+                <Select defaultValue="agTextCellEditor">
+                  <SelectTrigger className="h-7 w-[160px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Default (Auto)</SelectItem>
+                    <SelectItem value="agTextCellEditor">
+                      <div className="flex items-center gap-2">
+                        <Type className="h-3 w-3" />
+                        Text Editor
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agLargeTextCellEditor">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-3 w-3" />
+                        Large Text
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agSelectCellEditor">
+                      <div className="flex items-center gap-2">
+                        <ChevronDown className="h-3 w-3" />
+                        Select
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agRichSelectCellEditor">
+                      <div className="flex items-center gap-2">
+                        <Search className="h-3 w-3" />
+                        Rich Select
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agNumberCellEditor">
+                      <div className="flex items-center gap-2">
+                        <Hash className="h-3 w-3" />
+                        Number
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agDateCellEditor">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3 w-3" />
+                        Date
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agCheckboxCellEditor">
+                      <div className="flex items-center gap-2">
+                        <Square className="h-3 w-3" />
+                        Checkbox
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="custom">
+                      <div className="flex items-center gap-2">
+                        <Settings className="h-3 w-3" />
+                        Custom
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator orientation="vertical" className="h-6" />
+              
+              <div className="flex items-center gap-2">
+                <Label htmlFor="enable-editing" className="text-xs text-muted-foreground">Enable Editing:</Label>
+                <Switch id="enable-editing" className="h-4 w-7" defaultChecked />
+              </div>
+              
+              <div className="ml-auto">
+                <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                  <Sparkles className="h-3 w-3" />
+                  Auto-Detect
+                </Button>
+              </div>
+            </div>
             
-            <Button variant="outline" size="sm">
-              Values
-              <ChevronDown className="h-3 w-3 ml-1" />
-            </Button>
-            
-            <Button variant="outline" size="sm">
-              Advanced
-              <ChevronDown className="h-3 w-3 ml-1" />
-            </Button>
-            
-            <div className="ml-auto">
-              <Button variant="ghost" size="sm" className="text-xs text-destructive">
-                Clear Filter
-              </Button>
+            {/* Row 2: Editor Configuration */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                {/* Text Editor Config */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <Type className="h-3 w-3" />
+                      Text Settings
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="start">
+                    <div className="space-y-4">
+                      <Label className="text-sm font-medium">Text Editor Settings</Label>
+                      
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Max Length</Label>
+                          <Input 
+                            type="number" 
+                            className="h-7 text-xs" 
+                            placeholder="No limit"
+                            min="1"
+                          />
+                          <p className="text-xs text-muted-foreground">Maximum characters allowed</p>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="use-formatter" className="text-xs">Use Formatter</Label>
+                          <Switch id="use-formatter" className="h-4 w-7" />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="cancel-on-escape" className="text-xs">Cancel on Escape</Label>
+                          <Switch id="cancel-on-escape" className="h-4 w-7" defaultChecked />
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                {/* Number Editor Config */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <Hash className="h-3 w-3" />
+                      Number Settings
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="start">
+                    <div className="space-y-4">
+                      <Label className="text-sm font-medium">Number Editor Settings</Label>
+                      
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Min Value</Label>
+                            <Input 
+                              type="number" 
+                              className="h-7 text-xs" 
+                              placeholder="No min"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label className="text-xs">Max Value</Label>
+                            <Input 
+                              type="number" 
+                              className="h-7 text-xs" 
+                              placeholder="No max"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Decimal Places</Label>
+                            <Input 
+                              type="number" 
+                              className="h-7 text-xs" 
+                              defaultValue="2"
+                              min="0"
+                              max="10"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label className="text-xs">Step</Label>
+                            <Input 
+                              type="number" 
+                              className="h-7 text-xs" 
+                              defaultValue="1"
+                              min="0.01"
+                              step="any"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="show-stepper" className="text-xs">Show Stepper Buttons</Label>
+                          <Switch id="show-stepper" className="h-4 w-7" defaultChecked />
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                {/* Select Editor Config */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <ChevronDown className="h-3 w-3" />
+                      Select Options
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="start">
+                    <div className="space-y-4">
+                      <Label className="text-sm font-medium">Select Editor Options</Label>
+                      
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Options (one per line)</Label>
+                          <Textarea 
+                            className="h-24 text-xs resize-none font-mono" 
+                            placeholder="Option 1&#10;Option 2&#10;Option 3"
+                            defaultValue="Option 1&#10;Option 2&#10;Option 3"
+                          />
+                          <p className="text-xs text-muted-foreground">Enter each option on a new line</p>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <Label className="text-xs">Search Type (Rich Select)</Label>
+                          <Select defaultValue="fuzzy">
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="fuzzy">Fuzzy Search</SelectItem>
+                              <SelectItem value="text">Text Search</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="allow-typing" className="text-xs">Allow Typing (Rich Select)</Label>
+                          <Switch id="allow-typing" className="h-4 w-7" defaultChecked />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="filter-list" className="text-xs">Filter List</Label>
+                          <Switch id="filter-list" className="h-4 w-7" defaultChecked />
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                {/* Date Editor Config */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <Calendar className="h-3 w-3" />
+                      Date Settings
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="start">
+                    <div className="space-y-4">
+                      <Label className="text-sm font-medium">Date Editor Settings</Label>
+                      
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Date Format</Label>
+                          <Select defaultValue="yyyy-mm-dd">
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="yyyy-mm-dd">YYYY-MM-DD</SelectItem>
+                              <SelectItem value="dd/mm/yyyy">DD/MM/YYYY</SelectItem>
+                              <SelectItem value="mm/dd/yyyy">MM/DD/YYYY</SelectItem>
+                              <SelectItem value="dd-mm-yyyy">DD-MM-YYYY</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Min Date</Label>
+                            <Input 
+                              type="date" 
+                              className="h-7 text-xs"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label className="text-xs">Max Date</Label>
+                            <Input 
+                              type="date" 
+                              className="h-7 text-xs"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="show-today" className="text-xs">Show Today Button</Label>
+                          <Switch id="show-today" className="h-4 w-7" defaultChecked />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="clear-button" className="text-xs">Show Clear Button</Label>
+                          <Switch id="clear-button" className="h-4 w-7" />
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {/* Quick Presets */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <Sparkles className="h-3 w-3" />
+                      Quick Setup
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel className="text-xs">Quick Editor Configs</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-xs">
+                      <Type className="h-3 w-3 mr-2" />
+                      Text Input with Validation
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-xs">
+                      <Hash className="h-3 w-3 mr-2" />
+                      Currency Input
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-xs">
+                      <Calendar className="h-3 w-3 mr-2" />
+                      Date Picker
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-xs">
+                      <ChevronDown className="h-3 w-3 mr-2" />
+                      Dropdown List
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-xs">
+                      <Settings className="h-3 w-3 mr-2" />
+                      Smart Auto-Editor
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-xs text-destructive">
+                      <X className="h-3 w-3 mr-2" />
+                      Disable Editing
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         )}
