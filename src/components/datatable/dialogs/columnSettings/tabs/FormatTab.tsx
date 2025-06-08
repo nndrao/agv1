@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useColumnCustomizationStore } from '../store/column-customization.store';
 import { ValueFormatterEditor } from '../editors/ValueFormatterEditor';
-import { createExcelFormatter, getExcelStyleClass } from '@/components/datatable/utils/formatters';
+import { createExcelFormatter, getExcelStyleClass, createCellStyleFunction } from '@/components/datatable/utils/formatters';
+import { hasConditionalStyling } from '@/components/datatable/utils/style-utils';
 import { 
   Hash, 
   DollarSign, 
@@ -131,11 +132,71 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
       const formatter = createExcelFormatter(formatString);
       const newFormatClasses = getExcelStyleClass(formatString);
       
+      // Check if format string has conditional styling and create cellStyle if needed
+      console.log('[applyFormat] Checking if cellStyle needed for format:', formatString);
+      let cellStyle = undefined;
+      if (hasConditionalStyling(formatString)) {
+        console.log('[applyFormat] Creating cellStyle for conditional formatting');
+        
+        // Get existing base styles from ALL selected columns to preserve styling tab settings
+        // We need to check each column individually since they might have different styles
+        const cellStyleUpdates: Record<string, any> = {};
+        
+        selectedColumns.forEach(colId => {
+          const colDef = columnDefinitions.get(colId);
+          const pendingChange = pendingChanges.get(colId);
+          const existingCellStyle = pendingChange?.cellStyle || colDef?.cellStyle;
+          
+          let baseStyle: React.CSSProperties | undefined;
+          if (existingCellStyle) {
+            if (typeof existingCellStyle === 'object') {
+              // Direct style object from styling tab
+              baseStyle = existingCellStyle;
+            } else if (typeof existingCellStyle === 'function') {
+              // Function style - check for base style metadata
+              const metadata = (existingCellStyle as any).__baseStyle;
+              if (metadata) {
+                baseStyle = metadata;
+              } else {
+                // Try calling the function to see if it returns static styles
+                // This handles the case where styling tab created a function that returns static styles
+                const testStyle = existingCellStyle({ value: null });
+                if (testStyle && typeof testStyle === 'object') {
+                  baseStyle = testStyle;
+                }
+              }
+            }
+          }
+          
+          console.log(`[applyFormat] Column ${colId} base style:`, baseStyle);
+          cellStyleUpdates[colId] = createCellStyleFunction(formatString, baseStyle);
+        });
+        
+        // Check if all columns have the same base style
+        const uniqueStyles = new Set(Object.values(cellStyleUpdates).map(fn => {
+          const baseStyle = (fn as any).__baseStyle;
+          return baseStyle ? JSON.stringify(baseStyle) : 'undefined';
+        }));
+        
+        if (uniqueStyles.size === 1) {
+          // All columns have the same base style, use a single cellStyle function
+          cellStyle = Object.values(cellStyleUpdates)[0];
+        } else {
+          // Different base styles, we'll need to apply them individually
+          // Store for later individual application
+          properties.cellStyleUpdates = cellStyleUpdates;
+        }
+      }
+      
       // Preserve existing alignment classes
       const properties: any = {
         valueFormatter: formatter,
         useValueFormatterForExport: true
       };
+      
+      if (cellStyle) {
+        properties.cellStyle = cellStyle;
+      }
       
       // Handle cellClass updates to preserve alignment
       const cellClassUpdates: Record<string, string> = {};
@@ -174,6 +235,14 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
         selectedColumns.forEach(colId => {
           updateSingleProperty(colId, 'cellClass', cellClassUpdates[colId]);
         });
+      }
+      
+      // Apply individual cellStyle updates if needed
+      if (properties.cellStyleUpdates) {
+        selectedColumns.forEach(colId => {
+          updateSingleProperty(colId, 'cellStyle', properties.cellStyleUpdates[colId]);
+        });
+        delete properties.cellStyleUpdates; // Clean up
       }
       
       setSelectedTemplate(formatString);
@@ -461,16 +530,110 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
             return pendingChange?.valueFormatter || colDef?.valueFormatter;
           })()}
           onSave={async (formatter, cellStyle) => {
+            console.log('[FormatTab] Received from ValueFormatterEditor:', {
+              hasFormatter: !!formatter,
+              formatterType: typeof formatter,
+              formatString: (formatter as any)?.__formatString,
+              hasCellStyle: !!cellStyle,
+              cellStyleType: typeof cellStyle
+            });
+            
             const properties: any = {
               valueFormatter: formatter,
               useValueFormatterForExport: true
             };
             
             if (cellStyle) {
-              properties.cellStyle = cellStyle;
+              // We need to check each selected column for existing base styles
+              const cellStyleUpdates: Record<string, any> = {};
+              const formatString = (formatter as any).__formatString;
+              
+              selectedColumns.forEach(colId => {
+                const colDef = columnDefinitions.get(colId);
+                const pendingChange = pendingChanges.get(colId);
+                const existingCellStyle = pendingChange?.cellStyle || colDef?.cellStyle;
+                
+                let baseStyle: React.CSSProperties | undefined;
+                if (existingCellStyle) {
+                  if (typeof existingCellStyle === 'object') {
+                    // Direct style object from styling tab
+                    baseStyle = existingCellStyle;
+                  } else if (typeof existingCellStyle === 'function') {
+                    // Function style - check for base style metadata
+                    const metadata = (existingCellStyle as any).__baseStyle;
+                    if (metadata) {
+                      baseStyle = metadata;
+                    } else {
+                      // Try calling the function to see if it returns static styles
+                      const testStyle = existingCellStyle({ value: null });
+                      if (testStyle && typeof testStyle === 'object') {
+                        baseStyle = testStyle;
+                      }
+                    }
+                  }
+                }
+                
+                console.log(`[FormatTab] Column ${colId} existing base style:`, baseStyle);
+                
+                // Create a merged cellStyle function that preserves base styles
+                if (baseStyle && Object.keys(baseStyle).length > 0) {
+                  const mergedCellStyle = (params: { value: unknown }) => {
+                    const conditionalStyles = cellStyle(params) || {};
+                    // Always merge base and conditional styles, with conditional taking precedence
+                    const merged = { ...baseStyle, ...conditionalStyles };
+                    return Object.keys(merged).length > 0 ? merged : undefined;
+                  };
+                  
+                  // Attach metadata
+                  if (formatString) {
+                    Object.defineProperty(mergedCellStyle, '__formatString', { 
+                      value: formatString,
+                      writable: false,
+                      enumerable: false,
+                      configurable: true
+                    });
+                  }
+                  Object.defineProperty(mergedCellStyle, '__baseStyle', { 
+                    value: baseStyle,
+                    writable: false,
+                    enumerable: false,
+                    configurable: true
+                  });
+                  
+                  cellStyleUpdates[colId] = mergedCellStyle;
+                } else {
+                  // No base styles, use the cellStyle as-is
+                  cellStyleUpdates[colId] = cellStyle;
+                }
+              });
+              
+              // Check if all columns have the same cellStyle function
+              const uniqueStyles = new Set(Object.values(cellStyleUpdates).map(fn => {
+                const baseStyle = (fn as any).__baseStyle;
+                const formatString = (fn as any).__formatString;
+                return JSON.stringify({ baseStyle, formatString });
+              }));
+              
+              if (uniqueStyles.size === 1) {
+                // All columns have the same style function, use bulk update
+                properties.cellStyle = Object.values(cellStyleUpdates)[0];
+              } else {
+                // Different styles, need individual updates
+                properties.cellStyleUpdates = cellStyleUpdates;
+              }
             }
             
+            console.log('[FormatTab] Updating bulk properties:', properties);
             updateBulkProperties(properties);
+            
+            // Apply individual cellStyle updates if needed
+            if (properties.cellStyleUpdates) {
+              selectedColumns.forEach(colId => {
+                updateSingleProperty(colId, 'cellStyle', properties.cellStyleUpdates[colId]);
+              });
+              delete properties.cellStyleUpdates; // Clean up
+            }
+            
             setShowFormatterEditor(false);
           }}
           dataType={(() => {

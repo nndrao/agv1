@@ -63,14 +63,13 @@ export function DataTableToolbar({
           if (colDef.valueFormatter && typeof colDef.valueFormatter === 'function') {
             return colDef.valueFormatter({
               value: params.value,
-              data: params.node.data,
-              node: params.node,
+              data: params.node?.data,
+              node: params.node as any,
               colDef: colDef,
               column: params.column,
               api: params.api,
-              columnApi: params.columnApi,
               context: params.context
-            });
+            } as any);
           }
           return params.value;
         }
@@ -108,14 +107,13 @@ export function DataTableToolbar({
           if (colDef.valueFormatter && typeof colDef.valueFormatter === 'function') {
             return colDef.valueFormatter({
               value: params.value,
-              data: params.node.data,
-              node: params.node,
+              data: params.node?.data,
+              node: params.node as any,
               colDef: colDef,
               column: params.column,
               api: params.api,
-              columnApi: params.columnApi,
               context: params.context
-            });
+            } as any);
           }
           return params.value;
         }

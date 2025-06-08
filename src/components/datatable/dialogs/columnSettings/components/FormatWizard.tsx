@@ -14,6 +14,7 @@ export const FormatWizard: React.FC<FormatWizardProps> = ({
   dataType: _dataType = 'number'
 }) => {
   // ... [rest of the code remains exactly the same]
+  return null; // Component implementation pending
 };
 
 export default FormatWizard;

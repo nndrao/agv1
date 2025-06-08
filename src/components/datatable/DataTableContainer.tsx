@@ -104,9 +104,9 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       });
     };
     
-    const handleOpenColumnSettings = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { colId } = customEvent.detail;
+    const handleOpenColumnSettings = (_event: Event) => {
+      // const customEvent = event as CustomEvent;
+      // const { colId } = customEvent.detail; // TODO: Use for pre-selecting column
       
       // TODO: Open column settings dialog with specific column pre-selected
       // For now, just open the general dialog

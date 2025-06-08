@@ -80,7 +80,7 @@ export interface DialogActions {
   
   // Customization removal
   removeColumnCustomization: (columnId: string, type: string) => void;
-  clearAllCustomizations: () => void;
+  clearAllCustomizations: () => number;
   
   // Template tracking
   setAppliedTemplate: (columnId: string, templateId: string, templateName: string) => void;

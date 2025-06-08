@@ -235,10 +235,10 @@ function processFormatSection(format: string, value: unknown, _params?: ValueFor
  * Supports Excel format strings for numbers, currency, percentages, dates, etc.
  */
 export function createExcelFormatter(formatString: string) {
-  // Only log for the specific format string we're debugging
-  if (formatString.includes('[="A"][#') || formatString.includes('[="A"][#3bceb1]')) {
-    console.log('📋 Creating Excel formatter with format string:', formatString);
-  }
+  // Log all formatters to see what's being created
+  console.log('📋 Creating Excel formatter with format string:', formatString);
+  console.log('   - Contains color directives:', /\[(Green|Red|Blue|Yellow|Orange|#[0-9A-Fa-f]{3,6})\]/i.test(formatString));
+  console.log('   - Contains style directives:', /\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right)/i.test(formatString));
   
   const formatter = (params: ValueFormatterParams): string => {
     if (params.value == null || params.value === '') return '';
@@ -456,6 +456,12 @@ export function getExcelStyleClass(formatString: string): string {
  * Create cell style function for dynamic color formatting
  */
 export function createCellStyleFunction(formatString: string, baseStyle?: React.CSSProperties) {
+  console.log('🎨 [createCellStyleFunction] Creating function with:', {
+    formatString: formatString,
+    hasBaseStyle: !!baseStyle,
+    baseStyle: baseStyle
+  });
+  
   // Only log for debug format strings
   const isDebugFormat = formatString.includes('[="A"]') && (formatString.includes('#4bdd63') || formatString.includes('#3bceb1'));
   
@@ -470,7 +476,7 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
     console.log('🎨 Format sections:', sections);
   }
   
-  return (params: { value: unknown }) => {
+  const styleFunction = (params: { value: unknown }) => {
     const value = params.value;
     const isDebugValue = value === 'A' || value === 'B' || value === 'Excel';
     
@@ -484,6 +490,11 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
     // Check if we have explicit base styles from styling tab (not from formatting)
     // Only consider it explicit if it came from user styling, not from format conditions
     const hasExplicitBaseStyles = baseStyle && typeof baseStyle === 'object' && Object.keys(baseStyle).length > 0;
+    
+    // Always log when base styles are present
+    if (hasExplicitBaseStyles) {
+      console.log(`[createCellStyleFunction] Base styles present for value "${value}":`, baseStyle);
+    }
     
     // For null/undefined values, no styles should be applied unless explicitly set in styling tab
     if (value == null) {
@@ -561,27 +572,29 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
           console.log(`  🔍 Has conditional styles: ${hasConditionalStyles}`, extendedStyles);
         }
         
-        if (hasConditionalStyles) {
-          // Merge base styles with conditional styles (conditional takes precedence)
-          const mergedStyles = { ...baseStyle, ...extendedStyles };
+        // When a condition matches, ALWAYS merge base styles with conditional styles
+        // This ensures that styling tab settings are preserved when format conditions apply
+        if (hasConditionalStyles || hasExplicitBaseStyles) {
+          // Start with base styles (if any)
+          const mergedStyles = hasExplicitBaseStyles ? { ...baseStyle } : {};
+          
+          // Apply conditional styles on top (they take precedence)
+          if (hasConditionalStyles) {
+            Object.assign(mergedStyles, extendedStyles);
+          }
+          
           if (isDebugFormat && isDebugValue) {
             console.log('  ✅ Returning merged styles:', mergedStyles);
           }
-          return mergedStyles;
-        }
-        
-        // Condition matched but no conditional styles - only apply explicit base styles if they exist
-        if (hasExplicitBaseStyles) {
-          if (isDebugFormat && isDebugValue) {
-            console.log('  ✅ Format condition matched, no conditional styles, returning explicit base styles:', baseStyle);
-          }
-          return { ...baseStyle };
+          console.log(`[createCellStyleFunction] Returning merged styles for ${value}:`, mergedStyles);
+          return Object.keys(mergedStyles).length > 0 ? mergedStyles : undefined;
         }
         
         // Condition matched but no styles to apply - let cell use default theme
         if (isDebugFormat && isDebugValue) {
           console.log('  ✅ Format condition matched but no styles specified - returning undefined for default theme styling');
         }
+        console.log(`[createCellStyleFunction] Returning undefined for ${value} (no styles)`);
         return undefined;
       } else {
         if (isDebugFormat && isDebugValue) {
@@ -632,18 +645,19 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
         // Check if we have any fallback styles to apply
         const hasFallbackStyles = Object.keys(fallbackStyles).length > 0;
         
-                 if (hasFallbackStyles) {
-           // Merge base styles with fallback styles (fallback takes precedence)
-           const mergedStyles = { ...baseStyle, ...fallbackStyles };
-           console.log('🎨 Fallback conditional styles merged with base:', mergedStyles);
-           return mergedStyles;
-         }
-         
-         // Fallback section has no conditional styles - only apply explicit base styles if they exist
-         if (hasExplicitBaseStyles) {
-           console.log('🎨 Fallback section, no conditional styles, using explicit base styles:', baseStyle);
-           return { ...baseStyle };
-         }
+        // Always merge base styles with fallback styles when we have either
+        if (hasFallbackStyles || hasExplicitBaseStyles) {
+          // Start with base styles (if any)
+          const mergedStyles = hasExplicitBaseStyles ? { ...baseStyle } : {};
+          
+          // Apply fallback styles on top (they take precedence)
+          if (hasFallbackStyles) {
+            Object.assign(mergedStyles, fallbackStyles);
+          }
+          
+          console.log('🎨 Fallback section merged styles:', mergedStyles);
+          return Object.keys(mergedStyles).length > 0 ? mergedStyles : undefined;
+        }
       }
     }
     
@@ -661,6 +675,27 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
       return undefined;
     }
   };
+  
+  // Attach metadata for serialization and future reference
+  if (formatString) {
+    Object.defineProperty(styleFunction, '__formatString', { 
+      value: formatString, 
+      writable: false,
+      enumerable: false,
+      configurable: true
+    });
+  }
+  
+  if (baseStyle) {
+    Object.defineProperty(styleFunction, '__baseStyle', { 
+      value: baseStyle, 
+      writable: false,
+      enumerable: false,
+      configurable: true
+    });
+  }
+  
+  return styleFunction;
 }
 
 /**

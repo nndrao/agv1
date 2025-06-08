@@ -7,9 +7,12 @@
  * Check if a format string contains conditional styling that requires a cellStyle function
  */
 export function hasConditionalStyling(formatString: string): boolean {
-  if (!formatString || !formatString.includes('[')) return false;
+  if (!formatString || !formatString.includes('[')) {
+    console.log('[hasConditionalStyling] No brackets found in format string:', formatString);
+    return false;
+  }
   
-  return (
+  const result = (
     // Basic conditional colors
     formatString.toLowerCase().includes('[green]') || 
     formatString.toLowerCase().includes('[red]') || 
@@ -50,6 +53,17 @@ export function hasConditionalStyling(formatString: string): boolean {
     formatString.includes('[Left]') ||
     formatString.includes('[Right]')
   );
+  
+  console.log('[hasConditionalStyling] Result for format string:', {
+    formatString: formatString,
+    hasConditionalStyling: result,
+    hasHexColors: /\[#[0-9A-Fa-f]{3,6}\]/.test(formatString),
+    hasColorNames: /\[(Green|Red|Blue|Yellow|Orange|Purple|Gray|Grey|Magenta|Cyan)\]/i.test(formatString),
+    hasConditions: /\[[<>=@]/.test(formatString),
+    hasStyleDirectives: /\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right)/i.test(formatString)
+  });
+  
+  return result;
 }
 
 /**

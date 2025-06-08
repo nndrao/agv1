@@ -141,21 +141,6 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     return count;
   }, [columnDefinitions]);
 
-  // Apply changes
-  const _handleApplyChanges = useCallback(() => {
-    console.log('[ColumnCustomizationDialog] handleApplyChanges called');
-    // Use requestAnimationFrame for smooth UI updates
-    requestAnimationFrame(() => {
-      const updatedColumns = applyChanges();
-      console.log('[ColumnCustomizationDialog] Columns after applyChanges:', {
-        count: updatedColumns.length,
-        hasCustomizations: updatedColumns.some(col => 
-          col.cellStyle || col.valueFormatter || col.cellClass
-        )
-      });
-      onApply(updatedColumns);
-    });
-  }, [applyChanges, onApply]);
 
   // Apply and close in a single operation
   const handleApplyAndClose = useCallback(() => {

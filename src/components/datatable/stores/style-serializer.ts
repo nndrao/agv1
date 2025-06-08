@@ -26,13 +26,13 @@ export function serializeColumnDef(colDef: ColDef): SerializedColumnDef {
       serialized.cellStyle = {
         type: 'function',
         // Store function as string for now - we'll need to improve this
-        formatString: colDef._cellStyleFormat || '',
-        baseStyle: colDef._cellStyleBase || {}
+        formatString: (colDef as any)._cellStyleFormat || '',
+        baseStyle: (colDef as any)._cellStyleBase || {}
       };
     } else {
       serialized.cellStyle = {
         type: 'static',
-        value: colDef.cellStyle
+        value: colDef.cellStyle as React.CSSProperties
       };
     }
   }
@@ -47,12 +47,12 @@ export function serializeColumnDef(colDef: ColDef): SerializedColumnDef {
     } else {
       serialized.headerStyle = {
         type: 'static',
-        value: colDef.headerStyle
+        value: colDef.headerStyle as React.CSSProperties
       };
     }
   }
   
-  return serialized;
+  return serialized as SerializedColumnDef;
 }
 
 // Deserialize a column definition and recreate style functions
@@ -64,15 +64,15 @@ export function deserializeColumnDef(serialized: SerializedColumnDef): ColDef {
     const styleConfig = serialized.cellStyle as SerializedStyle;
     
     if (styleConfig.type === 'static' && styleConfig.value) {
-      colDef.cellStyle = styleConfig.value;
+      colDef.cellStyle = styleConfig.value as any;
     } else if (styleConfig.type === 'function' && styleConfig.formatString) {
       // Recreate the cell style function
       // This is a simplified version - you'd need the actual createCellStyleFunction
-      colDef.cellStyle = () => {
+      colDef.cellStyle = (() => {
         // For now, just return the base style
         // In production, you'd recreate the conditional logic
         return styleConfig.baseStyle || {};
-      };
+      }) as any;
     }
   }
   
@@ -81,19 +81,19 @@ export function deserializeColumnDef(serialized: SerializedColumnDef): ColDef {
     const styleConfig = serialized.headerStyle as SerializedStyle;
     
     if (styleConfig.type === 'static' && styleConfig.value) {
-      colDef.headerStyle = styleConfig.value;
+      colDef.headerStyle = styleConfig.value as any;
     } else if (styleConfig.type === 'function') {
       // Recreate header style function that avoids floating filter
-      colDef.headerStyle = (params: { floatingFilter?: boolean }) => {
+      colDef.headerStyle = ((params: { floatingFilter?: boolean }) => {
         if (params?.floatingFilter) {
           return null;
         }
         return styleConfig.value || {};
-      };
+      }) as any;
     }
   }
   
-  return colDef;
+  return colDef as ColDef;
 }
 
 // Serialize all column definitions

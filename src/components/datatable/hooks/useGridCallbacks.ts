@@ -14,7 +14,7 @@ export function useGridCallbacks(
   const { setGridApi } = useDataTableContext();
   
   // Context menu items - now includes Format Column option
-  const getContextMenuItems = useCallback((params: any) => {
+  const getContextMenuItems = useCallback((params: any): any => {
     const defaultItems = [
       "autoSizeAll",
       "resetColumns",

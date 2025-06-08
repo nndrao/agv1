@@ -1,8 +1,6 @@
 import * as React from 'react';
 import * as RechartsPrimitive from 'recharts';
 
-// @ts-expect-error - Recharts type imports may vary by version
-import type {} from 'recharts/types/component/DefaultTooltipContent';
 
 import { cn } from '@/lib/utils';
 

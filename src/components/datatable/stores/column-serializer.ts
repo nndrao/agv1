@@ -398,9 +398,22 @@ export function serializeColumnCustomizations(
  * Ensure a column has a cellStyle function if its valueFormatter has conditional styling
  */
 function ensureCellStyleForConditionalFormatting(merged: ColDef, _custom: ColumnCustomization): void {
+  console.log('[ensureCellStyleForConditionalFormatting] Checking column:', {
+    field: merged.field,
+    hasValueFormatter: !!merged.valueFormatter,
+    valueFormatterType: typeof merged.valueFormatter
+  });
+  
   // Check if valueFormatter has conditional styling
   if (merged.valueFormatter && typeof merged.valueFormatter === 'function') {
     const formatString = (merged.valueFormatter as any).__formatString;
+    
+    console.log('[ensureCellStyleForConditionalFormatting] valueFormatter details:', {
+      field: merged.field,
+      hasFormatString: !!formatString,
+      formatString: formatString,
+      hasConditionalStyling: formatString ? hasConditionalStyling(formatString) : false
+    });
     
     if (formatString && hasConditionalStyling(formatString)) {
       // Check if cellStyle already exists and is properly configured
@@ -408,7 +421,7 @@ function ensureCellStyleForConditionalFormatting(merged: ColDef, _custom: Column
           (typeof merged.cellStyle === 'function' && 
            (merged.cellStyle as any).__formatString !== formatString)) {
         
-        console.log('[ColumnSerializer] Creating cellStyle for conditional formatting:', {
+        console.log('[ensureCellStyleForConditionalFormatting] Creating cellStyle:', {
           field: merged.field,
           formatString,
           hasExistingCellStyle: !!merged.cellStyle,

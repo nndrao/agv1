@@ -1,9 +1,7 @@
 import { 
   ValueFormatterParams, 
-  CellStyleParams, 
   ColDef as AgColDef,
   GridApi,
-  ColumnApi,
   GridReadyEvent,
   CellValueChangedEvent,
   SortChangedEvent,
@@ -13,6 +11,17 @@ import {
   ColumnPinnedEvent,
   ColumnVisibleEvent
 } from 'ag-grid-community';
+
+// CellStyleParams type definition for AG-Grid v33+
+export interface CellStyleParams {
+  value: any;
+  data: any;
+  node: any;
+  colDef: any;
+  column: any;
+  context: any;
+  api: GridApi;
+}
 
 /**
  * Enhanced column definition with required fields
