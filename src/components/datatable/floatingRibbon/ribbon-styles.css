@@ -1,0 +1,141 @@
+/* Enhanced Ribbon Toggle and Button Styles */
+
+/* Toggle Component Enhancements */
+.ribbon-toggle {
+  /* Base styles */
+  transition: all 150ms ease;
+}
+
+/* Toggle - Unselected State */
+.ribbon-toggle[data-state="off"] {
+  @apply bg-transparent hover:bg-muted/60 hover:text-foreground;
+}
+
+/* Toggle - Selected State */
+.ribbon-toggle[data-state="on"] {
+  @apply bg-primary text-primary-foreground shadow-sm;
+  @apply hover:bg-primary/90 hover:shadow-md;
+}
+
+/* Toggle Group Item Enhancements */
+.ribbon-toggle-group-item {
+  transition: all 150ms ease;
+}
+
+/* Toggle Group Item - Unselected State */
+.ribbon-toggle-group-item[data-state="off"] {
+  @apply bg-transparent hover:bg-muted/60 hover:text-foreground;
+}
+
+/* Toggle Group Item - Selected State */
+.ribbon-toggle-group-item[data-state="on"] {
+  @apply bg-primary text-primary-foreground shadow-sm;
+  @apply hover:bg-primary/90 hover:shadow-md;
+  position: relative;
+}
+
+/* Add subtle gradient overlay for selected state */
+.ribbon-toggle-group-item[data-state="on"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
+  pointer-events: none;
+}
+
+/* Format Template Buttons */
+.format-template-button {
+  transition: all 150ms ease;
+}
+
+.format-template-button.selected {
+  @apply bg-primary text-primary-foreground shadow-sm;
+  @apply hover:bg-primary/90 hover:shadow-md;
+}
+
+.format-template-button:not(.selected) {
+  @apply hover:bg-muted/60;
+}
+
+/* Quick Scale Buttons (K, M, B) */
+.scale-button {
+  transition: all 150ms ease;
+}
+
+.scale-button.selected {
+  @apply bg-primary text-primary-foreground shadow-sm;
+  @apply hover:bg-primary/90 hover:shadow-md;
+}
+
+.scale-button:not(.selected) {
+  @apply hover:bg-accent hover:text-accent-foreground;
+}
+
+/* Tab Buttons in RibbonTabs */
+.ribbon-tab-button {
+  transition: all 200ms ease;
+}
+
+.ribbon-tab-button.active {
+  @apply bg-background text-foreground shadow-sm;
+  position: relative;
+}
+
+.ribbon-tab-button:not(.active) {
+  @apply text-muted-foreground hover:text-foreground hover:bg-accent/50;
+}
+
+/* Border Toggle Buttons in Styling Tab */
+.border-toggle {
+  transition: all 150ms ease;
+}
+
+.border-toggle[data-state="on"] {
+  @apply bg-primary/20 border-primary text-primary;
+  @apply hover:bg-primary/30;
+}
+
+.border-toggle[data-state="off"] {
+  @apply hover:bg-muted/60;
+}
+
+/* Alignment Toggle Group */
+.alignment-toggle-item[data-state="on"] {
+  @apply bg-primary text-primary-foreground;
+  @apply hover:bg-primary/90;
+}
+
+.alignment-toggle-item[data-state="off"] {
+  @apply hover:bg-muted/60;
+}
+
+/* Cell/Header Toggle */
+.cell-header-toggle[data-state="on"] {
+  @apply bg-primary/10 text-primary border-primary/20;
+  @apply hover:bg-primary/20;
+}
+
+/* Add focus-visible styles for accessibility */
+.ribbon-toggle:focus-visible,
+.ribbon-toggle-group-item:focus-visible,
+.format-template-button:focus-visible,
+.scale-button:focus-visible,
+.ribbon-tab-button:focus-visible {
+  @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .ribbon-toggle[data-state="on"],
+  .ribbon-toggle-group-item[data-state="on"],
+  .format-template-button.selected,
+  .scale-button.selected {
+    @apply bg-primary/90 hover:bg-primary/80;
+  }
+  
+  .ribbon-toggle[data-state="off"],
+  .ribbon-toggle-group-item[data-state="off"] {
+    @apply hover:bg-muted/40;
+  }
+}

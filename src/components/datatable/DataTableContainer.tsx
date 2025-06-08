@@ -4,7 +4,6 @@ import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
 import { DataTableToolbar } from './DataTableToolbar';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
-import { FloatingRibbonUI } from './FloatingRibbonUI';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
 import { useGridState } from './hooks/useGridState';
 import { useProfileSync } from './hooks/useProfileSync';
@@ -12,6 +11,7 @@ import { useColumnOperations } from './hooks/useColumnOperations';
 import { DataTableProps } from './types';
 import { useProfileStore } from '@/components/datatable/stores/profile.store';
 import { useTheme } from '@/components/datatable/ThemeProvider';
+import { useColumnCustomizationStore } from './dialogs/columnSettings/store/columnCustomization.store';
 import './datatable.css';
 
 /**
@@ -34,10 +34,6 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
     setShowColumnDialog,
   } = useGridState(columnDefs);
   
-  const [ribbonConfig, setRibbonConfig] = useState<{
-    targetColumn: string;
-    position: { x: number; y: number };
-  } | null>(null);
   
   // Process columns to ensure cellStyle functions for conditional formatting
   // This preserves the CRITICAL ensureCellStyleForColumns functionality
@@ -88,28 +84,23 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   React.useEffect(() => {
     const handleFormatColumn = (event: Event) => {
       const customEvent = event as CustomEvent;
-      const { colId, x, y } = customEvent.detail;
+      const { colId } = customEvent.detail;
       
-      // Position ribbon near the clicked column but ensure it's visible
-      const ribbonWidth = 450;
-      const ribbonHeight = 400;
-      const padding = 20;
+      // Open the dialog (which now shows the ribbon)
+      setShowColumnDialog(true);
       
-      const adjustedX = Math.min(x, window.innerWidth - ribbonWidth - padding);
-      const adjustedY = Math.min(y, window.innerHeight - ribbonHeight - padding);
-      
-      setRibbonConfig({
-        targetColumn: colId,
-        position: { x: Math.max(padding, adjustedX), y: Math.max(padding, adjustedY) }
-      });
+      // Pre-select the column in the store
+      if (colId) {
+        // Use the store directly to select the column
+        setTimeout(() => {
+          const store = useColumnCustomizationStore.getState();
+          store.setSelectedColumns(new Set([colId]));
+        }, 100);
+      }
     };
     
     const handleOpenColumnSettings = (_event: Event) => {
-      // const customEvent = event as CustomEvent;
-      // const { colId } = customEvent.detail; // TODO: Use for pre-selecting column
-      
-      // TODO: Open column settings dialog with specific column pre-selected
-      // For now, just open the general dialog
+      // Open the dialog (which now shows the ribbon)
       setShowColumnDialog(true);
     };
     
@@ -120,11 +111,11 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       window.removeEventListener('format-column', handleFormatColumn);
       window.removeEventListener('open-column-settings', handleOpenColumnSettings);
     };
-  }, []);
+  }, [setShowColumnDialog]);
   
-  // Get column state for dialog
-  const getColumnState = React.useCallback(() => {
-    if (!gridApiRef.current) return undefined;
+  // Memoize column state to prevent repeated calls
+  const columnState = React.useMemo(() => {
+    if (!gridApiRef.current || !showColumnDialog) return undefined;
     
     const columnState = gridApiRef.current.getColumnState();
     const allColumns = gridApiRef.current.getColumns();
@@ -153,7 +144,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
     }
     
     return columnState;
-  }, []);
+  }, [showColumnDialog, gridApi]); // Only recalculate when dialog opens or grid API changes
   
   // Create context value
   const contextValue = useMemo(() => ({
@@ -196,18 +187,9 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
           open={showColumnDialog}
           onOpenChange={setShowColumnDialog}
           columnDefs={processedColumns}
-          columnState={getColumnState()}
+          columnState={columnState}
           onApply={handleApplyColumnChanges}
         />
-        
-        {/* Show FloatingRibbonUI when ribbon is invoked from context menu */}
-        {ribbonConfig && (
-          <FloatingRibbonUI 
-            targetColumn={ribbonConfig.targetColumn}
-            initialPosition={ribbonConfig.position}
-            onClose={() => setRibbonConfig(null)}
-          />
-        )}
       </div>
     </DataTableProvider>
   );

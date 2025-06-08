@@ -288,11 +288,11 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
 
           {/* Virtual Column List */}
           <div className="flex-1 -mx-1">
-            <div
-              ref={parentRef}
-              className="h-full overflow-auto px-1 scrollbar-thin"
-              style={{ contain: 'strict' }}
-            >
+              <div
+                ref={parentRef}
+                className="h-full overflow-auto px-1 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-border/80"
+                style={{ contain: 'strict' }}
+              >
               <div
                 style={{
                   height: `${virtualizer.getTotalSize()}px`,
@@ -338,7 +338,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
                   );
                 })}
               </div>
-            </div>
+              </div>
           </div>
         </div>
       </div>
