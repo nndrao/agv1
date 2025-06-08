@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { useColumnCustomizationStore } from '../store/columnCustomization.store';
 import { CollapsibleSection } from '../components/CollapsibleSection';
 import { MixedValueInput } from '../components/MixedValueInput';
 import { NumericInput } from '../components/NumericInput';

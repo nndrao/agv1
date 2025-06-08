@@ -2,9 +2,9 @@ import { Menu } from 'lucide-react';
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
-import { ThemeToggle } from '@/components/datatable/components/theme-toggle';
-import { LazyDataTable, GridSkeleton, usePreloadAgGrid } from '@/components/datatable/lazy-ag-grid';
-import { generateFixedIncomeData, type FixedIncomePosition } from '@/components/datatable/lib/data-generator';
+import { ThemeToggle } from '@/components/datatable/ThemeToggle';
+import { LazyDataTable, GridSkeleton, usePreloadAgGrid } from '@/components/datatable/LazyAgGrid';
+import { generateFixedIncomeData, type FixedIncomePosition } from '@/components/datatable/lib/dataGenerator';
 import { type ColumnDef } from '@/components/datatable/types';
 
 // Error fallback component

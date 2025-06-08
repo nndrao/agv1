@@ -7,7 +7,7 @@ import { ColumnSelectorPanel } from './panels/ColumnSelectorPanel';
 import { PropertyEditorPanel } from './panels/PropertyEditorPanel';
 import { BulkActionsPanel } from './panels/BulkActionsPanel';
 import { ColDef, ColumnState } from 'ag-grid-community';
-import { useColumnCustomizationStore } from './store/column-customization.store';
+import { useColumnCustomizationStore } from './store/columnCustomization.store';
 import { Undo2, Redo2, Settings2, Columns, ChevronLeft, ChevronRight, Zap, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useButtonFeedback, useProgressIndicator } from './utils/feedback';

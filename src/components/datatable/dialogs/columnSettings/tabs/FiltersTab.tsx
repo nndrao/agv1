@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { useColumnCustomizationStore } from '../store/columnCustomization.store';
 import { Info, Settings, Filter, Calendar, Hash, Type, ToggleLeft, X, Plus, Lightbulb } from 'lucide-react';
 
 interface FilterConfig {

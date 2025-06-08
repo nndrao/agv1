@@ -15,10 +15,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { useColumnCustomizationStore } from '../store/columnCustomization.store';
 import { ValueFormatterEditor } from '../editors/ValueFormatterEditor';
 import { createExcelFormatter, getExcelStyleClass, createCellStyleFunction } from '@/components/datatable/utils/formatters';
-import { hasConditionalStyling } from '@/components/datatable/utils/style-utils';
+import { hasConditionalStyling } from '@/components/datatable/utils/styleUtils';
 import { 
   Hash, 
   DollarSign, 

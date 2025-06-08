@@ -1,6 +1,6 @@
 import { ColDef, ColumnState, SortModelItem, GridApi } from 'ag-grid-community';
 import { GridProfile } from '@/components/datatable/stores/profile.store';
-import { deserializeColumnCustomizations } from '@/components/datatable/stores/column-serializer';
+import { deserializeColumnCustomizations } from '@/components/datatable/stores/columnSerializer';
 import { createExcelFormatter } from '@/components/datatable/utils/formatters';
 
 interface ProfileCache {

@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Settings2, Download, FileSpreadsheet } from "lucide-react";
-import { ProfileManager } from "./profile-manager";
+import { ProfileManager } from "./ProfileManager";
 import { GridApi, ColDef as AgColDef, ProcessCellForExportParams } from "ag-grid-community";
 import { GridProfile } from "@/components/datatable/stores/profile.store";
 import { useToast } from "@/hooks/use-toast";

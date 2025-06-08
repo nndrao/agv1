@@ -1,5 +1,5 @@
 import { ValueFormatterParams } from 'ag-grid-community';
-import { parseStyleDirectives, parseColorValue, isStyleDirective } from './style-utils';
+import { parseStyleDirectives, parseColorValue, isStyleDirective } from './styleUtils';
 
 /**
  * Enhanced Format String Syntax

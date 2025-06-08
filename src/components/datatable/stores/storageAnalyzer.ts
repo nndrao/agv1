@@ -1,5 +1,5 @@
 import { GridProfile } from './profile.store';
-import { calculateCustomizationSize, getCustomizationSummary } from './column-serializer';
+import { calculateCustomizationSize, getCustomizationSummary } from './columnSerializer';
 
 export interface StorageAnalysis {
   totalProfiles: number;

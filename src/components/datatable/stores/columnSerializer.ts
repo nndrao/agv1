@@ -1,6 +1,6 @@
 import { ColDef } from 'ag-grid-community';
 import { createExcelFormatter, createCellStyleFunction } from '@/components/datatable/utils/formatters';
-import { hasConditionalStyling } from '@/components/datatable/utils/style-utils';
+import { hasConditionalStyling } from '@/components/datatable/utils/styleUtils';
 
 // Minimal types for visual formatter data (to avoid circular imports)
 interface SerializedFormattingRule {

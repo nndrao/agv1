@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { useColumnCustomizationStore } from '../store/columnCustomization.store';
 import { ColDef, ValueFormatterParams } from 'ag-grid-community';
 import {
   Copy,

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { createCellStyleFunction, hasConditionalStyling } from '../utils/style-utils';
+import { createCellStyleFunction, hasConditionalStyling } from '../utils/styleUtils';
 import { ColumnDef } from '../types';
 
 /**

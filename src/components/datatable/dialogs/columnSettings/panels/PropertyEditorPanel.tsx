@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Settings, Palette, Hash, Filter, Edit3, AlertTriangle } from 'lucide-react';
-import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { useColumnCustomizationStore } from '../store/columnCustomization.store';
 import { GeneralTab } from '../tabs/GeneralTab';
 import { StylingTab } from '../tabs/StylingTab';
 import { FormatTab } from '../tabs/FormatTab';

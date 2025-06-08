@@ -1,5 +1,5 @@
 // Performance testing utilities
-import { perfMonitor } from './performance-monitor';
+import { perfMonitor } from './performanceMonitor';
 
 export interface PerformanceTestResult {
   testName: string;

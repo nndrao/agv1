@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ThemeProvider } from '@/components/datatable/components/theme-provider';
+import { ThemeProvider } from '@/components/datatable/ThemeProvider';
 import { Toaster } from '@/components/ui/toaster';
 import App from './App.tsx';
 import './index.css';
@@ -11,15 +11,15 @@ import './index.css';
 // Defer non-critical imports
 if ('requestIdleCallback' in window) {
   requestIdleCallback(() => {
-    import('./components/datatable/stores/storage-analyzer');
-    import('./components/datatable/stores/migrate-profiles');
-    import('./components/datatable/lib/performance-test');
+    import('./components/datatable/stores/storageAnalyzer');
+    import('./components/datatable/stores/migrateProfiles');
+    import('./components/datatable/lib/performanceTest');
   });
 } else {
   setTimeout(() => {
-    import('./components/datatable/stores/storage-analyzer');
-    import('./components/datatable/stores/migrate-profiles');
-    import('./components/datatable/lib/performance-test');
+    import('./components/datatable/stores/storageAnalyzer');
+    import('./components/datatable/stores/migrateProfiles');
+    import('./components/datatable/lib/performanceTest');
   }, 1000);
 }
 

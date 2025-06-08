@@ -2,7 +2,7 @@ import React, { memo, useMemo, useRef, useState } from 'react';
 import { GridApi } from 'ag-grid-community';
 import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
-import { DataTableToolbar } from './data-table-toolbar';
+import { DataTableToolbar } from './DataTableToolbar';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
 import { FloatingRibbonUI } from './FloatingRibbonUI';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
@@ -11,7 +11,7 @@ import { useProfileSync } from './hooks/useProfileSync';
 import { useColumnOperations } from './hooks/useColumnOperations';
 import { DataTableProps } from './types';
 import { useProfileStore } from '@/components/datatable/stores/profile.store';
-import { useTheme } from '@/components/datatable/components/theme-provider';
+import { useTheme } from '@/components/datatable/ThemeProvider';
 import './datatable.css';
 
 /**

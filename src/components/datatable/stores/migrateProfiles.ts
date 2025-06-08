@@ -1,5 +1,5 @@
 import { useProfileStore } from './profile.store';
-import { logStorageAnalysis } from './storage-analyzer';
+import { logStorageAnalysis } from './storageAnalyzer';
 
 /**
  * Migrate all profiles to use lightweight column serialization
