@@ -4,7 +4,7 @@ import { useActiveProfile } from '@/components/datatable/stores/profile.store';
 import { profileOptimizer } from '@/components/datatable/lib/profileOptimizer';
 import { debounce } from '@/lib/utils';
 import { ColumnDef } from '../types';
-import { STATE_RESTORATION_DELAY_MS, COLUMN_UPDATE_DEBOUNCE_MS } from '../utils/constants';
+import { COLUMN_UPDATE_DEBOUNCE_MS } from '../utils/constants';
 
 /**
  * Custom hook for handling column operations and updates
