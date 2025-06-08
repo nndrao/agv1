@@ -28,6 +28,13 @@ interface ColumnTemplate {
   isSystem?: boolean; // Flag to identify system templates
 }
 
+// Type for functions with metadata
+type FunctionWithMetadata = {
+  (params: unknown): unknown;
+  __formatString?: string;
+  __baseStyle?: React.CSSProperties;
+};
+
 // Properties to save in templates - comprehensive list
 const TEMPLATE_PROPERTIES = [
   // NOTE: 'field' and 'headerName' are intentionally excluded from templates
@@ -341,8 +348,9 @@ export const BulkActionsPanel: React.FC = () => {
             }
           } else if (property === 'cellStyle') {
             // Check if this is our conditional formatting function with metadata
-            const formatString = (value as any).__formatString;
-            const baseStyle = (value as any).__baseStyle;
+            const fn = value as FunctionWithMetadata;
+            const formatString = fn.__formatString;
+            const baseStyle = fn.__baseStyle;
             
             if (formatString) {
               // Store as a configuration object that can be recreated
