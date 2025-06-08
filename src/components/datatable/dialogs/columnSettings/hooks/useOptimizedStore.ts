@@ -1,4 +1,4 @@
-import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { useColumnCustomizationStore } from '../store/columnCustomization.store';
 import { shallow } from 'zustand/shallow';
 import { useMemo } from 'react';
 

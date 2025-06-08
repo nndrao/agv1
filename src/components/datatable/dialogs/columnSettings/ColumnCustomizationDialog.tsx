@@ -7,7 +7,7 @@ import { ColumnSelectorPanel } from './panels/ColumnSelectorPanel';
 import { PropertyEditorPanel } from './panels/PropertyEditorPanel';
 import { BulkActionsPanel } from './panels/BulkActionsPanel';
 import { ColDef, ColumnState } from 'ag-grid-community';
-import { useColumnCustomizationStore } from './store/column-customization.store';
+import { useColumnCustomizationStore } from './store/columnCustomization.store';
 import { Undo2, Redo2, Settings2, Columns, ChevronLeft, ChevronRight, Zap, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useButtonFeedback, useProgressIndicator } from './utils/feedback';
@@ -141,21 +141,6 @@ export const ColumnCustomizationDialog: React.FC<ColumnCustomizationDialogProps>
     return count;
   }, [columnDefinitions]);
 
-  // Apply changes
-  const _handleApplyChanges = useCallback(() => {
-    console.log('[ColumnCustomizationDialog] handleApplyChanges called');
-    // Use requestAnimationFrame for smooth UI updates
-    requestAnimationFrame(() => {
-      const updatedColumns = applyChanges();
-      console.log('[ColumnCustomizationDialog] Columns after applyChanges:', {
-        count: updatedColumns.length,
-        hasCustomizations: updatedColumns.some(col => 
-          col.cellStyle || col.valueFormatter || col.cellClass
-        )
-      });
-      onApply(updatedColumns);
-    });
-  }, [applyChanges, onApply]);
 
   // Apply and close in a single operation
   const handleApplyAndClose = useCallback(() => {

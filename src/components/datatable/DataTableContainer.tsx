@@ -2,7 +2,7 @@ import React, { memo, useMemo, useRef, useState } from 'react';
 import { GridApi } from 'ag-grid-community';
 import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
-import { DataTableToolbar } from './data-table-toolbar';
+import { DataTableToolbar } from './DataTableToolbar';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
 import { FloatingRibbonUI } from './FloatingRibbonUI';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
@@ -10,8 +10,9 @@ import { useGridState } from './hooks/useGridState';
 import { useProfileSync } from './hooks/useProfileSync';
 import { useColumnOperations } from './hooks/useColumnOperations';
 import { DataTableProps } from './types';
-import { useProfileStore } from '@/stores/profile.store';
-import { useTheme } from '@/components/theme-provider';
+import { useProfileStore } from '@/components/datatable/stores/profile.store';
+import { useTheme } from '@/components/datatable/ThemeProvider';
+import './datatable.css';
 
 /**
  * Container component that manages the state and logic for the DataTable.
@@ -103,9 +104,9 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       });
     };
     
-    const handleOpenColumnSettings = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { colId } = customEvent.detail;
+    const handleOpenColumnSettings = (_event: Event) => {
+      // const customEvent = event as CustomEvent;
+      // const { colId } = customEvent.detail; // TODO: Use for pre-selecting column
       
       // TODO: Open column settings dialog with specific column pre-selected
       // For now, just open the general dialog

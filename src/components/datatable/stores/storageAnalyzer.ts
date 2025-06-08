@@ -1,5 +1,5 @@
 import { GridProfile } from './profile.store';
-import { calculateCustomizationSize, getCustomizationSummary } from './column-serializer';
+import { calculateCustomizationSize, getCustomizationSummary } from './columnSerializer';
 
 export interface StorageAnalysis {
   totalProfiles: number;
@@ -58,7 +58,6 @@ export function analyzeProfileStorage(): StorageAnalysis {
       ? getCustomizationSummary(profile.gridState.columnCustomizations)
       : undefined;
     
-    const _actualSize = profile.gridState.columnCustomizations ? lightweightSize : legacySize;
     const potentialSavings = legacySize > 0 ? legacySize - lightweightSize : 0;
     const savingsPercent = legacySize > 0 ? (potentialSavings / legacySize) * 100 : 0;
     

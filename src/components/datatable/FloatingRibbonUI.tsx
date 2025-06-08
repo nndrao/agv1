@@ -28,7 +28,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
@@ -62,12 +61,10 @@ import {
   Columns,
   Settings,
   Search,
-  MoreHorizontal,
   Sparkles,
   ChevronRight,
   Plus,
   Check,
-  ChevronsUpDown,
   ListFilter,
   FileText,
   PaintBucket,
@@ -97,7 +94,7 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
   onClose 
 }) => {
   const [activeTab, setActiveTab] = React.useState('styling');
-  const [selectedColumns, setSelectedColumns] = React.useState(
+  const [selectedColumns, _setSelectedColumns] = React.useState(
     targetColumn ? [targetColumn] : ['Sales Amount', 'Quantity']
   );
   const [position, setPosition] = useState(initialPosition || { x: 20, y: 20 });
@@ -107,7 +104,7 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
   
   // Track current styling selections for preview
   const [currentAlignment, setCurrentAlignment] = useState('left');
-  const [currentVerticalAlignment, setCurrentVerticalAlignment] = useState('middle');
+  const [_currentVerticalAlignment, _setCurrentVerticalAlignment] = useState('middle');
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);

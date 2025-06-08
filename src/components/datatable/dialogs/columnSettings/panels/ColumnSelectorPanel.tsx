@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Search, Columns3, Filter, Eye, EyeOff, Hash, Type, Calendar, ToggleLeft, Package, CircleDot, DollarSign, Palette, Edit3, Settings, X } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
-import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { useColumnCustomizationStore } from '../store/columnCustomization.store';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { CustomizationBadges, CustomizationType } from '../components/CustomizationBadges';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';

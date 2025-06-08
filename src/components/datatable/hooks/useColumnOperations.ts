@@ -1,10 +1,10 @@
 import { useCallback, useRef, useMemo } from 'react';
 import { ColDef, GridApi } from 'ag-grid-community';
-import { useActiveProfile } from '@/stores/profile.store';
-import { profileOptimizer } from '@/lib/profile-optimizer';
+import { useActiveProfile } from '@/components/datatable/stores/profile.store';
+import { profileOptimizer } from '@/components/datatable/lib/profileOptimizer';
 import { debounce } from '@/lib/utils';
 import { ColumnDef } from '../types';
-import { STATE_RESTORATION_DELAY_MS, COLUMN_UPDATE_DEBOUNCE_MS } from '../utils/constants';
+import { COLUMN_UPDATE_DEBOUNCE_MS } from '../utils/constants';
 
 /**
  * Custom hook for handling column operations and updates

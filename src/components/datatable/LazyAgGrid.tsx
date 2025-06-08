@@ -81,7 +81,7 @@ export const GridSkeleton = () => {
 export const LazyDataTable = lazy(() => {
   // perfMonitor.mark('datatable-import-start');
   
-  return import('./data-table').then(module => {
+  return import('./DataTable').then(module => {
     // perfMonitor.mark('datatable-import-end');
     // perfMonitor.measure('dataTableImportTime', 'datatable-import-start', 'datatable-import-end');
     

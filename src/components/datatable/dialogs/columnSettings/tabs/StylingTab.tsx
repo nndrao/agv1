@@ -6,7 +6,7 @@ import { AlignmentIconPicker } from '../components/AlignmentIconPicker';
 import { Button } from '@/components/ui/button';
 import { Palette, Eraser } from 'lucide-react';
 import { StyleEditor } from '../editors/StyleEditor';
-import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { useColumnCustomizationStore } from '../store/columnCustomization.store';
 import { createCellStyleFunction } from '@/components/datatable/utils/formatters';
 
 interface StylingTabProps {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ColDef, ColumnState, FilterModel, SortModelItem } from 'ag-grid-community';
-import { ColumnCustomization, serializeColumnCustomizations, deserializeColumnCustomizations } from './column-serializer';
+import { ColumnCustomization, serializeColumnCustomizations, deserializeColumnCustomizations } from './columnSerializer';
 
 interface PersistedState {
   profiles?: GridProfile[];
@@ -117,7 +117,7 @@ async function performMigration(state: PersistedState): Promise<PersistedState> 
       if (profile.gridState && profile.gridState.columnDefs) {
         // Clean invalid properties from each column definition
         newProfile.gridState.columnDefs = profile.gridState.columnDefs.map((col: ColDef) => {
-          const cleaned = { ...col };
+          const cleaned = { ...col } as any;
           // Remove invalid properties that AG-Grid doesn't recognize
           delete cleaned.valueFormat;
           delete cleaned._hasFormatter;
@@ -129,13 +129,13 @@ async function performMigration(state: PersistedState): Promise<PersistedState> 
       // Convert headerStyle objects to new format
       if (newProfile.gridState && newProfile.gridState.columnDefs) {
         newProfile.gridState.columnDefs = newProfile.gridState.columnDefs.map((col: ColDef) => {
-          if (col.headerStyle && typeof col.headerStyle === 'object' && !col.headerStyle._isHeaderStyleConfig) {
+          if (col.headerStyle && typeof col.headerStyle === 'object' && !(col.headerStyle as any)._isHeaderStyleConfig) {
             // Convert old format to new format
             col.headerStyle = {
               _isHeaderStyleConfig: true,
               regular: col.headerStyle,
               floating: null
-            };
+            } as any;
           }
           return col;
         });
@@ -591,16 +591,17 @@ export const useProfileStore = create<ProfileStore>()(
       name: 'grid-profile-storage',
       version: 4,
       // Skip migration during initialization - will be done on demand
-      migrate: (persistedState: PersistedState, version: number) => {
+      migrate: (persistedState: unknown, version: number) => {
+        const typedState = persistedState as PersistedState;
         if (version < 4) {
           // Mark that migration is needed but don't do it now
           console.log('[ProfileStore] Migration needed, will defer until after initialization');
           return {
-            ...persistedState,
+            ...typedState,
             migrationPending: true
           };
         }
-        return persistedState;
+        return typedState;
       },
       // Only persist essential data
       partialize: (state) => ({

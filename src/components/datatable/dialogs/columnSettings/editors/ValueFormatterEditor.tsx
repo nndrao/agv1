@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FormatterFunction } from '@/components/datatable/types';
+import { FormatterFunction, SerializedDefaultFallback } from '@/components/datatable/types';
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,7 @@ interface ValueFormatterEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialFormatter?: (params: { value: unknown }) => string;
-  onSave: (formatter: (params: { value: unknown }) => string, cellStyle?: (params: { value: unknown }) => React.CSSProperties) => void;
+  onSave: (formatter: (params: { value: unknown }) => string, cellStyle?: (params: { value: unknown }) => React.CSSProperties | undefined) => void;
   title: string;
   columnType?: 'text' | 'number' | 'date' | 'boolean';
 }
@@ -146,8 +146,8 @@ export const ValueFormatterEditor: React.FC<ValueFormatterEditorProps> = ({
   columnType = 'text'
 }) => {
   const [rules, setRules] = useState<FormattingRule[]>([]);
-  const [defaultFallback, setDefaultFallback] = useState({
-    display: { type: 'original' as const, text: '' },
+  const [defaultFallback, setDefaultFallback] = useState<SerializedDefaultFallback>({
+    display: { type: 'original', text: '' },
     styling: {
       // Default fallback styling also starts undefined - no styles unless explicitly set
       backgroundColor: undefined,
@@ -184,8 +184,8 @@ export const ValueFormatterEditor: React.FC<ValueFormatterEditorProps> = ({
   useEffect(() => {
     if (initialFormatter && typeof initialFormatter === 'function') {
       // Check if the formatter has visual editor metadata
-      const visualRules = (initialFormatter as FormatterFunction).__visualRules;
-      const visualDefaultFallback = (initialFormatter as FormatterFunction).__visualDefaultFallback;
+      const visualRules = (initialFormatter as unknown as FormatterFunction).__visualRules;
+      const visualDefaultFallback = (initialFormatter as unknown as FormatterFunction).__visualDefaultFallback;
       
       console.log('[ValueFormatterEditor] Initializing from existing formatter:', {
         hasVisualRules: !!visualRules,
@@ -761,7 +761,9 @@ export const ValueFormatterEditor: React.FC<ValueFormatterEditorProps> = ({
      console.log('[ValueFormatterEditor] Generated formatter with metadata:', {
        formatString: excelFormatString,
        rulesCount: rules.length,
-       hasDefaultFallback: !!defaultFallback
+       hasDefaultFallback: !!defaultFallback,
+       cellStyleType: typeof cellStyle,
+       testCellStyle: cellStyle({ value: 'test' })
      });
      
      onSave(formatter, cellStyle);

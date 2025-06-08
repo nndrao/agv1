@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { GridApi, GridReadyEvent } from 'ag-grid-community';
-import { useActiveProfile } from '@/stores/profile.store';
+import { useActiveProfile } from '@/components/datatable/stores/profile.store';
 import { useDataTableContext } from './useDataTableContext';
 
 /**
@@ -14,7 +14,7 @@ export function useGridCallbacks(
   const { setGridApi } = useDataTableContext();
   
   // Context menu items - now includes Format Column option
-  const getContextMenuItems = useCallback((params: any) => {
+  const getContextMenuItems = useCallback((params: any): any => {
     const defaultItems = [
       "autoSizeAll",
       "resetColumns",

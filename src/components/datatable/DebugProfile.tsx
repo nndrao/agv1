@@ -1,4 +1,4 @@
-import { useProfileStore } from '@/stores/profile.store';
+import { useProfileStore } from '@/components/datatable/stores/profile.store';
 import { Button } from '@/components/ui/button';
 
 export function DebugProfile() {
@@ -53,9 +53,9 @@ export function DebugProfile() {
       console.log('Raw localStorage data:', parsed);
       
       // Check specific profile
-      const profile = parsed.state.profiles.find(p => p.id === activeProfileId);
+      const profile = parsed.state.profiles.find((p: any) => p.id === activeProfileId);
       if (profile?.gridState?.columnDefs) {
-        const firstColWithStyle = profile.gridState.columnDefs.find(col => col.cellStyle || col.headerStyle);
+        const firstColWithStyle = profile.gridState.columnDefs.find((col: any) => col.cellStyle || col.headerStyle);
         if (firstColWithStyle) {
           console.log('First column with styles from localStorage:', {
             field: firstColWithStyle.field,

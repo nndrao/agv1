@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useColumnCustomizationStore } from '../store/column-customization.store';
+import { useColumnCustomizationStore } from '../store/columnCustomization.store';
 import { ColDef, ValueFormatterParams } from 'ag-grid-community';
 import {
   Copy,
@@ -27,6 +27,13 @@ interface ColumnTemplate {
   properties: Partial<ColDef>;
   isSystem?: boolean; // Flag to identify system templates
 }
+
+// Type for functions with metadata
+type FunctionWithMetadata = {
+  (params: unknown): unknown;
+  __formatString?: string;
+  __baseStyle?: React.CSSProperties;
+};
 
 // Properties to save in templates - comprehensive list
 const TEMPLATE_PROPERTIES = [
@@ -341,8 +348,9 @@ export const BulkActionsPanel: React.FC = () => {
             }
           } else if (property === 'cellStyle') {
             // Check if this is our conditional formatting function with metadata
-            const formatString = (value as any).__formatString;
-            const baseStyle = (value as any).__baseStyle;
+            const fn = value as FunctionWithMetadata;
+            const formatString = fn.__formatString;
+            const baseStyle = fn.__baseStyle;
             
             if (formatString) {
               // Store as a configuration object that can be recreated

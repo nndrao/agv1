@@ -11,21 +11,24 @@ import {
   AlignLeft, 
   AlignCenter, 
   AlignRight,
-  Palette,
-  Type,
   DollarSign,
   Percent,
   Hash,
   Calendar,
   Filter,
   SortAsc,
-  Columns,
   Settings,
   X,
   GripHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDataTableContext } from './hooks/useDataTableContext';
+import type { ColDef } from 'ag-grid-community';
+
+type CellStyleFunction = ((params: unknown) => React.CSSProperties | undefined) & {
+  __baseStyle?: React.CSSProperties;
+  __formatString?: string;
+};
 
 interface FloatingRibbonProps {
   targetColumn?: string;
@@ -53,14 +56,14 @@ export const FloatingRibbon: React.FC<FloatingRibbonProps> = ({
   };
 
   // Update column definition directly on the grid
-  const updateColumnProperty = (property: string, value: any) => {
+  const updateColumnProperty = (property: keyof ColDef, value: unknown) => {
     if (!gridApiRef.current || !targetColumn) return;
     
     const colDef = getColumnDef();
     if (!colDef) return;
     
     // Update the column definition
-    (colDef as any)[property] = value;
+    colDef[property] = value as never;
     
     // Refresh the grid to apply changes
     gridApiRef.current.refreshCells({ force: true });
@@ -136,12 +139,14 @@ export const FloatingRibbon: React.FC<FloatingRibbonProps> = ({
     const cellStyle = colDef.cellStyle;
     
     if (cellStyle && typeof cellStyle === 'object') {
-      if ((cellStyle as any).fontWeight === 'bold') styles.push('bold');
-      if ((cellStyle as any).fontStyle === 'italic') styles.push('italic');
-      if ((cellStyle as any).textDecoration === 'underline') styles.push('underline');
+      const styleObj = cellStyle as React.CSSProperties;
+      if (styleObj.fontWeight === 'bold') styles.push('bold');
+      if (styleObj.fontStyle === 'italic') styles.push('italic');
+      if (styleObj.textDecoration === 'underline') styles.push('underline');
     } else if (typeof cellStyle === 'function') {
       // Check base style from function metadata
-      const baseStyle = (cellStyle as any).__baseStyle;
+      const styleFn = cellStyle as CellStyleFunction;
+      const baseStyle = styleFn.__baseStyle;
       if (baseStyle) {
         if (baseStyle.fontWeight === 'bold') styles.push('bold');
         if (baseStyle.fontStyle === 'italic') styles.push('italic');
@@ -195,7 +200,7 @@ export const FloatingRibbon: React.FC<FloatingRibbonProps> = ({
         if (format === 'color-positive') {
           const colDef = getColumnDef();
           const existingBaseStyle = colDef?.cellStyle && typeof colDef.cellStyle === 'function' 
-            ? (colDef.cellStyle as any).__baseStyle || {}
+            ? (colDef.cellStyle as CellStyleFunction).__baseStyle || {}
             : colDef?.cellStyle || {};
             
           const cellStyleFn = createCellStyleFunction(formatString, existingBaseStyle);
@@ -267,8 +272,8 @@ export const FloatingRibbon: React.FC<FloatingRibbonProps> = ({
               const existingStyle = colDef.cellStyle || {};
               
               const baseStyle = typeof existingStyle === 'function' 
-                ? (existingStyle as any).__baseStyle || {}
-                : existingStyle;
+                ? (existingStyle as CellStyleFunction).__baseStyle || {}
+                : existingStyle as React.CSSProperties;
               
               const mergedStyle = { ...baseStyle, ...newStyle };
               

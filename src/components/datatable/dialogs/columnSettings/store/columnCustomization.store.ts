@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { ColDef as AgColDef, ColumnState } from 'ag-grid-community';
-import { createCellStyleFunction, hasConditionalStyling } from '@/components/datatable/utils/style-utils';
+import { createCellStyleFunction, hasConditionalStyling } from '@/components/datatable/utils/styleUtils';
 import { FormatterFunction, CellStyleFunction } from '@/components/datatable/types';
 
 // Use AG-Grid's ColDef directly
@@ -80,7 +80,7 @@ export interface DialogActions {
   
   // Customization removal
   removeColumnCustomization: (columnId: string, type: string) => void;
-  clearAllCustomizations: () => void;
+  clearAllCustomizations: () => number;
   
   // Template tracking
   setAppliedTemplate: (columnId: string, templateId: string, templateName: string) => void;

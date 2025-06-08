@@ -7,9 +7,9 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Settings2, Download, FileSpreadsheet } from "lucide-react";
-import { ProfileManager } from "./profile-manager";
+import { ProfileManager } from "./ProfileManager";
 import { GridApi, ColDef as AgColDef, ProcessCellForExportParams } from "ag-grid-community";
-import { GridProfile } from "@/stores/profile.store";
+import { GridProfile } from "@/components/datatable/stores/profile.store";
 import { useToast } from "@/hooks/use-toast";
 
 const monospaceFonts = [
@@ -63,14 +63,13 @@ export function DataTableToolbar({
           if (colDef.valueFormatter && typeof colDef.valueFormatter === 'function') {
             return colDef.valueFormatter({
               value: params.value,
-              data: params.node.data,
-              node: params.node,
+              data: params.node?.data,
+              node: params.node as any,
               colDef: colDef,
               column: params.column,
               api: params.api,
-              columnApi: params.columnApi,
               context: params.context
-            });
+            } as any);
           }
           return params.value;
         }
@@ -108,14 +107,13 @@ export function DataTableToolbar({
           if (colDef.valueFormatter && typeof colDef.valueFormatter === 'function') {
             return colDef.valueFormatter({
               value: params.value,
-              data: params.node.data,
-              node: params.node,
+              data: params.node?.data,
+              node: params.node as any,
               colDef: colDef,
               column: params.column,
               api: params.api,
-              columnApi: params.columnApi,
               context: params.context
-            });
+            } as any);
           }
           return params.value;
         }
