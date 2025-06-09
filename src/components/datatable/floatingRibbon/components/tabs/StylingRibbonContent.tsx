@@ -37,6 +37,32 @@ import '../../ribbon-styles.css';
 export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumns }) => {
   const { updateBulkProperty, columnDefinitions, pendingChanges } = useColumnCustomizationStore();
   
+  // Helper function to get mixed values for multi-column editing
+  const getMixedValueLocal = (property: string) => {
+    const values = new Set();
+    const allValues: unknown[] = [];
+
+    selectedColumns.forEach(colId => {
+      const colDef = columnDefinitions.get(colId);
+      const pendingChange = pendingChanges.get(colId);
+
+      // Check pending changes first, then fall back to column definition
+      let value;
+      if (pendingChange && property in pendingChange) {
+        value = pendingChange[property as keyof typeof pendingChange];
+      } else if (colDef) {
+        value = colDef[property as keyof typeof colDef];
+      }
+
+      values.add(value);
+      allValues.push(value);
+    });
+
+    if (values.size === 0) return { value: undefined, isMixed: false };
+    if (values.size === 1) return { value: Array.from(values)[0], isMixed: false };
+    return { value: undefined, isMixed: true, values: allValues };
+  };
+  
   // Style target state (cell or header)
   const [styleTarget, setStyleTarget] = useState<'cell' | 'header'>('cell');
   
@@ -195,32 +221,6 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
       setBorderSide(detectedSide);
     }
   }, [selectedColumns, styleTarget, columnDefinitions, pendingChanges]); // Depend on actual data changes
-  
-  // Helper function to get mixed values for multi-column editing
-  const getMixedValueLocal = (property: string) => {
-    const values = new Set();
-    const allValues: unknown[] = [];
-
-    selectedColumns.forEach(colId => {
-      const colDef = columnDefinitions.get(colId);
-      const pendingChange = pendingChanges.get(colId);
-
-      // Check pending changes first, then fall back to column definition
-      let value;
-      if (pendingChange && property in pendingChange) {
-        value = pendingChange[property as keyof typeof pendingChange];
-      } else if (colDef) {
-        value = colDef[property as keyof typeof colDef];
-      }
-
-      values.add(value);
-      allValues.push(value);
-    });
-
-    if (values.size === 0) return { value: undefined, isMixed: false };
-    if (values.size === 1) return { value: Array.from(values)[0], isMixed: false };
-    return { value: undefined, isMixed: true, values: allValues };
-  };
 
   const getCurrentStyles = () => {
     const styles: string[] = [];
@@ -721,7 +721,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Cell/Header Toggle with Preview - Compact Layout */}
       <div className="flex items-center gap-3">
         <ToggleGroup 
@@ -779,7 +779,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
       </div>
       
       {/* 4-Column Layout - Compact */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2">
         {/* Column 1 - Font */}
         <div className="space-y-2">
           <div className="space-y-1.5">
@@ -899,21 +899,6 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
-          
-          <div className="flex gap-3">
-            <div className="flex items-center gap-1">
-              <Switch id="wrap-text" className="h-4 w-7" />
-              <Label htmlFor="wrap-text" className="text-xs cursor-pointer">
-                Wrap
-              </Label>
-            </div>
-            <div className="flex items-center gap-1">
-              <Switch id="auto-height" className="h-4 w-7" />
-              <Label htmlFor="auto-height" className="text-xs cursor-pointer">
-                Auto
-              </Label>
-            </div>
-          </div>
         </div>
         
         {/* Column 3 - Colors */}
@@ -956,6 +941,52 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
               />
             </div>
           </div>
+          
+          {/* Text Options - arranged side by side to save vertical space */}
+          {styleTarget === 'header' && (
+            <div className="flex gap-3 mt-2">
+              <div className="flex items-center gap-1.5">
+                <Switch 
+                  id="wrap-header" 
+                  className="h-4 w-7" 
+                  checked={!getMixedValueLocal('wrapHeaderText').isMixed && getMixedValueLocal('wrapHeaderText').value === true}
+                  onCheckedChange={(checked) => updateBulkProperty('wrapHeaderText', checked)}
+                />
+                <Label htmlFor="wrap-header" className="ribbon-section-header cursor-pointer normal-case">Wrap</Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Switch 
+                  id="auto-height" 
+                  className="h-4 w-7" 
+                  checked={!getMixedValueLocal('autoHeaderHeight').isMixed && getMixedValueLocal('autoHeaderHeight').value === true}
+                  onCheckedChange={(checked) => updateBulkProperty('autoHeaderHeight', checked)}
+                />
+                <Label htmlFor="auto-height" className="ribbon-section-header cursor-pointer normal-case">Auto Height</Label>
+              </div>
+            </div>
+          )}
+          {styleTarget === 'cell' && (
+            <div className="flex gap-3 mt-2">
+              <div className="flex items-center gap-1.5">
+                <Switch 
+                  id="wrap-text" 
+                  className="h-4 w-7" 
+                  checked={!getMixedValueLocal('wrapText').isMixed && getMixedValueLocal('wrapText').value === true}
+                  onCheckedChange={(checked) => updateBulkProperty('wrapText', checked)}
+                />
+                <Label htmlFor="wrap-text" className="ribbon-section-header cursor-pointer normal-case">Wrap</Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Switch 
+                  id="auto-height-cell" 
+                  className="h-4 w-7" 
+                  checked={!getMixedValueLocal('autoHeight').isMixed && getMixedValueLocal('autoHeight').value === true}
+                  onCheckedChange={(checked) => updateBulkProperty('autoHeight', checked)}
+                />
+                <Label htmlFor="auto-height-cell" className="ribbon-section-header cursor-pointer normal-case">Auto Height</Label>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Column 4 - Borders */}

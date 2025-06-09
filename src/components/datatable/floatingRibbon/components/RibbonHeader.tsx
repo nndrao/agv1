@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -723,70 +724,79 @@ export const RibbonHeader: React.FC<RibbonHeaderProps> = ({
   return (
     <TooltipProvider>
       <div 
-        className="flex items-center gap-2 px-3 h-full"
-        onMouseDown={onDragStart}
+        className="flex flex-col gap-2 px-3 py-2 h-full"
       >
-        <GripHorizontal className="ribbon-drag-handle h-3.5 w-3.5" />
-        
-        <ColumnSelectorDropdown
-          selectedColumns={selectedColumns}
-          columnDefinitions={columnDefinitions}
-          onSelectionChange={onSelectionChange}
-        />
+        {/* Top row: Drag handle and action buttons */}
+        <div className="flex items-center gap-2">
+          <div onMouseDown={onDragStart} className="flex items-center gap-2 flex-1 cursor-move">
+            <GripHorizontal className="ribbon-drag-handle h-3.5 w-3.5" />
+            <span className="text-xs text-muted-foreground font-medium">Column Customization</span>
+          </div>
 
-        <Separator orientation="vertical" className="ribbon-separator" />
+          {/* Action Buttons */}
+          <div className="flex items-center ribbon-compact-spacing">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="ribbon-action-ghost ribbon-focusable h-8"
+                  onClick={onReset}
+                  disabled={!hasChanges}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline ml-1.5">Reset</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="ribbon-tooltip">Reset all changes</TooltipContent>
+            </Tooltip>
 
-        {/* Simplified Template Controls */}
-        <SimpleTemplateControls 
-          selectedColumns={selectedColumns}
-          columnDefinitions={columnDefinitions}
-        />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className="ribbon-action-primary ribbon-focusable h-8"
+                  onClick={onApply}
+                  disabled={!hasChanges}
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline ml-1.5">Apply</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="ribbon-tooltip">Apply changes to grid</TooltipContent>
+            </Tooltip>
 
-        <div className="flex-1" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="ribbon-action-icon ribbon-focusable h-8 w-8"
+                  onClick={onClose}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="ribbon-tooltip">Close ribbon</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center ribbon-compact-spacing">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className="ribbon-action-ghost ribbon-focusable"
-                onClick={onReset}
-                disabled={!hasChanges}
-              >
-                <RotateCcw className="h-3 w-3" />
-                <span className="hidden sm:inline">Reset</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="ribbon-tooltip">Reset all changes</TooltipContent>
-          </Tooltip>
+        {/* Bottom row: Column selector and template controls */}
+        <div className="flex items-center gap-4 mt-1">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Columns:</Label>
+            <ColumnSelectorDropdown
+              selectedColumns={selectedColumns}
+              columnDefinitions={columnDefinitions}
+              onSelectionChange={onSelectionChange}
+            />
+          </div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                className="ribbon-action-primary ribbon-focusable"
-                onClick={onApply}
-                disabled={!hasChanges}
-              >
-                <Save className="h-3 w-3" />
-                <span className="hidden sm:inline ml-1">Apply</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="ribbon-tooltip">Apply changes to grid</TooltipContent>
-          </Tooltip>
+          <Separator orientation="vertical" className="h-6" />
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className="ribbon-action-icon ribbon-focusable"
-                onClick={onClose}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="ribbon-tooltip">Close ribbon</TooltipContent>
-          </Tooltip>
+          {/* Simplified Template Controls */}
+          <SimpleTemplateControls 
+            selectedColumns={selectedColumns}
+            columnDefinitions={columnDefinitions}
+          />
         </div>
       </div>
     </TooltipProvider>

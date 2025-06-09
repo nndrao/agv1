@@ -4,9 +4,9 @@
 .floating-ribbon {
   --ribbon-border-radius: 10px;
   --ribbon-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 6px 10px -6px rgba(0, 0, 0, 0.1);
-  --ribbon-header-height: 34px;
+  --ribbon-header-height: 84px;
   --ribbon-tab-height: 30px;
-  --ribbon-content-padding: 10px;
+  --ribbon-content-padding: 8px;
 }
 
 /* Smooth transitions for all interactive elements */
@@ -19,7 +19,10 @@
 /* Header styling - Clean and minimal */
 .ribbon-header {
   height: var(--ribbon-header-height);
-  @apply bg-background/60 backdrop-blur-sm border-b border-border/40;
+  @apply bg-background/95 backdrop-blur-sm border-b border-border/40;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 /* Tab strip styling - Subtle background */
@@ -32,7 +35,7 @@
 .ribbon-content {
   @apply bg-background;
   padding: var(--ribbon-content-padding);
-  min-height: 120px;
+  min-height: 100px;
 }
 
 /* Compact section headers */

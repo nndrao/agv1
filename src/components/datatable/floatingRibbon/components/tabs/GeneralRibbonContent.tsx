@@ -115,6 +115,17 @@ export const GeneralRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
               Enable Filter
             </Label>
           </div>
+          <div className="flex items-center gap-1.5">
+            <Switch 
+              id="editable" 
+              className="h-4 w-7" 
+              checked={!getMixedValueLocal('editable').isMixed && getMixedValueLocal('editable').value === true}
+              onCheckedChange={(checked) => updateBulkProperty('editable', checked)}
+            />
+            <Label htmlFor="editable" className="text-xs cursor-pointer">
+              Editable
+            </Label>
+          </div>
         </div>
         
         <Separator orientation="vertical" className="h-4" />

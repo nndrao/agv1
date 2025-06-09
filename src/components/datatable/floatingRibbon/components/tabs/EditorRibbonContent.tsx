@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -40,6 +40,7 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
   const { updateBulkProperty, columnDefinitions, pendingChanges } = useColumnCustomizationStore();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectValues, setSelectValues] = useState<string[]>(['Option 1', 'Option 2', 'Option 3']);
+  const [selectValuesText, setSelectValuesText] = useState('Option 1\nOption 2\nOption 3');
 
   // Helper function to get mixed values for multi-column editing
   const getMixedValueLocal = (property: string) => {
@@ -75,11 +76,9 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
 
   const handleEditorTypeChange = (value: string) => {
     if (value === 'none') {
-      updateBulkProperty('editable', false);
       updateBulkProperty('cellEditor', undefined);
       updateBulkProperty('cellEditorParams', undefined);
     } else {
-      updateBulkProperty('editable', true);
       updateBulkProperty('cellEditor', value);
       
       // Set default editor params based on type
@@ -141,12 +140,20 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
   };
 
   const getCurrentEditorType = () => {
-    if (!editableValue.value) return 'none';
     if (cellEditorValue.isMixed) return '';
-    return cellEditorValue.value as string || 'agTextCellEditor';
+    if (!cellEditorValue.value) return 'none';
+    return cellEditorValue.value as string || 'none';
   };
 
   const currentEditorParams = cellEditorParamsValue.value as Record<string, any> || {};
+
+  // Sync selectValuesText when editor params change
+  useEffect(() => {
+    if (currentEditorParams.values && Array.isArray(currentEditorParams.values)) {
+      setSelectValues(currentEditorParams.values);
+      setSelectValuesText(currentEditorParams.values.join('\n'));
+    }
+  }, [currentEditorParams.values]);
 
   const handleEditorParamChange = (param: string, value: any) => {
     const newParams = { ...currentEditorParams, [param]: value };
@@ -155,6 +162,14 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Show notice if editing is not enabled */}
+      {!editableValue.value && !editableValue.isMixed && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md border border-muted-foreground/20">
+          <div className="text-xs text-muted-foreground">
+            Enable editing in the General tab to configure cell editors
+          </div>
+        </div>
+      )}
       {/* Row 1: Editor Type Selection and Quick Options */}
       <div className="flex items-center gap-3">
         {/* Editor Type Selector */}
@@ -392,15 +407,31 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
           {(getCurrentEditorType() === 'agSelectCellEditor' || getCurrentEditorType() === 'agRichSelectCellEditor') && (
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Options (one per line)</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Options (one per line)</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => {
+                      const values = selectValuesText.split('\n').filter(v => v.trim());
+                      setSelectValues(values);
+                      handleEditorParamChange('values', values);
+                    }}
+                  >
+                    Apply
+                  </Button>
+                </div>
                 <Textarea 
                   className="min-h-[80px] text-xs font-mono resize-none"
-                  value={selectValues.join('\n')}
-                  onChange={(e) => {
-                    const values = e.target.value.split('\n').filter(v => v.trim());
+                  value={selectValuesText}
+                  onChange={(e) => setSelectValuesText(e.target.value)}
+                  onBlur={() => {
+                    const values = selectValuesText.split('\n').filter(v => v.trim());
                     setSelectValues(values);
                     handleEditorParamChange('values', values);
                   }}
+                  placeholder="Enter options, one per line"
                 />
               </div>
               
@@ -416,7 +447,7 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
                         <SelectTrigger className="h-7 text-xs">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[100]">
                           <SelectItem value="fuzzy">Fuzzy</SelectItem>
                           <SelectItem value="text">Text</SelectItem>
                         </SelectContent>

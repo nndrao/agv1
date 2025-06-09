@@ -440,6 +440,18 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     const cleanedColumnDefs = columnDefs.map(col => {
       const cleaned = { ...col };
       
+      // Debug editor properties
+      if (col.cellEditor || col.editable) {
+        console.log('[ProfileManager] Column has editor properties:', {
+          field: col.field,
+          editable: col.editable,
+          cellEditor: col.cellEditor,
+          cellEditorParams: col.cellEditorParams,
+          cellEditorPopup: col.cellEditorPopup,
+          singleClickEdit: col.singleClickEdit
+        });
+      }
+      
       // Log what we're saving for each column
       // console.log('[ProfileManager] Saving column properties:', {
       //   field: col.field,
