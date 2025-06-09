@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
-import type { ColDef } from 'ag-grid-community';
+import { useProfileStore } from '../../stores/profile.store';
+import type { ColDef, ColumnState } from 'ag-grid-community';
 import type { MixedValue, RibbonTab, FormatCategory } from '../types';
 
 interface UseRibbonStateProps {
   targetColumn?: string;
   columnDefs?: ColDef[];
-  columnState?: any[];
+  columnState?: ColumnState[];
   onApply?: (updatedColumnDefs: ColDef[]) => void;
   onClose?: () => void;
 }
@@ -16,8 +17,7 @@ export const useRibbonState = ({
   targetColumn,
   columnDefs,
   columnState,
-  onApply,
-  onClose
+  onApply
 }: UseRibbonStateProps) => {
   // Store integration
   const {
@@ -29,8 +29,12 @@ export const useRibbonState = ({
     pendingChanges,
     updateBulkProperty,
     applyChanges,
-    resetChanges
+    resetChanges,
+    setVisibilityFilter
   } = useColumnCustomizationStore();
+
+  // Profile store integration
+  const { saveColumnCustomizations, getActiveProfile } = useProfileStore();
 
   // Local state
   const [activeTab, setActiveTab] = useState<RibbonTab>('styling');
@@ -39,9 +43,19 @@ export const useRibbonState = ({
   const [showConditionalDialog, setShowConditionalDialog] = useState(false);
   const [advancedFilterTab, setAdvancedFilterTab] = useState('general');
 
-  // Initialize store with provided column definitions
+  // Initialize store with provided column definitions and hydrate from active profile
   useEffect(() => {
     if (columnDefs && columnDefs.length > 0) {
+      console.log('[RibbonState] Initializing with columnDefs:', {
+        columnDefsCount: columnDefs.length,
+        targetColumn,
+        hasActiveProfile: !!getActiveProfile()
+      });
+
+      // Reset visibility filter to 'all' when ribbon opens to show all columns
+      setVisibilityFilter('all');
+
+      // Create column map from provided columnDefs
       const columnMap = new Map();
       columnDefs.forEach(colDef => {
         if (colDef.field || colDef.colId) {
@@ -50,16 +64,26 @@ export const useRibbonState = ({
       });
       setColumnDefinitions(columnMap);
 
-      // Select target column if provided
+      // Select target column if provided, otherwise select first column
       if (targetColumn) {
         setSelectedColumns(new Set([targetColumn]));
+      } else if (columnDefs.length > 0 && selectedColumns.size === 0) {
+        // Select first column if none selected
+        const firstColId = columnDefs[0].field || columnDefs[0].colId;
+        if (firstColId) {
+          setSelectedColumns(new Set([firstColId]));
+        }
       }
     }
-  }, [columnDefs, targetColumn, setColumnDefinitions, setSelectedColumns]);
+  }, [columnDefs, targetColumn, setColumnDefinitions, setSelectedColumns, getActiveProfile, selectedColumns.size, setVisibilityFilter]);
 
   // Set column state when provided
   useEffect(() => {
     if (columnState) {
+      console.log('[RibbonState] Setting column state:', {
+        columnStateCount: columnState.length,
+        hasVisibilityInfo: columnState.some(cs => cs.hide !== undefined)
+      });
       setColumnState(columnState);
     }
   }, [columnState, setColumnState]);
@@ -109,31 +133,69 @@ export const useRibbonState = ({
       if (styleObj.fontWeight === 'bold' || styleObj.fontWeight === '700') styles.push('bold');
       if (styleObj.fontStyle === 'italic') styles.push('italic');
       if (styleObj.textDecoration === 'underline') styles.push('underline');
+    } else if (typeof cellStyleValue.value === 'function') {
+      // Check base style metadata for function-based styles
+      const styleFunction = cellStyleValue.value as any;
+      const baseStyle = styleFunction.__baseStyle;
+      if (baseStyle) {
+        if (baseStyle.fontWeight === 'bold' || baseStyle.fontWeight === '700') styles.push('bold');
+        if (baseStyle.fontStyle === 'italic') styles.push('italic');
+        if (baseStyle.textDecoration === 'underline') styles.push('underline');
+      }
     }
     
     return styles;
   }, [getMixedValue]);
 
-  // Apply changes and close
+  // Enhanced apply changes with proper profile integration
   const handleApply = useCallback(() => {
     try {
+      console.log('[RibbonState] Applying changes:', {
+        selectedColumnsCount: selectedColumns.size,
+        pendingChangesCount: pendingChanges.size,
+        hasOnApply: !!onApply
+      });
+
+      // Apply changes to get updated column definitions
       const updatedColumnDefs = applyChanges();
+      
+      // Save to profile store (this will be persisted to the active profile)
+      saveColumnCustomizations(updatedColumnDefs, columnDefs);
+      
+      // Call the onApply callback to update the grid
       if (onApply) {
         onApply(updatedColumnDefs);
       }
+
       toast.success(`Applied changes to ${selectedColumns.size} column${selectedColumns.size === 1 ? '' : 's'}`);
-      onClose?.();
+      
+      // Note: Don't close automatically - let user decide when to close
+      // onClose?.();
     } catch (error) {
-      console.error('Error applying changes:', error);
+      console.error('[RibbonState] Error applying changes:', error);
       toast.error('Failed to apply changes');
     }
-  }, [applyChanges, onApply, selectedColumns.size, onClose]);
+  }, [applyChanges, saveColumnCustomizations, columnDefs, onApply, selectedColumns.size]);
 
   // Reset changes
   const handleReset = useCallback(() => {
     resetChanges();
     toast.success('Reset all pending changes');
   }, [resetChanges]);
+
+  // Direct pass-through to store's updateBulkProperty
+  // The StylingRibbonContent component now handles all the cellStyle/headerStyle logic
+  // exactly matching the column settings dialog patterns
+  const handleUpdateBulkProperty = useCallback((property: string, value: unknown) => {
+    console.log('[RibbonState] Updating bulk property:', {
+      property,
+      value: typeof value === 'function' ? 'function' : value,
+      selectedColumnsCount: selectedColumns.size
+    });
+
+    // Direct pass-through - let the components handle the logic
+    updateBulkProperty(property, value);
+  }, [selectedColumns.size, updateBulkProperty]);
 
   // Wrapper functions to match interface types
   const handleSetActiveTab = useCallback((tab: string) => {
@@ -154,7 +216,7 @@ export const useRibbonState = ({
     setSelectedColumns,
     columnDefinitions,
     pendingChanges,
-    updateBulkProperty,
+    updateBulkProperty: handleUpdateBulkProperty, // Use enhanced version
     
     // Local state
     activeTab,

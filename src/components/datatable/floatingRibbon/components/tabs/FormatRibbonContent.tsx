@@ -22,7 +22,7 @@ import {
   Code2
 } from 'lucide-react';
 import { useColumnCustomizationStore } from '../../../dialogs/columnSettings/store/columnCustomization.store';
-import { createExcelFormatter } from '../../../utils/formatters';
+import { createExcelFormatter, createCellStyleFunction } from '../../../utils/formatters';
 import type { FormatTabProps } from '../../types';
 import '../../ribbon-styles.css';
 
@@ -154,7 +154,7 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
   showConditionalDialog,
   setShowConditionalDialog
 }) => {
-  const { updateBulkProperty } = useColumnCustomizationStore();
+  const { updateBulkProperty, columnDefinitions, pendingChanges } = useColumnCustomizationStore();
   const [decimalPlaces, setDecimalPlaces] = useState(2);
   const [selectedBaseFormat, setSelectedBaseFormat] = useState<string>('');
   const [noSeparator, setNoSeparator] = useState(false);
@@ -162,6 +162,32 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
   const [selectedCurrency, setSelectedCurrency] = useState<string>('$');
   const [previewValue, setPreviewValue] = useState<string>('1234567.89');
   const [selectedCustomFormat, setSelectedCustomFormat] = useState<string>('');
+
+  // Helper to get mixed values for multi-column editing
+  const getMixedValueLocal = (property: string) => {
+    const values = new Set();
+    const allValues: unknown[] = [];
+
+    selectedColumns.forEach(colId => {
+      const colDef = columnDefinitions.get(colId);
+      const pendingChange = pendingChanges.get(colId);
+
+      // Check pending changes first, then fall back to column definition
+      let value;
+      if (pendingChange && property in pendingChange) {
+        value = pendingChange[property as keyof typeof pendingChange];
+      } else if (colDef) {
+        value = colDef[property as keyof typeof colDef];
+      }
+
+      values.add(value);
+      allValues.push(value);
+    });
+
+    if (values.size === 0) return { value: undefined, isMixed: false };
+    if (values.size === 1) return { value: Array.from(values)[0], isMixed: false };
+    return { value: undefined, isMixed: true, values: allValues };
+  };
 
   const applyFormatWithModifiers = useCallback((baseFormat: string, baseKey: string) => {
     let finalFormat = baseFormat;
@@ -204,10 +230,40 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
     }
     
     setCurrentFormat(finalFormat);
+    
     // Create the formatter function from the format string
     const formatter = createExcelFormatter(finalFormat);
     updateBulkProperty('valueFormatter', formatter);
-  }, [noSeparator, colorized, formatCategory, selectedCurrency, updateBulkProperty]);
+    
+    // CRITICAL: Check if we need to create/update cellStyle to support conditional formatting
+    // This follows the pattern from the documentation
+    const existingCellStyle = getMixedValueLocal('cellStyle');
+    
+    // Check if the format string has conditional styling (colors, styling directives)
+    const hasConditionalStyling = finalFormat.match(/\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right|#[0-9A-Fa-f]{3,6}|Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan)/i);
+    
+    if (hasConditionalStyling && !existingCellStyle.isMixed) {
+      // Extract base styles from existing cellStyle
+      let baseStyle: React.CSSProperties | undefined;
+      
+      if (existingCellStyle.value) {
+        if (typeof existingCellStyle.value === 'object') {
+          // Direct style object from styling tab
+          baseStyle = existingCellStyle.value;
+        } else if (typeof existingCellStyle.value === 'function') {
+          // Function style - check for base style metadata
+          const metadata = (existingCellStyle.value as any).__baseStyle;
+          if (metadata) {
+            baseStyle = metadata;
+          }
+        }
+      }
+      
+      // Create cellStyle function that merges base and conditional styles
+      const cellStyleFn = createCellStyleFunction(finalFormat, baseStyle);
+      updateBulkProperty('cellStyle', cellStyleFn);
+    }
+  }, [noSeparator, colorized, formatCategory, selectedCurrency, updateBulkProperty, selectedColumns, columnDefinitions, pendingChanges]);
 
   const handleBaseFormatSelect = useCallback((template: FormatTemplate) => {
     setSelectedBaseFormat(template.key);
@@ -526,6 +582,30 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
                   // Create the formatter function from the format string
                   const formatter = createExcelFormatter(format);
                   updateBulkProperty('valueFormatter', formatter);
+                  
+                  // Check if we need to create/update cellStyle for conditional formatting
+                  const hasConditionalStyling = format.match(/\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right|#[0-9A-Fa-f]{3,6}|Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan)/i);
+                  
+                  if (hasConditionalStyling) {
+                    const existingCellStyle = getMixedValueLocal('cellStyle');
+                    if (!existingCellStyle.isMixed) {
+                      let baseStyle: React.CSSProperties | undefined;
+                      
+                      if (existingCellStyle.value) {
+                        if (typeof existingCellStyle.value === 'object') {
+                          baseStyle = existingCellStyle.value;
+                        } else if (typeof existingCellStyle.value === 'function') {
+                          const metadata = (existingCellStyle.value as any).__baseStyle;
+                          if (metadata) {
+                            baseStyle = metadata;
+                          }
+                        }
+                      }
+                      
+                      const cellStyleFn = createCellStyleFunction(format, baseStyle);
+                      updateBulkProperty('cellStyle', cellStyleFn);
+                    }
+                  }
                 }}
               >
                 <SelectTrigger className="min-h-[28px] h-auto text-xs flex-1 py-1">
@@ -866,6 +946,25 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
               setNoSeparator(false);
               setColorized(false);
               updateBulkProperty('valueFormatter', undefined);
+              
+              // When clearing formatter, check if we need to preserve base styles
+              // but remove conditional formatting from cellStyle
+              const existingCellStyle = getMixedValueLocal('cellStyle');
+              
+              if (existingCellStyle.value && typeof existingCellStyle.value === 'function') {
+                // Check if this cellStyle was created for conditional formatting
+                const formatString = (existingCellStyle.value as any).__formatString;
+                const baseStyle = (existingCellStyle.value as any).__baseStyle;
+                
+                if (formatString && baseStyle && Object.keys(baseStyle).length > 0) {
+                  // Preserve base styles but remove conditional formatting
+                  updateBulkProperty('cellStyle', baseStyle);
+                } else if (formatString && (!baseStyle || Object.keys(baseStyle).length === 0)) {
+                  // Only had conditional formatting, clear cellStyle entirely
+                  updateBulkProperty('cellStyle', undefined);
+                }
+                // If no formatString metadata, leave cellStyle as is (it's a regular style)
+              }
             }}
             title="Clear format"
           >
@@ -893,6 +992,30 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
                 // Create the formatter function from the format string
                 const formatter = createExcelFormatter(currentFormat);
                 updateBulkProperty('valueFormatter', formatter);
+                
+                // Check if we need to create/update cellStyle for conditional formatting
+                const hasConditionalStyling = currentFormat.match(/\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right|#[0-9A-Fa-f]{3,6}|Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan)/i);
+                
+                if (hasConditionalStyling) {
+                  const existingCellStyle = getMixedValueLocal('cellStyle');
+                  if (!existingCellStyle.isMixed) {
+                    let baseStyle: React.CSSProperties | undefined;
+                    
+                    if (existingCellStyle.value) {
+                      if (typeof existingCellStyle.value === 'object') {
+                        baseStyle = existingCellStyle.value;
+                      } else if (typeof existingCellStyle.value === 'function') {
+                        const metadata = (existingCellStyle.value as any).__baseStyle;
+                        if (metadata) {
+                          baseStyle = metadata;
+                        }
+                      }
+                    }
+                    
+                    const cellStyleFn = createCellStyleFunction(currentFormat, baseStyle);
+                    updateBulkProperty('cellStyle', cellStyleFn);
+                  }
+                }
               } else {
                 updateBulkProperty('valueFormatter', undefined);
               }

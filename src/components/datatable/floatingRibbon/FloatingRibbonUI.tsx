@@ -22,11 +22,22 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
   const dragRef = useRef<HTMLDivElement>(null);
   const dragStartPos = useRef({ x: 0, y: 0 });
 
+  // Log initialization for debugging
+  useEffect(() => {
+    console.log('[FloatingRibbonUI] Initializing with props:', {
+      targetColumn,
+      columnDefsCount: columnDefs?.length || 0,
+      columnStateCount: columnState?.length || 0,
+      hasOnApply: !!onApply,
+      position: initialPosition
+    });
+  }, [targetColumn, columnDefs, columnState, onApply, initialPosition]);
+
   // Use the custom hook for all ribbon state and logic
   const ribbonState = useRibbonState({
     targetColumn,
     columnDefs,
-    columnState,
+    columnState, // Ensure columnState is properly passed
     onApply,
     onClose
   });
@@ -105,6 +116,15 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
     }
   }, [isDragging, position]);
 
+  // Enhanced close handler with logging
+  const handleClose = () => {
+    console.log('[FloatingRibbonUI] Closing ribbon:', {
+      hasPendingChanges: ribbonState.pendingChanges.size > 0,
+      selectedColumnsCount: ribbonState.selectedColumns.size
+    });
+    onClose?.();
+  };
+
   return (
     <Card 
       ref={dragRef}
@@ -128,7 +148,7 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
           onSelectionChange={ribbonState.setSelectedColumns}
           onApply={ribbonState.handleApply}
           onReset={ribbonState.handleReset}
-          onClose={onClose || (() => {})}
+          onClose={handleClose}
           onDragStart={handleMouseDown}
         />
       </div>

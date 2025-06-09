@@ -93,6 +93,13 @@ const ColumnSelectorDropdown: React.FC<{
   const [maxHeight, setMaxHeight] = useState('650px');
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // Reset visibility filter when dropdown opens
+  useEffect(() => {
+    if (open) {
+      setVisibilityFilter('all');
+    }
+  }, [open, setVisibilityFilter]);
+
   // Calculate max height based on viewport
   useEffect(() => {
     const calculateMaxHeight = () => {
@@ -203,15 +210,29 @@ const ColumnSelectorDropdown: React.FC<{
     return filtered;
   }, [allColumns, searchTerm, cellDataTypeFilter, visibilityFilter, columnState]);
 
-  // Bulk selection handlers (replicated logic)
+  // Handle column toggle with proper synchronization
+  const handleToggleColumn = useCallback((columnId: string) => {
+    toggleColumnSelection(columnId);
+    const newSelection = new Set(selectedColumns);
+    if (newSelection.has(columnId)) {
+      newSelection.delete(columnId);
+    } else {
+      newSelection.add(columnId);
+    }
+    onSelectionChange(newSelection);
+  }, [selectedColumns, toggleColumnSelection, onSelectionChange]);
+
+  // Bulk selection handlers
   const selectAllFilteredColumns = useCallback(() => {
     const columnIds = filteredColumns
       .map(col => col.field || col.colId || '')
       .filter(id => id && !selectedColumns.has(id));
     if (columnIds.length > 0) {
       selectColumns(columnIds);
+      const newSelection = new Set([...selectedColumns, ...columnIds]);
+      onSelectionChange(newSelection);
     }
-  }, [filteredColumns, selectedColumns, selectColumns]);
+  }, [filteredColumns, selectedColumns, selectColumns, onSelectionChange]);
 
   const deselectAllFilteredColumns = useCallback(() => {
     const columnIds = filteredColumns
@@ -219,8 +240,11 @@ const ColumnSelectorDropdown: React.FC<{
       .filter(id => id && selectedColumns.has(id));
     if (columnIds.length > 0) {
       deselectColumns(columnIds);
+      const newSelection = new Set(selectedColumns);
+      columnIds.forEach(id => newSelection.delete(id));
+      onSelectionChange(newSelection);
     }
-  }, [filteredColumns, selectedColumns, deselectColumns]);
+  }, [filteredColumns, selectedColumns, deselectColumns, onSelectionChange]);
 
   // Selection state calculations (replicated logic)
   const isAllSelected = useMemo(() => 
@@ -255,8 +279,9 @@ const ColumnSelectorDropdown: React.FC<{
   const virtualizer = useVirtualizer({
     count: flatItems.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 30, // Estimated height per item
-    overscan: 5
+    estimateSize: () => 40, // Increased height per item
+    overscan: 5,
+    enabled: open && flatItems.length > 0
   });
 
   // Column display name for selector button
@@ -292,9 +317,9 @@ const ColumnSelectorDropdown: React.FC<{
         collisionBoundary={undefined}
         sticky="always"
       >
-        <div className="flex flex-col w-full" style={{ height: maxHeight, maxHeight }}>
+        <div className="flex flex-col w-full overflow-hidden" style={{ height: maxHeight, maxHeight }}>
           {/* Modern Header */}
-          <div className="px-3 py-2 border-b border-border/40 bg-gradient-to-r from-muted/15 to-muted/5 backdrop-blur-sm">
+          <div className="px-3 py-2 border-b border-border/40 bg-gradient-to-r from-muted/15 to-muted/5 backdrop-blur-sm shrink-0">
             <div className="flex items-center gap-2">
               <div className="p-1 rounded bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
                 <Columns3 className="h-3.5 w-3.5 text-primary" />
@@ -306,7 +331,7 @@ const ColumnSelectorDropdown: React.FC<{
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col p-3 min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col p-3 overflow-hidden" style={{ minHeight: 0 }}>
             {/* Modern Search Bar */}
             <div className="relative mb-2">
               <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground h-3.5 w-3.5" />
@@ -407,60 +432,34 @@ const ColumnSelectorDropdown: React.FC<{
             </div>
 
             {/* Virtual Column List */}
-            <div className="flex-1 -mx-1 min-h-[200px]">
+            <div className="flex-1 -mx-1 overflow-hidden" style={{ minHeight: '200px' }}>
               <div
                 ref={parentRef}
                 className="h-full overflow-auto px-1 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-border/80"
-                style={{ contain: 'strict' }}
               >
-                <div
-                  style={{
-                    height: `${virtualizer.getTotalSize()}px`,
-                    width: '100%',
-                    position: 'relative',
-                  }}
-                >
-                  {virtualizer.getVirtualItems().map((virtualItem) => {
-                    const item = flatItems[virtualItem.index];
-                    
-                    if (!item) {
-                      return null;
-                    }
-
-                    return (
-                      <div
-                        key={virtualItem.key}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          height: `${virtualItem.size}px`,
-                          transform: `translateY(${virtualItem.start}px)`,
-                        }}
-                      >
-                        <ColumnItem
-                          column={item.column}
-                          columnId={item.id}
-                          selected={selectedColumns.has(item.id)}
-                          isTemplate={templateColumns instanceof Set ? templateColumns.has(item.id) : false}
-                          isHidden={(() => {
-                            // Try to find column state by field first, then by colId
-                            const field = item.column.field || '';
-                            const colId = item.column.colId || field;
-                            let colState = columnState.get(field);
-                            if (!colState && field !== colId) {
-                              colState = columnState.get(colId);
-                            }
-                            return colState?.hide || false;
-                          })()}
-                          appliedTemplate={appliedTemplates.get(item.id)}
-                          onToggle={toggleColumnSelection}
-                          onToggleTemplate={toggleTemplateColumn}
-                        />
-                      </div>
-                    );
-                  })}
+                <div className="space-y-1">
+                  {/* Non-virtualized rendering for debugging */}
+                  {flatItems.map((item) => (
+                    <ColumnItem
+                      key={item.id}
+                      column={item.column}
+                      columnId={item.id}
+                      selected={selectedColumns.has(item.id)}
+                      isTemplate={templateColumns instanceof Set ? templateColumns.has(item.id) : false}
+                      isHidden={(() => {
+                        const field = item.column.field || '';
+                        const colId = item.column.colId || field;
+                        let colState = columnState.get(field);
+                        if (!colState && field !== colId) {
+                          colState = columnState.get(colId);
+                        }
+                        return colState?.hide || false;
+                      })()}
+                      appliedTemplate={appliedTemplates.get(item.id)}
+                      onToggle={handleToggleColumn}
+                      onToggleTemplate={toggleTemplateColumn}
+                    />
+                  ))}
                 </div>
               </div>
             </div>

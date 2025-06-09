@@ -1,11 +1,11 @@
-import type { ColDef } from 'ag-grid-community';
+import type { ColDef, ColumnState } from 'ag-grid-community';
 
 export interface FloatingRibbonUIProps {
   targetColumn?: string;
   initialPosition?: { x: number; y: number };
   onClose?: () => void;
   columnDefs?: ColDef[];
-  columnState?: any[];
+  columnState?: ColumnState[];
   onApply?: (updatedColumnDefs: ColDef[]) => void;
 }
 
