@@ -722,7 +722,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
 
   return (
     <div className="space-y-2">
-      {/* Cell/Header Toggle with Preview - Compact Layout */}
+      {/* Cell/Header Toggle - Compact Layout */}
       <div className="flex items-center gap-3">
         <ToggleGroup 
           type="single" 
@@ -739,43 +739,25 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
           </ToggleGroupItem>
         </ToggleGroup>
         
-        <Separator orientation="vertical" className="ribbon-separator" />
-        
-        {/* Live Preview - Compact */}
-        <div className="ribbon-preview-box flex items-center gap-2 flex-1">
-          <span className="ribbon-preview-label">Preview</span>
-          <div className="ribbon-preview-content flex-1" style={getPreviewStyles()}>
-            {styleTarget === 'header' ? (
-              selectedColumns.size === 1 ? (
-                columnDefinitions.get(Array.from(selectedColumns)[0])?.headerName || 
-                columnDefinitions.get(Array.from(selectedColumns)[0])?.field || 
-                'Column Header'
-              ) : (
-                'Column Header'
-              )
-            ) : (
-              'Sample Text 123'
-            )}
-          </div>
+        <div className="ml-auto">
+          <Button 
+            variant="ghost" 
+            className="ribbon-action-ghost"
+            onClick={() => {
+              const sourceStyles = styleTarget === 'cell' 
+                ? getCellStyleObject()
+                : getHeaderStyleObject();
+              
+              if (Object.keys(sourceStyles).length > 0) {
+                setStyleTarget(styleTarget === 'cell' ? 'header' : 'cell');
+                setTimeout(() => updateStyle(sourceStyles), 0);
+              }
+            }}
+          >
+            <Copy className="h-3 w-3" />
+            <span className="hidden lg:inline ml-1">Copy to {styleTarget === 'cell' ? 'Header' : 'Cell'}</span>
+          </Button>
         </div>
-        
-        <Button 
-          variant="ghost" 
-          className="ribbon-action-ghost"
-          onClick={() => {
-            const sourceStyles = styleTarget === 'cell' 
-              ? getCellStyleObject()
-              : getHeaderStyleObject();
-            
-            if (Object.keys(sourceStyles).length > 0) {
-              setStyleTarget(styleTarget === 'cell' ? 'header' : 'cell');
-              setTimeout(() => updateStyle(sourceStyles), 0);
-            }
-          }}
-        >
-          <Copy className="h-3 w-3" />
-          <span className="hidden lg:inline ml-1">Copy to {styleTarget === 'cell' ? 'Header' : 'Cell'}</span>
-        </Button>
       </div>
       
       {/* 4-Column Layout - Compact */}

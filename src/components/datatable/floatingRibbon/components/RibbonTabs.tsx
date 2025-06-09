@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 import { 
   FileText,
@@ -7,7 +7,6 @@ import {
   Filter,
   Edit3
 } from 'lucide-react';
-import { RibbonPreview } from './RibbonPreview';
 import type { RibbonTabsProps } from '../types';
 import '../ribbon-styles.css';
 
@@ -25,7 +24,7 @@ export const RibbonTabs: React.FC<RibbonTabsProps> = ({
   selectedColumns
 }) => {
   return (
-    <div className="flex items-center justify-between h-full px-3">
+    <div className="flex items-center h-full px-3">
       <div className="flex items-center gap-0">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -47,12 +46,6 @@ export const RibbonTabs: React.FC<RibbonTabsProps> = ({
           );
         })}
       </div>
-      
-      {/* Preview Section - Compact and integrated */}
-      <RibbonPreview 
-        activeTab={activeTab}
-        selectedColumns={selectedColumns}
-      />
     </div>
   );
 }; 
