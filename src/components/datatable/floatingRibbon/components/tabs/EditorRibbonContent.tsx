@@ -179,7 +179,7 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
         <div className="ribbon-control-group">
           <div className="ribbon-control-label">
             <Edit3 className="ribbon-icon" />
-            <Label className="ribbon-label">Type</Label>
+            <Label className="ribbon-section-header">TYPE</Label>
           </div>
           <div className="ribbon-control-content">
             <ToggleGroup 
@@ -217,11 +217,11 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
         {/* Editor Options */}
         <div className="ribbon-control-group">
           <div className="ribbon-control-label">
-            <Label className="ribbon-label">Options</Label>
+            <Label className="ribbon-section-header">OPTIONS</Label>
           </div>
           <div className="ribbon-control-content ribbon-options-grid">
             <div className="ribbon-option-item">
-              <Label htmlFor="single-click" className="ribbon-option-label">Single Click</Label>
+              <Label htmlFor="single-click">Single Click</Label>
               <Switch 
                 id="single-click" 
                 className="ribbon-switch" 
@@ -231,7 +231,7 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
               />
             </div>
             <div className="ribbon-option-item">
-              <Label htmlFor="popup-editor" className="ribbon-option-label">Popup</Label>
+              <Label htmlFor="popup-editor">Popup</Label>
               <Switch 
                 id="popup-editor" 
                 className="ribbon-switch" 
@@ -253,7 +253,7 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
             disabled={!editableValue.value || getCurrentEditorType() === 'none'}
           >
             <Settings className="ribbon-icon-xs" />
-            <span>Configure</span>
+            <span>CONFIGURE</span>
             <ChevronDown className={`ribbon-icon-xs ribbon-chevron ${showAdvanced ? 'ribbon-chevron-expanded' : ''}`} />
           </Button>
         </div>
@@ -326,7 +326,7 @@ export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns
       {showAdvanced && getCurrentEditorType() !== 'none' && getCurrentEditorType() !== '' && (
         <div className="ribbon-config-panel">
           <div className="ribbon-config-header">
-            <Label className="ribbon-config-title">Editor Configuration</Label>
+            <Label className="ribbon-config-title">EDITOR CONFIGURATION</Label>
             <Button 
               variant="ghost" 
               size="sm" 

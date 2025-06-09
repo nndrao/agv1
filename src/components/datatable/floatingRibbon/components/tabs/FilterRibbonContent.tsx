@@ -173,19 +173,19 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
       {/* Row 1: Filter Type Selection as Dropdown */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 flex-1">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Label className="text-xs text-muted-foreground whitespace-nowrap">Filter Type:</Label>
+          <Filter className="ribbon-icon text-muted-foreground" />
+          <Label className="ribbon-section-header">FILTER TYPE</Label>
           <Select
             value={getCurrentFilterType()}
             onValueChange={handleFilterTypeChange}
           >
-            <SelectTrigger className="h-7 flex-1 text-xs">
+            <SelectTrigger className="ribbon-select-trigger flex-1">
               <SelectValue placeholder="Select filter type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">
                 <div className="flex items-center gap-2">
-                  <X className="h-3 w-3" />
+                  <X className="ribbon-icon-xs" />
                   <span>No Filter</span>
                 </div>
               </SelectItem>
@@ -195,7 +195,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
                 return (
                   <SelectItem key={filter.value} value={filter.value}>
                     <div className="flex items-center gap-2">
-                      <Icon className="h-3 w-3" />
+                      <Icon className="ribbon-icon-xs" />
                       <span>{filter.label}</span>
                     </div>
                   </SelectItem>
@@ -210,28 +210,25 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
         {/* Filter Options */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2">
-            <Label htmlFor="floating-filter" className="text-xs text-muted-foreground">Floating:</Label>
+            <Label htmlFor="floating-filter">Floating</Label>
             <Switch 
-              id="floating-filter" 
-              className="h-4 w-7" 
+              id="floating-filter"
               checked={!floatingFilterValue.isMixed && floatingFilterValue.value === true}
               onCheckedChange={(checked) => updateBulkProperty('floatingFilter', checked)}
             />
           </div>
           <div className="flex items-center gap-2">
-            <Label htmlFor="hide-menu" className="text-xs text-muted-foreground">Hide Menu:</Label>
+            <Label htmlFor="hide-menu">Hide Menu</Label>
             <Switch 
-              id="hide-menu" 
-              className="h-4 w-7" 
+              id="hide-menu"
               checked={!suppressMenuButtonValue.isMixed && suppressMenuButtonValue.value === true}
               onCheckedChange={(checked) => updateBulkProperty('suppressHeaderMenuButton', checked)}
             />
           </div>
           <div className="flex items-center gap-2">
-            <Label htmlFor="hide-panel" className="text-xs text-muted-foreground">Hide Panel:</Label>
+            <Label htmlFor="hide-panel">Hide Panel</Label>
             <Switch 
-              id="hide-panel" 
-              className="h-4 w-7" 
+              id="hide-panel"
               checked={!suppressFiltersPanelValue.isMixed && suppressFiltersPanelValue.value === true}
               onCheckedChange={(checked) => updateBulkProperty('suppressFiltersToolPanel', checked)}
             />
@@ -243,12 +240,12 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-7 px-2 text-xs"
+              className="ribbon-action-secondary"
               onClick={() => setShowAdvanced(!showAdvanced)}
             >
-              <Settings className="h-3 w-3 mr-1" />
+              <Settings className="ribbon-icon-xs mr-1" />
               Advanced
-              <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`ribbon-icon-xs ml-1 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
             </Button>
           )}
           <Button 
@@ -261,7 +258,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
             }}
             title="Enable Set Filter with Search"
           >
-            <Sparkles className="h-3 w-3" />
+            <Sparkles className="ribbon-icon-xs" />
           </Button>
         </div>
       </div>
@@ -273,7 +270,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
             {/* Text Filter Options */}
             {getCurrentFilterType() === 'agTextColumnFilter' && (
               <div className="flex items-center gap-3 flex-1">
-                <Label className="text-xs text-muted-foreground">Default:</Label>
+                <Label>Default</Label>
                 <Select
                   value={currentFilterParams.defaultOption || 'contains'}
                   onValueChange={(value) => handleFilterParamChange('defaultOption', value)}
@@ -294,18 +291,18 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
                 </Select>
                 
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Trim:</Label>
+                  <Label>Trim</Label>
                   <Switch 
-                    className="h-4 w-7" 
+                    className="" 
                     checked={currentFilterParams.trimInput !== false}
                     onCheckedChange={(checked) => handleFilterParamChange('trimInput', checked)}
                   />
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Case Sensitive:</Label>
+                  <Label>Case Sensitive</Label>
                   <Switch 
-                    className="h-4 w-7" 
+                    className="" 
                     checked={currentFilterParams.caseSensitive === true}
                     onCheckedChange={(checked) => handleFilterParamChange('caseSensitive', checked)}
                   />
@@ -316,7 +313,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
             {/* Number Filter Options */}
             {getCurrentFilterType() === 'agNumberColumnFilter' && (
               <div className="flex items-center gap-3 flex-1">
-                <Label className="text-xs text-muted-foreground">Default:</Label>
+                <Label>Default</Label>
                 <Select
                   value={currentFilterParams.defaultOption || 'equals'}
                   onValueChange={(value) => handleFilterParamChange('defaultOption', value)}
@@ -338,9 +335,9 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
                 </Select>
                 
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Include Blanks:</Label>
+                  <Label>Include Blanks</Label>
                   <Switch 
-                    className="h-4 w-7" 
+                    className="" 
                     checked={currentFilterParams.includeBlanksInEquals === true}
                     onCheckedChange={(checked) => handleFilterParamChange('includeBlanksInEquals', checked)}
                   />
@@ -351,7 +348,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
             {/* Date Filter Options */}
             {getCurrentFilterType() === 'agDateColumnFilter' && (
               <div className="flex items-center gap-3 flex-1">
-                <Label className="text-xs text-muted-foreground">Default:</Label>
+                <Label>Default</Label>
                 <Select
                   value={currentFilterParams.defaultOption || 'equals'}
                   onValueChange={(value) => handleFilterParamChange('defaultOption', value)}
@@ -371,7 +368,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
                 </Select>
                 
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Format:</Label>
+                  <Label>Format</Label>
                   <Input 
                     className="h-7 w-[100px] text-xs"
                     placeholder="YYYY-MM-DD"
@@ -386,27 +383,27 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
             {getCurrentFilterType() === 'agSetColumnFilter' && (
               <div className="flex items-center gap-3 flex-1">
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Search:</Label>
+                  <Label>Search</Label>
                   <Switch 
-                    className="h-4 w-7" 
+                    className="" 
                     checked={currentFilterParams.suppressMiniFilter !== true}
                     onCheckedChange={(checked) => handleFilterParamChange('suppressMiniFilter', !checked)}
                   />
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Select All:</Label>
+                  <Label>Select All</Label>
                   <Switch 
-                    className="h-4 w-7" 
+                    className="" 
                     checked={currentFilterParams.suppressSelectAll !== true}
                     onCheckedChange={(checked) => handleFilterParamChange('suppressSelectAll', !checked)}
                   />
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Sort:</Label>
+                  <Label>Sort</Label>
                   <Switch 
-                    className="h-4 w-7" 
+                    className="" 
                     checked={currentFilterParams.suppressSorting !== true}
                     onCheckedChange={(checked) => handleFilterParamChange('suppressSorting', !checked)}
                   />
@@ -423,8 +420,8 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
           {/* Multi Filter Quick Config */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Settings className="h-4 w-4 text-muted-foreground" />
-              <Label className="text-xs text-muted-foreground">Filters:</Label>
+              <Settings className="ribbon-icon text-muted-foreground" />
+              <Label className="ribbon-section-header">FILTERS</Label>
             </div>
             
             {/* Show first 2 filters inline */}
@@ -443,7 +440,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
                         onClick={() => removeMultiFilter(index)}
                         className="h-4 w-4 p-0 ml-1"
                       >
-                        <X className="h-2 w-2" />
+                        <X className="ribbon-icon-xs" />
                       </Button>
                     )}
                   </div>
@@ -459,21 +456,21 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-7 px-2 text-xs"
+                className="ribbon-action-secondary"
                 onClick={addMultiFilter}
                 disabled={multiFilters.length >= 4}
               >
-                <Plus className="h-3 w-3 mr-1" />
+                <Plus className="ribbon-icon-xs mr-1" />
                 Add
               </Button>
               
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-7 px-2 text-xs"
+                className="ribbon-action-secondary"
                 onClick={() => setExpandedMultiFilter(!expandedMultiFilter)}
               >
-                <Settings className="h-3 w-3 mr-1" />
+                <Settings className="ribbon-icon-xs mr-1" />
                 Configure
                 <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${expandedMultiFilter ? 'rotate-180' : ''}`} />
               </Button>
@@ -491,7 +488,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
                       value={filterConfig.filter}
                       onValueChange={(value) => updateMultiFilter(index, 'filter', value)}
                     >
-                      <SelectTrigger className="h-7 flex-1 text-xs">
+                      <SelectTrigger className="ribbon-select-trigger flex-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -500,7 +497,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
                           return (
                             <SelectItem key={filter.value} value={filter.value}>
                               <div className="flex items-center gap-2">
-                                <Icon className="h-3 w-3" />
+                                <Icon className="ribbon-icon-xs" />
                                 <span>{filter.label}</span>
                               </div>
                             </SelectItem>
@@ -531,7 +528,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
                 <div className="flex items-center gap-2">
                   <Label className="text-xs text-muted-foreground">Hide Buttons:</Label>
                   <Switch 
-                    className="h-4 w-7" 
+                    className="" 
                     checked={currentFilterParams.hideChildFilterButtons === true}
                     onCheckedChange={(checked) => handleFilterParamChange('hideChildFilterButtons', checked)}
                   />
@@ -564,7 +561,7 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
         <div className="px-3 py-2 bg-muted/30 rounded-md">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Debounce:</Label>
+              <Label>Debounce</Label>
               <Input 
                 type="number"
                 className="h-7 w-16 text-xs"
@@ -578,9 +575,9 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
             
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground">Clear Button:</Label>
+                <Label>Clear Button</Label>
                 <Switch 
-                  className="h-4 w-7" 
+                  className="" 
                   checked={currentFilterParams.buttons?.includes('clear') !== false}
                   onCheckedChange={(checked) => {
                     const buttons = checked ? ['clear', 'apply'] : ['apply'];
@@ -589,9 +586,9 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
                 />
               </div>
               <div className="flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground">Close on Apply:</Label>
+                <Label>Close on Apply</Label>
                 <Switch 
-                  className="h-4 w-7" 
+                  className="" 
                   checked={currentFilterParams.closeOnApply === true}
                   onCheckedChange={(checked) => handleFilterParamChange('closeOnApply', checked)}
                 />

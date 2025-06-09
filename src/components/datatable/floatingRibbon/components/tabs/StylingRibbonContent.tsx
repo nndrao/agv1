@@ -733,11 +733,11 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
             className="grid grid-rows-2 gap-0.5"
           >
             <ToggleGroupItem value="cell" className="cell-header-toggle h-6 w-14 text-[10px] px-1">
-              <Columns className="h-3 w-3 mr-0.5" />
+              <Columns className="ribbon-icon-xs mr-0.5" />
               Cell
             </ToggleGroupItem>
             <ToggleGroupItem value="header" className="cell-header-toggle h-6 w-14 text-[10px] px-1">
-              <FileText className="h-3 w-3 mr-0.5" />
+              <FileText className="ribbon-icon-xs mr-0.5" />
               Header
             </ToggleGroupItem>
           </ToggleGroup>
@@ -746,7 +746,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
         {/* Column 2 - Font */}
         <div className="space-y-2">
           <div className="space-y-1.5">
-            <Label className="ribbon-section-header">Font</Label>
+            <Label className="ribbon-section-header">FONT</Label>
             <Select value={fontFamily} onValueChange={(value) => handleFontChange('family', value)}>
               <SelectTrigger className="ribbon-select-trigger text-[10px] h-6">
                 <SelectValue />
@@ -798,25 +798,25 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
           
           <div className="flex gap-0.5">
             <Toggle 
-              className="ribbon-toggle w-6 h-6" 
+              className="ribbon-toggle w-[26px] h-[26px] p-0" 
               pressed={getCurrentStyles().includes('bold')}
               onPressedChange={(pressed) => handleStyleToggle('bold', pressed)}
             >
-              <Bold className="h-3 w-3" />
+              <Bold className="ribbon-icon-xs" strokeWidth={2.5} />
             </Toggle>
             <Toggle 
-              className="ribbon-toggle w-6 h-6"
+              className="ribbon-toggle w-[26px] h-[26px] p-0"
               pressed={getCurrentStyles().includes('italic')}
               onPressedChange={(pressed) => handleStyleToggle('italic', pressed)}
             >
-              <Italic className="h-3 w-3" />
+              <Italic className="ribbon-icon-xs" strokeWidth={2.5} />
             </Toggle>
             <Toggle 
-              className="ribbon-toggle w-6 h-6"
+              className="ribbon-toggle w-[26px] h-[26px] p-0"
               pressed={getCurrentStyles().includes('underline')}
               onPressedChange={(pressed) => handleStyleToggle('underline', pressed)}
             >
-              <Underline className="h-3 w-3" />
+              <Underline className="ribbon-icon-xs" strokeWidth={2.5} />
             </Toggle>
           </div>
         </div>
@@ -824,7 +824,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
         {/* Column 3 - Alignment */}
         <div className="space-y-2">
           <div className="space-y-1.5">
-            <Label className="ribbon-section-header">Alignment</Label>
+            <Label className="ribbon-section-header">ALIGNMENT</Label>
             <ToggleGroup 
               type="single" 
               value={getCurrentAlignment()}
@@ -832,19 +832,19 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
               className="w-full"
             >
               <ToggleGroupItem value="left" className="alignment-toggle-item flex-1 h-6">
-                <AlignLeft className="h-3 w-3" />
+                <AlignLeft className="ribbon-icon-xs" strokeWidth={2.5} />
               </ToggleGroupItem>
               <ToggleGroupItem value="center" className="alignment-toggle-item flex-1 h-6">
-                <AlignCenter className="h-3 w-3" />
+                <AlignCenter className="ribbon-icon-xs" strokeWidth={2.5} />
               </ToggleGroupItem>
               <ToggleGroupItem value="right" className="alignment-toggle-item flex-1 h-6">
-                <AlignRight className="h-3 w-3" />
+                <AlignRight className="ribbon-icon-xs" strokeWidth={2.5} />
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
           
           <div className="space-y-1">
-            <Label className="ribbon-section-header text-[10px]">Vertical</Label>
+            <Label className="ribbon-section-header">VERTICAL</Label>
             <ToggleGroup 
               type="single" 
               value={getCurrentVerticalAlignment()}
@@ -852,13 +852,13 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
               className="w-full"
             >
               <ToggleGroupItem value="top" className="alignment-toggle-item flex-1 h-6" aria-label="Align top">
-                <AlignVerticalJustifyStart className="h-3 w-3" />
+                <AlignVerticalJustifyStart className="ribbon-icon-xs" strokeWidth={2.5} />
               </ToggleGroupItem>
               <ToggleGroupItem value="middle" className="alignment-toggle-item flex-1 h-6" aria-label="Align middle">
-                <AlignVerticalJustifyCenter className="h-3 w-3" />
+                <AlignVerticalJustifyCenter className="ribbon-icon-xs" strokeWidth={2.5} />
               </ToggleGroupItem>
               <ToggleGroupItem value="bottom" className="alignment-toggle-item flex-1 h-6" aria-label="Align bottom">
-                <AlignVerticalJustifyEnd className="h-3 w-3" />
+                <AlignVerticalJustifyEnd className="ribbon-icon-xs" strokeWidth={2.5} />
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -867,9 +867,9 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
         {/* Column 4 - Colors */}
         <div className="space-y-2">
           <div className="space-y-1">
-            <Label className="ribbon-section-header">Colors</Label>
+            <Label className="ribbon-section-header">COLORS</Label>
             <div className="flex items-center gap-0.5">
-              <Type className="h-3 w-3 text-muted-foreground" />
+              <Type className="ribbon-icon-xs text-muted-foreground" strokeWidth={2.5} />
               <input
                 type="color"
                 value={textColor || '#000000'}
@@ -887,7 +887,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
             </div>
             
             <div className="flex items-center gap-0.5">
-              <PaintBucket className="h-3 w-3 text-muted-foreground" />
+              <PaintBucket className="ribbon-icon-xs text-muted-foreground" strokeWidth={2.5} />
               <input
                 type="color"
                 value={fillColor || '#ffffff'}
@@ -955,7 +955,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
         {/* Column 5 - Borders */}
         <div className="space-y-2">
           <div className="space-y-1">
-            <Label className="ribbon-section-header">Borders</Label>
+            <Label className="ribbon-section-header">BORDERS</Label>
             
             {/* Border side selector */}
             <Select 
@@ -968,37 +968,37 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
               <SelectContent>
                 <SelectItem value="none">
                   <div className="flex items-center gap-1">
-                    <X className="h-3 w-3" />
+                    <X className="ribbon-icon-xs" strokeWidth={2.5} />
                     <span>None</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="all">
                   <div className="flex items-center gap-1">
-                    <Square className="h-3 w-3" />
+                    <Square className="ribbon-icon-xs" strokeWidth={2.5} />
                     <span>All Sides</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="top">
                   <div className="flex items-center gap-1">
-                    <ArrowUp className="h-3 w-3" />
+                    <ArrowUp className="ribbon-icon-xs" strokeWidth={2.5} />
                     <span>Top</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="right">
                   <div className="flex items-center gap-1">
-                    <ArrowRight className="h-3 w-3" />
+                    <ArrowRight className="ribbon-icon-xs" strokeWidth={2.5} />
                     <span>Right</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="bottom">
                   <div className="flex items-center gap-1">
-                    <ArrowDown className="h-3 w-3" />
+                    <ArrowDown className="ribbon-icon-xs" strokeWidth={2.5} />
                     <span>Bottom</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="left">
                   <div className="flex items-center gap-1">
-                    <ArrowLeft className="h-3 w-3" />
+                    <ArrowLeft className="ribbon-icon-xs" strokeWidth={2.5} />
                     <span>Left</span>
                   </div>
                 </SelectItem>

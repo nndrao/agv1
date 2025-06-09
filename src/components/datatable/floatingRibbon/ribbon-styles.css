@@ -7,6 +7,13 @@
   --ribbon-header-height: 48px;
   --ribbon-tab-height: 26px;
   --ribbon-content-padding: 6px;
+  
+  /* Standardized Font Sizes - More Readable */
+  --ribbon-font-xs: 12px;     /* Small labels, badges */
+  --ribbon-font-sm: 13px;     /* Standard controls, buttons */
+  --ribbon-font-base: 14px;   /* Content text, inputs */
+  --ribbon-font-md: 15px;     /* Emphasized text */
+  --ribbon-font-lg: 17px;     /* Headers, titles */
 }
 
 /* Smooth transitions for all interactive elements */
@@ -40,9 +47,12 @@
   position: relative;
 }
 
-/* Compact section headers */
+/* Compact section headers - STANDARDIZED */
 .ribbon-section-header {
-  @apply text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-1;
+  font-size: 10px !important;
+  @apply font-semibold uppercase tracking-wide text-muted-foreground/80;
+  margin-bottom: var(--ribbon-spacing-xs) !important;
+  line-height: 1.3;
 }
 
 /* Visual grouping for related controls */
@@ -62,7 +72,8 @@
 /* Compact Toggle Groups and Buttons */
 .ribbon-toggle,
 .ribbon-toggle-group-item {
-  @apply text-[11px] h-[26px] px-2;
+  font-size: var(--ribbon-font-sm);
+  @apply h-[26px] px-2;
 }
 
 /* Toggle States - Clear visual hierarchy */
@@ -79,7 +90,8 @@
 
 /* Cell/Header Toggle - Special styling */
 .cell-header-toggle {
-  @apply text-[11px] h-7 px-3;
+  font-size: var(--ribbon-font-sm);
+  @apply h-7 px-3;
 }
 
 .cell-header-toggle[data-state="on"] {
@@ -98,7 +110,8 @@
 
 /* Tab buttons - Clean tab design */
 .ribbon-tab {
-  @apply text-[11px] h-[26px] px-3 rounded-t-md mr-1;
+  font-size: var(--ribbon-font-sm);
+  @apply h-[26px] px-3 rounded-t-md mr-1;
   @apply text-muted-foreground hover:text-foreground;
 }
 
@@ -108,14 +121,23 @@
   @apply shadow-sm;
 }
 
-/* Compact inputs and selects */
+/* Compact inputs and selects - STANDARDIZED */
 input.ribbon-input,
 .ribbon-input {
-  @apply h-[26px] text-[11px] px-2;
+  height: var(--ribbon-input-height) !important;
+  font-size: var(--ribbon-font-sm) !important;
+  @apply px-2;
 }
 
 .ribbon-select-trigger {
-  @apply h-[26px] text-[11px] px-2;
+  height: var(--ribbon-input-height) !important;
+  font-size: var(--ribbon-font-sm) !important;
+  @apply px-2;
+}
+
+/* Ensure select content matches */
+.floating-ribbon [role="listbox"] {
+  font-size: var(--ribbon-font-sm) !important;
 }
 
 /* Color inputs - Compact square design */
@@ -130,28 +152,33 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-preview-label {
-  @apply text-[10px] font-medium text-muted-foreground uppercase tracking-wider;
+  font-size: var(--ribbon-font-xs);
+  @apply font-medium text-muted-foreground uppercase tracking-wider;
 }
 
 .ribbon-preview-content {
-  @apply text-xs font-medium;
+  font-size: var(--ribbon-font-base);
+  @apply font-medium;
 }
 
 /* Action buttons - Clear hierarchy */
 .ribbon-action-primary {
-  @apply h-7 px-3 text-[11px] font-medium;
+  font-size: var(--ribbon-font-sm);
+  @apply h-7 px-3 font-medium;
   @apply bg-primary text-primary-foreground hover:bg-primary/90;
   @apply shadow-sm hover:shadow;
 }
 
 .ribbon-action-secondary {
-  @apply h-7 px-3 text-[11px];
+  font-size: var(--ribbon-font-sm);
+  @apply h-7 px-3;
   @apply border border-border/60 bg-background/80 hover:bg-muted/50;
   @apply hover:border-border;
 }
 
 .ribbon-action-ghost {
-  @apply h-7 px-2 text-[11px];
+  font-size: var(--ribbon-font-sm);
+  @apply h-7 px-2;
   @apply hover:bg-accent hover:text-accent-foreground;
 }
 
@@ -166,7 +193,8 @@ input[type="color"].ribbon-color {
 
 /* Format template buttons */
 .format-template {
-  @apply text-[11px] h-[26px] px-2;
+  font-size: var(--ribbon-font-sm);
+  @apply h-[26px] px-2;
 }
 
 .format-template[data-state="on"] {
@@ -179,7 +207,8 @@ input[type="color"].ribbon-color {
 }
 
 .scale-button {
-  @apply text-[11px] h-[26px] w-7 font-medium;
+  font-size: var(--ribbon-font-sm);
+  @apply h-[26px] w-7 font-medium;
   @apply border-r border-border/30 last:border-r-0;
 }
 
@@ -189,11 +218,13 @@ input[type="color"].ribbon-color {
 
 /* Decimal controls - Compact numeric */
 .decimal-control {
-  @apply h-[26px] w-7 p-0 text-[10px];
+  font-size: var(--ribbon-font-xs);
+  @apply h-[26px] w-7 p-0;
 }
 
 .decimal-display {
-  @apply h-[26px] w-6 text-[11px] font-mono;
+  font-size: var(--ribbon-font-sm);
+  @apply h-[26px] w-6 font-mono;
   @apply bg-muted/30 border-y border-border/30;
   @apply flex items-center justify-center;
 }
@@ -228,13 +259,15 @@ input[type="color"].ribbon-color {
 
 /* Quick access badges */
 .ribbon-badge {
-  @apply text-[9px] h-4 px-1.5 font-medium rounded;
+  font-size: 8px;
+  @apply h-4 px-1.5 font-medium rounded;
   @apply bg-primary text-primary-foreground;
 }
 
 /* Tooltip styling for ribbon */
 .ribbon-tooltip {
-  @apply text-[10px] py-1 px-2;
+  font-size: var(--ribbon-font-xs);
+  @apply py-1 px-2;
 }
 
 /* Dark mode optimizations */
@@ -273,12 +306,14 @@ input[type="color"].ribbon-color {
   
   .ribbon-toggle,
   .ribbon-toggle-group-item {
-    @apply text-[10px] h-6 px-1.5;
+    font-size: var(--ribbon-font-xs);
+    @apply h-6 px-1.5;
   }
   
   .ribbon-action-primary,
   .ribbon-action-secondary {
-    @apply text-[10px] h-6 px-2;
+    font-size: var(--ribbon-font-xs);
+    @apply h-6 px-2;
   }
 }
 
@@ -320,7 +355,53 @@ input[type="color"].ribbon-color {
   @apply contrast-125;
 }
 
-/* ===== REDESIGNED EDITOR RIBBON STYLES ===== */
+/* ===== GLOBAL RIBBON STANDARDIZATION ===== */
+
+/* Consistent spacing system */
+.floating-ribbon {
+  --ribbon-spacing-xs: 4px;
+  --ribbon-spacing-sm: 6px;
+  --ribbon-spacing-base: 8px;
+  --ribbon-spacing-md: 12px;
+  --ribbon-spacing-lg: 16px;
+  
+  /* Standard heights */
+  --ribbon-input-height: 24px;
+  --ribbon-button-height: 26px;
+  --ribbon-select-height: 24px;
+}
+
+/* All labels should be consistent */
+.floating-ribbon label:not(.ribbon-section-header):not(.ribbon-config-title) {
+  font-size: var(--ribbon-font-sm) !important;
+  @apply text-muted-foreground font-medium;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Ensure all inputs have same height */
+.floating-ribbon input[type="text"],
+.floating-ribbon input[type="number"],
+.floating-ribbon input[type="color"],
+.floating-ribbon select,
+.floating-ribbon .ribbon-input,
+.floating-ribbon .ribbon-select-trigger {
+  height: var(--ribbon-input-height) !important;
+  font-size: var(--ribbon-font-sm) !important;
+}
+
+/* Standardize all buttons */
+.floating-ribbon button {
+  min-height: var(--ribbon-button-height);
+  font-size: var(--ribbon-font-sm);
+}
+
+/* Consistent section spacing */
+.floating-ribbon > div > div {
+  gap: var(--ribbon-spacing-base);
+}
+
+/* ===== REDESIGNED EDITOR RIBBON STYLES =====
 
 /* Main section container */
 .ribbon-section-container {
@@ -329,27 +410,28 @@ input[type="color"].ribbon-color {
   padding: 1px;
 }
 
-/* Notice styling */
+/* Notice styling - more compact */
 .ribbon-notice-container {
-  @apply relative;
+  @apply relative mb-2;
 }
 
 .ribbon-notice-content {
-  @apply flex items-center gap-2 px-3 py-2;
+  @apply flex items-center gap-2 px-2 py-1.5;
   @apply bg-amber-50 border border-amber-200 rounded-md;
   @apply dark:bg-amber-950/30 dark:border-amber-800/30;
 }
 
 .ribbon-notice-text {
-  @apply text-xs text-amber-700 dark:text-amber-300;
+  font-size: var(--ribbon-font-sm);
+  @apply text-amber-700 dark:text-amber-300;
   @apply font-medium;
 }
 
-/* Primary controls section */
+/* Primary controls section - consistent spacing */
 .ribbon-primary-controls {
   @apply flex items-center;
-  gap: 6px;
-  padding: 6px;
+  gap: var(--ribbon-spacing-sm);
+  padding: var(--ribbon-spacing-sm);
   @apply bg-muted/10 border border-border/20 rounded-md;
 }
 
@@ -377,7 +459,8 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-label {
-  @apply text-xs font-medium text-muted-foreground;
+  font-size: var(--ribbon-font-base);
+  @apply font-medium text-muted-foreground;
   @apply whitespace-nowrap;
 }
 
@@ -406,13 +489,51 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-option-label {
-  @apply text-xs text-muted-foreground;
+  font-size: var(--ribbon-font-base);
+  @apply text-muted-foreground;
   @apply font-medium whitespace-nowrap;
 }
 
-.ribbon-switch {
-  @apply h-4 w-7;
-  @apply data-[state=checked]:bg-primary;
+/* Force shadcn/ui switch default styling - override any inherited styles */
+.floating-ribbon [role="switch"] {
+  display: inline-flex !important;
+  height: 20px !important;
+  width: 36px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  border-radius: 9999px !important;
+  padding: 0 !important;
+  position: relative !important;
+  cursor: pointer !important;
+  border: 2px solid transparent !important;
+  background-color: hsl(var(--input)) !important;
+}
+
+.floating-ribbon [role="switch"][data-state="checked"] {
+  background-color: hsl(var(--primary)) !important;
+}
+
+.floating-ribbon [role="switch"] span {
+  display: block !important;
+  height: 16px !important;
+  width: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  border-radius: 9999px !important;
+  background-color: white !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  transform: translateX(0) !important;
+  transition: transform 150ms !important;
+}
+
+.floating-ribbon [role="switch"][data-state="checked"] span {
+  transform: translateX(16px) !important;
 }
 
 /* Action buttons */
@@ -421,7 +542,8 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-action-button {
-  @apply h-7 px-3 text-xs;
+  font-size: var(--ribbon-font-base);
+  @apply h-7 px-3;
   @apply flex items-center gap-1.5;
   @apply border border-border/40;
   @apply hover:border-border/60 hover:bg-muted/50;
@@ -452,12 +574,14 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-editor-title {
-  @apply text-sm font-semibold text-foreground;
+  font-size: var(--ribbon-font-md);
+  @apply font-semibold text-foreground;
   @apply mb-1;
 }
 
 .ribbon-editor-subtitle {
-  @apply text-xs text-muted-foreground;
+  font-size: var(--ribbon-font-base);
+  @apply text-muted-foreground;
   @apply leading-relaxed;
 }
 
@@ -467,7 +591,8 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-quick-action {
-  @apply h-7 px-3 text-xs;
+  font-size: var(--ribbon-font-base);
+  @apply h-7 px-3;
   @apply flex items-center gap-1.5;
   @apply border border-border/40;
   @apply hover:border-border/60 hover:bg-background/80;
@@ -504,7 +629,8 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-config-title {
-  @apply text-sm font-semibold text-foreground;
+  font-size: var(--ribbon-font-md);
+  @apply font-semibold text-foreground;
 }
 
 .ribbon-config-close {
@@ -531,7 +657,8 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-field-label {
-  @apply text-xs font-medium text-muted-foreground;
+  font-size: var(--ribbon-font-base);
+  @apply font-medium text-muted-foreground;
   @apply block;
 }
 
@@ -540,27 +667,31 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-field-action {
-  @apply h-6 px-3 text-xs;
+  font-size: var(--ribbon-font-base);
+  @apply h-6 px-3;
   @apply border border-border/40;
   @apply hover:border-border/60 hover:bg-muted/30;
 }
 
 /* Form controls */
 .ribbon-input {
-  @apply h-7 text-xs px-3;
+  font-size: var(--ribbon-font-base);
+  @apply h-7 px-3;
   @apply border border-border/40;
   @apply focus:border-primary/50 focus:ring-1 focus:ring-primary/20;
   @apply transition-all duration-150;
 }
 
 .ribbon-select {
-  @apply h-7 text-xs px-3;
+  font-size: var(--ribbon-font-base);
+  @apply h-7 px-3;
   @apply border border-border/40;
   @apply focus:border-primary/50 focus:ring-1 focus:ring-primary/20;
 }
 
 .ribbon-textarea {
-  @apply min-h-[80px] text-xs font-mono px-3 py-2;
+  font-size: var(--ribbon-font-base);
+  @apply min-h-[80px] font-mono px-3 py-2;
   @apply border border-border/40 resize-none;
   @apply focus:border-primary/50 focus:ring-1 focus:ring-primary/20;
   @apply transition-all duration-150;
@@ -577,7 +708,8 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-switch-label {
-  @apply text-xs font-medium text-foreground;
+  font-size: var(--ribbon-font-base);
+  @apply font-medium text-foreground;
 }
 
 /* Ribbon destructive/warning colors - More visible than default */
@@ -598,7 +730,8 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-auto-detect-button {
-  @apply h-8 px-4 text-xs w-full;
+  font-size: var(--ribbon-font-base);
+  @apply h-8 px-4 w-full;
   @apply flex items-center justify-center gap-2;
   @apply border border-primary/30 text-primary;
   @apply hover:bg-primary/5 hover:border-primary/50;
@@ -607,13 +740,133 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-auto-detect-description {
-  @apply text-xs text-muted-foreground mt-2;
+  font-size: var(--ribbon-font-base);
+  @apply text-muted-foreground mt-2;
   @apply leading-relaxed text-center;
 }
 
 /* Separator styling */
 .ribbon-separator {
   @apply h-6 w-px bg-border/30;
+}
+
+/* Consistent text sizes for inline elements */
+.ribbon-text-xs {
+  font-size: var(--ribbon-font-xs);
+}
+
+.ribbon-text-sm {
+  font-size: var(--ribbon-font-sm);
+}
+
+.ribbon-text-base {
+  font-size: var(--ribbon-font-base);
+}
+
+.ribbon-text-md {
+  font-size: var(--ribbon-font-md);
+}
+
+.ribbon-text-lg {
+  font-size: var(--ribbon-font-lg);
+}
+
+/* Quick link styling */
+.ribbon-quick-link {
+  font-size: var(--ribbon-font-xs);
+  @apply text-primary hover:underline px-0.5;
+}
+
+/* Format example text */
+.ribbon-format-example {
+  font-size: var(--ribbon-font-xs);
+  @apply text-muted-foreground;
+}
+
+/* Mono text styling */
+.ribbon-mono-text {
+  font-size: var(--ribbon-font-xs);
+  @apply font-mono text-muted-foreground;
+}
+
+/* Dropdown and select content styling */
+.ribbon-dropdown-item {
+  font-size: var(--ribbon-font-sm);
+  @apply flex items-center gap-2;
+}
+
+/* Dialog and popup font sizes */
+.ribbon-dialog-title {
+  font-size: var(--ribbon-font-lg);
+  @apply font-semibold;
+}
+
+.ribbon-dialog-description {
+  font-size: var(--ribbon-font-base);
+  @apply text-muted-foreground;
+}
+
+.ribbon-dialog-label {
+  font-size: var(--ribbon-font-base);
+  @apply font-medium;
+}
+
+/* Popover content font sizes */
+.ribbon-popover-title {
+  font-size: var(--ribbon-font-md);
+  @apply font-semibold;
+}
+
+.ribbon-popover-content {
+  font-size: var(--ribbon-font-base);
+}
+
+/* Ensure all select items have consistent font size */
+.floating-ribbon [role="option"] {
+  font-size: var(--ribbon-font-sm) !important;
+}
+
+/* Ensure all dropdown menu items have consistent font size */
+.floating-ribbon [role="menuitem"] {
+  font-size: var(--ribbon-font-sm) !important;
+}
+
+/* Button text consistency */
+.floating-ribbon button {
+  font-size: var(--ribbon-font-sm) !important;
+  padding: 0 8px !important;
+  min-height: var(--ribbon-button-height) !important;
+}
+
+/* Input placeholders */
+.floating-ribbon input::placeholder,
+.floating-ribbon textarea::placeholder {
+  font-size: inherit;
+  @apply text-muted-foreground/60;
+}
+
+/* Ensure consistent spacing in flex containers */
+.floating-ribbon .flex {
+  gap: var(--ribbon-spacing-sm);
+}
+
+/* Consistent padding for sections */
+.floating-ribbon > div > div {
+  padding: var(--ribbon-spacing-sm);
+}
+
+/* Remove extra margins */
+.floating-ribbon * {
+  margin: 0;
+}
+
+/* Specific margin for spaced elements */
+.floating-ribbon .space-y-1 > * + * {
+  margin-top: 4px !important;
+}
+
+.floating-ribbon .space-y-2 > * + * {
+  margin-top: 8px !important;
 }
 
 /* Hover and focus improvements */

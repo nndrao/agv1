@@ -556,22 +556,22 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
             className="flex"
           >
             <ToggleGroupItem value="numbers" className="ribbon-toggle-group-item h-7 px-2.5 text-xs">
-              <Hash className="h-3 w-3" />
+              <Hash className="ribbon-icon-xs" />
             </ToggleGroupItem>
             <ToggleGroupItem value="currency" className="ribbon-toggle-group-item h-7 px-2.5 text-xs">
-              <DollarSign className="h-3 w-3" />
+              <DollarSign className="ribbon-icon-xs" />
             </ToggleGroupItem>
             <ToggleGroupItem value="percent" className="ribbon-toggle-group-item h-7 px-2.5 text-xs">
-              <Percent className="h-3 w-3" />
+              <Percent className="ribbon-icon-xs" />
             </ToggleGroupItem>
             <ToggleGroupItem value="datetime" className="ribbon-toggle-group-item h-7 px-2.5 text-xs">
-              <Calendar className="h-3 w-3" />
+              <Calendar className="ribbon-icon-xs" />
             </ToggleGroupItem>
             <ToggleGroupItem value="text" className="ribbon-toggle-group-item h-7 px-2.5 text-xs">
-              <Type className="h-3 w-3" />
+              <Type className="ribbon-icon-xs" />
             </ToggleGroupItem>
             <ToggleGroupItem value="custom" className="ribbon-toggle-group-item h-7 px-2.5 text-xs">
-              <Code2 className="h-3 w-3" />
+              <Code2 className="ribbon-icon-xs" />
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
@@ -649,7 +649,7 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
                     className="h-7 w-7 p-0 self-start"
                     title="Format help"
                   >
-                    <HelpCircle className="h-4 w-4" />
+                    <HelpCircle className="ribbon-icon" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[600px] p-0" side="bottom" align="end">
@@ -861,7 +861,7 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
             >
               <div className="flex flex-col items-center justify-center -space-y-1">
                 <span className="text-[9px] font-mono font-bold leading-none">.0</span>
-                <ArrowLeft className="h-3 w-3" />
+                <ArrowLeft className="ribbon-icon-xs" />
               </div>
             </Button>
             <div className="h-7 w-6 border-y border-border/80 flex items-center justify-center">
@@ -877,7 +877,7 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
             >
               <div className="flex flex-col items-center justify-center -space-y-1">
                 <span className="text-[9px] font-mono font-bold leading-none">.00</span>
-                <ArrowRight className="h-3 w-3" />
+                <ArrowRight className="ribbon-icon-xs" />
               </div>
             </Button>
             </div>
@@ -944,7 +944,7 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
             onClick={() => setShowConditionalDialog(true)}
             title="Conditional formatting"
           >
-            <Sparkles className="h-3 w-3" />
+            <Sparkles className="ribbon-icon-xs" />
           </Button>
           <Button 
             variant="ghost" 
@@ -978,7 +978,7 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
             }}
             title="Clear format"
           >
-            <X className="h-3 w-3" />
+            <X className="ribbon-icon-xs" />
           </Button>
         </div>
       </div>
@@ -1031,14 +1031,14 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
               }
             }}
           >
-            <Check className="h-3 w-3" />
+            <Check className="ribbon-icon-xs" />
           </Button>
         </div>
       </div>
       
       {/* Compact preview section - all in one line */}
       <div className="ribbon-preview-box flex items-center gap-2">
-        <span className="ribbon-preview-label">Test:</span>
+        <span className="ribbon-preview-label">TEST</span>
         <Input 
           placeholder={formatCategory === 'text' ? 'Text' : formatCategory === 'datetime' ? '2023-12-31' : '1234.56'}
           className="ribbon-input w-20"
@@ -1046,7 +1046,7 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
           onChange={(e) => setPreviewValue(e.target.value)}
         />
         <Separator orientation="vertical" className="ribbon-separator h-4" />
-        <span className="ribbon-preview-label">Result:</span>
+        <span className="ribbon-preview-label">RESULT</span>
         <div 
           className="ribbon-preview-content font-mono min-w-[80px]"
           style={(() => {
@@ -1065,7 +1065,7 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
           {getPreviewValue()}
         </div>
         <Separator orientation="vertical" className="ribbon-separator h-4" />
-        <span className="text-[10px] text-muted-foreground">Quick:</span>
+        <span className="ribbon-preview-label">QUICK</span>
         {formatCategory === 'numbers' && (
           <>
             <button 

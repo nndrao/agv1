@@ -50,10 +50,10 @@ export const GeneralRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
       <div className="grid grid-cols-12 gap-3">
         {/* Row 1: Identity and Type */}
         <div className="col-span-5 flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Header Name</Label>
+          <Label className="ribbon-section-header">HEADER NAME</Label>
           <Input 
             placeholder={selectedColumns.size > 1 ? "~Mixed~" : "Column Name"} 
-            className="h-7 text-xs"
+            className="ribbon-input"
             disabled={selectedColumns.size > 1}
             value={headerNameValue.isMixed ? "" : (headerNameValue.value as string || "")}
             onChange={(e) => updateBulkProperty('headerName', e.target.value || undefined)}
@@ -61,12 +61,12 @@ export const GeneralRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
         </div>
         
         <div className="col-span-3 flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Type</Label>
+          <Label className="ribbon-section-header">TYPE</Label>
           <Select 
             value={typeValue.isMixed ? "" : (typeValue.value as string || "text")}
             onValueChange={(value) => updateBulkProperty('type', value || undefined)}
           >
-            <SelectTrigger className="h-7 text-xs">
+            <SelectTrigger className="ribbon-select-trigger">
               <SelectValue placeholder={typeValue.isMixed ? "Mixed" : "Text"} />
             </SelectTrigger>
             <SelectContent>
@@ -84,45 +84,41 @@ export const GeneralRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <Switch 
-              id="initially-hidden" 
-              className="h-4 w-7" 
+              id="initially-hidden"
               checked={!getMixedValueLocal('hide').isMixed && getMixedValueLocal('hide').value === true}
               onCheckedChange={(checked) => updateBulkProperty('hide', checked)}
             />
-            <Label htmlFor="initially-hidden" className="text-xs cursor-pointer">
+            <Label htmlFor="initially-hidden" className="cursor-pointer">
               Initially Hidden
             </Label>
           </div>
           <div className="flex items-center gap-1.5">
             <Switch 
-              id="floating-filter" 
-              className="h-4 w-7" 
+              id="floating-filter"
               checked={!getMixedValueLocal('floatingFilter').isMixed && getMixedValueLocal('floatingFilter').value === true}
               onCheckedChange={(checked) => updateBulkProperty('floatingFilter', checked)}
             />
-            <Label htmlFor="floating-filter" className="text-xs cursor-pointer">
+            <Label htmlFor="floating-filter" className="cursor-pointer">
               Floating Filter
             </Label>
           </div>
           <div className="flex items-center gap-1.5">
             <Switch 
-              id="enable-filter" 
-              className="h-4 w-7" 
+              id="enable-filter"
               checked={!getMixedValueLocal('filter').isMixed && getMixedValueLocal('filter').value !== undefined}
               onCheckedChange={(checked) => updateBulkProperty('filter', checked ? 'agTextColumnFilter' : undefined)}
             />
-            <Label htmlFor="enable-filter" className="text-xs cursor-pointer">
+            <Label htmlFor="enable-filter" className="cursor-pointer">
               Enable Filter
             </Label>
           </div>
           <div className="flex items-center gap-1.5">
             <Switch 
-              id="editable" 
-              className="h-4 w-7" 
+              id="editable"
               checked={!getMixedValueLocal('editable').isMixed && getMixedValueLocal('editable').value === true}
               onCheckedChange={(checked) => updateBulkProperty('editable', checked)}
             />
-            <Label htmlFor="editable" className="text-xs cursor-pointer">
+            <Label htmlFor="editable" className="cursor-pointer">
               Editable
             </Label>
           </div>
@@ -130,8 +126,8 @@ export const GeneralRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
         
         <Separator orientation="vertical" className="h-4" />
         
-        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-          <Settings className="h-3 w-3 mr-1" />
+        <Button variant="ghost" size="sm" className="ribbon-action-ghost">
+          <Settings className="ribbon-icon-xs mr-1" />
           Advanced
         </Button>
       </div>

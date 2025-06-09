@@ -724,7 +724,7 @@ export const RibbonHeader: React.FC<RibbonHeaderProps> = ({
   return (
     <TooltipProvider>
       <div 
-        className="flex items-center gap-3 px-3 py-2 h-full bg-muted/20 backdrop-blur-sm border-b border-border/50 shadow-sm"
+        className="flex items-center px-3 py-2 h-full bg-muted/20 backdrop-blur-sm border-b border-border/50 shadow-sm"
       >
         {/* Left: Drag handle and title */}
         <div onMouseDown={onDragStart} className="flex items-center gap-2 cursor-move group">
@@ -732,8 +732,11 @@ export const RibbonHeader: React.FC<RibbonHeaderProps> = ({
           <span className="text-xs text-foreground font-semibold tracking-wide whitespace-nowrap">Column Customization</span>
         </div>
 
+        {/* Spacer to create exact 100px gap */}
+        <div className="w-[100px]"></div>
+
         {/* Middle: Column selector and template controls */}
-        <div className="flex items-center gap-2 flex-1 ml-4 min-w-0">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <Label className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">Columns:</Label>
             <ColumnSelectorDropdown
