@@ -151,11 +151,11 @@ export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
         <Button
           variant="outline"
           size="sm"
-          className="ribbon-action-secondary"
+          className="h-6 px-2 text-[11px] border border-border/60 bg-background/80 hover:bg-muted/50 transition-all duration-200"
           onClick={() => setShowSaveDialog(true)}
         >
           <Save className="h-3 w-3" />
-          <span className="hidden sm:inline ml-1">Save as Template</span>
+          <span className="hidden md:inline ml-1 font-medium">As Template</span>
         </Button>
       )}
 
@@ -165,10 +165,10 @@ export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
           <Button
             variant="outline"
             size="sm"
-            className="ribbon-action-secondary"
+            className="h-6 px-2 text-[11px] border border-border/60 bg-background/80 hover:bg-muted/50 transition-all duration-200"
           >
             <Layers className="h-3 w-3" />
-            <span className="hidden sm:inline ml-1">
+            <span className="hidden md:inline ml-1 font-medium">
               {selectedTemplates.size > 0 ? `Templates (${selectedTemplates.size})` : 'Templates'}
             </span>
           </Button>
@@ -209,11 +209,6 @@ export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
                         <span className="text-xs text-muted-foreground">
                           {template.includedProperties.length} properties
                         </span>
-                        {template.lastUsed && (
-                          <span className="text-xs text-muted-foreground">
-                            • Used {new Date(template.lastUsed).toLocaleDateString()}
-                          </span>
-                        )}
                       </div>
                     </div>
                     <Button
@@ -228,7 +223,7 @@ export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
                       }}
                       title="Delete template"
                     >
-                      <Trash2 className="h-3 w-3 text-destructive" />
+                      <Trash2 className="h-3 w-3 text-orange-600 dark:text-orange-400" />
                     </Button>
                   </div>
                 ))

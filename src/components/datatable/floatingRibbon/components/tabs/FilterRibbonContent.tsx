@@ -239,16 +239,18 @@ export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns 
         </div>
         
         <div className="flex items-center gap-1">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-7 px-2 text-xs"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-          >
-            <Settings className="h-3 w-3 mr-1" />
-            Advanced
-            <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-          </Button>
+          {getCurrentFilterType() !== 'agMultiColumnFilter' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-7 px-2 text-xs"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+            >
+              <Settings className="h-3 w-3 mr-1" />
+              Advanced
+              <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+            </Button>
+          )}
           <Button 
             variant="outline" 
             size="sm" 

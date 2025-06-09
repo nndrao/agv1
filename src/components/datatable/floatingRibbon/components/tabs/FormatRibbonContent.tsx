@@ -949,7 +949,7 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-7 px-2 text-xs text-destructive"
+                          className="h-7 px-2 text-xs text-orange-600 dark:text-orange-400"
             onClick={() => {
               setCurrentFormat('');
               setSelectedBaseFormat('');

@@ -266,7 +266,7 @@ export const BulkTemplateApplication: React.FC<BulkTemplateApplicationProps> = (
                                 handleDeleteTemplate(template.id);
                               }}
                             >
-                              <Trash2 className="h-3 w-3 text-destructive" />
+                              <Trash2 className="h-3 w-3 text-orange-600 dark:text-orange-400" />
                             </Button>
                           </div>
                         );
@@ -316,7 +316,7 @@ export const BulkTemplateApplication: React.FC<BulkTemplateApplicationProps> = (
                                 handleDeleteTemplate(template.id);
                               }}
                             >
-                              <Trash2 className="h-3 w-3 text-destructive" />
+                              <Trash2 className="h-3 w-3 text-orange-600 dark:text-orange-400" />
                             </Button>
                           </div>
                         );

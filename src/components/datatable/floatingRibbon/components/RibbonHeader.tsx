@@ -304,9 +304,9 @@ const ColumnSelectorDropdown: React.FC<{
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="ribbon-action-secondary justify-between min-w-[120px] max-w-[200px]"
+          className="h-6 px-2 text-[11px] justify-between min-w-[100px] max-w-[160px] border border-border/60 bg-background/80 hover:bg-muted/50 transition-all duration-200"
         >
-          <span className="truncate">{getDisplayText()}</span>
+          <span className="truncate font-medium">{getDisplayText()}</span>
           <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -432,7 +432,7 @@ const ColumnSelectorDropdown: React.FC<{
             {/* Modern Selection Controls */}
             <div className="flex items-center gap-2 mb-3">
               <Checkbox
-                checked={isAllSelected ? true : isIndeterminate ? "indeterminate" : false}
+                checked={isAllSelected ? true : (isIndeterminate ? "indeterminate" : false)}
                 onCheckedChange={(checked) => {
                   if (checked === true || checked === "indeterminate") {
                     selectAllFilteredColumns();
@@ -724,65 +724,18 @@ export const RibbonHeader: React.FC<RibbonHeaderProps> = ({
   return (
     <TooltipProvider>
       <div 
-        className="flex flex-col gap-2 px-3 py-2 h-full"
+        className="flex items-center gap-3 px-3 py-2 h-full bg-muted/20 backdrop-blur-sm border-b border-border/50 shadow-sm"
       >
-        {/* Top row: Drag handle and action buttons */}
-        <div className="flex items-center gap-2">
-          <div onMouseDown={onDragStart} className="flex items-center gap-2 flex-1 cursor-move">
-            <GripHorizontal className="ribbon-drag-handle h-3.5 w-3.5" />
-            <span className="text-xs text-muted-foreground font-medium">Column Customization</span>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center ribbon-compact-spacing">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="ribbon-action-ghost ribbon-focusable h-8"
-                  onClick={onReset}
-                  disabled={!hasChanges}
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline ml-1.5">Reset</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="ribbon-tooltip">Reset all changes</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  className="ribbon-action-primary ribbon-focusable h-8"
-                  onClick={onApply}
-                  disabled={!hasChanges}
-                >
-                  <Save className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline ml-1.5">Apply</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="ribbon-tooltip">Apply changes to grid</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="ribbon-action-icon ribbon-focusable h-8 w-8"
-                  onClick={onClose}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="ribbon-tooltip">Close ribbon</TooltipContent>
-            </Tooltip>
-          </div>
+        {/* Left: Drag handle and title */}
+        <div onMouseDown={onDragStart} className="flex items-center gap-2 cursor-move group">
+          <GripHorizontal className="ribbon-drag-handle h-3.5 w-3.5 group-hover:text-muted-foreground transition-colors" />
+          <span className="text-xs text-foreground font-semibold tracking-wide whitespace-nowrap">Column Customization</span>
         </div>
 
-        {/* Bottom row: Column selector and template controls */}
-        <div className="flex items-center gap-4 mt-1">
-          <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground">Columns:</Label>
+        {/* Middle: Column selector and template controls */}
+        <div className="flex items-center gap-2 flex-1 ml-4 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <Label className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">Columns:</Label>
             <ColumnSelectorDropdown
               selectedColumns={selectedColumns}
               columnDefinitions={columnDefinitions}
@@ -790,13 +743,59 @@ export const RibbonHeader: React.FC<RibbonHeaderProps> = ({
             />
           </div>
 
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-4 opacity-50" />
 
           {/* Simplified Template Controls */}
           <SimpleTemplateControls 
             selectedColumns={selectedColumns}
             columnDefinitions={columnDefinitions}
           />
+        </div>
+
+        {/* Right: Action Buttons */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className="h-7 px-2.5 text-xs hover:bg-muted/50 transition-all duration-200"
+                onClick={onReset}
+                disabled={!hasChanges}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline ml-1.5 font-medium">Reset</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="ribbon-tooltip">Reset all changes</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="default"
+                className="h-7 px-2.5 text-xs font-medium shadow-sm hover:shadow transition-all duration-200"
+                onClick={onApply}
+                disabled={!hasChanges}
+              >
+                <Save className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline ml-1.5">Apply</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="ribbon-tooltip">Apply changes to grid</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-all duration-200 ml-2"
+                onClick={onClose}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="ribbon-tooltip">Close ribbon</TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </TooltipProvider>
