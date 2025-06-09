@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useColumnCustomizationStore } from '../../../dialogs/columnSettings/store/columnCustomization.store';
 import { createExcelFormatter, createCellStyleFunction } from '../../../utils/formatters';
+import { parseColorValue } from '../../../utils/styleUtils';
 import type { FormatTabProps } from '../../types';
 import '../../ribbon-styles.css';
 
@@ -63,16 +64,16 @@ const baseFormatTemplates: Record<string, FormatTemplate[]> = {
     { key: 'datetime', label: 'Full', format: 'MM/DD/YY h:mm AM/PM', example: '12/31/23 3:45 PM' },
   ],
   text: [
-    { key: 'upper', label: 'UPPER', format: '[Upper]', example: 'HELLO WORLD' },
-    { key: 'lower', label: 'lower', format: '[Lower]', example: 'hello world' },
-    { key: 'title', label: 'Title', format: '[Title]', example: 'Hello World' },
-    { key: 'sentence', label: 'Sentence', format: '[Sentence]', example: 'Hello world' },
-    { key: 'camel', label: 'camelCase', format: '[CamelCase]', example: 'helloWorld' },
-    { key: 'pascal', label: 'PascalCase', format: '[PascalCase]', example: 'HelloWorld' },
-    { key: 'snake', label: 'snake_case', format: '[SnakeCase]', example: 'hello_world' },
-    { key: 'kebab', label: 'kebab-case', format: '[KebabCase]', example: 'hello-world' },
-    { key: 'trim', label: 'Trim', format: '[Trim]', example: 'No spaces' },
-    { key: 'truncate', label: 'Truncate...', format: '[Truncate:10]', example: 'Hello Wor...' },
+    { key: 'upper', label: 'UPPER', format: '[Upper]@', example: 'HELLO WORLD' },
+    { key: 'lower', label: 'lower', format: '[Lower]@', example: 'hello world' },
+    { key: 'title', label: 'Title', format: '[Title]@', example: 'Hello World' },
+    { key: 'sentence', label: 'Sentence', format: '[Sentence]@', example: 'Hello world' },
+    { key: 'camel', label: 'camelCase', format: '[CamelCase]@', example: 'helloWorld' },
+    { key: 'pascal', label: 'PascalCase', format: '[PascalCase]@', example: 'HelloWorld' },
+    { key: 'snake', label: 'snake_case', format: '[SnakeCase]@', example: 'hello_world' },
+    { key: 'kebab', label: 'kebab-case', format: '[KebabCase]@', example: 'hello-world' },
+    { key: 'trim', label: 'Trim', format: '[Trim]@', example: 'No spaces' },
+    { key: 'truncate', label: 'Truncate...', format: '[Truncate:10]@', example: 'Hello Wor...' },
   ],
   custom: [] // Custom formats will be populated dynamically
 };
@@ -162,6 +163,15 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
   const [selectedCurrency, setSelectedCurrency] = useState<string>('$');
   const [previewValue, setPreviewValue] = useState<string>('1234567.89');
   const [selectedCustomFormat, setSelectedCustomFormat] = useState<string>('');
+  
+  // Get theme-aware colors for positive/negative values
+  const getThemeColors = () => {
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    return {
+      positive: parseColorValue('green', isDarkMode),
+      negative: parseColorValue('red', isDarkMode)
+    };
+  };
 
   // Helper to get mixed values for multi-column editing
   const getMixedValueLocal = (property: string) => {
@@ -1026,115 +1036,116 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
         </div>
       </div>
       
-      {/* Preview section with input */}
-      <div className="flex flex-col gap-2 p-3 bg-muted/20 rounded-md">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Test Value:</span>
-          <Input 
-            placeholder={formatCategory === 'text' ? 'Enter text' : formatCategory === 'datetime' ? '2023-12-31' : '1234567.89'}
-            className="h-7 text-xs flex-1"
-            value={previewValue}
-            onChange={(e) => setPreviewValue(e.target.value)}
-          />
+      {/* Compact preview section - all in one line */}
+      <div className="ribbon-preview-box flex items-center gap-2">
+        <span className="ribbon-preview-label">Test:</span>
+        <Input 
+          placeholder={formatCategory === 'text' ? 'Text' : formatCategory === 'datetime' ? '2023-12-31' : '1234.56'}
+          className="ribbon-input w-20"
+          value={previewValue}
+          onChange={(e) => setPreviewValue(e.target.value)}
+        />
+        <Separator orientation="vertical" className="ribbon-separator h-4" />
+        <span className="ribbon-preview-label">Result:</span>
+        <div 
+          className="ribbon-preview-content font-mono min-w-[80px]"
+          style={(() => {
+            if (colorized && !isNaN(parseFloat(previewValue))) {
+              const colors = getThemeColors();
+              const numValue = parseFloat(previewValue);
+              if (numValue > 0) {
+                return { color: colors.positive };
+              } else if (numValue < 0) {
+                return { color: colors.negative };
+              }
+            }
+            return undefined;
+          })()}
+        >
+          {getPreviewValue()}
         </div>
-        
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Preview:</span>
-          <div className={`text-sm font-mono font-medium ${colorized && !isNaN(parseFloat(previewValue)) && parseFloat(previewValue) > 0 ? 'text-green-600' : colorized && !isNaN(parseFloat(previewValue)) && parseFloat(previewValue) < 0 ? 'text-red-600' : ''}`}>
-            {getPreviewValue()}
-          </div>
-        </div>
-        
-        {/* Quick examples */}
-        <div className="flex flex-wrap gap-2 mt-1">
-          <span className="text-xs text-muted-foreground">Examples:</span>
-          {formatCategory === 'numbers' && (
-            <>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue('1234567.89')}
-              >
-                1234567.89
-              </button>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue('-5000')}
-              >
-                -5000
-              </button>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue('0.12345')}
-              >
-                0.12345
-              </button>
-            </>
-          )}
-          {formatCategory === 'currency' && (
-            <>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue('1234.56')}
-              >
-                1234.56
-              </button>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue('-999.99')}
-              >
-                -999.99
-              </button>
-            </>
-          )}
-          {formatCategory === 'percent' && (
-            <>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue('0.1234')}
-              >
-                0.1234
-              </button>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue('0.05')}
-              >
-                0.05
-              </button>
-            </>
-          )}
-          {formatCategory === 'datetime' && (
-            <>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue('2023-12-31')}
-              >
-                2023-12-31
-              </button>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue(new Date().toISOString())}
-              >
-                Now
-              </button>
-            </>
-          )}
-          {formatCategory === 'text' && (
-            <>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue('hello world')}
-              >
-                hello world
-              </button>
-              <button 
-                className="text-xs text-primary hover:underline"
-                onClick={() => setPreviewValue('Product Name Example')}
-              >
-                Product Name
-              </button>
-            </>
-          )}
-        </div>
+        <Separator orientation="vertical" className="ribbon-separator h-4" />
+        <span className="text-[10px] text-muted-foreground">Quick:</span>
+        {formatCategory === 'numbers' && (
+          <>
+            <button 
+              className="text-[10px] text-primary hover:underline px-0.5"
+              onClick={() => setPreviewValue('1234567.89')}
+            >
+              1234567
+            </button>
+            <button 
+              className="text-[10px] text-primary hover:underline px-0.5"
+              onClick={() => setPreviewValue('-5000')}
+            >
+              -5000
+            </button>
+          </>
+        )}
+        {formatCategory === 'currency' && (
+          <>
+            <button 
+              className="text-[10px] text-primary hover:underline px-0.5"
+              onClick={() => setPreviewValue('1234.56')}
+            >
+              1234.56
+            </button>
+            <button 
+              className="text-[10px] text-primary hover:underline px-0.5"
+              onClick={() => setPreviewValue('-999.99')}
+            >
+              -999
+            </button>
+          </>
+        )}
+        {formatCategory === 'percent' && (
+          <>
+            <button 
+              className="text-[10px] text-primary hover:underline px-0.5"
+              onClick={() => setPreviewValue('0.1234')}
+            >
+              12.34%
+            </button>
+            <button 
+              className="text-[10px] text-primary hover:underline px-0.5"
+              onClick={() => setPreviewValue('0.05')}
+            >
+              5%
+            </button>
+          </>
+        )}
+        {formatCategory === 'datetime' && (
+          <>
+            <button 
+              className="text-[10px] text-primary hover:underline px-0.5"
+              onClick={() => setPreviewValue('2023-12-31')}
+            >
+              2023-12-31
+            </button>
+            <button 
+              className="text-[10px] text-primary hover:underline px-0.5"
+              onClick={() => setPreviewValue(new Date().toISOString())}
+            >
+              Now
+            </button>
+          </>
+        )}
+        {formatCategory === 'text' && (
+          <>
+            <button 
+              className="text-[10px] text-primary hover:underline px-0.5"
+              onClick={() => setPreviewValue('hello world')}
+            >
+              hello
+            </button>
+            <button 
+              className="text-[10px] text-primary hover:underline px-0.5"
+              onClick={() => setPreviewValue('Product Name Example')}
+            >
+              Product
+            </button>
+          </>
+        )}
       </div>
       
     </div>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { createExcelFormatter } from '../utils/formatters';
 
 export interface ColumnTemplate {
   id: string;
@@ -111,7 +112,30 @@ export const useColumnTemplateStore = create<ColumnTemplateStore>()(
         const appliedSettings: Record<string, any> = {};
         template.includedProperties.forEach(prop => {
           if (prop in template.settings) {
-            appliedSettings[prop] = template.settings[prop];
+            // Convert string formatter shortcuts to actual formatter functions
+            if (prop === 'valueFormatter' && typeof template.settings[prop] === 'string') {
+              const formatterShortcut = template.settings[prop];
+              let formatter;
+              
+              switch (formatterShortcut) {
+                case 'currency':
+                  formatter = createExcelFormatter('$#,##0.00');
+                  break;
+                case 'percentage':
+                  formatter = createExcelFormatter('0.00%');
+                  break;
+                case 'date':
+                  formatter = createExcelFormatter('MM/DD/YYYY');
+                  break;
+                default:
+                  // If it's an unknown string, just use it as is
+                  formatter = formatterShortcut;
+              }
+              
+              appliedSettings[prop] = formatter;
+            } else {
+              appliedSettings[prop] = template.settings[prop];
+            }
           }
         });
 
@@ -191,14 +215,14 @@ export const useColumnTemplateStore = create<ColumnTemplateStore>()(
   )
 );
 
-// Default templates
+// Default templates - use string shortcuts that will be converted to formatters
 export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updatedAt'>[] = [
   {
     name: 'Currency Format',
     description: 'Format numbers as currency with right alignment',
     settings: {
       cellClass: 'ag-currency-cell text-right',
-      valueFormatter: 'currency',
+      valueFormatter: 'currency', // Will be converted to createExcelFormatter('$#,##0.00')
       filter: 'agNumberColumnFilter',
       width: 120
     } as Record<string, any>,
@@ -209,7 +233,7 @@ export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updat
     description: 'Format numbers as percentages',
     settings: {
       cellClass: 'ag-percentage-cell text-right',
-      valueFormatter: 'percentage',
+      valueFormatter: 'percentage', // Will be converted to createExcelFormatter('0.00%')
       filter: 'agNumberColumnFilter',
       width: 100
     } as Record<string, any>,
@@ -220,7 +244,7 @@ export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updat
     description: 'Standard date formatting',
     settings: {
       cellClass: 'ag-date-cell',
-      valueFormatter: 'date',
+      valueFormatter: 'date', // Will be converted to createExcelFormatter('MM/DD/YYYY')
       filter: 'agDateColumnFilter',
       width: 120
     } as Record<string, any>,

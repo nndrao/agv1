@@ -34,10 +34,10 @@ import {
 import { cn } from '@/lib/utils';
 import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
 import { CustomizationBadges, CustomizationType } from '../../dialogs/columnSettings/components/CustomizationBadges';
-import { TemplateSelector } from './TemplateSelector';
+import { SimpleTemplateControls } from './SimpleTemplateControls';
+import { parseColorValue } from '../../utils/styleUtils';
 import type { RibbonHeaderProps } from '../types';
 import { ColDef } from 'ag-grid-community';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 // Helper function to get icon component based on column type (replicated from original)
 const getColumnIcon = (type: string) => {
@@ -80,9 +80,6 @@ const ColumnSelectorDropdown: React.FC<{
     setSearchTerm,
     setCellDataTypeFilter,
     setVisibilityFilter,
-    toggleColumnSelection,
-    selectColumns,
-    deselectColumns,
     toggleTemplateColumn,
     removeColumnCustomization,
     removeAppliedTemplate
@@ -93,12 +90,7 @@ const ColumnSelectorDropdown: React.FC<{
   const [maxHeight, setMaxHeight] = useState('650px');
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Reset visibility filter when dropdown opens
-  useEffect(() => {
-    if (open) {
-      setVisibilityFilter('all');
-    }
-  }, [open, setVisibilityFilter]);
+  // Don't reset filters when dropdown opens - maintain user's selections
 
   // Calculate max height based on viewport
   useEffect(() => {
@@ -212,39 +204,59 @@ const ColumnSelectorDropdown: React.FC<{
 
   // Handle column toggle with proper synchronization
   const handleToggleColumn = useCallback((columnId: string) => {
-    toggleColumnSelection(columnId);
+    console.log('[ColumnSelector] Toggle column:', {
+      columnId,
+      currentSelection: Array.from(selectedColumns),
+      isCurrentlySelected: selectedColumns.has(columnId),
+      currentSearchTerm: searchTerm,
+      currentTypeFilter: cellDataTypeFilter,
+      currentVisibilityFilter: visibilityFilter
+    });
+    
+    // Create new selection set and update parent
     const newSelection = new Set(selectedColumns);
     if (newSelection.has(columnId)) {
       newSelection.delete(columnId);
     } else {
       newSelection.add(columnId);
     }
+    
+    console.log('[ColumnSelector] New selection:', Array.from(newSelection));
+    
+    // Update parent which will update the store
     onSelectionChange(newSelection);
-  }, [selectedColumns, toggleColumnSelection, onSelectionChange]);
+  }, [selectedColumns, onSelectionChange, searchTerm, cellDataTypeFilter, visibilityFilter]);
 
   // Bulk selection handlers
   const selectAllFilteredColumns = useCallback(() => {
     const columnIds = filteredColumns
       .map(col => col.field || col.colId || '')
-      .filter(id => id && !selectedColumns.has(id));
+      .filter(id => id);
+    
     if (columnIds.length > 0) {
-      selectColumns(columnIds);
-      const newSelection = new Set([...selectedColumns, ...columnIds]);
+      // Create new set with all filtered columns
+      const newSelection = new Set(selectedColumns);
+      columnIds.forEach(id => newSelection.add(id));
+      
+      // Update parent which will update the store
       onSelectionChange(newSelection);
     }
-  }, [filteredColumns, selectedColumns, selectColumns, onSelectionChange]);
+  }, [filteredColumns, selectedColumns, onSelectionChange]);
 
   const deselectAllFilteredColumns = useCallback(() => {
     const columnIds = filteredColumns
       .map(col => col.field || col.colId || '')
-      .filter(id => id && selectedColumns.has(id));
+      .filter(id => id);
+    
     if (columnIds.length > 0) {
-      deselectColumns(columnIds);
+      // Create new set without filtered columns
       const newSelection = new Set(selectedColumns);
       columnIds.forEach(id => newSelection.delete(id));
+      
+      // Update parent which will update the store
       onSelectionChange(newSelection);
     }
-  }, [filteredColumns, selectedColumns, deselectColumns, onSelectionChange]);
+  }, [filteredColumns, selectedColumns, onSelectionChange]);
 
   // Selection state calculations (replicated logic)
   const isAllSelected = useMemo(() => 
@@ -266,7 +278,7 @@ const ColumnSelectorDropdown: React.FC<{
     [filteredColumns, selectedColumns]
   );
 
-  // Prepare items for virtual scrolling
+  // Prepare items for rendering
   const flatItems = useMemo(() => {
     return filteredColumns.map(column => ({ 
       type: 'column' as const, 
@@ -274,15 +286,6 @@ const ColumnSelectorDropdown: React.FC<{
       id: column.field || column.colId || ''
     }));
   }, [filteredColumns]);
-
-  // Virtual scrolling setup
-  const virtualizer = useVirtualizer({
-    count: flatItems.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 40, // Increased height per item
-    overscan: 5,
-    enabled: open && flatItems.length > 0
-  });
 
   // Column display name for selector button
   const getDisplayText = () => {
@@ -300,10 +303,10 @@ const ColumnSelectorDropdown: React.FC<{
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="h-8 px-3 justify-between text-xs min-w-[120px] max-w-[280px] sm:min-w-[140px] sm:max-w-[200px]"
+          className="ribbon-action-secondary justify-between min-w-[120px] max-w-[200px]"
         >
           <span className="truncate">{getDisplayText()}</span>
-          <ChevronDown className="h-3 w-3 ml-2 opacity-50" />
+          <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent 
@@ -316,6 +319,13 @@ const ColumnSelectorDropdown: React.FC<{
         collisionPadding={20}
         collisionBoundary={undefined}
         sticky="always"
+        onInteractOutside={(e) => {
+          // Prevent closing when clicking inside the popover
+          const target = e.target as HTMLElement;
+          if (popoverRef.current?.contains(target)) {
+            e.preventDefault();
+          }
+        }}
       >
         <div className="flex flex-col w-full overflow-hidden" style={{ height: maxHeight, maxHeight }}>
           {/* Modern Header */}
@@ -394,13 +404,23 @@ const ColumnSelectorDropdown: React.FC<{
                   </SelectItem>
                   <SelectItem value="visible" className="text-sm">
                     <div className="flex items-center gap-2">
-                      <Eye className="h-4 w-4 text-green-600" />
+                      <Eye 
+                        className="h-4 w-4" 
+                        style={{ 
+                          color: parseColorValue('green', document.documentElement.classList.contains('dark'))
+                        }} 
+                      />
                       <span>Visible Columns</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="hidden" className="text-sm">
                     <div className="flex items-center gap-2">
-                      <EyeOff className="h-4 w-4 text-red-600" />
+                      <EyeOff 
+                        className="h-4 w-4" 
+                        style={{ 
+                          color: parseColorValue('red', document.documentElement.classList.contains('dark'))
+                        }} 
+                      />
                       <span>Hidden Columns</span>
                     </div>
                   </SelectItem>
@@ -562,7 +582,11 @@ const ColumnItem: React.FC<{
     return customs;
   }, [column, columnId, pendingChanges]);
 
-  const handleToggle = useCallback(() => {
+  const handleToggle = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     onToggle(columnId);
   }, [columnId, onToggle]);
 
@@ -580,15 +604,25 @@ const ColumnItem: React.FC<{
       className={`relative flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 transition-colors group cursor-pointer ${
         selected ? 'bg-muted/30' : ''
       }`}
-      onClick={handleToggle}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleToggle();
+      }}
     >
       {selected && (
         <div className="absolute left-0 h-full w-0.5 bg-primary rounded-r" />
       )}
       <Checkbox
         checked={selected}
-        onCheckedChange={handleToggle}
-        onClick={(e) => e.stopPropagation()}
+        onCheckedChange={(checked) => {
+          // Handle the change directly when checkbox is clicked
+          handleToggle();
+        }}
+        onClick={(e) => {
+          // Stop propagation to prevent the parent div's onClick from firing
+          e.stopPropagation();
+        }}
         className="shrink-0 h-4 w-4"
       />
       <IconComponent className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -672,16 +706,6 @@ const ColumnItem: React.FC<{
       )}
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Custom comparison to prevent unnecessary re-renders
-  return (
-    prevProps.selected === nextProps.selected &&
-    prevProps.isTemplate === nextProps.isTemplate &&
-    prevProps.isHidden === nextProps.isHidden &&
-    prevProps.columnId === nextProps.columnId &&
-    prevProps.column === nextProps.column && // Compare entire column object for customization changes
-    prevProps.appliedTemplate?.templateId === nextProps.appliedTemplate?.templateId // Check template changes
-  );
 });
 
 ColumnItem.displayName = 'ColumnItem';
@@ -696,14 +720,13 @@ export const RibbonHeader: React.FC<RibbonHeaderProps> = ({
   onClose,
   onDragStart
 }) => {
-
   return (
     <TooltipProvider>
       <div 
-        className="flex items-center gap-3 px-4 py-2 bg-background/95 backdrop-blur-sm border-b cursor-grab active:cursor-grabbing"
+        className="flex items-center gap-2 px-3 h-full"
         onMouseDown={onDragStart}
       >
-        <GripHorizontal className="h-4 w-4 text-muted-foreground" />
+        <GripHorizontal className="ribbon-drag-handle h-3.5 w-3.5" />
         
         <ColumnSelectorDropdown
           selectedColumns={selectedColumns}
@@ -711,59 +734,58 @@ export const RibbonHeader: React.FC<RibbonHeaderProps> = ({
           onSelectionChange={onSelectionChange}
         />
 
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="ribbon-separator" />
 
-        {/* Template System */}
-        <TemplateSelector />
+        {/* Simplified Template Controls */}
+        <SimpleTemplateControls 
+          selectedColumns={selectedColumns}
+          columnDefinitions={columnDefinitions}
+        />
 
         <div className="flex-1" />
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center ribbon-compact-spacing">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
-                className="h-7 px-2 gap-1"
+                className="ribbon-action-ghost ribbon-focusable"
                 onClick={onReset}
                 disabled={!hasChanges}
               >
                 <RotateCcw className="h-3 w-3" />
-                <span className="text-xs">Reset</span>
+                <span className="hidden sm:inline">Reset</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Reset all changes</TooltipContent>
+            <TooltipContent className="ribbon-tooltip">Reset all changes</TooltipContent>
           </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="default"
-                size="sm"
-                className="h-7 px-2 gap-1"
+                className="ribbon-action-primary ribbon-focusable"
                 onClick={onApply}
                 disabled={!hasChanges}
               >
                 <Save className="h-3 w-3" />
-                <span className="text-xs">Apply</span>
+                <span className="hidden sm:inline ml-1">Apply</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Apply changes to grid</TooltipContent>
+            <TooltipContent className="ribbon-tooltip">Apply changes to grid</TooltipContent>
           </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
+                className="ribbon-action-icon ribbon-focusable"
                 onClick={onClose}
               >
                 <X className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Close ribbon</TooltipContent>
+            <TooltipContent className="ribbon-tooltip">Close ribbon</TooltipContent>
           </Tooltip>
         </div>
       </div>

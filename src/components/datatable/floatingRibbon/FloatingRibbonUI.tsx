@@ -129,18 +129,22 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
     <Card 
       ref={dragRef}
       className={cn(
-        "fixed shadow-2xl bg-background/95 backdrop-blur-sm transition-shadow border border-border z-50",
-        isDragging && "shadow-xl opacity-95"
+        "floating-ribbon fixed z-50",
+        "rounded-lg overflow-hidden",
+        "shadow-xl border-2 border-border",
+        isDragging ? "ribbon-dragging" : ""
       )}
       style={{ 
-        width: '1000px', 
+        width: '900px', 
         maxWidth: '90vw',
         left: `${position.x}px`,
         top: `${position.y}px`,
+        borderRadius: 'var(--ribbon-border-radius)',
+        boxShadow: 'var(--ribbon-shadow)',
       }}
     >
       {/* Row 1: Header */}
-      <div data-header onMouseDown={handleMouseDown}>
+      <div className="ribbon-header" data-header onMouseDown={handleMouseDown}>
         <RibbonHeader
           selectedColumns={ribbonState.selectedColumns}
           columnDefinitions={ribbonState.columnDefinitions}
@@ -153,26 +157,30 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
         />
       </div>
       
-      {/* Row 2: Tab Strip with Preview */}
-      <RibbonTabs
-        activeTab={ribbonState.activeTab}
-        setActiveTab={ribbonState.setActiveTab}
-        selectedColumns={ribbonState.selectedColumns}
-      />
+      {/* Row 2: Tab Strip */}
+      <div className="ribbon-tabs">
+        <RibbonTabs
+          activeTab={ribbonState.activeTab}
+          setActiveTab={ribbonState.setActiveTab}
+          selectedColumns={ribbonState.selectedColumns}
+        />
+      </div>
       
       {/* Row 3: Dynamic Content */}
-      <RibbonContent
-        activeTab={ribbonState.activeTab}
-        selectedColumns={ribbonState.selectedColumns}
-        formatCategory={ribbonState.formatCategory}
-        setFormatCategory={ribbonState.setFormatCategory}
-        currentFormat={ribbonState.currentFormat}
-        setCurrentFormat={ribbonState.setCurrentFormat}
-        showConditionalDialog={ribbonState.showConditionalDialog}
-        setShowConditionalDialog={ribbonState.setShowConditionalDialog}
-        advancedFilterTab={ribbonState.advancedFilterTab}
-        setAdvancedFilterTab={ribbonState.setAdvancedFilterTab}
-      />
+      <div className="ribbon-content">
+        <RibbonContent
+          activeTab={ribbonState.activeTab}
+          selectedColumns={ribbonState.selectedColumns}
+          formatCategory={ribbonState.formatCategory}
+          setFormatCategory={ribbonState.setFormatCategory}
+          currentFormat={ribbonState.currentFormat}
+          setCurrentFormat={ribbonState.setCurrentFormat}
+          showConditionalDialog={ribbonState.showConditionalDialog}
+          setShowConditionalDialog={ribbonState.setShowConditionalDialog}
+          advancedFilterTab={ribbonState.advancedFilterTab}
+          setAdvancedFilterTab={ribbonState.setAdvancedFilterTab}
+        />
+      </div>
     </Card>
   );
 }; 

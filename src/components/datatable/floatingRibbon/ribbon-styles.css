@@ -1,141 +1,318 @@
-/* Enhanced Ribbon Toggle and Button Styles */
+/* Floating Ribbon - Compact & Modern Design System */
 
-/* Toggle Component Enhancements */
-.ribbon-toggle {
-  /* Base styles */
-  transition: all 150ms ease;
+/* Main ribbon container */
+.floating-ribbon {
+  --ribbon-border-radius: 10px;
+  --ribbon-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 6px 10px -6px rgba(0, 0, 0, 0.1);
+  --ribbon-header-height: 34px;
+  --ribbon-tab-height: 30px;
+  --ribbon-content-padding: 10px;
 }
 
-/* Toggle - Unselected State */
-.ribbon-toggle[data-state="off"] {
-  @apply bg-transparent hover:bg-muted/60 hover:text-foreground;
+/* Smooth transitions for all interactive elements */
+.floating-ribbon * {
+  transition-property: background-color, border-color, color, opacity, transform, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Toggle - Selected State */
-.ribbon-toggle[data-state="on"] {
-  @apply bg-primary text-primary-foreground shadow-sm;
-  @apply hover:bg-primary/90 hover:shadow-md;
+/* Header styling - Clean and minimal */
+.ribbon-header {
+  height: var(--ribbon-header-height);
+  @apply bg-background/60 backdrop-blur-sm border-b border-border/40;
 }
 
-/* Toggle Group Item Enhancements */
+/* Tab strip styling - Subtle background */
+.ribbon-tabs {
+  height: var(--ribbon-tab-height);
+  @apply bg-muted/20 backdrop-blur-sm border-b border-border/30;
+}
+
+/* Content area styling - Full opacity */
+.ribbon-content {
+  @apply bg-background;
+  padding: var(--ribbon-content-padding);
+  min-height: 120px;
+}
+
+/* Compact section headers */
+.ribbon-section-header {
+  @apply text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-1;
+}
+
+/* Visual grouping for related controls */
+.ribbon-group {
+  @apply p-2 bg-muted/10 border border-border/20 rounded-md;
+}
+
+/* Drag handle styling - Subtle but discoverable */
+.ribbon-drag-handle {
+  @apply cursor-grab text-muted-foreground/40 hover:text-muted-foreground/70;
+}
+
+.ribbon-dragging .ribbon-drag-handle {
+  @apply cursor-grabbing text-muted-foreground;
+}
+
+/* Compact Toggle Groups and Buttons */
+.ribbon-toggle,
 .ribbon-toggle-group-item {
-  transition: all 150ms ease;
+  @apply text-[11px] h-[26px] px-2;
 }
 
-/* Toggle Group Item - Unselected State */
+/* Toggle States - Clear visual hierarchy */
+.ribbon-toggle[data-state="off"],
 .ribbon-toggle-group-item[data-state="off"] {
-  @apply bg-transparent hover:bg-muted/60 hover:text-foreground;
+  @apply bg-transparent hover:bg-muted/50 text-muted-foreground hover:text-foreground;
 }
 
-/* Toggle Group Item - Selected State */
+.ribbon-toggle[data-state="on"],
 .ribbon-toggle-group-item[data-state="on"] {
   @apply bg-primary text-primary-foreground shadow-sm;
-  @apply hover:bg-primary/90 hover:shadow-md;
-  position: relative;
-}
-
-/* Add subtle gradient overlay for selected state */
-.ribbon-toggle-group-item[data-state="on"]::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
-  pointer-events: none;
-}
-
-/* Format Template Buttons */
-.format-template-button {
-  transition: all 150ms ease;
-}
-
-.format-template-button.selected {
-  @apply bg-primary text-primary-foreground shadow-sm;
-  @apply hover:bg-primary/90 hover:shadow-md;
-}
-
-.format-template-button:not(.selected) {
-  @apply hover:bg-muted/60;
-}
-
-/* Quick Scale Buttons (K, M, B) */
-.scale-button {
-  transition: all 150ms ease;
-}
-
-.scale-button.selected {
-  @apply bg-primary text-primary-foreground shadow-sm;
-  @apply hover:bg-primary/90 hover:shadow-md;
-}
-
-.scale-button:not(.selected) {
-  @apply hover:bg-accent hover:text-accent-foreground;
-}
-
-/* Tab Buttons in RibbonTabs */
-.ribbon-tab-button {
-  transition: all 200ms ease;
-}
-
-.ribbon-tab-button.active {
-  @apply bg-background text-foreground shadow-sm;
-  position: relative;
-}
-
-.ribbon-tab-button:not(.active) {
-  @apply text-muted-foreground hover:text-foreground hover:bg-accent/50;
-}
-
-/* Border Toggle Buttons in Styling Tab */
-.border-toggle {
-  transition: all 150ms ease;
-}
-
-.border-toggle[data-state="on"] {
-  @apply bg-primary/20 border-primary text-primary;
-  @apply hover:bg-primary/30;
-}
-
-.border-toggle[data-state="off"] {
-  @apply hover:bg-muted/60;
-}
-
-/* Alignment Toggle Group */
-.alignment-toggle-item[data-state="on"] {
-  @apply bg-primary text-primary-foreground;
   @apply hover:bg-primary/90;
 }
 
-.alignment-toggle-item[data-state="off"] {
-  @apply hover:bg-muted/60;
+/* Cell/Header Toggle - Special styling */
+.cell-header-toggle {
+  @apply text-[11px] h-7 px-3;
 }
 
-/* Cell/Header Toggle */
 .cell-header-toggle[data-state="on"] {
-  @apply bg-primary/10 text-primary border-primary/20;
+  @apply bg-primary/15 text-primary border-primary/30 font-medium;
   @apply hover:bg-primary/20;
 }
 
-/* Add focus-visible styles for accessibility */
-.ribbon-toggle:focus-visible,
-.ribbon-toggle-group-item:focus-visible,
-.format-template-button:focus-visible,
-.scale-button:focus-visible,
-.ribbon-tab-button:focus-visible {
-  @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+/* Alignment controls - Icon-only buttons */
+.alignment-toggle-item {
+  @apply h-[26px] w-[26px] p-0;
 }
 
-/* Dark mode adjustments */
-@media (prefers-color-scheme: dark) {
-  .ribbon-toggle[data-state="on"],
-  .ribbon-toggle-group-item[data-state="on"],
-  .format-template-button.selected,
-  .scale-button.selected {
-    @apply bg-primary/90 hover:bg-primary/80;
+.alignment-toggle-item[data-state="on"] {
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Tab buttons - Clean tab design */
+.ribbon-tab {
+  @apply text-[11px] h-[26px] px-3 rounded-t-md mr-1;
+  @apply text-muted-foreground hover:text-foreground;
+}
+
+.ribbon-tab[data-state="active"] {
+  @apply bg-background text-foreground font-medium;
+  @apply border-x border-t border-border/30;
+  position: relative;
+  bottom: -1px;
+  padding-bottom: 2px;
+}
+
+/* Compact inputs and selects */
+input.ribbon-input,
+.ribbon-input {
+  @apply h-[26px] text-[11px] px-2;
+}
+
+.ribbon-select-trigger {
+  @apply h-[26px] text-[11px] px-2;
+}
+
+/* Color inputs - Compact square design */
+input[type="color"].ribbon-color {
+  @apply h-[26px] w-[26px] p-0.5 rounded border-border/50;
+}
+
+/* Preview box - Elegant and informative */
+.ribbon-preview-box {
+  @apply bg-muted/20 border border-border/30 rounded-md;
+  @apply px-3 py-1.5 min-h-[30px];
+}
+
+.ribbon-preview-label {
+  @apply text-[10px] font-medium text-muted-foreground uppercase tracking-wider;
+}
+
+.ribbon-preview-content {
+  @apply text-xs font-medium;
+}
+
+/* Action buttons - Clear hierarchy */
+.ribbon-action-primary {
+  @apply h-7 px-3 text-[11px] font-medium;
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  @apply shadow-sm hover:shadow;
+}
+
+.ribbon-action-secondary {
+  @apply h-7 px-3 text-[11px];
+  @apply border border-border/60 bg-background/80 hover:bg-muted/50;
+  @apply hover:border-border;
+}
+
+.ribbon-action-ghost {
+  @apply h-7 px-2 text-[11px];
+  @apply hover:bg-accent hover:text-accent-foreground;
+}
+
+.ribbon-action-icon {
+  @apply h-7 w-7 p-0;
+}
+
+/* Separators - Subtle dividers */
+.ribbon-separator {
+  @apply bg-border/30 w-px h-5 mx-1;
+}
+
+/* Format template buttons */
+.format-template {
+  @apply text-[11px] h-[26px] px-2;
+}
+
+.format-template[data-state="on"] {
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Scale buttons (K, M, B) - Grouped design */
+.scale-button-group {
+  @apply flex shadow-sm rounded-md overflow-hidden;
+}
+
+.scale-button {
+  @apply text-[11px] h-[26px] w-7 font-medium;
+  @apply border-r border-border/30 last:border-r-0;
+}
+
+.scale-button[data-state="on"] {
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Decimal controls - Compact numeric */
+.decimal-control {
+  @apply h-[26px] w-7 p-0 text-[10px];
+}
+
+.decimal-display {
+  @apply h-[26px] w-6 text-[11px] font-mono;
+  @apply bg-muted/30 border-y border-border/30;
+  @apply flex items-center justify-center;
+}
+
+/* Section spacing utilities */
+.ribbon-compact-spacing > :not(:first-child) {
+  @apply ml-1;
+}
+
+.ribbon-section-spacing > :not(:first-child) {
+  @apply ml-2;
+}
+
+.ribbon-group-spacing > :not(:first-child) {
+  @apply ml-3;
+}
+
+/* Loading states */
+.ribbon-loading {
+  @apply opacity-60 pointer-events-none;
+}
+
+/* Focus states for accessibility */
+.ribbon-focusable:focus-visible {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-1;
+}
+
+/* Hover effects - Subtle lift */
+.ribbon-hover-lift {
+  @apply hover:-translate-y-0.5 hover:shadow-sm;
+}
+
+/* Quick access badges */
+.ribbon-badge {
+  @apply text-[9px] h-4 px-1.5 font-medium rounded;
+  @apply bg-primary/10 text-primary;
+}
+
+/* Tooltip styling for ribbon */
+.ribbon-tooltip {
+  @apply text-[10px] py-1 px-2;
+}
+
+/* Dark mode optimizations */
+.dark .ribbon-header {
+  @apply bg-background/80;
+}
+
+.dark .ribbon-tabs {
+  @apply bg-muted/10;
+}
+
+.dark .ribbon-content {
+  @apply bg-background;
+}
+
+.dark .ribbon-preview-box {
+  @apply bg-muted/10 border-border/20;
+}
+
+/* Ensure full opacity when not dragging */
+.floating-ribbon:not(.ribbon-dragging) {
+  opacity: 1 !important;
+}
+
+/* Dragging state - Slight transparency */
+.floating-ribbon.ribbon-dragging {
+  @apply opacity-95 shadow-2xl;
+  transition: none !important;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 1024px) {
+  .floating-ribbon {
+    --ribbon-content-padding: 8px;
   }
   
-  .ribbon-toggle[data-state="off"],
-  .ribbon-toggle-group-item[data-state="off"] {
-    @apply hover:bg-muted/40;
+  .ribbon-toggle,
+  .ribbon-toggle-group-item {
+    @apply text-[10px] h-6 px-1.5;
   }
+  
+  .ribbon-action-primary,
+  .ribbon-action-secondary {
+    @apply text-[10px] h-6 px-2;
+  }
+}
+
+/* Animation for initial appearance */
+@keyframes ribbon-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.floating-ribbon {
+  animation: ribbon-appear 0.3s ease-out;
+}
+
+/* Custom scrollbar for ribbon content */
+.ribbon-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ribbon-content::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.ribbon-content::-webkit-scrollbar-thumb {
+  @apply bg-border/50 rounded-full;
+  @apply hover:bg-border/70;
+}
+
+/* Ensure contrast for important elements */
+.ribbon-toggle[data-state="on"],
+.ribbon-action-primary,
+.cell-header-toggle[data-state="on"] {
+  @apply contrast-125;
 }

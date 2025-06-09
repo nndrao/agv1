@@ -217,6 +217,31 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
         // SIMPLIFIED DETERMINISTIC PROFILE APPLICATION
         console.log('[ProfileManager] Switching to profile:', profile.name);
         
+        // RESET GRID TO DEFAULT STATE BEFORE APPLYING NEW PROFILE
+        console.log('[ProfileManager] Resetting grid to default state');
+        
+        // 1. Clear all filters
+        gridApi.setFilterModel(null);
+        
+        // 2. Clear all sorts
+        gridApi.applyColumnState({
+          defaultState: { sort: null }
+        });
+        
+        // 3. Reset column widths and visibility
+        gridApi.resetColumnState();
+        
+        // 4. Reset row heights to default
+        gridApi.resetRowHeights();
+        
+        // 5. Reset grid options to defaults
+        gridApi.setGridOption('rowHeight', undefined);
+        gridApi.setGridOption('headerHeight', undefined);
+        gridApi.setGridOption('floatingFiltersHeight', undefined);
+        
+        // Small delay to ensure reset is complete
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
         // Get column definitions for this profile
         const profileColumnDefs = getColumnDefs(profileId);
         
@@ -268,7 +293,8 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
           // 4. Apply font
           if (profile.gridState.font) {
             console.log('[ProfileManager] Applying font:', profile.gridState.font);
-            handleFontChange(profile.gridState.font);
+            // Font will be applied through the parent component's onProfileChange callback
+            // The parent component (DataTableContainer) handles font changes via useProfileSync
           }
         }
         

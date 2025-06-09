@@ -6,6 +6,7 @@ import { Toggle } from '@/components/ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import { 
   Bold,
   Italic,
@@ -720,81 +721,71 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
   };
 
   return (
-    <div className="space-y-2">
-      {/* Cell/Header Toggle with Preview */}
-      <div className="flex items-center justify-between mb-2">
+    <div className="space-y-3">
+      {/* Cell/Header Toggle with Preview - Compact Layout */}
+      <div className="flex items-center gap-3">
         <ToggleGroup 
           type="single" 
           value={styleTarget} 
           onValueChange={(value) => value && setStyleTarget(value as 'cell' | 'header')}
-          size="sm"
         >
-          <ToggleGroupItem value="cell" className="cell-header-toggle text-xs h-7">
+          <ToggleGroupItem value="cell" className="cell-header-toggle">
             <Columns className="h-3 w-3 mr-1" />
             Cell
           </ToggleGroupItem>
-          <ToggleGroupItem value="header" className="cell-header-toggle text-xs h-7">
+          <ToggleGroupItem value="header" className="cell-header-toggle">
             <FileText className="h-3 w-3 mr-1" />
             Header
           </ToggleGroupItem>
         </ToggleGroup>
         
-        {/* Live Preview - Centered */}
-        <div className="flex-1 flex justify-center">
-          <div className="bg-muted/20 rounded-md p-1.5 flex items-center gap-2" style={{ width: '300px' }}>
-            <span className="text-xs text-muted-foreground font-semibold">Preview:</span>
-            <div className="flex-1 bg-background border rounded overflow-hidden">
-              <div 
-                className="px-2 py-1 min-h-[28px] text-xs"
-                style={getPreviewStyles()}
-              >
-                {styleTarget === 'header' ? (
-                  selectedColumns.size === 1 ? (
-                    // Show the actual column header name
-                    columnDefinitions.get(Array.from(selectedColumns)[0])?.headerName || 
-                    columnDefinitions.get(Array.from(selectedColumns)[0])?.field || 
-                    'Column Header'
-                  ) : (
-                    'Column Header'
-                  )
-                ) : (
-                  'Sample Text 123'
-                )}
-              </div>
-            </div>
+        <Separator orientation="vertical" className="ribbon-separator" />
+        
+        {/* Live Preview - Compact */}
+        <div className="ribbon-preview-box flex items-center gap-2 flex-1">
+          <span className="ribbon-preview-label">Preview</span>
+          <div className="ribbon-preview-content flex-1" style={getPreviewStyles()}>
+            {styleTarget === 'header' ? (
+              selectedColumns.size === 1 ? (
+                columnDefinitions.get(Array.from(selectedColumns)[0])?.headerName || 
+                columnDefinitions.get(Array.from(selectedColumns)[0])?.field || 
+                'Column Header'
+              ) : (
+                'Column Header'
+              )
+            ) : (
+              'Sample Text 123'
+            )}
           </div>
         </div>
         
         <Button 
           variant="ghost" 
-          size="sm" 
-          className="text-xs h-7"
+          className="ribbon-action-ghost"
           onClick={() => {
-            // Copy current styles to the other target
             const sourceStyles = styleTarget === 'cell' 
               ? getCellStyleObject()
               : getHeaderStyleObject();
             
             if (Object.keys(sourceStyles).length > 0) {
-              // Switch to the other target and apply the styles
               setStyleTarget(styleTarget === 'cell' ? 'header' : 'cell');
               setTimeout(() => updateStyle(sourceStyles), 0);
             }
           }}
         >
-          <Copy className="h-3 w-3 mr-1" />
-          Copy to {styleTarget === 'cell' ? 'Header' : 'Cell'}
+          <Copy className="h-3 w-3" />
+          <span className="hidden lg:inline ml-1">Copy to {styleTarget === 'cell' ? 'Header' : 'Cell'}</span>
         </Button>
       </div>
       
-      {/* 4-Column Layout */}
+      {/* 4-Column Layout - Compact */}
       <div className="grid grid-cols-4 gap-3">
         {/* Column 1 - Font */}
         <div className="space-y-2">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Font</Label>
+          <div className="space-y-1.5">
+            <Label className="ribbon-section-header">Font</Label>
             <Select value={fontFamily} onValueChange={(value) => handleFontChange('family', value)}>
-              <SelectTrigger className="h-7 text-xs">
+              <SelectTrigger className="ribbon-select-trigger">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -810,7 +801,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
           
           <div className="flex gap-1">
             <Select value={fontWeight} onValueChange={(value) => handleFontChange('weight', value)}>
-              <SelectTrigger className="h-7 flex-1 text-xs">
+              <SelectTrigger className="ribbon-select-trigger flex-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -822,7 +813,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
               </SelectContent>
             </Select>
             <Select value={fontSize} onValueChange={(value) => handleFontChange('size', value)}>
-              <SelectTrigger className="h-7 flex-1 text-xs">
+              <SelectTrigger className="ribbon-select-trigger flex-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -844,24 +835,21 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
           
           <div className="flex gap-1">
             <Toggle 
-              size="sm" 
-              className="ribbon-toggle h-7 w-7" 
+              className="ribbon-toggle w-7" 
               pressed={getCurrentStyles().includes('bold')}
               onPressedChange={(pressed) => handleStyleToggle('bold', pressed)}
             >
               <Bold className="h-3 w-3" />
             </Toggle>
             <Toggle 
-              size="sm" 
-              className="ribbon-toggle h-7 w-7"
+              className="ribbon-toggle w-7"
               pressed={getCurrentStyles().includes('italic')}
               onPressedChange={(pressed) => handleStyleToggle('italic', pressed)}
             >
               <Italic className="h-3 w-3" />
             </Toggle>
             <Toggle 
-              size="sm" 
-              className="ribbon-toggle h-7 w-7"
+              className="ribbon-toggle w-7"
               pressed={getCurrentStyles().includes('underline')}
               onPressedChange={(pressed) => handleStyleToggle('underline', pressed)}
             >
@@ -872,43 +860,41 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
         
         {/* Column 2 - Alignment */}
         <div className="space-y-2">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Alignment</Label>
+          <div className="space-y-1.5">
+            <Label className="ribbon-section-header">Alignment</Label>
             <ToggleGroup 
               type="single" 
-              size="sm" 
               value={getCurrentAlignment()}
               onValueChange={handleAlignmentChange}
               className="w-full"
             >
-              <ToggleGroupItem value="left" className="alignment-toggle-item h-7 flex-1">
+              <ToggleGroupItem value="left" className="alignment-toggle-item flex-1">
                 <AlignLeft className="h-3 w-3" />
               </ToggleGroupItem>
-              <ToggleGroupItem value="center" className="alignment-toggle-item h-7 flex-1">
+              <ToggleGroupItem value="center" className="alignment-toggle-item flex-1">
                 <AlignCenter className="h-3 w-3" />
               </ToggleGroupItem>
-              <ToggleGroupItem value="right" className="alignment-toggle-item h-7 flex-1">
+              <ToggleGroupItem value="right" className="alignment-toggle-item flex-1">
                 <AlignRight className="h-3 w-3" />
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
           
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Vertical</Label>
+          <div className="space-y-1.5">
+            <Label className="ribbon-section-header">Vertical</Label>
             <ToggleGroup 
               type="single" 
-              size="sm" 
               value={getCurrentVerticalAlignment()}
               onValueChange={(value) => handleVerticalAlignmentChange(value)}
               className="w-full"
             >
-              <ToggleGroupItem value="top" className="alignment-toggle-item h-7 flex-1" aria-label="Align top">
+              <ToggleGroupItem value="top" className="alignment-toggle-item flex-1" aria-label="Align top">
                 <AlignVerticalJustifyStart className="h-3 w-3" />
               </ToggleGroupItem>
-              <ToggleGroupItem value="middle" className="alignment-toggle-item h-7 flex-1" aria-label="Align middle">
+              <ToggleGroupItem value="middle" className="alignment-toggle-item flex-1" aria-label="Align middle">
                 <AlignVerticalJustifyCenter className="h-3 w-3" />
               </ToggleGroupItem>
-              <ToggleGroupItem value="bottom" className="alignment-toggle-item h-7 flex-1" aria-label="Align bottom">
+              <ToggleGroupItem value="bottom" className="alignment-toggle-item flex-1" aria-label="Align bottom">
                 <AlignVerticalJustifyEnd className="h-3 w-3" />
               </ToggleGroupItem>
             </ToggleGroup>
@@ -932,57 +918,57 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
         
         {/* Column 3 - Colors */}
         <div className="space-y-2">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Colors</Label>
+          <div className="space-y-1.5">
+            <Label className="ribbon-section-header">Colors</Label>
             <div className="flex items-center gap-1">
               <Type className="h-3 w-3 text-muted-foreground" />
               <input
                 type="color"
                 value={textColor || '#000000'}
                 onChange={(e) => handleColorChange('text', e.target.value)}
-                className="h-7 w-7 rounded border border-input cursor-pointer"
+                className="ribbon-color cursor-pointer"
                 title="Text color"
               />
               <Input
                 value={textColor}
                 onChange={(e) => handleColorChange('text', e.target.value)}
-                className="h-7 flex-1 text-xs font-mono uppercase"
+                className="ribbon-input flex-1 font-mono uppercase"
+                placeholder="Default"
+                maxLength={7}
+              />
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <PaintBucket className="h-3 w-3 text-muted-foreground" />
+              <input
+                type="color"
+                value={fillColor || '#ffffff'}
+                onChange={(e) => handleColorChange('fill', e.target.value)}
+                className="ribbon-color cursor-pointer"
+                title="Fill color"
+              />
+              <Input
+                value={fillColor}
+                onChange={(e) => handleColorChange('fill', e.target.value)}
+                className="ribbon-input flex-1 font-mono uppercase"
                 placeholder="Default"
                 maxLength={7}
               />
             </div>
           </div>
-          
-          <div className="flex items-center gap-1">
-            <PaintBucket className="h-3 w-3 text-muted-foreground" />
-            <input
-              type="color"
-              value={fillColor || '#ffffff'}
-              onChange={(e) => handleColorChange('fill', e.target.value)}
-              className="h-7 w-7 rounded border border-input cursor-pointer"
-              title="Fill color"
-            />
-            <Input
-              value={fillColor}
-              onChange={(e) => handleColorChange('fill', e.target.value)}
-              className="h-7 flex-1 text-xs font-mono uppercase"
-              placeholder="Default"
-              maxLength={7}
-            />
-          </div>
         </div>
         
         {/* Column 4 - Borders */}
         <div className="space-y-2">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Borders</Label>
+          <div className="space-y-1.5">
+            <Label className="ribbon-section-header">Borders</Label>
             
             {/* Border side selector */}
             <Select 
               value={borderSide} 
               onValueChange={handleBorderSideChange}
             >
-              <SelectTrigger className="h-7 text-xs">
+              <SelectTrigger className="ribbon-select-trigger">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1032,7 +1018,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
                 onValueChange={(value) => handleBorderPropertyChange('width', value)}
                 disabled={borderSide === 'none'}
               >
-                <SelectTrigger className="h-7 w-14 text-xs">
+                <SelectTrigger className="ribbon-select-trigger w-14">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1047,7 +1033,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
                 onValueChange={(value) => handleBorderPropertyChange('style', value)}
                 disabled={borderSide === 'none'}
               >
-                <SelectTrigger className="h-7 flex-1 text-xs">
+                <SelectTrigger className="ribbon-select-trigger flex-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1061,7 +1047,7 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
                 type="color"
                 value={borderColor}
                 onChange={(e) => handleColorChange('border', e.target.value)}
-                className="h-7 w-7 rounded border border-input cursor-pointer"
+                className="ribbon-color cursor-pointer"
                 title="Border color"
                 disabled={borderSide === 'none'}
               />

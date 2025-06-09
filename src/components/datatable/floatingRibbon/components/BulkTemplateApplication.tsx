@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useColumnTemplateStore } from '../../stores/columnTemplate.store';
 import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
+import { parseColorValue } from '../../utils/styleUtils';
 
 interface BulkTemplateApplicationProps {
   open: boolean;
@@ -373,7 +374,12 @@ export const BulkTemplateApplication: React.FC<BulkTemplateApplicationProps> = (
                       
                       {assignedTemplate ? (
                         <div className="flex items-center gap-2 p-2 bg-accent rounded-sm">
-                          <Check className="h-4 w-4 text-green-600" />
+                          <Check 
+                            className="h-4 w-4" 
+                            style={{ 
+                              color: parseColorValue('green', document.documentElement.classList.contains('dark'))
+                            }} 
+                          />
                           <span className="flex-1 text-sm">{assignedTemplate.name}</span>
                           <Badge variant="outline" className="text-xs">
                             {assignedTemplate.includedProperties.length}

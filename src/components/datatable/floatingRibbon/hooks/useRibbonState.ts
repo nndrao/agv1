@@ -42,6 +42,15 @@ export const useRibbonState = ({
   const [currentFormat, setCurrentFormat] = useState('#,##0.00');
   const [showConditionalDialog, setShowConditionalDialog] = useState(false);
   const [advancedFilterTab, setAdvancedFilterTab] = useState('general');
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Reset visibility filter only on initial mount
+  useEffect(() => {
+    if (!hasInitialized && columnDefs && columnDefs.length > 0) {
+      setVisibilityFilter('all');
+      setHasInitialized(true);
+    }
+  }, [hasInitialized, columnDefs, setVisibilityFilter]);
 
   // Initialize store with provided column definitions and hydrate from active profile
   useEffect(() => {
@@ -52,8 +61,8 @@ export const useRibbonState = ({
         hasActiveProfile: !!getActiveProfile()
       });
 
-      // Reset visibility filter to 'all' when ribbon opens to show all columns
-      setVisibilityFilter('all');
+      // Only reset visibility filter on initial mount, not on column selection changes
+      // This preserves user's filter choices when selecting/deselecting columns
 
       // Create column map from provided columnDefs
       const columnMap = new Map();
@@ -67,15 +76,19 @@ export const useRibbonState = ({
       // Select target column if provided, otherwise select first column
       if (targetColumn) {
         setSelectedColumns(new Set([targetColumn]));
-      } else if (columnDefs.length > 0 && selectedColumns.size === 0) {
-        // Select first column if none selected
-        const firstColId = columnDefs[0].field || columnDefs[0].colId;
-        if (firstColId) {
-          setSelectedColumns(new Set([firstColId]));
+      } else if (columnDefs.length > 0) {
+        // Check current selection first to avoid unnecessary updates
+        const currentSelection = useColumnCustomizationStore.getState().selectedColumns;
+        if (currentSelection.size === 0) {
+          // Select first column if none selected
+          const firstColId = columnDefs[0].field || columnDefs[0].colId;
+          if (firstColId) {
+            setSelectedColumns(new Set([firstColId]));
+          }
         }
       }
     }
-  }, [columnDefs, targetColumn, setColumnDefinitions, setSelectedColumns, getActiveProfile, selectedColumns.size, setVisibilityFilter]);
+  }, [columnDefs, targetColumn, setColumnDefinitions, setSelectedColumns, getActiveProfile, setVisibilityFilter]);
 
   // Set column state when provided
   useEffect(() => {
@@ -195,7 +208,7 @@ export const useRibbonState = ({
 
     // Direct pass-through - let the components handle the logic
     updateBulkProperty(property, value);
-  }, [selectedColumns.size, updateBulkProperty]);
+  }, [updateBulkProperty, selectedColumns.size]);
 
   // Wrapper functions to match interface types
   const handleSetActiveTab = useCallback((tab: string) => {
