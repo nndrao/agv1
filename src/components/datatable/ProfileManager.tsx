@@ -46,6 +46,7 @@ import {
 } from '@/components/datatable/stores/profile.store';
 import { GridApi, ColDef } from 'ag-grid-community';
 import { profileOptimizer } from '@/components/datatable/lib/profileOptimizer';
+import { useAgGridStateManager, type AgGridState } from '../../../ag-grid-state-functions';
 
 // Interface for style configurations
 interface _HeaderStyleConfig {
@@ -86,6 +87,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
   const [isSaving, setIsSaving] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const previousProfileRef = useRef<GridProfile | null>(null);
+  const { extractState, applyState } = useAgGridStateManager(gridApi);
 
   // Preload profiles on mount
   useEffect(() => {
@@ -259,25 +261,50 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
           await new Promise(resolve => setTimeout(resolve, 50));
         }
         
-        // Apply profile states in order
+        // Apply profile states using ag-grid-state-functions
         if (profile.gridState) {
-          // 1. Apply column state (visibility, width, position, sort)
-          if (profile.gridState.columnState && profile.gridState.columnState.length > 0) {
-            console.log('[ProfileManager] Applying column state');
-            const result = gridApi.applyColumnState({
-              state: profile.gridState.columnState,
-              applyOrder: true
-            });
-            console.log('[ProfileManager] Column state applied:', result);
-          }
+          // Use applyState from ag-grid-state-functions for comprehensive state restoration
+          const stateToApply: AgGridState = {
+            columnState: profile.gridState.columnState || [],
+            filterModel: profile.gridState.filterModel || {},
+            sortModel: profile.gridState.sortModel || [],
+            // Add other state properties with defaults
+            columnGroupState: [],
+            rowGroupColumns: [],
+            pivotMode: false,
+            pivotColumns: [],
+            valueColumns: [],
+            pagination: {
+              currentPage: 0,
+              pageSize: 100,
+              totalPages: null,
+              paginationPageSizeSelector: null
+            },
+            selectedRowIds: [],
+            selectedNodes: [],
+            expandedGroups: [],
+            pinnedTopRowData: [],
+            pinnedBottomRowData: [],
+            rowModelType: 'clientSide'
+          };
           
-          // 2. Apply filter model
-          if (profile.gridState.filterModel) {
-            console.log('[ProfileManager] Applying filter model');
-            gridApi.setFilterModel(profile.gridState.filterModel);
-          }
+          // Apply the state with column order preservation
+          await applyState(stateToApply, {
+            applyColumnState: true,
+            applyFilters: true,
+            applySorting: true,
+            applyRowGrouping: false,
+            applyPivoting: false,
+            applyPagination: false,
+            applySelection: false,
+            applyRowPinning: false,
+            applyFocus: false,
+            applyRangeSelection: false
+          });
           
-          // 3. Apply grid options
+          console.log('[ProfileManager] State applied using ag-grid-state-functions');
+          
+          // Apply grid options separately as they're not part of ag-grid-state-functions
           if (profile.gridState.gridOptions) {
             console.log('[ProfileManager] Applying grid options');
             const options = profile.gridState.gridOptions;
@@ -363,39 +390,31 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     //   }))
     // });
     
-    // Get complete column state including all columns (not just modified ones)
-    const columnState = (() => {
-      const state = gridApi.getColumnState();
-      const allColumns = gridApi.getColumns();
-      
-      if (!allColumns) return state;
-      
-      // Create a complete state that includes all columns
-      // AG-Grid's getColumnState() only returns columns that have been modified
-      const completeState = allColumns.map(column => {
-        const colId = column.getColId();
-        const existingState = state?.find(cs => cs.colId === colId);
-        
-        return {
-          colId: colId,
-          hide: !column.isVisible(),
-          width: column.getActualWidth(),
-          pinned: column.getPinned() || null,
-          sort: column.getSort() || null,
-          sortIndex: column.getSortIndex() != null ? column.getSortIndex() : null,
-          ...existingState // Override with any existing state
-        };
+    // Extract comprehensive state using ag-grid-state-functions
+    const extractedState = extractState({
+      includeRowData: false,
+      customStateExtractor: undefined
+    });
+    
+    if (!extractedState) {
+      console.error('[ProfileManager] Failed to extract grid state');
+      toast({
+        title: 'Save failed',
+        description: 'Failed to extract grid state',
+        variant: 'destructive',
       });
-      
-      console.log('[ProfileManager] Complete column state:', {
-        totalColumns: completeState.length,
-        visibleColumns: completeState.filter(col => !col.hide).length,
-        hiddenColumns: completeState.filter(col => col.hide).length,
-        withExplicitState: state?.length || 0
-      });
-      
-      return completeState;
-    })();
+      return;
+    }
+    
+    // Use the extracted column state which includes column order
+    const columnState = extractedState.columnState;
+    
+    console.log('[ProfileManager] Extracted column state:', {
+      totalColumns: columnState.length,
+      visibleColumns: columnState.filter(col => !col.hide).length,
+      hiddenColumns: columnState.filter(col => col.hide).length,
+      columnOrder: columnState.slice(0, 5).map(col => col.colId)
+    });
     
     // Log column state details
     // console.log('[ProfileManager] Column state details:', {
@@ -413,14 +432,9 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     //   }))
     // });
     
-    const filterModel = gridApi.getFilterModel();
-    const sortModel = gridApi.getColumnState()
-      .filter(col => col.sort)
-      .map((col, index) => ({
-        colId: col.colId,
-        sort: col.sort!,
-        sortIndex: index
-      }));
+    // Use extracted state for filter and sort models
+    const filterModel = extractedState.filterModel || {};
+    const sortModel = extractedState.sortModel || [];
 
     // Clean up column definitions for serialization
     const cleanedColumnDefs = columnDefs.map(col => {
