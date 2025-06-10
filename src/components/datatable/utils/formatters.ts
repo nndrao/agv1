@@ -133,7 +133,41 @@ function checkConditionMatch(section: string, value: unknown): boolean {
  * Process a single format section (handles colors, conditions, and number formatting)
  */
 function processFormatSection(format: string, value: unknown, _params?: ValueFormatterParams): string {
-  // Remove all condition and color brackets to get the display format
+  // First, check for text transformation directives
+  let textTransform: ((text: string) => string) | null = null;
+  let truncateLength: number | null = null;
+  
+  // Check for text transformation brackets
+  if (format.includes('[Upper]')) {
+    textTransform = (text: string) => text.toUpperCase();
+  } else if (format.includes('[Lower]')) {
+    textTransform = (text: string) => text.toLowerCase();
+  } else if (format.includes('[Title]')) {
+    textTransform = (text: string) => text.replace(/\w\S*/g, txt => 
+      txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
+  } else if (format.includes('[Sentence]')) {
+    textTransform = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  } else if (format.includes('[CamelCase]')) {
+    textTransform = (text: string) => text.replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => 
+      index === 0 ? word.toLowerCase() : word.toUpperCase()).replace(/\s+/g, '');
+  } else if (format.includes('[PascalCase]')) {
+    textTransform = (text: string) => text.replace(/(?:^\w|[A-Z]|\b\w)/g, word => 
+      word.toUpperCase()).replace(/\s+/g, '');
+  } else if (format.includes('[SnakeCase]')) {
+    textTransform = (text: string) => text.toLowerCase().replace(/\s+/g, '_');
+  } else if (format.includes('[KebabCase]')) {
+    textTransform = (text: string) => text.toLowerCase().replace(/\s+/g, '-');
+  } else if (format.includes('[Trim]')) {
+    textTransform = (text: string) => text.trim();
+  }
+  
+  // Check for truncate with length
+  const truncateMatch = format.match(/\[Truncate:(\d+)\]/);
+  if (truncateMatch) {
+    truncateLength = parseInt(truncateMatch[1], 10);
+  }
+  
+  // Remove all condition, color, and text transformation brackets to get the display format
   const cleanFormat = format.replace(/\[[^\]]+\]/g, '');
   
   // Handle text in quotes
@@ -165,19 +199,40 @@ function processFormatSection(format: string, value: unknown, _params?: ValueFor
   
   if (isTextOnlyFormat) {
     // For text-only formats, just return the prefix/suffix
-    return prefix + suffix;
+    let result = prefix + suffix;
+    if (textTransform) {
+      result = textTransform(result);
+    }
+    if (truncateLength !== null && result.length > truncateLength) {
+      result = result.substring(0, truncateLength) + '...';
+    }
+    return result;
   }
   
   // Handle @ symbol (original text value)
   if (numberFormat.includes('@')) {
-    return prefix + String(value || '') + suffix;
+    let result = prefix + String(value || '') + suffix;
+    if (textTransform) {
+      result = textTransform(result);
+    }
+    if (truncateLength !== null && result.length > truncateLength) {
+      result = result.substring(0, truncateLength) + '...';
+    }
+    return result;
   }
   
   // Handle number formatting
   const numValue = typeof value === 'number' ? value : parseFloat(String(value));
   if (isNaN(numValue)) {
-    // If not a number, return as text
-    return prefix + String(value || '') + suffix;
+    // If not a number, return as text with transformations applied
+    let result = prefix + String(value || '') + suffix;
+    if (textTransform) {
+      result = textTransform(result);
+    }
+    if (truncateLength !== null && result.length > truncateLength) {
+      result = result.substring(0, truncateLength) + '...';
+    }
+    return result;
   }
   
   const displayValue = Math.abs(numValue);
@@ -227,7 +282,16 @@ function processFormatSection(format: string, value: unknown, _params?: ValueFor
     formattedNumber = '-' + formattedNumber;
   }
   
-  return prefix + formattedNumber + suffix;
+  // Apply text transformations to the final result
+  let result = prefix + formattedNumber + suffix;
+  if (textTransform) {
+    result = textTransform(result);
+  }
+  if (truncateLength !== null && result.length > truncateLength) {
+    result = result.substring(0, truncateLength) + '...';
+  }
+  
+  return result;
 }
 
 /**

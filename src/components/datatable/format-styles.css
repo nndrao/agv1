@@ -69,3 +69,77 @@
 .ag-floating-filter .ag-percentage-cell {
   text-align: left !important;
 }
+
+/* Header alignment support - ensure headers can use flexbox alignment */
+.ag-header-cell-label {
+  display: flex !important;
+  width: 100%;
+}
+
+/* Support for Tailwind alignment classes in headers */
+/* Apply to the header cell itself when it has these classes */
+.ag-header-cell.text-left .ag-header-cell-label,
+.ag-header-cell.justify-start .ag-header-cell-label {
+  justify-content: flex-start !important;
+}
+
+.ag-header-cell.text-center .ag-header-cell-label,
+.ag-header-cell.justify-center .ag-header-cell-label {
+  justify-content: center !important;
+}
+
+.ag-header-cell.text-right .ag-header-cell-label,
+.ag-header-cell.justify-end .ag-header-cell-label {
+  justify-content: flex-end !important;
+}
+
+/* Vertical alignment support */
+.ag-header-cell.items-start .ag-header-cell-label {
+  align-items: flex-start !important;
+}
+
+.ag-header-cell.items-center .ag-header-cell-label {
+  align-items: center !important;
+}
+
+.ag-header-cell.items-end .ag-header-cell-label {
+  align-items: flex-end !important;
+}
+
+/* Also support when classes are directly on the label (for cell alignment) */
+.ag-cell.text-left,
+.ag-cell.justify-start {
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+.ag-cell.text-center,
+.ag-cell.justify-center {
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+.ag-cell.text-right,
+.ag-cell.justify-end {
+  text-align: right !important;
+  justify-content: flex-end !important;
+}
+
+/* Ensure AG-Grid cells can be flex containers when needed */
+.ag-cell.items-start,
+.ag-cell.items-center,
+.ag-cell.items-end {
+  display: flex !important;
+}
+
+.ag-cell.items-start {
+  align-items: flex-start !important;
+}
+
+.ag-cell.items-center {
+  align-items: center !important;
+}
+
+.ag-cell.items-end {
+  align-items: flex-end !important;
+}

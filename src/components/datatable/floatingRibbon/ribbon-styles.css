@@ -1,0 +1,914 @@
+/* Floating Ribbon - Compact & Modern Design System */
+
+/* Main ribbon container */
+.floating-ribbon {
+  --ribbon-border-radius: 10px;
+  --ribbon-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 6px 10px -6px rgba(0, 0, 0, 0.1);
+  --ribbon-header-height: 48px;
+  --ribbon-tab-height: 26px;
+  --ribbon-content-padding: 6px;
+  
+  /* Standardized Font Sizes - More Readable */
+  --ribbon-font-xs: 12px;     /* Small labels, badges */
+  --ribbon-font-sm: 13px;     /* Standard controls, buttons */
+  --ribbon-font-base: 14px;   /* Content text, inputs */
+  --ribbon-font-md: 15px;     /* Emphasized text */
+  --ribbon-font-lg: 17px;     /* Headers, titles */
+}
+
+/* Smooth transitions for all interactive elements */
+.floating-ribbon * {
+  transition-property: background-color, border-color, color, opacity, transform, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Header styling - Clean and minimal */
+.ribbon-header {
+  height: var(--ribbon-header-height);
+  @apply bg-muted/20 backdrop-blur-sm border-b border-border/50;
+  @apply shadow-sm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Tab strip styling - Subtle background */
+.ribbon-tabs {
+  height: var(--ribbon-tab-height);
+  @apply bg-muted/20 backdrop-blur-sm border-b border-border/30;
+}
+
+/* Content area styling - Full opacity */
+.ribbon-content {
+  @apply bg-background;
+  padding: var(--ribbon-content-padding);
+  min-height: 70px;
+  position: relative;
+}
+
+/* Compact section headers - STANDARDIZED */
+.ribbon-section-header {
+  font-size: 10px !important;
+  @apply font-semibold uppercase tracking-wide text-muted-foreground/80;
+  margin-bottom: var(--ribbon-spacing-xs) !important;
+  line-height: 1.3;
+}
+
+/* Visual grouping for related controls */
+.ribbon-group {
+  @apply p-2 bg-muted/10 border border-border/20 rounded-md;
+}
+
+/* Drag handle styling - Subtle but discoverable */
+.ribbon-drag-handle {
+  @apply cursor-grab text-muted-foreground/40 hover:text-muted-foreground/70;
+}
+
+.ribbon-dragging .ribbon-drag-handle {
+  @apply cursor-grabbing text-muted-foreground;
+}
+
+/* Compact Toggle Groups and Buttons */
+.ribbon-toggle,
+.ribbon-toggle-group-item {
+  font-size: var(--ribbon-font-sm);
+  @apply h-[26px] px-2;
+}
+
+/* Toggle States - Clear visual hierarchy */
+.ribbon-toggle[data-state="off"],
+.ribbon-toggle-group-item[data-state="off"] {
+  @apply bg-transparent hover:bg-muted/50 text-muted-foreground hover:text-foreground;
+}
+
+.ribbon-toggle[data-state="on"],
+.ribbon-toggle-group-item[data-state="on"] {
+  @apply bg-primary text-primary-foreground shadow-sm;
+  @apply hover:bg-primary/90;
+}
+
+/* Cell/Header Toggle - Special styling */
+.cell-header-toggle {
+  font-size: var(--ribbon-font-sm);
+  @apply h-7 px-3;
+}
+
+.cell-header-toggle[data-state="on"] {
+  @apply bg-primary/15 text-primary border-primary/30 font-medium;
+  @apply hover:bg-primary/20;
+}
+
+/* Alignment controls - Icon-only buttons */
+.alignment-toggle-item {
+  @apply h-[26px] w-[26px] p-0;
+}
+
+.alignment-toggle-item[data-state="on"] {
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Tab buttons - Clean tab design */
+.ribbon-tab {
+  font-size: var(--ribbon-font-sm);
+  @apply h-[26px] px-3 rounded-t-md mr-1;
+  @apply text-muted-foreground hover:text-foreground;
+}
+
+.ribbon-tab[data-state="active"] {
+  @apply bg-background text-foreground;
+  @apply border-b-2 border-primary;
+  @apply shadow-sm;
+}
+
+/* Compact inputs and selects - STANDARDIZED */
+input.ribbon-input,
+.ribbon-input {
+  height: var(--ribbon-input-height) !important;
+  font-size: var(--ribbon-font-sm) !important;
+  @apply px-2;
+}
+
+.ribbon-select-trigger {
+  height: var(--ribbon-input-height) !important;
+  font-size: var(--ribbon-font-sm) !important;
+  @apply px-2;
+}
+
+/* Ensure select content matches */
+.floating-ribbon [role="listbox"] {
+  font-size: var(--ribbon-font-sm) !important;
+}
+
+/* Color inputs - Compact square design */
+input[type="color"].ribbon-color {
+  @apply h-[26px] w-[26px] p-0.5 rounded border-border/50;
+}
+
+/* Preview box - Elegant and informative */
+.ribbon-preview-box {
+  @apply bg-muted/20 border border-border/30 rounded-md;
+  @apply px-3 py-1.5 min-h-[30px];
+}
+
+.ribbon-preview-label {
+  font-size: var(--ribbon-font-xs);
+  @apply font-medium text-muted-foreground uppercase tracking-wider;
+}
+
+.ribbon-preview-content {
+  font-size: var(--ribbon-font-base);
+  @apply font-medium;
+}
+
+/* Action buttons - Clear hierarchy */
+.ribbon-action-primary {
+  font-size: var(--ribbon-font-sm);
+  @apply h-7 px-3 font-medium;
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  @apply shadow-sm hover:shadow;
+}
+
+.ribbon-action-secondary {
+  font-size: var(--ribbon-font-sm);
+  @apply h-7 px-3;
+  @apply border border-border/60 bg-background/80 hover:bg-muted/50;
+  @apply hover:border-border;
+}
+
+.ribbon-action-ghost {
+  font-size: var(--ribbon-font-sm);
+  @apply h-7 px-2;
+  @apply hover:bg-accent hover:text-accent-foreground;
+}
+
+.ribbon-action-icon {
+  @apply h-7 w-7 p-0;
+}
+
+/* Separators - Subtle dividers */
+.ribbon-separator {
+  @apply bg-border/30 w-px h-5 mx-1;
+}
+
+/* Format template buttons */
+.format-template {
+  font-size: var(--ribbon-font-sm);
+  @apply h-[26px] px-2;
+}
+
+.format-template[data-state="on"] {
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Scale buttons (K, M, B) - Grouped design */
+.scale-button-group {
+  @apply flex shadow-sm rounded-md overflow-hidden;
+}
+
+.scale-button {
+  font-size: var(--ribbon-font-sm);
+  @apply h-[26px] w-7 font-medium;
+  @apply border-r border-border/30 last:border-r-0;
+}
+
+.scale-button[data-state="on"] {
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Decimal controls - Compact numeric */
+.decimal-control {
+  font-size: var(--ribbon-font-xs);
+  @apply h-[26px] w-7 p-0;
+}
+
+.decimal-display {
+  font-size: var(--ribbon-font-sm);
+  @apply h-[26px] w-6 font-mono;
+  @apply bg-muted/30 border-y border-border/30;
+  @apply flex items-center justify-center;
+}
+
+/* Section spacing utilities */
+.ribbon-compact-spacing > :not(:first-child) {
+  @apply ml-1;
+}
+
+.ribbon-section-spacing > :not(:first-child) {
+  @apply ml-2;
+}
+
+.ribbon-group-spacing > :not(:first-child) {
+  @apply ml-3;
+}
+
+/* Loading states */
+.ribbon-loading {
+  @apply opacity-60 pointer-events-none;
+}
+
+/* Focus states for accessibility */
+.ribbon-focusable:focus-visible {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-1;
+}
+
+/* Hover effects - Subtle lift */
+.ribbon-hover-lift {
+  @apply hover:-translate-y-0.5 hover:shadow-sm;
+}
+
+/* Quick access badges */
+.ribbon-badge {
+  font-size: 8px;
+  @apply h-4 px-1.5 font-medium rounded;
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Tooltip styling for ribbon */
+.ribbon-tooltip {
+  font-size: var(--ribbon-font-xs);
+  @apply py-1 px-2;
+}
+
+/* Dark mode optimizations */
+.dark .ribbon-header {
+  @apply bg-background/80;
+}
+
+.dark .ribbon-tabs {
+  @apply bg-muted/10;
+}
+
+.dark .ribbon-content {
+  @apply bg-background;
+}
+
+.dark .ribbon-preview-box {
+  @apply bg-muted/10 border-border/20;
+}
+
+/* Ensure full opacity when not dragging */
+.floating-ribbon:not(.ribbon-dragging) {
+  opacity: 1 !important;
+}
+
+/* Dragging state - Slight transparency */
+.floating-ribbon.ribbon-dragging {
+  @apply opacity-95 shadow-2xl;
+  transition: none !important;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 1024px) {
+  .floating-ribbon {
+    --ribbon-content-padding: 8px;
+  }
+  
+  .ribbon-toggle,
+  .ribbon-toggle-group-item {
+    font-size: var(--ribbon-font-xs);
+    @apply h-6 px-1.5;
+  }
+  
+  .ribbon-action-primary,
+  .ribbon-action-secondary {
+    font-size: var(--ribbon-font-xs);
+    @apply h-6 px-2;
+  }
+}
+
+/* Animation for initial appearance */
+@keyframes ribbon-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.floating-ribbon {
+  animation: ribbon-appear 0.3s ease-out;
+}
+
+/* Custom scrollbar for ribbon content */
+.ribbon-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ribbon-content::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.ribbon-content::-webkit-scrollbar-thumb {
+  @apply bg-border/50 rounded-full;
+  @apply hover:bg-border/70;
+}
+
+/* Ensure contrast for important elements */
+.ribbon-toggle[data-state="on"],
+.ribbon-action-primary,
+.cell-header-toggle[data-state="on"] {
+  @apply contrast-125;
+}
+
+/* ===== GLOBAL RIBBON STANDARDIZATION ===== */
+
+/* Consistent spacing system */
+.floating-ribbon {
+  --ribbon-spacing-xs: 4px;
+  --ribbon-spacing-sm: 6px;
+  --ribbon-spacing-base: 8px;
+  --ribbon-spacing-md: 12px;
+  --ribbon-spacing-lg: 16px;
+  
+  /* Standard heights */
+  --ribbon-input-height: 24px;
+  --ribbon-button-height: 26px;
+  --ribbon-select-height: 24px;
+}
+
+/* All labels should be consistent */
+.floating-ribbon label:not(.ribbon-section-header):not(.ribbon-config-title) {
+  font-size: var(--ribbon-font-sm) !important;
+  @apply text-muted-foreground font-medium;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Ensure all inputs have same height */
+.floating-ribbon input[type="text"],
+.floating-ribbon input[type="number"],
+.floating-ribbon input[type="color"],
+.floating-ribbon select,
+.floating-ribbon .ribbon-input,
+.floating-ribbon .ribbon-select-trigger {
+  height: var(--ribbon-input-height) !important;
+  font-size: var(--ribbon-font-sm) !important;
+}
+
+/* Standardize all buttons */
+.floating-ribbon button {
+  min-height: var(--ribbon-button-height);
+  font-size: var(--ribbon-font-sm);
+}
+
+/* Consistent section spacing */
+.floating-ribbon > div > div {
+  gap: var(--ribbon-spacing-base);
+}
+
+/* ===== REDESIGNED EDITOR RIBBON STYLES =====
+
+/* Main section container */
+.ribbon-section-container {
+  @apply flex flex-col;
+  gap: 8px;
+  padding: 1px;
+}
+
+/* Notice styling - more compact */
+.ribbon-notice-container {
+  @apply relative mb-2;
+}
+
+.ribbon-notice-content {
+  @apply flex items-center gap-2 px-2 py-1.5;
+  @apply bg-amber-50 border border-amber-200 rounded-md;
+  @apply dark:bg-amber-950/30 dark:border-amber-800/30;
+}
+
+.ribbon-notice-text {
+  font-size: var(--ribbon-font-sm);
+  @apply text-amber-700 dark:text-amber-300;
+  @apply font-medium;
+}
+
+/* Primary controls section - consistent spacing */
+.ribbon-primary-controls {
+  @apply flex items-center;
+  gap: var(--ribbon-spacing-sm);
+  padding: var(--ribbon-spacing-sm);
+  @apply bg-muted/10 border border-border/20 rounded-md;
+}
+
+/* Control group styling */
+.ribbon-control-group {
+  @apply flex items-center gap-3;
+}
+
+.ribbon-control-label {
+  @apply flex items-center gap-2;
+  @apply min-w-fit;
+}
+
+.ribbon-control-content {
+  @apply flex items-center;
+}
+
+/* Icon and label styling */
+.ribbon-icon {
+  @apply h-4 w-4 text-muted-foreground;
+}
+
+.ribbon-icon-xs {
+  @apply h-3 w-3;
+}
+
+.ribbon-label {
+  font-size: var(--ribbon-font-base);
+  @apply font-medium text-muted-foreground;
+  @apply whitespace-nowrap;
+}
+
+/* Toggle group improvements */
+.ribbon-toggle-group-compact {
+  @apply flex gap-0.5;
+}
+
+.ribbon-toggle-square {
+  @apply h-7 w-7 px-0;
+  @apply border border-border/30;
+  @apply hover:border-border/60;
+}
+
+.ribbon-toggle-square[data-state="on"] {
+  @apply border-primary;
+}
+
+/* Options grid */
+.ribbon-options-grid {
+  @apply flex gap-4;
+}
+
+.ribbon-option-item {
+  @apply flex items-center gap-2;
+}
+
+.ribbon-option-label {
+  font-size: var(--ribbon-font-base);
+  @apply text-muted-foreground;
+  @apply font-medium whitespace-nowrap;
+}
+
+/* Force shadcn/ui switch default styling - override any inherited styles */
+.floating-ribbon [role="switch"] {
+  display: inline-flex !important;
+  height: 20px !important;
+  width: 36px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  border-radius: 9999px !important;
+  padding: 0 !important;
+  position: relative !important;
+  cursor: pointer !important;
+  border: 2px solid transparent !important;
+  background-color: hsl(var(--input)) !important;
+}
+
+.floating-ribbon [role="switch"][data-state="checked"] {
+  background-color: hsl(var(--primary)) !important;
+}
+
+.floating-ribbon [role="switch"] span {
+  display: block !important;
+  height: 16px !important;
+  width: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  border-radius: 9999px !important;
+  background-color: white !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  transform: translateX(0) !important;
+  transition: transform 150ms !important;
+}
+
+.floating-ribbon [role="switch"][data-state="checked"] span {
+  transform: translateX(16px) !important;
+}
+
+/* Action buttons */
+.ribbon-action-group {
+  @apply flex items-center gap-1 ml-auto;
+}
+
+.ribbon-action-button {
+  font-size: var(--ribbon-font-base);
+  @apply h-7 px-3;
+  @apply flex items-center gap-1.5;
+  @apply border border-border/40;
+  @apply hover:border-border/60 hover:bg-muted/50;
+}
+
+.ribbon-action-square {
+  @apply h-7 w-7 px-0;
+}
+
+.ribbon-chevron {
+  @apply transition-transform duration-200;
+}
+
+.ribbon-chevron-expanded {
+  @apply rotate-180;
+}
+
+/* Editor info section */
+.ribbon-editor-info {
+  @apply flex items-center gap-3 px-3 py-2;
+  @apply bg-gradient-to-r from-primary/5 to-primary/10;
+  @apply border border-primary/20 rounded-md;
+  @apply backdrop-blur-sm;
+}
+
+.ribbon-editor-description {
+  @apply flex-1;
+}
+
+.ribbon-editor-title {
+  font-size: var(--ribbon-font-md);
+  @apply font-semibold text-foreground;
+  @apply mb-1;
+}
+
+.ribbon-editor-subtitle {
+  font-size: var(--ribbon-font-base);
+  @apply text-muted-foreground;
+  @apply leading-relaxed;
+}
+
+/* Quick actions */
+.ribbon-quick-actions {
+  @apply flex items-center gap-2;
+}
+
+.ribbon-quick-action {
+  font-size: var(--ribbon-font-base);
+  @apply h-7 px-3;
+  @apply flex items-center gap-1.5;
+  @apply border border-border/40;
+  @apply hover:border-border/60 hover:bg-background/80;
+  @apply transition-all duration-150;
+}
+
+.ribbon-destructive-action {
+  @apply text-orange-600 hover:text-orange-700;
+  @apply hover:border-orange-300 hover:bg-orange-50;
+  @apply dark:text-orange-400 dark:hover:text-orange-300;
+  @apply dark:hover:border-orange-600/30 dark:hover:bg-orange-950/20;
+}
+
+.ribbon-check-active {
+  @apply text-primary;
+}
+
+.ribbon-check-inactive {
+  @apply text-muted-foreground/40;
+}
+
+/* Configuration panel */
+.ribbon-config-panel {
+  @apply border border-border/30 rounded-md;
+  @apply bg-background/80 backdrop-blur-sm;
+  @apply shadow-sm;
+}
+
+.ribbon-config-header {
+  @apply flex items-center justify-between;
+  @apply px-3 py-2;
+  @apply border-b border-border/20;
+  @apply bg-muted/20;
+}
+
+.ribbon-config-title {
+  font-size: var(--ribbon-font-md);
+  @apply font-semibold text-foreground;
+}
+
+.ribbon-config-close {
+  @apply h-6 w-6 p-0;
+  @apply hover:bg-muted/50;
+}
+
+.ribbon-config-content {
+  @apply p-4;
+}
+
+/* Configuration sections */
+.ribbon-config-section {
+  @apply space-y-4;
+}
+
+/* Field groups */
+.ribbon-field-group {
+  @apply space-y-2;
+}
+
+.ribbon-field-grid {
+  @apply grid grid-cols-2 gap-3;
+}
+
+.ribbon-field-label {
+  font-size: var(--ribbon-font-base);
+  @apply font-medium text-muted-foreground;
+  @apply block;
+}
+
+.ribbon-field-header {
+  @apply flex items-center justify-between;
+}
+
+.ribbon-field-action {
+  font-size: var(--ribbon-font-base);
+  @apply h-6 px-3;
+  @apply border border-border/40;
+  @apply hover:border-border/60 hover:bg-muted/30;
+}
+
+/* Form controls */
+.ribbon-input {
+  font-size: var(--ribbon-font-base);
+  @apply h-7 px-3;
+  @apply border border-border/40;
+  @apply focus:border-primary/50 focus:ring-1 focus:ring-primary/20;
+  @apply transition-all duration-150;
+}
+
+.ribbon-select {
+  font-size: var(--ribbon-font-base);
+  @apply h-7 px-3;
+  @apply border border-border/40;
+  @apply focus:border-primary/50 focus:ring-1 focus:ring-primary/20;
+}
+
+.ribbon-textarea {
+  font-size: var(--ribbon-font-base);
+  @apply min-h-[80px] font-mono px-3 py-2;
+  @apply border border-border/40 resize-none;
+  @apply focus:border-primary/50 focus:ring-1 focus:ring-primary/20;
+  @apply transition-all duration-150;
+}
+
+/* Switch rows */
+.ribbon-switches-row {
+  @apply flex items-center gap-6;
+  @apply pt-2;
+}
+
+.ribbon-switch-item {
+  @apply flex items-center gap-2;
+}
+
+.ribbon-switch-label {
+  font-size: var(--ribbon-font-base);
+  @apply font-medium text-foreground;
+}
+
+/* Ribbon destructive/warning colors - More visible than default */
+.ribbon-destructive-text {
+  @apply text-orange-600 dark:text-orange-400;
+}
+
+.ribbon-destructive-icon {
+  @apply text-orange-600 dark:text-orange-400;
+  @apply hover:text-orange-700 dark:hover:text-orange-300;
+}
+
+/* Auto-detect section in config panel */
+.ribbon-config-section:first-child {
+  @apply pb-4 border-b border-border/20;
+  @apply bg-gradient-to-r from-primary/5 to-primary/10;
+  @apply p-3 rounded-md mb-4;
+}
+
+.ribbon-auto-detect-button {
+  font-size: var(--ribbon-font-base);
+  @apply h-8 px-4 w-full;
+  @apply flex items-center justify-center gap-2;
+  @apply border border-primary/30 text-primary;
+  @apply hover:bg-primary/5 hover:border-primary/50;
+  @apply transition-all duration-150;
+  @apply shadow-sm hover:shadow;
+}
+
+.ribbon-auto-detect-description {
+  font-size: var(--ribbon-font-base);
+  @apply text-muted-foreground mt-2;
+  @apply leading-relaxed text-center;
+}
+
+/* Separator styling */
+.ribbon-separator {
+  @apply h-6 w-px bg-border/30;
+}
+
+/* Consistent text sizes for inline elements */
+.ribbon-text-xs {
+  font-size: var(--ribbon-font-xs);
+}
+
+.ribbon-text-sm {
+  font-size: var(--ribbon-font-sm);
+}
+
+.ribbon-text-base {
+  font-size: var(--ribbon-font-base);
+}
+
+.ribbon-text-md {
+  font-size: var(--ribbon-font-md);
+}
+
+.ribbon-text-lg {
+  font-size: var(--ribbon-font-lg);
+}
+
+/* Quick link styling */
+.ribbon-quick-link {
+  font-size: var(--ribbon-font-xs);
+  @apply text-primary hover:underline px-0.5;
+}
+
+/* Format example text */
+.ribbon-format-example {
+  font-size: var(--ribbon-font-xs);
+  @apply text-muted-foreground;
+}
+
+/* Mono text styling */
+.ribbon-mono-text {
+  font-size: var(--ribbon-font-xs);
+  @apply font-mono text-muted-foreground;
+}
+
+/* Dropdown and select content styling */
+.ribbon-dropdown-item {
+  font-size: var(--ribbon-font-sm);
+  @apply flex items-center gap-2;
+}
+
+/* Dialog and popup font sizes */
+.ribbon-dialog-title {
+  font-size: var(--ribbon-font-lg);
+  @apply font-semibold;
+}
+
+.ribbon-dialog-description {
+  font-size: var(--ribbon-font-base);
+  @apply text-muted-foreground;
+}
+
+.ribbon-dialog-label {
+  font-size: var(--ribbon-font-base);
+  @apply font-medium;
+}
+
+/* Popover content font sizes */
+.ribbon-popover-title {
+  font-size: var(--ribbon-font-md);
+  @apply font-semibold;
+}
+
+.ribbon-popover-content {
+  font-size: var(--ribbon-font-base);
+}
+
+/* Ensure all select items have consistent font size */
+.floating-ribbon [role="option"] {
+  font-size: var(--ribbon-font-sm) !important;
+}
+
+/* Ensure all dropdown menu items have consistent font size */
+.floating-ribbon [role="menuitem"] {
+  font-size: var(--ribbon-font-sm) !important;
+}
+
+/* Button text consistency */
+.floating-ribbon button {
+  font-size: var(--ribbon-font-sm) !important;
+  padding: 0 8px !important;
+  min-height: var(--ribbon-button-height) !important;
+}
+
+/* Input placeholders */
+.floating-ribbon input::placeholder,
+.floating-ribbon textarea::placeholder {
+  font-size: inherit;
+  @apply text-muted-foreground/60;
+}
+
+/* Ensure consistent spacing in flex containers */
+.floating-ribbon .flex {
+  gap: var(--ribbon-spacing-sm);
+}
+
+/* Consistent padding for sections */
+.floating-ribbon > div > div {
+  padding: var(--ribbon-spacing-sm);
+}
+
+/* Remove extra margins */
+.floating-ribbon * {
+  margin: 0;
+}
+
+/* Specific margin for spaced elements */
+.floating-ribbon .space-y-1 > * + * {
+  margin-top: 4px !important;
+}
+
+.floating-ribbon .space-y-2 > * + * {
+  margin-top: 8px !important;
+}
+
+/* Hover and focus improvements */
+.ribbon-action-button:hover,
+.ribbon-quick-action:hover {
+  @apply shadow-sm;
+}
+
+.ribbon-action-button:focus-visible,
+.ribbon-quick-action:focus-visible {
+  @apply ring-2 ring-primary/50 ring-offset-1;
+  @apply outline-none;
+}
+
+/* Enhanced visual hierarchy */
+.ribbon-primary-controls {
+  @apply shadow-sm;
+}
+
+.ribbon-editor-info {
+  @apply shadow-sm;
+}
+
+.ribbon-config-panel {
+  @apply shadow-md;
+}
+
+/* Responsive improvements */
+@media (max-width: 1024px) {
+  .ribbon-options-grid {
+    @apply flex-col gap-2;
+  }
+  
+  .ribbon-quick-actions {
+    @apply flex-wrap gap-1;
+  }
+  
+  .ribbon-field-grid {
+    @apply grid-cols-1 gap-2;
+  }
+  
+  .ribbon-switches-row {
+    @apply flex-col items-start gap-3;
+  }
+}

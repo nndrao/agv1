@@ -132,6 +132,12 @@ export interface ColumnCustomization {
   // Cell data type
   cellDataType?: 'text' | 'number' | 'date' | 'boolean';
   
+  // Editor properties
+  cellEditor?: string;
+  cellEditorParams?: Record<string, any>;
+  cellEditorPopup?: boolean;
+  singleClickEdit?: boolean;
+  
   // Other commonly customized properties
   headerTooltip?: string;
   tooltipField?: string;
@@ -354,6 +360,28 @@ function extractCustomizations(col: ColDef, baseCol?: ColDef): ColumnCustomizati
   // Cell data type
   if (col.cellDataType && col.cellDataType !== baseCol?.cellDataType) {
     customization.cellDataType = col.cellDataType;
+  }
+  
+  // Editor properties
+  if (col.cellEditor && col.cellEditor !== baseCol?.cellEditor) {
+    customization.cellEditor = col.cellEditor;
+    console.log('[ColumnSerializer] Saving cellEditor:', {
+      field: col.field,
+      cellEditor: col.cellEditor
+    });
+  }
+  if (col.cellEditorParams && Object.keys(col.cellEditorParams).length > 0) {
+    customization.cellEditorParams = col.cellEditorParams;
+    console.log('[ColumnSerializer] Saving cellEditorParams:', {
+      field: col.field,
+      cellEditorParams: col.cellEditorParams
+    });
+  }
+  if (col.cellEditorPopup !== undefined && col.cellEditorPopup !== baseCol?.cellEditorPopup) {
+    customization.cellEditorPopup = col.cellEditorPopup;
+  }
+  if (col.singleClickEdit !== undefined && col.singleClickEdit !== baseCol?.singleClickEdit) {
+    customization.singleClickEdit = col.singleClickEdit;
   }
   
   // Other properties
@@ -605,6 +633,24 @@ export function deserializeColumnCustomizations(
     
     // Apply cell data type
     if (custom.cellDataType !== undefined) merged.cellDataType = custom.cellDataType;
+    
+    // Apply editor properties
+    if (custom.cellEditor !== undefined) {
+      merged.cellEditor = custom.cellEditor;
+      console.log('[ColumnSerializer] Applying cellEditor:', {
+        field,
+        cellEditor: custom.cellEditor
+      });
+    }
+    if (custom.cellEditorParams !== undefined) {
+      merged.cellEditorParams = custom.cellEditorParams;
+      console.log('[ColumnSerializer] Applying cellEditorParams:', {
+        field,
+        cellEditorParams: custom.cellEditorParams
+      });
+    }
+    if (custom.cellEditorPopup !== undefined) merged.cellEditorPopup = custom.cellEditorPopup;
+    if (custom.singleClickEdit !== undefined) merged.singleClickEdit = custom.singleClickEdit;
     
     // Apply other properties
     if (custom.headerTooltip !== undefined) merged.headerTooltip = custom.headerTooltip;
