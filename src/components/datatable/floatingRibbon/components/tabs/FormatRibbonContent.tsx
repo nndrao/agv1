@@ -199,6 +199,24 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
     return { value: undefined, isMixed: true, values: allValues };
   };
 
+  // Get current format string from selected columns
+  const getCurrentFormatString = useCallback(() => {
+    if (selectedColumns.size === 0) return '';
+    
+    const currentFormatter = getMixedValueLocal('valueFormatter');
+    
+    if (currentFormatter.isMixed) {
+      return '[Mixed Values]';
+    }
+    
+    if (currentFormatter.value && typeof currentFormatter.value === 'function') {
+      const formatString = (currentFormatter.value as any).__formatString;
+      return formatString || '[Custom Function]';
+    }
+    
+    return '';
+  }, [selectedColumns]);
+
   const applyFormatWithModifiers = useCallback((baseFormat: string, baseKey: string) => {
     let finalFormat = baseFormat;
     
@@ -983,6 +1001,68 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
         </div>
       </div>
       
+      {/* Current Format Display */}
+      {getCurrentFormatString() && (
+        <div className="ribbon-preview-box">
+          <div className="flex items-center gap-2">
+            <span className="ribbon-preview-label">CURRENT FORMAT:</span>
+            <code className="font-mono text-xs bg-muted/50 px-2 py-1 rounded border flex-1 min-w-0 truncate" title={getCurrentFormatString()}>
+              {getCurrentFormatString()}
+            </code>
+            {/* Modifier indicators */}
+            <div className="flex items-center gap-1">
+              {(() => {
+                const formatStr = getCurrentFormatString();
+                const indicators = [];
+                
+                // Check for colorized format (color conditions)
+                if (formatStr.match(/\[(>|<|>=|<=)?\d*\]\s*\[(Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan|#[0-9A-Fa-f]{3,6})\]/i)) {
+                  indicators.push(
+                    <span key="color" className="text-xs text-green-600 dark:text-green-400 font-medium px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 rounded">
+                      +/- Color
+                    </span>
+                  );
+                }
+                
+                // Check for no separator
+                const hasNumericFormat = /[#0]/.test(formatStr);
+                const hasCommaSeparator = /#,##/.test(formatStr);
+                if (hasNumericFormat && !hasCommaSeparator) {
+                  indicators.push(
+                    <span key="nosep" className="text-xs text-blue-600 dark:text-blue-400 font-medium px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 rounded">
+                      No Sep
+                    </span>
+                  );
+                }
+                
+                // Check for currency
+                const currencySymbols = ['$', '€', '£', '¥', '₹', 'C$', 'A$', 'CHF', 'kr', 'R$'];
+                const hasCurrency = currencySymbols.some(symbol => formatStr.includes(symbol));
+                if (hasCurrency) {
+                  const currency = currencySymbols.find(symbol => formatStr.includes(symbol));
+                  indicators.push(
+                    <span key="currency" className="text-xs text-purple-600 dark:text-purple-400 font-medium px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 rounded">
+                      {currency}
+                    </span>
+                  );
+                }
+                
+                // Check for percentage
+                if (formatStr.includes('%')) {
+                  indicators.push(
+                    <span key="percent" className="text-xs text-orange-600 dark:text-orange-400 font-medium px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 rounded">
+                      %
+                    </span>
+                  );
+                }
+                
+                return indicators;
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Custom format row */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1 flex-1">
