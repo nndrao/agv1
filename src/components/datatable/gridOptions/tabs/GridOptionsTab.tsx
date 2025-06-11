@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { GridOptionsConfig, GridOptionsSection, GridOptionField } from '../types';
-import { cn } from '@/lib/utils';
 
 interface GridOptionsTabProps {
   section: GridOptionsSection;

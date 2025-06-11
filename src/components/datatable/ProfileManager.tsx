@@ -46,7 +46,7 @@ import {
 } from '@/components/datatable/stores/profile.store';
 import { GridApi, ColDef } from 'ag-grid-community';
 import { profileOptimizer } from '@/components/datatable/lib/profileOptimizer';
-import { useAgGridStateManager, type AgGridState } from '../../../ag-grid-state-functions';
+import { useAgGridStateManager } from '../../../ag-grid-state-functions';
 
 // Interface for style configurations
 interface _HeaderStyleConfig {

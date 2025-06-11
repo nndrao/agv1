@@ -9,8 +9,7 @@ import {
   Zap, 
   MousePointer, 
   Database, 
-  Copy, 
-  FolderTree,
+  Copy,
   Settings,
   Save,
   RotateCcw,
@@ -18,7 +17,7 @@ import {
   GripVertical,
   Rows
 } from 'lucide-react';
-import { GridOptionsConfig, GridOptionsSection } from './types';
+import { GridOptionsConfig } from './types';
 import { useProfileStore } from '../stores/profile.store';
 import { GridOptionsPropertyTab } from './tabs/GridOptionsPropertyTab';
 import { gridOptionsSections } from './gridOptionsConfig';

@@ -1,11 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { InputNumber } from '@/components/ui/input-number';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronRight } from 'lucide-react';
 import { 
   Tooltip, 
   TooltipContent, 
@@ -41,7 +39,7 @@ export const GridOptionsPropertyGrid: React.FC<GridOptionsPropertyGridProps> = (
 
   // Filter and organize fields
   const filteredData = useMemo(() => {
-    let allFields: { field: GridOptionField; section: GridOptionsSection }[] = [];
+    const allFields: { field: GridOptionField; section: GridOptionsSection }[] = [];
     
     sections.forEach(section => {
       section.options.forEach(field => {

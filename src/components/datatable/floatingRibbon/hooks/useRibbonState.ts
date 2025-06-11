@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
 import { useProfileStore } from '../../stores/profile.store';
 import type { ColDef, ColumnState } from 'ag-grid-community';
-import { serializeColumnCustomizations } from '../../stores/columnSerializer';
 import type { MixedValue, RibbonTab, FormatCategory } from '../types';
 
 interface UseRibbonStateProps {
