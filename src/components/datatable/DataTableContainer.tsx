@@ -5,6 +5,7 @@ import { DataTableGrid } from './DataTableGrid';
 import { DataTableToolbar } from './DataTableToolbar';
 import { ColumnCustomizationDialog } from './columnCustomizations/ColumnCustomizationDialog';
 import { GridOptionsPropertyEditor } from './gridOptions/GridOptionsPropertyEditor';
+import { DataSourceFloatingDialog } from './datasource/DataSourceFloatingDialog';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
 import { useGridState } from './hooks/useGridState';
 import { useProfileSync } from './hooks/useProfileSync';
@@ -38,8 +39,14 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
     setShowColumnDialog,
   } = useGridState(columnDefs);
   
-  // State for grid options dialog
+  // State for dialogs
   const [showGridOptionsDialog, setShowGridOptionsDialog] = useState(false);
+  const [showDataSourceDialog, setShowDataSourceDialog] = useState(false);
+  
+  // Debug log for dialog state
+  React.useEffect(() => {
+    console.log('[DataTableContainer] showDataSourceDialog:', showDataSourceDialog);
+  }, [showDataSourceDialog]);
   
   // Initialize grid options hook
   const {
@@ -103,6 +110,23 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       gridApiRef.current.refreshCells({ force: true });
     }
   }, [setSelectedFontSize, saveGridOptions]);
+  
+  // Handle data source changes
+  const handleApplyDataSources = React.useCallback((dataSources: any[]) => {
+    console.log('[DataTableContainer] Applying data sources:', dataSources);
+    
+    // TODO: Implement data source loading logic
+    // This would typically:
+    // 1. Connect to active data sources
+    // 2. Fetch data from each source
+    // 3. Merge/combine data as needed
+    // 4. Update the grid with new data
+    
+    // For now, just log the data sources
+    dataSources.forEach(ds => {
+      console.log(`Loading data from ${ds.name} (${ds.type})`);
+    });
+  }, []);
   
   // Handle grid options apply
   const handleApplyGridOptions = React.useCallback((options: any) => {
@@ -235,6 +259,10 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
           onSpacingChange={() => {}} // Empty function to satisfy prop requirements
           onOpenColumnSettings={() => setShowColumnDialog(true)}
           onOpenGridOptions={() => setShowGridOptionsDialog(true)}
+          onOpenDataSource={() => {
+            console.log('[DataTableContainer] Opening data source dialog');
+            setShowDataSourceDialog(true);
+          }}
           gridApi={gridApi}
           onProfileChange={handleProfileChange}
           getColumnDefsWithStyles={getColumnDefsWithStyles}
@@ -260,7 +288,15 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
           onApply={handleApplyGridOptions}
           currentOptions={gridOptions}
         />
+        
       </div>
+      
+      {/* Render dialogs outside the main container to avoid overflow issues */}
+      <DataSourceFloatingDialog
+        open={showDataSourceDialog}
+        onOpenChange={setShowDataSourceDialog}
+        onApply={handleApplyDataSources}
+      />
     </DataTableProvider>
   );
 });
