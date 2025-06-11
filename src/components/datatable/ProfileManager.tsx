@@ -104,87 +104,83 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
   }, [profiles]);
 
   // Function to apply profile states in sequence
-  const _applyProfileStates = (gridApi: GridApi, gridState: GridProfile['gridState'], profileName: string) => {
-    // console.log('[ProfileManager] Applying profile states in sequence');
+  const _applyProfileStates = (gridApi: GridApi, profile: GridProfile) => {
+    console.log('[ProfileManager] Applying profile states in correct order:', {
+      profileName: profile.name,
+      hasGridOptions: !!profile.gridOptions,
+      hasColumnSettings: !!profile.columnSettings,
+      hasGridState: !!profile.gridState
+    });
     
-    // 1. Apply column state first
-    if (gridState.columnState) {
-      // console.log('[ProfileManager] Applying columnState:', {
-      //   totalColumns: gridState.columnState.length,
-      //   visibleColumns: gridState.columnState.filter((col: ColumnState) => !col.hide).length,
-      //   hiddenColumns: gridState.columnState.filter((col: ColumnState) => col.hide).length,
-      //   columnOrder: gridState.columnState.slice(0, 5).map((col: ColumnState) => col.colId)
-      // });
-      
-      gridApi.applyColumnState({
-        state: gridState.columnState,
-        applyOrder: true
+    // 1. Apply grid options first (row height, header height, etc)
+    if (profile.gridOptions) {
+      console.log('[ProfileManager] Step 1: Applying grid options');
+      Object.entries(profile.gridOptions).forEach(([key, value]) => {
+        if (value !== undefined && key !== 'font') {
+          try {
+            gridApi.setGridOption(key as any, value);
+          } catch (e) {
+            console.warn(`[ProfileManager] Failed to set grid option ${key}:`, e);
+          }
+        }
       });
       
-      // Verify column state was applied
-      const _newState = gridApi.getColumnState();
-      // console.log('[ProfileManager] Column state after apply:', {
-      //   totalColumns: newState.length,
-      //   visibleColumns: newState.filter(col => !col.hide).length,
-      //   hiddenColumns: newState.filter(col => col.hide).length,
-      //   columnOrder: newState.slice(0, 5).map(col => col.colId)
-      // });
+      // Reset row heights if row height was changed
+      if (profile.gridOptions.rowHeight) {
+        gridApi.resetRowHeights();
+      }
     }
     
-    // 2. Apply filters after column state
+    // 2. Apply column settings (styles, formatters) - this is done via column definitions
+    // Column definitions are already applied before this function is called
+    
+    // 3. Apply grid state (column state, filters, sorts)
     setTimeout(() => {
-      if (gridState.filterModel) {
-        // console.log('[ProfileManager] Applying filterModel');
-        gridApi.setFilterModel(gridState.filterModel);
-      }
-      
-      // 3. Apply sorting after filters
-      setTimeout(() => {
-        if (gridState.sortModel) {
-          // console.log('[ProfileManager] Applying sortModel');
+      if (profile.gridState) {
+        // Apply column state first
+        if (profile.gridState.columnState) {
+          console.log('[ProfileManager] Step 3a: Applying column state');
           gridApi.applyColumnState({
-            state: gridState.sortModel.map(sort => ({
-              colId: sort.colId,
-              sort: sort.sort,
-              sortIndex: sort.sortIndex
-            }))
+            state: profile.gridState.columnState,
+            applyOrder: true
           });
         }
         
-        // 4. Apply grid options if available
+        // Apply filters after column state
         setTimeout(() => {
-          if (gridState.gridOptions) {
-            // console.log('[ProfileManager] Applying grid options:', gridState.gridOptions);
-            
-            if (gridState.gridOptions.rowHeight) {
-              gridApi.resetRowHeights();
-              gridApi.setGridOption('rowHeight', gridState.gridOptions.rowHeight);
-            }
-            
-            if (gridState.gridOptions.headerHeight) {
-              gridApi.setGridOption('headerHeight', gridState.gridOptions.headerHeight);
-            }
-            
-            if (gridState.gridOptions.floatingFiltersHeight) {
-              gridApi.setGridOption('floatingFiltersHeight', gridState.gridOptions.floatingFiltersHeight);
-            }
+          if (profile.gridState.filterModel) {
+            console.log('[ProfileManager] Step 3b: Applying filters');
+            gridApi.setFilterModel(profile.gridState.filterModel);
           }
           
-          // 5. Final refresh
+          // Apply sorting after filters
           setTimeout(() => {
-            // console.log('[ProfileManager] Final refresh');
-            gridApi.refreshCells({ force: true });
-            gridApi.refreshHeader();
-            gridApi.redrawRows();
+            if (profile.gridState.sortModel) {
+              console.log('[ProfileManager] Step 3c: Applying sorts');
+              gridApi.applyColumnState({
+                state: profile.gridState.sortModel.map(sort => ({
+                  colId: sort.colId,
+                  sort: sort.sort,
+                  sortIndex: sort.sortIndex
+                }))
+              });
+            }
             
-            // Show success toast
-            toast({
-              title: 'Profile applied',
-              description: `Successfully loaded "${profileName}" profile settings`,
-            });
+            // Final refresh
+            setTimeout(() => {
+              console.log('[ProfileManager] Step 4: Final refresh');
+              gridApi.refreshHeader();
+              gridApi.redrawRows();
+              
+              // Show success toast
+              toast({
+                title: 'Profile applied',
+                description: `Successfully loaded "${profile.name}" profile settings`,
+              });
+            }, 50);
           }, 50);
         }, 50);
-      }, 50);
+      }
     }, 50);
   };
 
@@ -261,68 +257,14 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
           await new Promise(resolve => setTimeout(resolve, 50));
         }
         
-        // Apply profile states using ag-grid-state-functions
-        if (profile.gridState) {
-          // Use applyState from ag-grid-state-functions for comprehensive state restoration
-          const stateToApply: AgGridState = {
-            columnState: profile.gridState.columnState || [],
-            filterModel: profile.gridState.filterModel || {},
-            sortModel: profile.gridState.sortModel || [],
-            // Add other state properties with defaults
-            columnGroupState: [],
-            rowGroupColumns: [],
-            pivotMode: false,
-            pivotColumns: [],
-            valueColumns: [],
-            pagination: {
-              currentPage: 0,
-              pageSize: 100,
-              totalPages: null,
-              paginationPageSizeSelector: null
-            },
-            selectedRowIds: [],
-            selectedNodes: [],
-            expandedGroups: [],
-            pinnedTopRowData: [],
-            pinnedBottomRowData: [],
-            rowModelType: 'clientSide'
-          };
-          
-          // Apply the state with column order preservation
-          await applyState(stateToApply, {
-            applyColumnState: true,
-            applyFilters: true,
-            applySorting: true,
-            applyRowGrouping: false,
-            applyPivoting: false,
-            applyPagination: false,
-            applySelection: false,
-            applyRowPinning: false,
-            applyFocus: false,
-            applyRangeSelection: false
-          });
-          
-          console.log('[ProfileManager] State applied using ag-grid-state-functions');
-          
-          // Apply grid options separately as they're not part of ag-grid-state-functions
-          if (profile.gridState.gridOptions) {
-            console.log('[ProfileManager] Applying grid options');
-            const options = profile.gridState.gridOptions;
-            if (options.rowHeight) {
-              gridApi.resetRowHeights();
-              gridApi.setGridOption('rowHeight', options.rowHeight);
-            }
-            if (options.headerHeight) {
-              gridApi.setGridOption('headerHeight', options.headerHeight);
-            }
-          }
-          
-          // 4. Apply font
-          if (profile.gridState.font) {
-            console.log('[ProfileManager] Applying font:', profile.gridState.font);
-            // Font will be applied through the parent component's onProfileChange callback
-            // The parent component (DataTableContainer) handles font changes via useProfileSync
-          }
+        // Apply profile states in the correct order
+        _applyProfileStates(gridApi, profile);
+        
+        // Apply font through parent callback
+        if (profile.gridOptions?.font) {
+          console.log('[ProfileManager] Font will be applied through parent callback:', profile.gridOptions.font);
+          // Font will be applied through the parent component's onProfileChange callback
+          // The parent component (DataTableContainer) handles font changes via useProfileSync
         }
         
         if (!profileColumnDefs || profileColumnDefs.length === 0) {
@@ -520,14 +462,9 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       return cleaned;
     });
 
-    // Get additional grid options
-    const gridOptions = {
-      rowHeight: gridApi.getGridOption('rowHeight'),
-      headerHeight: gridApi.getGridOption('headerHeight'),
-      floatingFiltersHeight: gridApi.getGridOption('floatingFiltersHeight'),
-      pagination: gridApi.getGridOption('pagination'),
-      paginationPageSize: gridApi.getGridOption('paginationPageSize')
-    };
+    // Note: Grid options are already stored in the profile when user clicks Apply in Grid Options Editor
+    // We don't need to extract them here - they're already in activeProfile.gridOptions
+    // This prevents overwriting user's saved grid options with a limited subset
     
     console.log('[ProfileManager] handleSaveCurrentState:', {
       activeProfileId: activeProfile.id,
@@ -550,16 +487,22 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       
       // Save column customizations using the lightweight format
       // Get the base columns from the active profile if available, otherwise use current
-      const baseColumns = activeProfile.gridState.baseColumnDefs || columnDefs;
+      const baseColumns = activeProfile.columnSettings?.baseColumnDefs || columnDefs;
       saveColumnCustomizations(cleanedColumnDefs, baseColumns);
       
-      // Save other grid state (not column definitions)
-      saveCurrentState({
+      // Save grid state separately
+      const { saveGridState, saveGridOptions } = useProfileStore.getState();
+      
+      // Save AG-Grid state (column state, filters, sorts)
+      saveGridState({
         columnState,
         filterModel,
-        sortModel,
-        gridOptions
+        sortModel
       });
+      
+      // Grid options are already saved when user clicks Apply in Grid Options Editor
+      // Column customizations are saved above
+      // So we just need to persist everything to localStorage by updating the profile
       
       // Clear optimizer cache for this profile so it gets reprocessed
       profileOptimizer.clearCache(activeProfile.id);

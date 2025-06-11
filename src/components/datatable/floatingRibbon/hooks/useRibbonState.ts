@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
 import { useProfileStore } from '../../stores/profile.store';
 import type { ColDef, ColumnState } from 'ag-grid-community';
+import { serializeColumnCustomizations } from '../../stores/columnSerializer';
 import type { MixedValue, RibbonTab, FormatCategory } from '../types';
 
 interface UseRibbonStateProps {
@@ -34,7 +35,7 @@ export const useRibbonState = ({
   } = useColumnCustomizationStore();
 
   // Profile store integration
-  const { saveColumnCustomizations, getActiveProfile } = useProfileStore();
+  const { saveColumnSettings, getActiveProfile } = useProfileStore();
 
   // Local state
   const [activeTab, setActiveTab] = useState<RibbonTab>('styling');
@@ -160,7 +161,7 @@ export const useRibbonState = ({
     return styles;
   }, [getMixedValue]);
 
-  // Enhanced apply changes with proper profile integration
+  // Enhanced apply changes - only updates grid, doesn't save to profile
   const handleApply = useCallback(() => {
     try {
       console.log('[RibbonState] Applying changes:', {
@@ -172,10 +173,15 @@ export const useRibbonState = ({
       // Apply changes to get updated column definitions
       const updatedColumnDefs = applyChanges();
       
-      // Save to profile store (this will be persisted to the active profile)
-      saveColumnCustomizations(updatedColumnDefs, columnDefs);
+      console.log('[RibbonState] Updated column definitions:', {
+        totalColumns: updatedColumnDefs.length,
+        columnsWithStyles: updatedColumnDefs.filter(col => col.cellStyle).length,
+        columnsWithFormatters: updatedColumnDefs.filter(col => col.valueFormatter).length,
+        sampleColumn: updatedColumnDefs.find(col => col.cellStyle || col.valueFormatter)
+      });
       
       // Call the onApply callback to update the grid
+      // This updates the grid but doesn't save to the profile/localStorage
       if (onApply) {
         onApply(updatedColumnDefs);
       }
@@ -188,13 +194,14 @@ export const useRibbonState = ({
       console.error('[RibbonState] Error applying changes:', error);
       toast.error('Failed to apply changes');
     }
-  }, [applyChanges, saveColumnCustomizations, columnDefs, onApply, selectedColumns.size]);
+  }, [applyChanges, onApply, selectedColumns.size]);
 
   // Reset changes
   const handleReset = useCallback(() => {
     resetChanges();
     toast.success('Reset all pending changes');
   }, [resetChanges]);
+
 
   // Direct pass-through to store's updateBulkProperty
   // The StylingRibbonContent component now handles all the cellStyle/headerStyle logic

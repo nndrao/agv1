@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Settings2, Download, FileSpreadsheet } from "lucide-react";
+import { Settings2, Download, FileSpreadsheet, Sliders } from "lucide-react";
 import { ProfileManager } from "./ProfileManager";
 import { GridApi, ColDef as AgColDef, ProcessCellForExportParams } from "ag-grid-community";
 import { GridProfile } from "@/components/datatable/stores/profile.store";
@@ -25,17 +25,21 @@ const monospaceFonts = [
 ];
 
 interface DataTableToolbarProps {
+  selectedFont?: string;
   onFontChange: (font: string) => void;
   onSpacingChange: (spacing: string) => void;
   onOpenColumnSettings?: () => void;
+  onOpenGridOptions?: () => void;
   gridApi?: GridApi | null;
   onProfileChange?: (profile: GridProfile) => void;
   getColumnDefsWithStyles?: () => AgColDef[];
 }
 
 export function DataTableToolbar({ 
+  selectedFont = 'monospace',
   onFontChange, 
   onOpenColumnSettings,
+  onOpenGridOptions,
   gridApi,
   onProfileChange,
   getColumnDefsWithStyles 
@@ -143,7 +147,7 @@ export function DataTableToolbar({
           <label htmlFor="font-select" className="text-sm font-medium">
             Font:
           </label>
-          <Select onValueChange={onFontChange} defaultValue="monospace">
+          <Select onValueChange={onFontChange} value={selectedFont}>
             <SelectTrigger id="font-select" className="w-[180px] h-8">
               <SelectValue placeholder="Select font" />
             </SelectTrigger>
@@ -179,6 +183,17 @@ export function DataTableToolbar({
           <Download className="mr-2 h-4 w-4" />
           CSV
         </Button>
+        {onOpenGridOptions && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onOpenGridOptions}
+            className="h-8"
+          >
+            <Sliders className="mr-2 h-4 w-4" />
+            Grid Options
+          </Button>
+        )}
         {onOpenColumnSettings && (
           <Button 
             variant="outline" 

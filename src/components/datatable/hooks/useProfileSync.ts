@@ -15,8 +15,8 @@ export function useProfileSync(
     console.log('[useProfileSync] handleProfileChange:', {
       profileId: profile.id,
       profileName: profile.name,
-      hasFont: !!profile.gridState.font,
-      font: profile.gridState.font
+      hasFont: !!profile.gridOptions?.font,
+      font: profile.gridOptions?.font
     });
     
     // Get column definitions from profile store (already processed)
@@ -35,7 +35,7 @@ export function useProfileSync(
     }
     
     // Apply font from profile or reset to default
-    setSelectedFont(profile.gridState.font || 'monospace');
+    setSelectedFont(profile.gridOptions?.font || 'monospace');
     
     // The profile manager component handles applying the grid state to the grid API using the optimizer
   }, [getColumnDefs, setCurrentColumnDefs, setSelectedFont]);
