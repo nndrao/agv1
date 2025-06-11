@@ -44,18 +44,19 @@ export function analyzeProfileStorage(): StorageAnalysis {
   
   const profileAnalysis = profiles.map(profile => {
     // Calculate legacy size (full columnDefs)
-    const legacySize = profile.gridState.columnDefs 
-      ? JSON.stringify(profile.gridState.columnDefs).length / 1024
+    const legacySize = profile.gridState_legacy?.columnDefs 
+      ? JSON.stringify(profile.gridState_legacy.columnDefs).length / 1024
       : 0;
     
-    // Calculate lightweight size
-    const lightweightSize = profile.gridState.columnCustomizations
-      ? calculateCustomizationSize(profile.gridState.columnCustomizations) / 1024
+    // Calculate lightweight size from new structure or legacy
+    const customizations = profile.columnSettings?.columnCustomizations || profile.gridState_legacy?.columnCustomizations;
+    const lightweightSize = customizations
+      ? calculateCustomizationSize(customizations) / 1024
       : 0;
     
     // Get customization summary if using lightweight format
-    const customizationSummary = profile.gridState.columnCustomizations
-      ? getCustomizationSummary(profile.gridState.columnCustomizations)
+    const customizationSummary = customizations
+      ? getCustomizationSummary(customizations)
       : undefined;
     
     const potentialSavings = legacySize > 0 ? legacySize - lightweightSize : 0;

@@ -1,5 +1,4 @@
 import { useColumnCustomizationStore } from '../store/columnCustomization.store';
-import { shallow } from 'zustand/shallow';
 import { useMemo } from 'react';
 
 // Optimized selectors for better performance
@@ -16,8 +15,7 @@ export const useColumnActions = () => useColumnCustomizationStore(
     toggleColumnSelection: state.toggleColumnSelection,
     applyChanges: state.applyChanges,
     resetChanges: state.resetChanges,
-  }),
-  shallow
+  })
 );
 
 // Combined selector for components that need multiple values
@@ -26,8 +24,7 @@ export const useColumnState = () => useColumnCustomizationStore(
     selectedColumns: state.selectedColumns,
     columnDefinitions: state.columnDefinitions,
     pendingChanges: state.pendingChanges,
-  }),
-  shallow
+  })
 );
 
 // Optimized hook for apply operations with memoized values
@@ -63,7 +60,6 @@ export const useDialogControls = () => {
       setActiveTab: state.setActiveTab,
       bulkActionsPanelCollapsed: state.bulkActionsPanelCollapsed,
       setBulkActionsPanelCollapsed: state.setBulkActionsPanelCollapsed,
-    }),
-    shallow
+    })
   );
 };

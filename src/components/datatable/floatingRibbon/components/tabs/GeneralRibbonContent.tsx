@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   Settings
 } from 'lucide-react';
-import { useColumnCustomizationStore } from '../../../dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnCustomizationStore } from '../../../columnCustomizations/store/columnCustomization.store';
 import type { TabContentProps } from '../../types';
 import '../../ribbon-styles.css';
 

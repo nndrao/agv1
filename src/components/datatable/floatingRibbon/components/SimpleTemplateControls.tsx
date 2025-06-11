@@ -16,7 +16,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useColumnTemplateStore } from '../../stores/columnTemplate.store';
-import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnCustomizationStore } from '../../columnCustomizations/store/columnCustomization.store';
 
 interface SimpleTemplateControlsProps {
   selectedColumns: Set<string>;

@@ -117,7 +117,7 @@ export const EditorsTab: React.FC = React.memo(() => {
       configs.set(colId, {
         cellEditor,
         cellEditorParams,
-        editable,
+        editable: typeof editable === 'boolean' ? editable : true,
       });
     });
 
@@ -135,7 +135,9 @@ export const EditorsTab: React.FC = React.memo(() => {
     // Limit cache size
     if (editorConfigCache.current.size > 50) {
       const firstKey = editorConfigCache.current.keys().next().value;
-      editorConfigCache.current.delete(firstKey);
+      if (firstKey !== undefined) {
+        editorConfigCache.current.delete(firstKey);
+      }
     }
     
     return result;
@@ -148,8 +150,13 @@ export const EditorsTab: React.FC = React.memo(() => {
     const dataTypes = new Set<string>();
     selectedColumns.forEach(colId => {
       const colDef = columnDefinitions.get(colId);
-      const dataType = colDef?.cellDataType || colDef?.type || 'text';
-      dataTypes.add(dataType);
+      const cellDataType = colDef?.cellDataType;
+      const type = colDef?.type;
+      const dataType = typeof cellDataType === 'string' ? cellDataType : 
+                      (Array.isArray(type) ? type[0] : type) || 'text';
+      if (typeof dataType === 'string') {
+        dataTypes.add(dataType);
+      }
     });
 
     if (dataTypes.size === 1) {
@@ -394,7 +401,7 @@ const TextEditorParams: React.FC<{
         <Input
           id="max-length"
           type="number"
-          value={editorParams.maxLength || ''}
+          value={editorParams.maxLength ?? ''}
           onChange={handleMaxLengthChange}
           placeholder="No limit"
           disabled={disabled}
@@ -436,7 +443,7 @@ const LargeTextEditorParams: React.FC<{
           <Input
             id="rows"
             type="number"
-            value={editorParams.rows || 5}
+            value={editorParams.rows ?? 5}
             onChange={handleRowsChange}
             min={1}
             disabled={disabled}

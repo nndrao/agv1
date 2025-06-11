@@ -28,7 +28,7 @@ import {
   Settings
 } from 'lucide-react';
 import { useColumnTemplateStore } from '../../stores/columnTemplate.store';
-import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnCustomizationStore } from '../../columnCustomizations/store/columnCustomization.store';
 import { parseColorValue } from '../../utils/styleUtils';
 
 interface BulkTemplateApplicationProps {

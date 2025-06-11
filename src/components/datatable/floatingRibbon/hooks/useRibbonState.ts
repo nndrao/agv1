@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnCustomizationStore } from '../../columnCustomizations/store/columnCustomization.store';
 import { useProfileStore } from '../../stores/profile.store';
 import type { ColDef, ColumnState } from 'ag-grid-community';
 import type { MixedValue, RibbonTab, FormatCategory } from '../types';

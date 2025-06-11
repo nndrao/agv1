@@ -6,7 +6,7 @@ import {
   Columns,
   Edit3
 } from 'lucide-react';
-import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnCustomizationStore } from '../../columnCustomizations/store/columnCustomization.store';
 import type { RibbonPreviewProps } from '../types';
 
 export const RibbonPreview: React.FC<RibbonPreviewProps> = ({

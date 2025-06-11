@@ -31,8 +31,8 @@ import {
   Columns3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
-import { CustomizationBadges, CustomizationType } from '../../dialogs/columnSettings/components/CustomizationBadges';
+import { useColumnCustomizationStore } from '../../columnCustomizations/store/columnCustomization.store';
+import { CustomizationBadges, CustomizationType } from '../../columnCustomizations/components/CustomizationBadges';
 import { SimpleTemplateControls } from './SimpleTemplateControls';
 import { parseColorValue } from '../../utils/styleUtils';
 import type { RibbonHeaderProps } from '../types';

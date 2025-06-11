@@ -21,7 +21,7 @@ import {
   HelpCircle,
   Code2
 } from 'lucide-react';
-import { useColumnCustomizationStore } from '../../../dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnCustomizationStore } from '../../../columnCustomizations/store/columnCustomization.store';
 import { createExcelFormatter, createCellStyleFunction } from '../../../utils/formatters';
 import { parseColorValue } from '../../../utils/styleUtils';
 import type { FormatTabProps } from '../../types';

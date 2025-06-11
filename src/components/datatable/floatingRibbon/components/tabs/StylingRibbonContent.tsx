@@ -26,7 +26,7 @@ import {
   ArrowRight,
   X
 } from 'lucide-react';
-import { useColumnCustomizationStore } from '../../../dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnCustomizationStore } from '../../../columnCustomizations/store/columnCustomization.store';
 import { createCellStyleFunction } from '../../../utils/formatters';
 import type { TabContentProps } from '../../types';
 import '../../ribbon-styles.css';

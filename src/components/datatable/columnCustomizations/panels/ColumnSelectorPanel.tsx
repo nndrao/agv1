@@ -66,7 +66,7 @@ export const ColumnSelectorPanel: React.FC = React.memo(() => {
   const availableCellDataTypes = useMemo(() => {
     const types = new Set<string>();
     allColumns.forEach(col => {
-      if (col.cellDataType) {
+      if (col.cellDataType && typeof col.cellDataType === 'string') {
         types.add(col.cellDataType);
       }
     });
@@ -444,10 +444,6 @@ const ColumnItem: React.FC<{
     onToggle(columnId);
   }, [columnId, onToggle]);
 
-  const _handleToggleTemplate = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    _onToggleTemplate(columnId);
-  }, [columnId, _onToggleTemplate]);
 
   const handleRemoveCustomization = useCallback((type: string) => {
     removeColumnCustomization(columnId, type);

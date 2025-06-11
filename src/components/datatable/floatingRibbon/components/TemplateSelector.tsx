@@ -28,7 +28,7 @@ import {
   Layers
 } from 'lucide-react';
 import { useColumnTemplateStore, DEFAULT_TEMPLATES } from '../../stores/columnTemplate.store';
-import { useColumnCustomizationStore } from '../../dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnCustomizationStore } from '../../columnCustomizations/store/columnCustomization.store';
 import { BulkTemplateApplication } from './BulkTemplateApplication';
 
 interface TemplateSelectorProps {

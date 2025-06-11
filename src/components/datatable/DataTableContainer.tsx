@@ -3,7 +3,7 @@ import { GridApi } from 'ag-grid-community';
 import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
 import { DataTableToolbar } from './DataTableToolbar';
-import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
+import { ColumnCustomizationDialog } from './columnCustomizations/ColumnCustomizationDialog';
 import { GridOptionsPropertyEditor } from './gridOptions/GridOptionsPropertyEditor';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
 import { useGridState } from './hooks/useGridState';
@@ -13,7 +13,7 @@ import { useGridOptions } from './gridOptions/hooks/useGridOptions';
 import { DataTableProps } from './types';
 import { useProfileStore } from '@/components/datatable/stores/profile.store';
 import { useTheme } from '@/components/datatable/ThemeProvider';
-import { useColumnCustomizationStore } from './dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnCustomizationStore } from './columnCustomizations/store/columnCustomization.store';
 import './datatable.css';
 
 /**
@@ -69,7 +69,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
     const activeProfile = useProfileStore.getState().getActiveProfile();
     if (activeProfile && activeProfile.id === 'default-profile' && 
         !activeProfile.columnSettings?.columnCustomizations && 
-        (!activeProfile.gridState?.columnDefs || activeProfile.gridState?.columnDefs?.length === 0)) {
+        (!activeProfile.gridState_legacy?.columnDefs || activeProfile.gridState_legacy?.columnDefs?.length === 0)) {
       console.log('[DataTableContainer] Initializing default profile with base columnDefs');
       // Pass columnDefs as both current and base since this is the initial setup
       // The first parameter is current state, second is the original base columns

@@ -1305,9 +1305,9 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
                 <Label className="text-xs">Font Weight</Label>
                 <Select
                   value={rule.styling.fontWeight}
-                  onValueChange={(value: FormattingRule['styling']['fontWeight']) =>
+                  onValueChange={(value) =>
                     onUpdate({
-                      styling: { ...rule.styling, fontWeight: value }
+                      styling: { ...rule.styling, fontWeight: value as FormattingRule['styling']['fontWeight'] }
                     })
                   }
                 >

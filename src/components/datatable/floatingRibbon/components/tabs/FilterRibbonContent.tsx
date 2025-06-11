@@ -18,7 +18,7 @@ import {
   ChevronDown,
   Plus
 } from 'lucide-react';
-import { useColumnCustomizationStore } from '../../../dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnCustomizationStore } from '../../../columnCustomizations/store/columnCustomization.store';
 import type { FilterTabProps } from '../../types';
 import '../../ribbon-styles.css';
 

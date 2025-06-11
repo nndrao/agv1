@@ -1,7 +1,7 @@
 import React, { useEffect, memo } from 'react';
 import { ColDef, ColumnState } from 'ag-grid-community';
 import { useColumnCustomizationStore } from './store/columnCustomization.store';
-import { FloatingRibbonUI } from '../../floatingRibbon/FloatingRibbonUI';
+import { FloatingRibbonUI } from '../floatingRibbon/FloatingRibbonUI';
 
 interface ColumnCustomizationDialogProps {
   open: boolean;

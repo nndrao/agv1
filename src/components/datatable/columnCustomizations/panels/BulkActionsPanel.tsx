@@ -319,7 +319,7 @@ export const BulkActionsPanel: React.FC = () => {
           if (property === 'valueFormatter') {
             // Store the formatter function directly
             if (value && typeof value === 'function') {
-              config[property] = value;
+              (config as any)[property] = value;
             }
           } else if (property === 'headerStyle') {
             // Special handling for headerStyle function
@@ -329,7 +329,7 @@ export const BulkActionsPanel: React.FC = () => {
               const floatingStyle = value({ floatingFilter: true });
               
               // Store as an object that preserves the conditional logic
-              config[property] = {
+              (config as any)[property] = {
                 _isHeaderStyleConfig: true,
                 regular: regularStyle,
                 floating: floatingStyle
@@ -340,7 +340,7 @@ export const BulkActionsPanel: React.FC = () => {
               try {
                 const regularStyle = value({});
                 if (regularStyle && typeof regularStyle === 'object') {
-                  config[property] = regularStyle;
+                  (config as any)[property] = regularStyle;
                 }
               } catch (e2) {
                 console.warn(`Failed to extract headerStyle completely:`, e2);
@@ -354,7 +354,7 @@ export const BulkActionsPanel: React.FC = () => {
             
             if (formatString) {
               // Store as a configuration object that can be recreated
-              config[property] = {
+              (config as any)[property] = {
                 type: 'function',
                 formatString: formatString,
                 baseStyle: baseStyle
@@ -375,15 +375,15 @@ export const BulkActionsPanel: React.FC = () => {
                      property === 'cellRenderer' || property === 'cellEditor' || property === 'filterValueGetter' ||
                      property === 'tooltipValueGetter') {
             // For other functions, store a flag that they exist
-            config[`_has${property.charAt(0).toUpperCase() + property.slice(1)}`] = true;
+            (config as any)[`_has${property.charAt(0).toUpperCase() + property.slice(1)}`] = true;
           }
         } else if (value && typeof value === 'object' && property === 'headerStyle' && 
-                   value._isHeaderStyleConfig) {
+                   (value as any)._isHeaderStyleConfig) {
           // If it's already in our special format, store it as is
-          config[property] = value;
+          (config as any)[property] = value;
         } else {
           // For non-function values, store directly
-          config[property] = value;
+          (config as any)[property] = value;
         }
       }
     });
@@ -471,13 +471,13 @@ export const BulkActionsPanel: React.FC = () => {
       // Handle headerStyle - convert back to function if needed
       if (templateProps.headerStyle) {
         const headerStyle = templateProps.headerStyle;
-        if (headerStyle._isHeaderStyleConfig) {
+        if ((headerStyle as any)._isHeaderStyleConfig) {
           // Convert to function format
           mergedProperties.headerStyle = (params: { floatingFilter?: boolean }) => {
             if (params?.floatingFilter) {
-              return headerStyle.floating || null;
+              return (headerStyle as any).floating || null;
             }
-            return headerStyle.regular || null;
+            return (headerStyle as any).regular || null;
           };
         } else if (typeof headerStyle === 'object') {
           // Legacy format - just a style object
@@ -493,10 +493,10 @@ export const BulkActionsPanel: React.FC = () => {
       // Handle cellStyle - recreate function if needed
       if (templateProps.cellStyle) {
         const cellStyle = templateProps.cellStyle;
-        if (cellStyle.type === 'function' && cellStyle.formatString) {
+        if ((cellStyle as any).type === 'function' && (cellStyle as any).formatString) {
           // We'll handle this after merging, store the config for now
-          mergedProperties._cellStyleConfig = cellStyle;
-        } else if (typeof cellStyle === 'object' && !cellStyle.type) {
+          (mergedProperties as any)._cellStyleConfig = cellStyle;
+        } else if (typeof cellStyle === 'object' && !(cellStyle as any).type) {
           // Static style object
           mergedProperties.cellStyle = cellStyle;
         }
@@ -505,7 +505,7 @@ export const BulkActionsPanel: React.FC = () => {
       // Merge all other properties (later templates override earlier ones)
       Object.keys(templateProps).forEach(key => {
         if (key !== 'valueFormatter' && key !== 'headerStyle' && key !== 'useValueFormatterForExport' && key !== 'cellStyle') {
-          mergedProperties[key] = templateProps[key];
+          (mergedProperties as any)[key] = (templateProps as any)[key];
         }
       });
     });
@@ -520,12 +520,12 @@ export const BulkActionsPanel: React.FC = () => {
     });
     
     // Handle cellStyle config if present
-    if (mergedProperties._cellStyleConfig) {
-      const cellStyleConfig = mergedProperties._cellStyleConfig;
-      delete mergedProperties._cellStyleConfig; // Remove temporary config
+    if ((mergedProperties as any)._cellStyleConfig) {
+      const cellStyleConfig = (mergedProperties as any)._cellStyleConfig;
+      delete (mergedProperties as any)._cellStyleConfig; // Remove temporary config
       
       // Import and recreate the cellStyle function
-      import('../../../utils/formatters').then(({ createCellStyleFunction }) => {
+      import('../../utils/formatters').then(({ createCellStyleFunction }) => {
         const styleFunc = createCellStyleFunction(cellStyleConfig.formatString, cellStyleConfig.baseStyle);
         // Attach metadata for future serialization
         Object.defineProperty(styleFunc, '__formatString', { 
@@ -703,7 +703,7 @@ export const BulkActionsPanel: React.FC = () => {
                             {template.name}
                           </label>
                           {template.isSystem && (
-                            <Sparkles className="h-3 w-3 text-blue-500 shrink-0" title="System template" />
+                            <Sparkles className="h-3 w-3 text-blue-500 shrink-0" />
                           )}
                         </div>
                         {template.isSystem && (
