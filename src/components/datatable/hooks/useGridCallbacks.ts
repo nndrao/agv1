@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { GridApi, GridReadyEvent } from 'ag-grid-community';
-import { useActiveProfile } from '@/components/datatable/stores/profile.store';
+import { useActiveProfile, useProfileStore } from '@/components/datatable/stores/profile.store';
 import { useDataTableContext } from './useDataTableContext';
 
 /**
@@ -66,53 +66,102 @@ export function useGridCallbacks(
       hasActiveProfile: !!activeProfile,
       activeProfileId: activeProfile?.id,
       activeProfileName: activeProfile?.name,
-      hasGridState: !!activeProfile?.gridState
+      hasGridState: !!activeProfile?.gridState,
+      hasGridOptions: !!activeProfile?.gridOptions,
+      hasColumnSettings: !!activeProfile?.columnSettings
     });
     
-    // Load active profile on grid ready - SIMPLIFIED APPROACH
-    if (activeProfile && activeProfile.gridState) {
+    // Load active profile on grid ready - FOLLOW SAME ORDER AS PROFILE SWITCH
+    if (activeProfile) {
       console.log('[useGridCallbacks] Applying active profile on grid ready:', {
         profileId: activeProfile.id,
         profileName: activeProfile.name,
-        hasColumnState: !!activeProfile.gridState.columnState,
-        columnStateLength: activeProfile.gridState.columnState?.length
+        hasColumnState: !!activeProfile.gridState?.columnState,
+        columnStateLength: activeProfile.gridState?.columnState?.length
       });
       
       try {
-        // Apply states in a deterministic order with proper timing
+        // CRITICAL: Apply in the same order as ProfileManager does
         
-        // 1. Apply column state (visibility, width, position, sort)
-        if (activeProfile.gridState.columnState && activeProfile.gridState.columnState.length > 0) {
-          console.log('[useGridCallbacks] Applying column state');
-          params.api.applyColumnState({
-            state: activeProfile.gridState.columnState,
-            applyOrder: true
+        // 1. Apply grid options FIRST (row height, header height, etc)
+        if (activeProfile.gridOptions) {
+          console.log('[useGridCallbacks] Step 1: Applying grid options');
+          const options = activeProfile.gridOptions;
+          
+          // Apply each grid option
+          Object.entries(options).forEach(([key, value]) => {
+            if (value !== undefined && key !== 'font') {
+              try {
+                params.api.setGridOption(key as any, value);
+              } catch (e) {
+                console.warn(`[useGridCallbacks] Failed to set grid option ${key}:`, e);
+              }
+            }
           });
-        }
-        
-        // 2. Apply filter model
-        if (activeProfile.gridState.filterModel) {
-          console.log('[useGridCallbacks] Applying filter model');
-          params.api.setFilterModel(activeProfile.gridState.filterModel);
-        }
-        
-        // 3. Apply grid options
-        if (activeProfile.gridState.gridOptions) {
-          console.log('[useGridCallbacks] Applying grid options');
-          const options = activeProfile.gridState.gridOptions;
+          
+          // Reset row heights if row height was changed
           if (options.rowHeight) {
             params.api.resetRowHeights();
-            params.api.setGridOption('rowHeight', options.rowHeight);
-          }
-          if (options.headerHeight) {
-            params.api.setGridOption('headerHeight', options.headerHeight);
           }
         }
         
+        // 2. Get and apply column definitions from profile (includes customizations)
+        const { getColumnDefs } = useProfileStore.getState();
+        const profileColumnDefs = getColumnDefs(activeProfile.id);
+        
+        if (profileColumnDefs && profileColumnDefs.length > 0) {
+          console.log('[useGridCallbacks] Step 2: Setting column definitions from profile:', {
+            columnCount: profileColumnDefs.length,
+            hasCustomizations: profileColumnDefs.some((col: any) => col.cellStyle || col.valueFormatter)
+          });
+          
+          // This will trigger the grid to use the profile's column definitions
+          // instead of the default ones, preventing auto-sizing
+          params.api.setGridOption('columnDefs', profileColumnDefs);
+          
+          // Small delay to ensure column definitions are processed
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        // 3. Apply grid state (column state, filters, sorts) with delays
+        setTimeout(() => {
+          if (activeProfile.gridState) {
+            // Apply column state (width, visibility, order)
+            if (activeProfile.gridState.columnState && activeProfile.gridState.columnState.length > 0) {
+              console.log('[useGridCallbacks] Step 3a: Applying column state');
+              params.api.applyColumnState({
+                state: activeProfile.gridState.columnState,
+                applyOrder: true
+              });
+            }
+            
+            // Apply filter model
+            setTimeout(() => {
+              if (activeProfile.gridState.filterModel) {
+                console.log('[useGridCallbacks] Step 3b: Applying filter model');
+                params.api.setFilterModel(activeProfile.gridState.filterModel);
+              }
+              
+              // Apply sort model
+              setTimeout(() => {
+                if (activeProfile.gridState.sortModel && activeProfile.gridState.sortModel.length > 0) {
+                  console.log('[useGridCallbacks] Step 3c: Applying sort model');
+                  const sortState = activeProfile.gridState.sortModel.map(sort => ({
+                    colId: sort.colId,
+                    sort: sort.sort,
+                    sortIndex: sort.sortIndex
+                  }));
+                  params.api.applyColumnState({ state: sortState });
+                }
+              }, 50);
+            }, 50);
+          }
+        }, 100);
+        
         // 4. Apply font
-        if (activeProfile.gridState.font) {
-          console.log('[useGridCallbacks] Applying font:', activeProfile.gridState.font);
-          setSelectedFont(activeProfile.gridState.font);
+        if (activeProfile.gridOptions?.font) {
+          console.log('[useGridCallbacks] Step 4: Applying font:', activeProfile.gridOptions.font);
+          setSelectedFont(activeProfile.gridOptions.font);
         }
         
         console.log('[useGridCallbacks] Profile applied successfully');
@@ -120,7 +169,7 @@ export function useGridCallbacks(
         console.error('[useGridCallbacks] Error applying profile:', error);
       }
     } else {
-      console.log('[useGridCallbacks] No active profile or gridState to apply');
+      console.log('[useGridCallbacks] No active profile to apply');
     }
   }, [activeProfile, setSelectedFont, setGridApi]);
   

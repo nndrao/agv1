@@ -4,10 +4,12 @@ import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
 import { DataTableToolbar } from './DataTableToolbar';
 import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
+import { GridOptionsPropertyEditor } from './gridOptions/GridOptionsPropertyEditor';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
 import { useGridState } from './hooks/useGridState';
 import { useProfileSync } from './hooks/useProfileSync';
 import { useColumnOperations } from './hooks/useColumnOperations';
+import { useGridOptions } from './gridOptions/hooks/useGridOptions';
 import { DataTableProps } from './types';
 import { useProfileStore } from '@/components/datatable/stores/profile.store';
 import { useTheme } from '@/components/datatable/ThemeProvider';
@@ -21,7 +23,7 @@ import './datatable.css';
 export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps) => {
   const gridApiRef = useRef<GridApi | null>(null);
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
-  const { saveColumnCustomizations } = useProfileStore();
+  const { saveColumnCustomizations, saveGridOptions } = useProfileStore();
   const { theme } = useTheme();
   
   // Initialize grid state
@@ -34,6 +36,16 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
     setShowColumnDialog,
   } = useGridState(columnDefs);
   
+  // State for grid options dialog
+  const [showGridOptionsDialog, setShowGridOptionsDialog] = useState(false);
+  
+  // Initialize grid options hook
+  const {
+    gridOptions,
+    updateGridOptions,
+    applyGridOptions
+  } = useGridOptions(gridApi);
+  
   
   // Process columns to ensure cellStyle functions for conditional formatting
   // This preserves the CRITICAL ensureCellStyleForColumns functionality
@@ -42,32 +54,61 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   // Handle profile synchronization
   const { handleProfileChange } = useProfileSync(setCurrentColumnDefs, setSelectedFont);
   
-  // Handle column operations
+  // Handle column operations - pass processedColumns which have the styles
   const { handleApplyColumnChanges, getColumnDefsWithStyles } = useColumnOperations(
     gridApiRef,
-    setCurrentColumnDefs
+    setCurrentColumnDefs,
+    processedColumns
   );
   
   // Initialize default profile if needed
+  const hasInitializedRef = React.useRef(false);
   React.useEffect(() => {
+    if (hasInitializedRef.current || !columnDefs || columnDefs.length === 0) return;
+    
     const activeProfile = useProfileStore.getState().getActiveProfile();
     if (activeProfile && activeProfile.id === 'default-profile' && 
-        !activeProfile.gridState.columnCustomizations && 
-        (!activeProfile.gridState.columnDefs || activeProfile.gridState.columnDefs.length === 0)) {
+        !activeProfile.columnSettings?.columnCustomizations && 
+        (!activeProfile.gridState?.columnDefs || activeProfile.gridState?.columnDefs?.length === 0)) {
       console.log('[DataTableContainer] Initializing default profile with base columnDefs');
       // Pass columnDefs as both current and base since this is the initial setup
       // The first parameter is current state, second is the original base columns
       saveColumnCustomizations(columnDefs, columnDefs);
+      hasInitializedRef.current = true;
     }
   }, [columnDefs, saveColumnCustomizations]);
   
   // Handle font changes
   const handleFontChange = React.useCallback((font: string) => {
     setSelectedFont(font);
+    
+    // Save font to profile's grid options
+    saveGridOptions({ font });
+    
     if (gridApiRef.current) {
       gridApiRef.current.refreshCells({ force: true });
     }
-  }, [setSelectedFont]);
+  }, [setSelectedFont, saveGridOptions]);
+  
+  // Handle grid options apply
+  const handleApplyGridOptions = React.useCallback((options: any) => {
+    console.log('[DataTableContainer] handleApplyGridOptions called:', {
+      options,
+      hasGridApi: !!gridApi
+    });
+    
+    // Update local state in the hook
+    updateGridOptions(options);
+    
+    // Apply to grid
+    if (gridApi) {
+      applyGridOptions(gridApi);
+    }
+    
+    // Save to the profile store (but not to localStorage)
+    // This ensures the options are available when Save Profile is clicked
+    saveGridOptions(options);
+  }, [updateGridOptions, applyGridOptions, gridApi, saveGridOptions]);
   
   // Refresh cells when theme changes to update conditional formatting colors
   React.useEffect(() => {
@@ -169,9 +210,11 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
     <DataTableProvider value={contextValue}>
       <div className="h-full w-full flex flex-col overflow-hidden">
         <DataTableToolbar
+          selectedFont={selectedFont}
           onFontChange={handleFontChange}
           onSpacingChange={() => {}} // Empty function to satisfy prop requirements
           onOpenColumnSettings={() => setShowColumnDialog(true)}
+          onOpenGridOptions={() => setShowGridOptionsDialog(true)}
           gridApi={gridApi}
           onProfileChange={handleProfileChange}
           getColumnDefsWithStyles={getColumnDefsWithStyles}
@@ -189,6 +232,13 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
           columnDefs={processedColumns}
           columnState={columnState}
           onApply={handleApplyColumnChanges}
+        />
+        
+        <GridOptionsPropertyEditor
+          isOpen={showGridOptionsDialog}
+          onClose={() => setShowGridOptionsDialog(false)}
+          onApply={handleApplyGridOptions}
+          currentOptions={gridOptions}
         />
       </div>
     </DataTableProvider>

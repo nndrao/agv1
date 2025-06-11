@@ -1,0 +1,232 @@
+/* Floating Dialog Styles - Matching Ribbon Design Language */
+
+/* CSS Variables matching ribbon design system */
+.floating-dialog {
+  --dialog-border-radius: 10px;
+  --dialog-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --dialog-header-height: 48px;
+  --dialog-spacing-xs: 2px;
+  --dialog-spacing-sm: 4px;
+  --dialog-spacing-md: 8px;
+  --dialog-spacing-lg: 12px;
+  --dialog-spacing-xl: 16px;
+  --dialog-font-xs: 11px;
+  --dialog-font-sm: 12px;
+  --dialog-font-md: 13px;
+  --dialog-font-lg: 14px;
+  --dialog-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Base dialog styles */
+.floating-dialog {
+  border-radius: var(--dialog-border-radius);
+  box-shadow: var(--dialog-shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  transition: box-shadow 0.3s ease;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+}
+
+.floating-dialog:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Header styles */
+.floating-dialog-header {
+  height: var(--dialog-header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--dialog-spacing-md);
+  background-color: hsl(var(--muted) / 0.5);
+  border-bottom: 1px solid hsl(var(--border));
+  user-select: none;
+  cursor: move;
+  transition: background-color 0.2s ease;
+}
+
+.floating-dialog-header:hover {
+  background-color: hsl(var(--muted) / 0.7);
+}
+
+.floating-dialog-dragging .floating-dialog-header {
+  background-color: hsl(var(--muted));
+  cursor: grabbing;
+}
+
+/* Drag handle */
+.floating-dialog-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: var(--dialog-spacing-md);
+  color: hsl(var(--muted-foreground));
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.floating-dialog-header:hover .floating-dialog-drag-handle {
+  opacity: 1;
+}
+
+/* Title */
+.floating-dialog-title {
+  flex: 1;
+  font-size: var(--dialog-font-md);
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Control buttons */
+.floating-dialog-controls {
+  display: flex;
+  gap: var(--dialog-spacing-xs);
+  margin-left: var(--dialog-spacing-md);
+}
+
+.floating-dialog-control {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  transition: var(--dialog-transition);
+}
+
+.floating-dialog-control:hover {
+  background-color: hsl(var(--accent));
+}
+
+/* Content area */
+.floating-dialog-content {
+  flex: 1;
+  overflow: auto;
+  background-color: hsl(var(--background));
+}
+
+/* Resize handle */
+.floating-dialog-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: se-resize;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent 50%,
+    hsl(var(--border)) 50%,
+    hsl(var(--border)) 100%
+  );
+  transition: opacity 0.2s ease;
+  opacity: 0.5;
+}
+
+.floating-dialog:hover .floating-dialog-resize-handle {
+  opacity: 1;
+}
+
+.floating-dialog-resizing .floating-dialog-resize-handle {
+  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent 50%,
+    hsl(var(--primary)) 50%,
+    hsl(var(--primary)) 100%
+  );
+}
+
+/* State modifiers */
+.floating-dialog-dragging {
+  opacity: 0.9;
+  cursor: grabbing;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2), 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.floating-dialog-resizing {
+  user-select: none;
+}
+
+.floating-dialog-maximized {
+  border-radius: 0;
+  border: none;
+}
+
+.floating-dialog-maximized .floating-dialog-header {
+  cursor: default;
+}
+
+.floating-dialog-maximized .floating-dialog-resize-handle {
+  display: none;
+}
+
+/* Scrollbar styling to match ribbon */
+.floating-dialog-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.floating-dialog-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.floating-dialog-content::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.floating-dialog-content::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Dark mode adjustments */
+.dark .floating-dialog {
+  --dialog-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark .floating-dialog:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.dark .floating-dialog-dragging {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* Animation for dialog appearance */
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.floating-dialog {
+  animation: dialogFadeIn 0.2s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .floating-dialog {
+    --dialog-header-height: 44px;
+    --dialog-font-md: 12px;
+  }
+  
+  .floating-dialog-control {
+    width: 32px;
+    height: 32px;
+  }
+}
