@@ -51,6 +51,7 @@ export interface GridProfile {
     paginationPageSize?: number;
     // UI preferences
     font?: string;
+    fontSize?: string;
   };
   // Legacy gridState for backward compatibility
   gridState_legacy?: {

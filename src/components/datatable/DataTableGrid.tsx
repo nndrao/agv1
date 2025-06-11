@@ -30,7 +30,7 @@ export const DataTableGrid = memo(({
   gridApiRef 
 }: DataTableGridProps) => {
   const { theme: currentTheme } = useTheme();
-  const { selectedFont } = useDataTableContext();
+  const { selectedFont, selectedFontSize } = useDataTableContext();
   const isDarkMode = currentTheme === 'dark';
   
   // Get memoized callbacks
@@ -59,10 +59,10 @@ export const DataTableGrid = memo(({
       checkboxBorderRadius: 2,
       columnBorder: true,
       fontFamily: selectedFont,
-      fontSize: 14,
+      fontSize: parseInt(selectedFontSize),
       headerBackgroundColor: "#EEEFF1",
       headerFontFamily: selectedFont,
-      headerFontSize: 14,
+      headerFontSize: parseInt(selectedFontSize) + 1,
       headerFontWeight: 500,
       iconButtonBorderRadius: 1,
       iconSize: 12,
@@ -85,10 +85,10 @@ export const DataTableGrid = memo(({
         mix: 0.07,
         onto: "backgroundColor",
       },
-      fontSize: 14,
+      fontSize: parseInt(selectedFontSize),
       foregroundColor: "#FFF",
       headerFontFamily: selectedFont,
-      headerFontSize: 14,
+      headerFontSize: parseInt(selectedFontSize) + 1,
       iconSize: 12,
       inputBorderRadius: 2,
       oddRowBackgroundColor: "#1f2328",
@@ -99,7 +99,7 @@ export const DataTableGrid = memo(({
     return themeQuartz
       .withParams(lightTheme, "light")
       .withParams(darkTheme, "dark");
-  }, [selectedFont]);
+  }, [selectedFont, selectedFontSize]);
   
   // Update document theme mode
   React.useEffect(() => {

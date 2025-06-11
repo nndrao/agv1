@@ -30,9 +30,11 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   const {
     currentColumnDefs,
     selectedFont,
+    selectedFontSize,
     showColumnDialog,
     setCurrentColumnDefs,
     setSelectedFont,
+    setSelectedFontSize,
     setShowColumnDialog,
   } = useGridState(columnDefs);
   
@@ -52,7 +54,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   const processedColumns = useColumnProcessor(currentColumnDefs);
   
   // Handle profile synchronization
-  const { handleProfileChange } = useProfileSync(setCurrentColumnDefs, setSelectedFont);
+  const { handleProfileChange } = useProfileSync(setCurrentColumnDefs, setSelectedFont, setSelectedFontSize);
   
   // Handle column operations - pass processedColumns which have the styles
   const { handleApplyColumnChanges, getColumnDefsWithStyles } = useColumnOperations(
@@ -89,6 +91,18 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       gridApiRef.current.refreshCells({ force: true });
     }
   }, [setSelectedFont, saveGridOptions]);
+  
+  // Handle font size changes
+  const handleFontSizeChange = React.useCallback((size: string) => {
+    setSelectedFontSize(size);
+    
+    // Save font size to profile's grid options
+    saveGridOptions({ fontSize: size });
+    
+    if (gridApiRef.current) {
+      gridApiRef.current.refreshCells({ force: true });
+    }
+  }, [setSelectedFontSize, saveGridOptions]);
   
   // Handle grid options apply
   const handleApplyGridOptions = React.useCallback((options: any) => {
@@ -191,7 +205,9 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   const contextValue = useMemo(() => ({
     processedColumns,
     selectedFont,
+    selectedFontSize,
     handleFontChange,
+    handleFontSizeChange,
     showColumnDialog,
     setShowColumnDialog,
     gridApiRef,
@@ -200,7 +216,9 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   }), [
     processedColumns,
     selectedFont,
+    selectedFontSize,
     handleFontChange,
+    handleFontSizeChange,
     showColumnDialog,
     setShowColumnDialog,
     getColumnDefsWithStyles,
@@ -211,7 +229,9 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       <div className="h-full w-full flex flex-col overflow-hidden">
         <DataTableToolbar
           selectedFont={selectedFont}
+          selectedFontSize={selectedFontSize}
           onFontChange={handleFontChange}
+          onFontSizeChange={handleFontSizeChange}
           onSpacingChange={() => {}} // Empty function to satisfy prop requirements
           onOpenColumnSettings={() => setShowColumnDialog(true)}
           onOpenGridOptions={() => setShowGridOptionsDialog(true)}

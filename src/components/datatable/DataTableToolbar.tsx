@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Settings2, Download, FileSpreadsheet, Sliders } from "lucide-react";
+import { Settings2, Download, FileSpreadsheet, Sliders, Type, ALargeSmall } from "lucide-react";
 import { ProfileManager } from "./ProfileManager";
 import { GridApi, ColDef as AgColDef, ProcessCellForExportParams } from "ag-grid-community";
 import { GridProfile } from "@/components/datatable/stores/profile.store";
@@ -24,9 +24,23 @@ const monospaceFonts = [
   { value: 'monospace', label: 'System Monospace' },
 ];
 
+const fontSizes = [
+  { value: '10', label: '10px' },
+  { value: '11', label: '11px' },
+  { value: '12', label: '12px' },
+  { value: '13', label: '13px' },
+  { value: '14', label: '14px' },
+  { value: '15', label: '15px' },
+  { value: '16', label: '16px' },
+  { value: '18', label: '18px' },
+  { value: '20', label: '20px' },
+];
+
 interface DataTableToolbarProps {
   selectedFont?: string;
+  selectedFontSize?: string;
   onFontChange: (font: string) => void;
+  onFontSizeChange?: (size: string) => void;
   onSpacingChange: (spacing: string) => void;
   onOpenColumnSettings?: () => void;
   onOpenGridOptions?: () => void;
@@ -37,7 +51,9 @@ interface DataTableToolbarProps {
 
 export function DataTableToolbar({ 
   selectedFont = 'monospace',
-  onFontChange, 
+  selectedFontSize = '13',
+  onFontChange,
+  onFontSizeChange,
   onOpenColumnSettings,
   onOpenGridOptions,
   gridApi,
@@ -144,17 +160,29 @@ export function DataTableToolbar({
           getColumnDefsWithStyles={getColumnDefsWithStyles}
         />
         <div className="border-l pl-4 flex items-center gap-2">
-          <label htmlFor="font-select" className="text-sm font-medium">
-            Font:
-          </label>
+          <Type className="h-4 w-4 text-muted-foreground" />
           <Select onValueChange={onFontChange} value={selectedFont}>
-            <SelectTrigger id="font-select" className="w-[180px] h-8">
+            <SelectTrigger id="font-select" className="w-[160px] h-8">
               <SelectValue placeholder="Select font" />
             </SelectTrigger>
             <SelectContent>
               {monospaceFonts.map((font) => (
                 <SelectItem key={font.value} value={font.value}>
                   <span style={{ fontFamily: font.value }}>{font.label}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <ALargeSmall className="h-4 w-4 text-muted-foreground ml-2" />
+          <Select onValueChange={onFontSizeChange} value={selectedFontSize}>
+            <SelectTrigger id="font-size-select" className="w-[80px] h-8">
+              <SelectValue placeholder="Size" />
+            </SelectTrigger>
+            <SelectContent>
+              {fontSizes.map((size) => (
+                <SelectItem key={size.value} value={size.value}>
+                  {size.label}
                 </SelectItem>
               ))}
             </SelectContent>

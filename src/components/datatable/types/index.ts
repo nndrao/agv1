@@ -130,7 +130,9 @@ export interface DataTableProps {
 export interface DataTableContextValue {
   processedColumns: ColumnDef[];
   selectedFont: string;
+  selectedFontSize: string;
   handleFontChange: (font: string) => void;
+  handleFontSizeChange: (size: string) => void;
   showColumnDialog: boolean;
   setShowColumnDialog: (show: boolean) => void;
   gridApiRef: React.MutableRefObject<GridApi | null>;

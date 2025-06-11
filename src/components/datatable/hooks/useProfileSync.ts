@@ -7,7 +7,8 @@ import { ColumnDef } from '../types';
  */
 export function useProfileSync(
   setCurrentColumnDefs: (columns: ColumnDef[]) => void,
-  setSelectedFont: (font: string) => void
+  setSelectedFont: (font: string) => void,
+  setSelectedFontSize?: (size: string) => void
 ) {
   const { getColumnDefs } = useProfileStore();
   
@@ -16,7 +17,9 @@ export function useProfileSync(
       profileId: profile.id,
       profileName: profile.name,
       hasFont: !!profile.gridOptions?.font,
-      font: profile.gridOptions?.font
+      font: profile.gridOptions?.font,
+      hasFontSize: !!profile.gridOptions?.fontSize,
+      fontSize: profile.gridOptions?.fontSize
     });
     
     // Get column definitions from profile store (already processed)
@@ -37,8 +40,13 @@ export function useProfileSync(
     // Apply font from profile or reset to default
     setSelectedFont(profile.gridOptions?.font || 'monospace');
     
+    // Apply font size from profile or reset to default
+    if (setSelectedFontSize) {
+      setSelectedFontSize(profile.gridOptions?.fontSize || '13');
+    }
+    
     // The profile manager component handles applying the grid state to the grid API using the optimizer
-  }, [getColumnDefs, setCurrentColumnDefs, setSelectedFont]);
+  }, [getColumnDefs, setCurrentColumnDefs, setSelectedFont, setSelectedFontSize]);
   
   return {
     handleProfileChange,
