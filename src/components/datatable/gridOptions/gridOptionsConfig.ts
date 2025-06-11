@@ -86,6 +86,73 @@ export const gridOptionsSections: GridOptionsSection[] = [
           { value: 'Courier New', label: 'Courier New' },
           { value: 'monospace', label: 'System Monospace' }
         ]
+      },
+      {
+        key: 'scrollbarWidth',
+        label: 'Scrollbar Width',
+        type: 'number',
+        description: 'Width of the scrollbar in pixels',
+        defaultValue: 8,
+        min: 0,
+        max: 20,
+        step: 1,
+        unit: 'px'
+      },
+      {
+        key: 'suppressHorizontalScroll',
+        label: 'Suppress Horizontal Scroll',
+        type: 'boolean',
+        description: 'Disable horizontal scrolling',
+        defaultValue: false
+      },
+      {
+        key: 'alwaysShowHorizontalScroll',
+        label: 'Always Show Horizontal Scroll',
+        type: 'boolean',
+        description: 'Always show horizontal scrollbar',
+        defaultValue: false
+      },
+      {
+        key: 'alwaysShowVerticalScroll',
+        label: 'Always Show Vertical Scroll',
+        type: 'boolean',
+        description: 'Always show vertical scrollbar',
+        defaultValue: false
+      },
+      {
+        key: 'debounceVerticalScrollbar',
+        label: 'Debounce Vertical Scrollbar',
+        type: 'boolean',
+        description: 'Debounce vertical scrollbar to improve performance',
+        defaultValue: false
+      },
+      {
+        key: 'suppressMaxRenderedRowRestriction',
+        label: 'Suppress Max Row Restriction',
+        type: 'boolean',
+        description: 'Remove restriction on maximum rendered rows',
+        defaultValue: false
+      },
+      {
+        key: 'suppressScrollOnNewData',
+        label: 'Suppress Scroll on New Data',
+        type: 'boolean',
+        description: 'Prevent auto-scrolling when new data loads',
+        defaultValue: false
+      },
+      {
+        key: 'suppressAnimationFrame',
+        label: 'Suppress Animation Frame',
+        type: 'boolean',
+        description: 'Disable animation frames for scrolling',
+        defaultValue: false
+      },
+      {
+        key: 'suppressPreventDefaultOnMouseWheel',
+        label: 'Allow Browser Wheel Events',
+        type: 'boolean',
+        description: 'Allow browser to handle mouse wheel events',
+        defaultValue: false
       }
     ]
   },
@@ -124,6 +191,48 @@ export const gridOptionsSections: GridOptionsSection[] = [
         type: 'boolean',
         description: 'Enable row animations',
         defaultValue: true
+      },
+      {
+        key: 'suppressChangeDetection',
+        label: 'Suppress Change Detection',
+        type: 'boolean',
+        description: 'Disable change detection for performance',
+        defaultValue: false
+      },
+      {
+        key: 'valueCache',
+        label: 'Enable Value Cache',
+        type: 'boolean',
+        description: 'Cache cell values for performance',
+        defaultValue: false
+      },
+      {
+        key: 'valueCacheNeverExpires',
+        label: 'Value Cache Never Expires',
+        type: 'boolean',
+        description: 'Prevent value cache from expiring',
+        defaultValue: false
+      },
+      {
+        key: 'aggregateOnlyChangedColumns',
+        label: 'Aggregate Only Changed Columns',
+        type: 'boolean',
+        description: 'Only re-aggregate columns that changed',
+        defaultValue: false
+      },
+      {
+        key: 'suppressAggFuncInHeader',
+        label: 'Suppress Agg Func in Header',
+        type: 'boolean',
+        description: 'Hide aggregation function in header',
+        defaultValue: false
+      },
+      {
+        key: 'suppressAggAtRootLevel',
+        label: 'Suppress Root Level Aggregation',
+        type: 'boolean',
+        description: 'Disable aggregation at root level',
+        defaultValue: false
       }
     ]
   },
@@ -196,6 +305,94 @@ export const gridOptionsSections: GridOptionsSection[] = [
         type: 'boolean',
         description: 'Enter key moves to cell below',
         defaultValue: false
+      },
+      {
+        key: 'enterNavigatesVerticallyAfterEdit',
+        label: 'Enter Navigates After Edit',
+        type: 'boolean',
+        description: 'Enter moves down after editing',
+        defaultValue: false
+      },
+      {
+        key: 'enableCellChangeFlash',
+        label: 'Enable Cell Change Flash',
+        type: 'boolean',
+        description: 'Flash cells when values change',
+        defaultValue: false
+      },
+      {
+        key: 'cellFlashDelay',
+        label: 'Cell Flash Delay',
+        type: 'number',
+        description: 'Delay before cell flash (ms)',
+        defaultValue: 500,
+        min: 0,
+        max: 2000,
+        step: 100,
+        unit: 'ms'
+      },
+      {
+        key: 'cellFadeDelay',
+        label: 'Cell Fade Delay',
+        type: 'number',
+        description: 'Cell fade animation delay (ms)',
+        defaultValue: 1000,
+        min: 0,
+        max: 5000,
+        step: 100,
+        unit: 'ms'
+      },
+      {
+        key: 'allowContextMenuWithControlKey',
+        label: 'Allow Context Menu with Ctrl',
+        type: 'boolean',
+        description: 'Show context menu with Ctrl+Click',
+        defaultValue: false
+      },
+      {
+        key: 'suppressContextMenu',
+        label: 'Suppress Context Menu',
+        type: 'boolean',
+        description: 'Disable right-click context menu',
+        defaultValue: false
+      },
+      {
+        key: 'preventDefaultOnContextMenu',
+        label: 'Prevent Default Context Menu',
+        type: 'boolean',
+        description: 'Prevent browser context menu',
+        defaultValue: true
+      },
+      {
+        key: 'undoRedoCellEditing',
+        label: 'Undo/Redo Cell Editing',
+        type: 'boolean',
+        description: 'Enable undo/redo for cell edits',
+        defaultValue: false
+      },
+      {
+        key: 'undoRedoCellEditingLimit',
+        label: 'Undo/Redo Limit',
+        type: 'number',
+        description: 'Maximum undo/redo stack size',
+        defaultValue: 10,
+        min: 0,
+        max: 100,
+        step: 5
+      },
+      {
+        key: 'tabToNextCell',
+        label: 'Tab to Next Cell',
+        type: 'boolean',
+        description: 'Tab key navigates to next cell',
+        defaultValue: true
+      },
+      {
+        key: 'suppressClickEdit',
+        label: 'Suppress Click Edit',
+        type: 'boolean',
+        description: 'Disable editing on click',
+        defaultValue: false
       }
     ]
   },
@@ -257,6 +454,53 @@ export const gridOptionsSections: GridOptionsSection[] = [
         type: 'boolean',
         description: 'Show fill handle for copying values',
         defaultValue: false
+      },
+      {
+        key: 'fillHandleDirection',
+        label: 'Fill Handle Direction',
+        type: 'select',
+        description: 'Direction for fill handle operation',
+        defaultValue: 'xy',
+        options: [
+          { value: 'x', label: 'Horizontal Only' },
+          { value: 'y', label: 'Vertical Only' },
+          { value: 'xy', label: 'Both Directions' }
+        ]
+      },
+      {
+        key: 'suppressClearOnFillReduction',
+        label: 'Suppress Clear on Fill Reduction',
+        type: 'boolean',
+        description: 'Keep values when reducing fill selection',
+        defaultValue: false
+      },
+      {
+        key: 'rowMultiSelectWithClick',
+        label: 'Multi Select with Click',
+        type: 'boolean',
+        description: 'Enable multi-select without Ctrl key',
+        defaultValue: false
+      },
+      {
+        key: 'suppressRowHoverHighlight',
+        label: 'Suppress Row Hover',
+        type: 'boolean',
+        description: 'Disable row hover highlighting',
+        defaultValue: false
+      },
+      {
+        key: 'suppressRowTransform',
+        label: 'Suppress Row Transform',
+        type: 'boolean',
+        description: 'Disable row transform for positioning',
+        defaultValue: false
+      },
+      {
+        key: 'columnHoverHighlight',
+        label: 'Column Hover Highlight',
+        type: 'boolean',
+        description: 'Highlight column on hover',
+        defaultValue: false
       }
     ]
   },
@@ -312,6 +556,55 @@ export const gridOptionsSections: GridOptionsSection[] = [
         label: 'Suppress Drag Leave Hides',
         type: 'boolean',
         description: 'Prevent hiding columns by dragging out',
+        defaultValue: false
+      },
+      {
+        key: 'suppressFieldDotNotation',
+        label: 'Suppress Field Dot Notation',
+        type: 'boolean',
+        description: 'Disable dot notation in field names',
+        defaultValue: false
+      },
+      {
+        key: 'enableGroupEdit',
+        label: 'Enable Group Edit',
+        type: 'boolean',
+        description: 'Allow editing group rows',
+        defaultValue: false
+      },
+      {
+        key: 'readOnlyEdit',
+        label: 'Read Only Edit',
+        type: 'boolean',
+        description: 'Make all cells read-only',
+        defaultValue: false
+      },
+      {
+        key: 'suppressClipboardPaste',
+        label: 'Suppress Clipboard Paste',
+        type: 'boolean',
+        description: 'Disable pasting from clipboard',
+        defaultValue: false
+      },
+      {
+        key: 'suppressLastEmptyLineOnPaste',
+        label: 'Suppress Last Empty Line',
+        type: 'boolean',
+        description: 'Remove empty line when pasting',
+        defaultValue: false
+      },
+      {
+        key: 'suppressClipboardApi',
+        label: 'Suppress Clipboard API',
+        type: 'boolean',
+        description: 'Use legacy clipboard methods',
+        defaultValue: false
+      },
+      {
+        key: 'suppressCutToClipboard',
+        label: 'Suppress Cut to Clipboard',
+        type: 'boolean',
+        description: 'Disable cut operation',
         defaultValue: false
       }
     ]
@@ -507,6 +800,86 @@ export const gridOptionsSections: GridOptionsSection[] = [
         label: 'Keep Hidden After Ungroup',
         type: 'boolean',
         description: 'Keep columns hidden after ungrouping',
+        defaultValue: false
+      }
+    ]
+  },
+  {
+    id: 'headers',
+    title: 'Headers & Columns',
+    icon: null as any,
+    options: [
+      {
+        key: 'suppressColumnMoveAnimation',
+        label: 'Suppress Column Move Animation',
+        type: 'boolean',
+        description: 'Disable animation when moving columns',
+        defaultValue: false
+      },
+      {
+        key: 'suppressMovingCss',
+        label: 'Suppress Moving CSS',
+        type: 'boolean',
+        description: 'Disable CSS classes during column move',
+        defaultValue: false
+      },
+      {
+        key: 'suppressAutoSize',
+        label: 'Suppress Auto Size',
+        type: 'boolean',
+        description: 'Disable column auto-sizing',
+        defaultValue: false
+      },
+      {
+        key: 'autoSizePadding',
+        label: 'Auto Size Padding',
+        type: 'number',
+        description: 'Padding for auto-sized columns (px)',
+        defaultValue: 20,
+        min: 0,
+        max: 100,
+        step: 5,
+        unit: 'px'
+      },
+      {
+        key: 'skipHeaderOnAutoSize',
+        label: 'Skip Header on Auto Size',
+        type: 'boolean',
+        description: 'Exclude header when auto-sizing',
+        defaultValue: false
+      },
+      {
+        key: 'autoSizeStrategy',
+        label: 'Auto Size Strategy',
+        type: 'select',
+        description: 'Strategy for auto-sizing columns',
+        defaultValue: undefined,
+        options: [
+          { value: undefined, label: 'Default' },
+          { value: 'fitCellContents', label: 'Fit Cell Contents' },
+          { value: 'fitProvidedWidth', label: 'Fit Provided Width' },
+          { value: 'fitGridWidth', label: 'Fit Grid Width' }
+        ]
+      },
+      {
+        key: 'suppressColumnGroupOpening',
+        label: 'Suppress Column Group Opening',
+        type: 'boolean',
+        description: 'Prevent column groups from opening',
+        defaultValue: false
+      },
+      {
+        key: 'contractColumnSelection',
+        label: 'Contract Column Selection',
+        type: 'boolean',
+        description: 'Contract selection when column groups close',
+        defaultValue: false
+      },
+      {
+        key: 'suppressHeaderFocus',
+        label: 'Suppress Header Focus',
+        type: 'boolean',
+        description: 'Disable keyboard focus on headers',
         defaultValue: false
       }
     ]

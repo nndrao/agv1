@@ -9,12 +9,27 @@ export interface GridOptionsConfig {
   pivotGroupHeaderHeight?: number;
   enableRtl?: boolean;
   domLayout?: 'normal' | 'autoHeight' | 'print';
+  scrollbarWidth?: number;
+  suppressHorizontalScroll?: boolean;
+  alwaysShowHorizontalScroll?: boolean;
+  alwaysShowVerticalScroll?: boolean;
+  debounceVerticalScrollbar?: boolean;
+  suppressMaxRenderedRowRestriction?: boolean;
+  suppressScrollOnNewData?: boolean;
+  suppressAnimationFrame?: boolean;
+  suppressPreventDefaultOnMouseWheel?: boolean;
   
   // Performance
   rowBuffer?: number;
   suppressRowVirtualisation?: boolean;
   suppressColumnVirtualisation?: boolean;
   animateRows?: boolean;
+  suppressChangeDetection?: boolean;
+  valueCache?: boolean;
+  valueCacheNeverExpires?: boolean;
+  aggregateOnlyChangedColumns?: boolean;
+  suppressAggFuncInHeader?: boolean;
+  suppressAggAtRootLevel?: boolean;
   
   // Behavior
   pagination?: boolean;
@@ -25,6 +40,16 @@ export interface GridOptionsConfig {
   stopEditingWhenCellsLoseFocus?: boolean;
   enterNavigatesVertically?: boolean;
   enterNavigatesVerticallyAfterEdit?: boolean;
+  enableCellChangeFlash?: boolean;
+  cellFlashDelay?: number;
+  cellFadeDelay?: number;
+  allowContextMenuWithControlKey?: boolean;
+  suppressContextMenu?: boolean;
+  preventDefaultOnContextMenu?: boolean;
+  undoRedoCellEditing?: boolean;
+  undoRedoCellEditingLimit?: number;
+  tabToNextCell?: boolean;
+  suppressClickEdit?: boolean;
   
   // Selection
   rowSelection?: 'single' | 'multiple';
@@ -34,6 +59,12 @@ export interface GridOptionsConfig {
   enableRangeSelection?: boolean;
   enableRangeHandle?: boolean;
   enableFillHandle?: boolean;
+  fillHandleDirection?: 'x' | 'y' | 'xy';
+  suppressClearOnFillReduction?: boolean;
+  rowMultiSelectWithClick?: boolean;
+  suppressRowHoverHighlight?: boolean;
+  suppressRowTransform?: boolean;
+  columnHoverHighlight?: boolean;
   
   // Interaction
   suppressMovableColumns?: boolean;
@@ -48,6 +79,13 @@ export interface GridOptionsConfig {
   accentedSort?: boolean;
   suppressMultiSort?: boolean;
   alwaysMultiSort?: boolean;
+  suppressFieldDotNotation?: boolean;
+  enableGroupEdit?: boolean;
+  readOnlyEdit?: boolean;
+  suppressClipboardPaste?: boolean;
+  suppressLastEmptyLineOnPaste?: boolean;
+  suppressClipboardApi?: boolean;
+  suppressCutToClipboard?: boolean;
   
   // Clipboard
   copyHeadersToClipboard?: boolean;
@@ -73,6 +111,17 @@ export interface GridOptionsConfig {
   
   // Row Dragging
   suppressMoveWhenRowDragging?: boolean;
+  
+  // Headers & Columns
+  suppressColumnMoveAnimation?: boolean;
+  suppressMovingCss?: boolean;
+  suppressAutoSize?: boolean;
+  autoSizePadding?: number;
+  skipHeaderOnAutoSize?: boolean;
+  autoSizeStrategy?: 'fitCellContents' | 'fitProvidedWidth' | 'fitGridWidth';
+  suppressColumnGroupOpening?: boolean;
+  contractColumnSelection?: boolean;
+  suppressHeaderFocus?: boolean;
   
   // Sidebar
   sideBar?: boolean | any; // Can be boolean or sidebar config object

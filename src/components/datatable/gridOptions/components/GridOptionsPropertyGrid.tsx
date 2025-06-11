@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { InputNumber } from '@/components/ui/input-number';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -77,7 +78,7 @@ export const GridOptionsPropertyGrid: React.FC<GridOptionsPropertyGridProps> = (
       <div 
         key={field.key} 
         className={cn(
-          "grid grid-cols-[40%_60%] min-h-[28px]",
+          "grid grid-cols-[55%_45%] min-h-[28px] ml-5",
           "hover:bg-muted/50 transition-colors",
           hasChanged && "font-medium"
         )}
@@ -111,20 +112,17 @@ export const GridOptionsPropertyGrid: React.FC<GridOptionsPropertyGridProps> = (
       case 'number':
         return (
           <div className="flex items-center gap-1 w-full">
-            <Input
-              type="number"
-              value={value ?? field.defaultValue ?? ''}
-              onChange={(e) => {
-                const val = e.target.value === '' ? undefined : Number(e.target.value);
-                onChange(field.key, val);
-              }}
+            <InputNumber
+              value={value ?? field.defaultValue}
+              onChange={(val) => onChange(field.key, val)}
               min={field.min}
               max={field.max}
               step={field.step}
-              className="h-6 text-xs max-w-[calc(100%-10px)]"
+              placeholder={field.defaultValue?.toString()}
+              className="h-6 text-xs"
             />
             {field.unit && (
-              <span className="text-xs text-muted-foreground">{field.unit}</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{field.unit}</span>
             )}
           </div>
         );
@@ -148,7 +146,7 @@ export const GridOptionsPropertyGrid: React.FC<GridOptionsPropertyGridProps> = (
               else onChange(field.key, val);
             }}
           >
-            <SelectTrigger className="h-6 text-xs max-w-[calc(100%-10px)]">
+            <SelectTrigger className="h-6 text-xs w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -175,7 +173,7 @@ export const GridOptionsPropertyGrid: React.FC<GridOptionsPropertyGridProps> = (
             value="_multiselect"
             onValueChange={() => {}}
           >
-            <SelectTrigger className="h-6 text-xs max-w-[calc(100%-10px)]">
+            <SelectTrigger className="h-6 text-xs w-full">
               <SelectValue>
                 {valuesArray.length > 0 
                   ? valuesArray.join(', ')

@@ -150,12 +150,12 @@ export const GridOptionsPropertyEditor: React.FC<GridOptionsPropertyEditorProps>
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[450px] h-[600px] p-0 gap-0 flex flex-col grid-options-dialog">
+      <DialogContent className="sm:max-w-[500px] h-[600px] p-0 gap-0 flex flex-col grid-options-dialog">
         <DialogHeader className="px-4 py-3 pb-0">
           <DialogTitle className="text-base">Grid Options</DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background">
           {/* Search Bar */}
           <div className="flex items-center gap-1 px-2 py-2 bg-muted/30">
             <Button
