@@ -3,7 +3,7 @@ import { GridApi } from 'ag-grid-community';
 import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
 import { DataTableToolbar } from './DataTableToolbar';
-import { ColumnCustomizationDialog } from './columnCustomizations/ColumnCustomizationDialog';
+import { ColumnFormattingDialog } from './columnFormatting/ColumnFormattingDialog';
 import { GridOptionsPropertyEditor } from './gridOptions/GridOptionsPropertyEditor';
 import { DataSourceFloatingDialog } from './datasource/DataSourceFloatingDialog';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
@@ -14,7 +14,7 @@ import { useGridOptions } from './gridOptions/hooks/useGridOptions';
 import { DataTableProps } from './types';
 import { useProfileStore } from '@/components/datatable/stores/profile.store';
 import { useTheme } from '@/components/datatable/ThemeProvider';
-import { useColumnCustomizationStore } from './columnCustomizations/store/columnCustomization.store';
+import { useColumnFormattingStore } from './columnFormatting/store/columnFormatting.store';
 import './datatable.css';
 
 /**
@@ -172,7 +172,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       if (colId) {
         // Use the store directly to select the column
         setTimeout(() => {
-          const store = useColumnCustomizationStore.getState();
+          const store = useColumnFormattingStore.getState();
           store.setSelectedColumns(new Set([colId]));
         }, 100);
       }
@@ -274,7 +274,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
           gridApiRef={gridApiRef}
         />
         
-        <ColumnCustomizationDialog
+        <ColumnFormattingDialog
           open={showColumnDialog}
           onOpenChange={setShowColumnDialog}
           columnDefs={processedColumns}

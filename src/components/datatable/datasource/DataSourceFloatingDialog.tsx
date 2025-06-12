@@ -1,5 +1,4 @@
 import { FloatingDialog } from '../floatingDialog/FloatingDialog';
-import { DataSourceDialog } from './DataSourceDialog';
 import './datasource-floating-dialog.css';
 
 interface DataSourceFloatingDialogProps {
@@ -11,7 +10,7 @@ interface DataSourceFloatingDialogProps {
 export function DataSourceFloatingDialog({
   open,
   onOpenChange,
-  onApply
+  onApply: _onApply
 }: DataSourceFloatingDialogProps) {
   return (
     <FloatingDialog
@@ -28,12 +27,18 @@ export function DataSourceFloatingDialog({
       className="datasource-floating-dialog"
       contentClassName="p-0"
     >
-      <DataSourceDialog
-        open={true} // Always true when FloatingDialog is open
-        onOpenChange={onOpenChange}
-        onApply={onApply}
-        isFloating={true} // Add this prop to remove dialog wrapper
-      />
+      <div className="p-6">
+        <h2 className="text-lg font-semibold mb-4">Data Source Configuration</h2>
+        <p className="mb-4">Data source configuration is coming soon!</p>
+        <div className="flex justify-end">
+          <button 
+            onClick={() => onOpenChange(false)}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </FloatingDialog>
   );
 }
