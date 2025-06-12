@@ -16,8 +16,8 @@ export function migrateAllProfilesToLightweight() {
   
   profiles.forEach(profile => {
     // Check if profile has full columnDefs but no lightweight format
-    if (profile.gridState.columnDefs && 
-        profile.gridState.columnDefs.length > 0 && 
+    if (profile.gridState && profile.gridState.columnDefs &&
+        profile.gridState.columnDefs.length > 0 &&
         !profile.gridState.columnCustomizations) {
       
       console.log(`📦 Migrating profile: ${profile.name} (${profile.id})`);
@@ -40,7 +40,7 @@ export function migrateAllProfilesToLightweight() {
         migratedCount++;
         console.log(`✅ Successfully migrated profile: ${profile.name}`);
       }
-    } else if (profile.gridState.columnCustomizations) {
+    } else if (profile.gridState && profile.gridState.columnCustomizations) {
       console.log(`⏭️  Profile already using lightweight format: ${profile.name}`);
     } else {
       console.log(`⏭️  Profile has no column definitions: ${profile.name}`);
@@ -75,7 +75,7 @@ export function refreshAllProfiles() {
       store.setActiveProfile(profile.id);
       
       // Re-save with current format
-      store.saveColumnCustomizations(columnDefs, profile.gridState.baseColumnDefs || columnDefs);
+      store.saveColumnCustomizations(columnDefs, (profile.gridState && profile.gridState.baseColumnDefs) || columnDefs);
       
       console.log(`✅ Refreshed: ${profile.name}`);
     }

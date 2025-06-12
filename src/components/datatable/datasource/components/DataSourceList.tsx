@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Card,
   CardContent,
@@ -31,7 +30,6 @@ interface DataSourceListProps {
 
 export function DataSourceList({
   dataSources,
-  activeId,
   onEdit,
   onDelete,
   onToggleActive

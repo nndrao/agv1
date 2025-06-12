@@ -148,7 +148,13 @@ export const FiltersTab: React.FC = () => {
     selectedColumns.forEach(colId => {
       const colDef = columnDefinitions.get(colId);
       const dataType = colDef?.cellDataType || colDef?.type || 'text';
-      dataTypes.add(dataType);
+      if (typeof dataType === 'string') {
+        dataTypes.add(dataType);
+      } else if (Array.isArray(dataType)) {
+        dataType.forEach(dt => dataTypes.add(dt));
+      } else {
+        dataTypes.add('text');
+      }
     });
 
     if (dataTypes.size === 1) {
@@ -522,7 +528,7 @@ const TextFilterParams: React.FC<{
       <div className="space-y-2">
         <Label htmlFor="default-option" className="text-sm">Default Filter Option</Label>
         <Select
-          value={filterParams.defaultOption || 'contains'}
+          value={typeof filterParams.defaultOption === 'string' ? filterParams.defaultOption : 'contains'}
           onValueChange={(value) => onParamChange('defaultOption', value)}
           disabled={disabled}
         >
@@ -546,7 +552,7 @@ const TextFilterParams: React.FC<{
           </Label>
           <Switch
             id="trim-input"
-            checked={filterParams.trimInput ?? true}
+            checked={typeof filterParams.trimInput === 'boolean' ? filterParams.trimInput : true}
             onCheckedChange={(checked) => onParamChange('trimInput', checked)}
             disabled={disabled}
           />
@@ -558,7 +564,7 @@ const TextFilterParams: React.FC<{
           </Label>
           <Switch
             id="case-sensitive"
-            checked={filterParams.caseSensitive ?? false}
+            checked={typeof filterParams.caseSensitive === 'boolean' ? filterParams.caseSensitive : false}
             onCheckedChange={(checked) => onParamChange('caseSensitive', checked)}
             disabled={disabled}
           />
@@ -570,7 +576,7 @@ const TextFilterParams: React.FC<{
         <Input
           id="debounce"
           type="number"
-          value={filterParams.debounceMs || 200}
+          value={typeof filterParams.debounceMs === 'number' ? filterParams.debounceMs : 200}
           onChange={(e) => onParamChange('debounceMs', parseInt(e.target.value))}
           disabled={disabled}
           className="h-8"
@@ -591,7 +597,7 @@ const NumberFilterParams: React.FC<{
       <div className="space-y-2">
         <Label htmlFor="default-option-number" className="text-sm">Default Filter Option</Label>
         <Select
-          value={filterParams.defaultOption || 'equals'}
+          value={typeof filterParams.defaultOption === 'string' ? filterParams.defaultOption : 'equals'}
           onValueChange={(value) => onParamChange('defaultOption', value)}
           disabled={disabled}
         >
@@ -615,7 +621,7 @@ const NumberFilterParams: React.FC<{
           </Label>
           <Switch
             id="include-blanks-equals"
-            checked={filterParams.includeBlanksInEquals ?? false}
+            checked={typeof filterParams.includeBlanksInEquals === 'boolean' ? filterParams.includeBlanksInEquals : false}
             onCheckedChange={(checked) => onParamChange('includeBlanksInEquals', checked)}
             disabled={disabled}
           />
@@ -627,7 +633,7 @@ const NumberFilterParams: React.FC<{
           </Label>
           <Switch
             id="include-blanks-less"
-            checked={filterParams.includeBlanksInLessThan ?? false}
+            checked={typeof filterParams.includeBlanksInLessThan === 'boolean' ? filterParams.includeBlanksInLessThan : false}
             onCheckedChange={(checked) => onParamChange('includeBlanksInLessThan', checked)}
             disabled={disabled}
           />
@@ -639,7 +645,7 @@ const NumberFilterParams: React.FC<{
         <Input
           id="number-parser"
           placeholder="e.g., text => parseFloat(text.replace(',', ''))"
-          value={filterParams.numberParser || ''}
+          value={typeof filterParams.numberParser === 'string' ? filterParams.numberParser : ''}
           onChange={(e) => onParamChange('numberParser', e.target.value)}
           disabled={disabled}
           className="h-8 font-mono text-xs"
@@ -663,7 +669,7 @@ const DateFilterParams: React.FC<{
       <div className="space-y-2">
         <Label htmlFor="default-option-date" className="text-sm">Default Filter Option</Label>
         <Select
-          value={filterParams.defaultOption || 'equals'}
+          value={typeof filterParams.defaultOption === 'string' ? filterParams.defaultOption : 'equals'}
           onValueChange={(value) => onParamChange('defaultOption', value)}
           disabled={disabled}
         >
@@ -687,7 +693,7 @@ const DateFilterParams: React.FC<{
           </Label>
           <Switch
             id="include-blanks-date"
-            checked={filterParams.includeBlanksInEquals ?? false}
+            checked={typeof filterParams.includeBlanksInEquals === 'boolean' ? filterParams.includeBlanksInEquals : false}
             onCheckedChange={(checked) => onParamChange('includeBlanksInEquals', checked)}
             disabled={disabled}
           />
@@ -699,7 +705,7 @@ const DateFilterParams: React.FC<{
           </Label>
           <Switch
             id="in-range-inclusive"
-            checked={filterParams.inRangeInclusive ?? false}
+            checked={typeof filterParams.inRangeInclusive === 'boolean' ? filterParams.inRangeInclusive : false}
             onCheckedChange={(checked) => onParamChange('inRangeInclusive', checked)}
             disabled={disabled}
           />
@@ -711,7 +717,7 @@ const DateFilterParams: React.FC<{
         <Input
           id="date-format"
           placeholder="e.g., YYYY-MM-DD"
-          value={filterParams.dateFormat || ''}
+          value={typeof filterParams.dateFormat === 'string' ? filterParams.dateFormat : ''}
           onChange={(e) => onParamChange('dateFormat', e.target.value)}
           disabled={disabled}
           className="h-8"
@@ -736,7 +742,7 @@ const SetFilterParams: React.FC<{
           </Label>
           <Switch
             id="suppress-mini-filter"
-            checked={filterParams.suppressMiniFilter ?? false}
+            checked={typeof filterParams.suppressMiniFilter === 'boolean' ? filterParams.suppressMiniFilter : false}
             onCheckedChange={(checked) => onParamChange('suppressMiniFilter', checked)}
             disabled={disabled}
           />
@@ -748,7 +754,7 @@ const SetFilterParams: React.FC<{
           </Label>
           <Switch
             id="suppress-select-all"
-            checked={filterParams.suppressSelectAll ?? false}
+            checked={typeof filterParams.suppressSelectAll === 'boolean' ? filterParams.suppressSelectAll : false}
             onCheckedChange={(checked) => onParamChange('suppressSelectAll', checked)}
             disabled={disabled}
           />
@@ -760,7 +766,7 @@ const SetFilterParams: React.FC<{
           </Label>
           <Switch
             id="show-tooltips"
-            checked={filterParams.showTooltips ?? true}
+            checked={typeof filterParams.showTooltips === 'boolean' ? filterParams.showTooltips : true}
             onCheckedChange={(checked) => onParamChange('showTooltips', checked)}
             disabled={disabled}
           />
@@ -770,7 +776,7 @@ const SetFilterParams: React.FC<{
       <div className="space-y-2">
         <Label htmlFor="comparator" className="text-sm">Sort Order</Label>
         <Select
-          value={filterParams.comparator || 'default'}
+          value={typeof filterParams.comparator === 'string' ? filterParams.comparator : 'default'}
           onValueChange={(value) => onParamChange('comparator', value)}
           disabled={disabled}
         >
@@ -811,7 +817,7 @@ const AdvancedFilterParams: React.FC<{
           </Label>
           <Switch
             id="suppress-and-or"
-            checked={filterParams.suppressAndOrCondition ?? false}
+            checked={typeof filterParams.suppressAndOrCondition === 'boolean' ? filterParams.suppressAndOrCondition : false}
             onCheckedChange={(checked) => onParamChange('suppressAndOrCondition', checked)}
             disabled={disabled}
           />
@@ -823,7 +829,7 @@ const AdvancedFilterParams: React.FC<{
           </Label>
           <Switch
             id="clear-button"
-            checked={filterParams.buttons?.includes('clear') ?? true}
+            checked={Array.isArray(filterParams.buttons) ? filterParams.buttons.includes('clear') : true}
             onCheckedChange={(checked) => {
               const buttons = checked ? ['clear', 'apply'] : ['apply'];
               onParamChange('buttons', buttons);
@@ -838,7 +844,7 @@ const AdvancedFilterParams: React.FC<{
           </Label>
           <Switch
             id="close-on-apply"
-            checked={filterParams.closeOnApply ?? false}
+            checked={typeof filterParams.closeOnApply === 'boolean' ? filterParams.closeOnApply : false}
             onCheckedChange={(checked) => onParamChange('closeOnApply', checked)}
             disabled={disabled}
           />
@@ -850,7 +856,7 @@ const AdvancedFilterParams: React.FC<{
             <Input
               id="max-valid-year"
               type="number"
-              value={filterParams.maxValidYear || 2099}
+              value={typeof filterParams.maxValidYear === 'number' ? filterParams.maxValidYear : 2099}
               onChange={(e) => onParamChange('maxValidYear', parseInt(e.target.value))}
               disabled={disabled}
               className="h-8"
@@ -863,7 +869,7 @@ const AdvancedFilterParams: React.FC<{
             <div className="space-y-2">
               <Label htmlFor="excel-mode" className="text-sm">Excel Mode</Label>
               <Select
-                value={filterParams.excelMode || 'windows'}
+                value={typeof filterParams.excelMode === 'string' ? filterParams.excelMode : 'windows'}
                 onValueChange={(value) => onParamChange('excelMode', value)}
                 disabled={disabled}
               >
@@ -880,7 +886,7 @@ const AdvancedFilterParams: React.FC<{
             <div className="space-y-2">
               <Label htmlFor="new-rows-action" className="text-sm">New Rows Action</Label>
               <Select
-                value={filterParams.newRowsAction || 'keep'}
+                value={typeof filterParams.newRowsAction === 'string' ? filterParams.newRowsAction : 'keep'}
                 onValueChange={(value) => onParamChange('newRowsAction', value)}
                 disabled={disabled}
               >
@@ -915,7 +921,7 @@ const MultiFilterParams: React.FC<{
   ];
 
   // Default filters configuration
-  const defaultFilters = filterParams.filters || [
+  const defaultFilters = Array.isArray(filterParams.filters) ? filterParams.filters : [
     { filter: 'agTextColumnFilter', display: 'subMenu' },
     { filter: 'agSetColumnFilter' }
   ];
@@ -949,7 +955,7 @@ const MultiFilterParams: React.FC<{
       <div className="space-y-3">
         <Label className="text-sm">Filter Configuration</Label>
         
-        {defaultFilters.map((filterConfig: unknown, index: number) => {
+        {defaultFilters.map((filterConfig: any, index: number) => {
           const Icon = MULTI_FILTER_OPTIONS.find(opt => opt.value === filterConfig.filter)?.icon || Filter;
           
           return (
@@ -1003,7 +1009,7 @@ const MultiFilterParams: React.FC<{
                   <div className="space-y-2">
                     <Label className="text-xs">Display Mode</Label>
                     <Select
-                      value={filterConfig.display || 'inline'}
+                      value={typeof filterConfig.display === 'string' ? filterConfig.display : 'inline'}
                       onValueChange={(value) => handleFilterChange(index, 'display', value)}
                       disabled={disabled}
                     >
@@ -1021,7 +1027,7 @@ const MultiFilterParams: React.FC<{
                   <div className="space-y-2">
                     <Label className="text-xs">Custom Title (Optional)</Label>
                     <Input
-                      value={filterConfig.title || ''}
+                      value={typeof filterConfig.title === 'string' ? filterConfig.title : ''}
                       onChange={(e) => handleFilterChange(index, 'title', e.target.value)}
                       placeholder={`e.g., ${MULTI_FILTER_OPTIONS.find(opt => opt.value === filterConfig.filter)?.label || 'Filter'}`}
                       disabled={disabled}
@@ -1057,7 +1063,7 @@ const MultiFilterParams: React.FC<{
           </Label>
           <Switch
             id="hide-child-filter"
-            checked={filterParams.hideChildFilterButtons ?? false}
+            checked={typeof filterParams.hideChildFilterButtons === 'boolean' ? filterParams.hideChildFilterButtons : false}
             onCheckedChange={(checked) => onParamChange('hideChildFilterButtons', checked)}
             disabled={disabled}
           />
@@ -1066,7 +1072,7 @@ const MultiFilterParams: React.FC<{
         <div className="space-y-2">
           <Label htmlFor="display-key" className="text-sm">Display Style</Label>
           <Select
-            value={filterParams.display || 'inline'}
+            value={typeof filterParams.display === 'string' ? filterParams.display : 'inline'}
             onValueChange={(value) => onParamChange('display', value)}
             disabled={disabled}
           >

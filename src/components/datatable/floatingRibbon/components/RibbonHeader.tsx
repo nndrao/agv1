@@ -75,13 +75,10 @@ const ColumnSelectorDropdown: React.FC<{
     columnState,
     templateColumns,
     appliedTemplates,
-    pendingChanges,
     setSearchTerm,
     setCellDataTypeFilter,
     setVisibilityFilter,
-    toggleTemplateColumn,
-    removeColumnCustomization,
-    removeAppliedTemplate
+    toggleTemplateColumn
   } = useColumnCustomizationStore();
 
   const [open, setOpen] = useState(false);
@@ -132,7 +129,13 @@ const ColumnSelectorDropdown: React.FC<{
       // Check cellDataType first, then fall back to type
       const dataType = col.cellDataType || col.type;
       if (dataType) {
-        types.add(dataType);
+        if (typeof dataType === 'string') {
+          types.add(dataType);
+        } else if (Array.isArray(dataType)) {
+          dataType.forEach(dt => types.add(dt));
+        } else {
+          types.add('text');
+        }
       } else {
         // Infer type from other column properties
         if (col.filter === 'agNumberColumnFilter' || col.valueFormatter || 
@@ -499,7 +502,7 @@ const ColumnItem: React.FC<{
   appliedTemplate?: { templateId: string; templateName: string; appliedAt: number };
   onToggle: (columnId: string) => void;
   onToggleTemplate: (columnId: string) => void;
-}> = React.memo(({ column, columnId, selected, isTemplate, isHidden, appliedTemplate, onToggle, onToggleTemplate }) => {
+}> = React.memo(({ column, columnId, selected, isHidden, appliedTemplate, onToggle }) => {
   const { removeColumnCustomization, removeAppliedTemplate, pendingChanges } = useColumnCustomizationStore();
   const [isHoveringTemplate, setIsHoveringTemplate] = useState(false);
   const iconKey = (column.cellDataType || column.type || 'text') as string;
@@ -589,10 +592,6 @@ const ColumnItem: React.FC<{
     onToggle(columnId);
   }, [columnId, onToggle]);
 
-  const handleToggleTemplate = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onToggleTemplate(columnId);
-  }, [columnId, onToggleTemplate]);
 
   const handleRemoveCustomization = useCallback((type: string) => {
     removeColumnCustomization(columnId, type);
@@ -614,7 +613,7 @@ const ColumnItem: React.FC<{
       )}
       <Checkbox
         checked={selected}
-        onCheckedChange={(checked) => {
+        onCheckedChange={() => {
           // Handle the change directly when checkbox is clicked
           handleToggle();
         }}

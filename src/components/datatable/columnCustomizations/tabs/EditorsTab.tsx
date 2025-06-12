@@ -401,7 +401,7 @@ const TextEditorParams: React.FC<{
         <Input
           id="max-length"
           type="number"
-          value={editorParams.maxLength ?? ''}
+          value={typeof editorParams.maxLength === 'number' ? editorParams.maxLength : undefined}
           onChange={handleMaxLengthChange}
           placeholder="No limit"
           disabled={disabled}
@@ -443,7 +443,7 @@ const LargeTextEditorParams: React.FC<{
           <Input
             id="rows"
             type="number"
-            value={editorParams.rows ?? 5}
+            value={typeof editorParams.rows === 'number' ? editorParams.rows : 5}
             onChange={handleRowsChange}
             min={1}
             disabled={disabled}
@@ -456,7 +456,7 @@ const LargeTextEditorParams: React.FC<{
           <Input
             id="cols"
             type="number"
-            value={editorParams.cols || 50}
+            value={typeof editorParams.cols === 'number' ? editorParams.cols : 50}
             onChange={handleColsChange}
             min={1}
             disabled={disabled}
@@ -470,7 +470,7 @@ const LargeTextEditorParams: React.FC<{
         <Input
           id="max-length-large"
           type="number"
-          value={editorParams.maxLength || ''}
+          value={typeof editorParams.maxLength === 'number' ? editorParams.maxLength : undefined}
           onChange={handleMaxLengthChange}
           placeholder="No limit"
           disabled={disabled}
@@ -538,7 +538,7 @@ const SelectEditorParams: React.FC<{
           <div className="space-y-2">
             <Label className="text-sm">Search Type</Label>
             <Select
-              value={editorParams.searchType || 'fuzzy'}
+              value={typeof editorParams.searchType === 'string' ? editorParams.searchType : 'fuzzy'}
               onValueChange={(value) => onParamChange('searchType', value)}
               disabled={disabled}
             >
@@ -557,7 +557,7 @@ const SelectEditorParams: React.FC<{
             <Input
               id="cell-height"
               type="number"
-              value={editorParams.cellHeight || 30}
+              value={typeof editorParams.cellHeight === 'number' ? editorParams.cellHeight : 30}
               onChange={(e) => onParamChange('cellHeight', parseInt(e.target.value))}
               min={20}
               disabled={disabled}
@@ -586,7 +586,7 @@ const NumberEditorParams: React.FC<{
           <Input
             id="min"
             type="number"
-            value={editorParams.min ?? ''}
+            value={typeof editorParams.min === 'number' ? editorParams.min : undefined}
             onChange={(e) => onParamChange('min', e.target.value ? parseFloat(e.target.value) : undefined)}
             placeholder="No minimum"
             disabled={disabled}
@@ -599,7 +599,7 @@ const NumberEditorParams: React.FC<{
           <Input
             id="max"
             type="number"
-            value={editorParams.max ?? ''}
+            value={typeof editorParams.max === 'number' ? editorParams.max : undefined}
             onChange={(e) => onParamChange('max', e.target.value ? parseFloat(e.target.value) : undefined)}
             placeholder="No maximum"
             disabled={disabled}
@@ -614,7 +614,7 @@ const NumberEditorParams: React.FC<{
           <Input
             id="precision"
             type="number"
-            value={editorParams.precision ?? ''}
+            value={typeof editorParams.precision === 'number' ? editorParams.precision : undefined}
             onChange={(e) => onParamChange('precision', e.target.value ? parseInt(e.target.value) : undefined)}
             placeholder="Any"
             min={0}
@@ -628,7 +628,7 @@ const NumberEditorParams: React.FC<{
           <Input
             id="step"
             type="number"
-            value={editorParams.step || 1}
+            value={typeof editorParams.step === 'number' ? editorParams.step : 1}
             onChange={(e) => onParamChange('step', parseFloat(e.target.value))}
             min={0}
             step="any"
@@ -655,7 +655,7 @@ const DateEditorParams: React.FC<{
         <Label htmlFor="date-format" className="text-sm">Date Format</Label>
         <Input
           id="date-format"
-          value={editorParams.format || ''}
+          value={typeof editorParams.format === 'string' ? editorParams.format : ''}
           onChange={(e) => onParamChange('format', e.target.value)}
           placeholder="e.g., YYYY-MM-DD"
           disabled={disabled}
@@ -672,7 +672,7 @@ const DateEditorParams: React.FC<{
           <Input
             id="min-date"
             type="date"
-            value={editorParams.min || ''}
+            value={typeof editorParams.min === 'string' ? editorParams.min : ''}
             onChange={(e) => onParamChange('min', e.target.value)}
             disabled={disabled}
             className="h-8"
@@ -684,7 +684,7 @@ const DateEditorParams: React.FC<{
           <Input
             id="max-date"
             type="date"
-            value={editorParams.max || ''}
+            value={typeof editorParams.max === 'string' ? editorParams.max : ''}
             onChange={(e) => onParamChange('max', e.target.value)}
             disabled={disabled}
             className="h-8"

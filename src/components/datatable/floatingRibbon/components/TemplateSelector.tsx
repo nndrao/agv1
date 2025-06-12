@@ -158,7 +158,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
     const filteredSettings: Record<string, unknown> = {};
     selectedProperties.forEach(prop => {
       if (prop in settings) {
-        filteredSettings[prop] = settings[prop];
+        filteredSettings[prop] = settings[prop as keyof typeof settings];
       }
     });
 

@@ -29,7 +29,7 @@ interface ProfileDiff {
 
 class ProfileOptimizer {
   private cache = new Map<string, ProfileCache>();
-  private currentProfileId: string | null = null;
+  // private currentProfileId: string | null = null; // Currently unused
   private pendingUpdates: Map<string, any> = new Map();
   private updateFrameId: number | null = null;
   
@@ -57,19 +57,19 @@ class ProfileOptimizer {
     let processedColumnDefs: ColDef[] = [];
     
     // Process column definitions
-    if (profile.gridState.columnCustomizations && profile.gridState.baseColumnDefs && profile.gridState.baseColumnDefs.length > 0) {
+    if (profile.gridState?.columnCustomizations && profile.gridState?.baseColumnDefs && profile.gridState.baseColumnDefs.length > 0) {
       processedColumnDefs = deserializeColumnCustomizations(
         profile.gridState.columnCustomizations,
         profile.gridState.baseColumnDefs
       );
-    } else if (profile.gridState.columnDefs) {
+    } else if (profile.gridState?.columnDefs) {
       processedColumnDefs = this.processLegacyColumnDefs(profile.gridState.columnDefs);
     }
     
     // Create hashes for quick comparison
-    const columnStateHash = this.hashObject(profile.gridState.columnState || []);
-    const filterModelHash = this.hashObject(profile.gridState.filterModel || {});
-    const sortModelHash = this.hashObject(profile.gridState.sortModel || []);
+    const columnStateHash = this.hashObject(profile.gridState?.columnState || []);
+    const filterModelHash = this.hashObject(profile.gridState?.filterModel || {});
+    const sortModelHash = this.hashObject(profile.gridState?.sortModel || []);
     
     this.cache.set(profile.id, {
       processedColumnDefs,
@@ -150,9 +150,9 @@ class ProfileOptimizer {
       // Everything is new
       diff.columnDefsChanged = true;
       diff.columnStateChanged = true;
-      diff.filterModelChanged = !!targetProfile.gridState.filterModel;
-      diff.sortModelChanged = !!targetProfile.gridState.sortModel?.length;
-      diff.gridOptionsChanged = !!targetProfile.gridState.gridOptions;
+      diff.filterModelChanged = !!targetProfile.gridState?.filterModel;
+      diff.sortModelChanged = !!targetProfile.gridState?.sortModel?.length;
+      diff.gridOptionsChanged = !!targetProfile.gridState?.gridOptions;
       return diff;
     }
     
@@ -182,8 +182,8 @@ class ProfileOptimizer {
     diff.sortModelChanged = currentCache?.sortModelHash !== targetCache?.sortModelHash;
     
     // Compare grid options
-    diff.gridOptionsChanged = JSON.stringify(currentProfile.gridState.gridOptions) !== 
-                             JSON.stringify(targetProfile.gridState.gridOptions);
+    diff.gridOptionsChanged = JSON.stringify(currentProfile.gridState?.gridOptions) !== 
+                             JSON.stringify(targetProfile.gridState?.gridOptions);
     
     return diff;
   }
@@ -221,7 +221,7 @@ class ProfileOptimizer {
     }
     
     // Optimistic update - immediately update visual indicators
-    this.currentProfileId = profile.id;
+    // this.currentProfileId = profile.id; // Currently unused
     
     // Cancel any pending updates from previous profile switches
     if (this.updateFrameId !== null) {
@@ -335,22 +335,22 @@ class ProfileOptimizer {
       // 1. Column state (includes visibility, width, position)
       // IMPORTANT: Always apply column state if we updated column definitions
       // because AG-Grid resets state when columnDefs change
-      if ((diff.columnStateChanged || diff.columnDefsChanged || isInitialLoad) && profile.gridState.columnState) {
+      if ((diff.columnStateChanged || diff.columnDefsChanged || isInitialLoad) && profile.gridState?.columnState) {
         console.log('[ProfileOptimizer] Applying column state:', {
-          stateCount: profile.gridState.columnState.length,
-          hiddenColumns: profile.gridState.columnState.filter((col: any) => col.hide).length,
-          visibleColumns: profile.gridState.columnState.filter((col: any) => !col.hide).length,
-          sample: profile.gridState.columnState.slice(0, 3)
+          stateCount: profile.gridState?.columnState?.length || 0,
+          hiddenColumns: profile.gridState?.columnState?.filter((col: any) => col.hide).length || 0,
+          visibleColumns: profile.gridState?.columnState?.filter((col: any) => !col.hide).length || 0,
+          sample: profile.gridState?.columnState?.slice(0, 3) || []
         });
         
         // Log the state we're about to apply
         console.log('[ProfileOptimizer] Column state to apply:', 
-          profile.gridState.columnState.map((s: any) => ({
+          profile.gridState?.columnState?.map((s: any) => ({
             colId: s.colId,
             hide: s.hide,
             width: s.width,
             pinned: s.pinned
-          }))
+          })) || []
         );
         
         const result = gridApi.applyColumnState({
@@ -380,11 +380,11 @@ class ProfileOptimizer {
       }
       
       // 2. Sort model (part of column state)
-      if (diff.sortModelChanged && profile.gridState.sortModel?.length > 0) {
-        const sortState = profile.gridState.sortModel.map(sort => ({
+      if (diff.sortModelChanged && profile.gridState?.sortModel && profile.gridState.sortModel.length > 0) {
+        const sortState = profile.gridState.sortModel.map((sort: any) => ({
           colId: sort.colId,
           sort: sort.sort,
-          sortIndex: sort.sortIndex
+          sortIndex: (sort as any).sortIndex // sortIndex might not be in the type definition
         }));
         gridApi.applyColumnState({ state: sortState });
         progress++;
@@ -393,7 +393,7 @@ class ProfileOptimizer {
       
       // 3. Filter model (apply after column state)
       if (diff.filterModelChanged) {
-        gridApi.setFilterModel(profile.gridState.filterModel || {});
+        gridApi.setFilterModel(profile.gridState?.filterModel || {});
         needsFilterRefresh = true;
         progress++;
         options.onProgress?.(progress / totalSteps);
@@ -414,14 +414,14 @@ class ProfileOptimizer {
       }
       
       // Apply grid options if changed
-      if (diff.gridOptionsChanged && profile.gridState.gridOptions) {
-        const options = profile.gridState.gridOptions!;
-        if (options.rowHeight) {
+      if (diff.gridOptionsChanged && profile.gridState?.gridOptions) {
+        const gridOptions = profile.gridState.gridOptions;
+        if (gridOptions.rowHeight) {
           gridApi.resetRowHeights();
-          gridApi.setGridOption('rowHeight', options.rowHeight);
+          gridApi.setGridOption('rowHeight', gridOptions.rowHeight);
         }
-        if (options.headerHeight) {
-          gridApi.setGridOption('headerHeight', options.headerHeight);
+        if (gridOptions.headerHeight) {
+          gridApi.setGridOption('headerHeight', gridOptions.headerHeight);
         }
         progress++;
         options.onProgress?.(progress / totalSteps);
@@ -452,41 +452,42 @@ class ProfileOptimizer {
     // perfMonitor.measure('profileSwitchTime', 'profile-switch-start');
   }
   
-  private batchUpdates(callback: () => void) {
-    // Cancel any pending frame
-    if (this.updateFrameId !== null) {
-      cancelAnimationFrame(this.updateFrameId);
-    }
-    
-    callback();
-    
-    // Process updates in next animation frame
-    this.updateFrameId = requestAnimationFrame(() => {
-      this.processPendingUpdates();
-    });
-  }
+  // Currently unused batch update methods - kept for future optimizations
+  // private batchUpdates(callback: () => void) {
+  //   // Cancel any pending frame
+  //   if (this.updateFrameId !== null) {
+  //     cancelAnimationFrame(this.updateFrameId);
+  //   }
+  //   
+  //   callback();
+  //   
+  //   // Process updates in next animation frame
+  //   this.updateFrameId = requestAnimationFrame(() => {
+  //     this.processPendingUpdates();
+  //   });
+  // }
+  // 
+  // private scheduleUpdate(key: string, update: () => void, priority: number = 0) {
+  //   this.pendingUpdates.set(key, { update, priority });
+  // }
   
-  private scheduleUpdate(key: string, update: () => void, priority: number = 0) {
-    this.pendingUpdates.set(key, { update, priority });
-  }
-  
-  private processPendingUpdates() {
-    // Sort updates by priority
-    const updates = Array.from(this.pendingUpdates.entries())
-      .sort((a, b) => a[1].priority - b[1].priority);
-    
-    // Execute updates
-    updates.forEach(([key, { update }]) => {
-      try {
-        update();
-      } catch (error) {
-        console.error(`[ProfileOptimizer] Error applying ${key}:`, error);
-      }
-    });
-    
-    this.pendingUpdates.clear();
-    this.updateFrameId = null;
-  }
+  // private processPendingUpdates() {
+  //   // Sort updates by priority
+  //   const updates = Array.from(this.pendingUpdates.entries())
+  //     .sort((a, b) => a[1].priority - b[1].priority);
+  //   
+  //   // Execute updates
+  //   updates.forEach(([key, { update }]) => {
+  //     try {
+  //       update();
+  //     } catch (error) {
+  //       console.error(`[ProfileOptimizer] Error applying ${key}:`, error);
+  //     }
+  //   });
+  //   
+  //   this.pendingUpdates.clear();
+  //   this.updateFrameId = null;
+  // }
   
   private showTransitionEffect(_gridApi: GridApi) {
     // Get the grid wrapper element

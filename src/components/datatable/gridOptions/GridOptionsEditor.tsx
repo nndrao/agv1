@@ -134,8 +134,8 @@ export const GridOptionsEditor: React.FC<GridOptionsEditorProps> = ({
     
     gridOptionsSections.forEach(section => {
       const count = section.options.filter(option => 
-        localOptions[option.key] !== mergedOriginal[option.key] &&
-        localOptions[option.key] !== undefined
+        localOptions[option.key as keyof GridOptionsConfig] !== mergedOriginal[option.key as keyof GridOptionsConfig] &&
+        localOptions[option.key as keyof GridOptionsConfig] !== undefined
       ).length;
       if (count > 0) {
         counts[section.id] = count;

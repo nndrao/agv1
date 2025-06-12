@@ -20,8 +20,7 @@ const tabs = [
 
 export const RibbonTabs: React.FC<RibbonTabsProps> = ({
   activeTab,
-  setActiveTab,
-  selectedColumns
+  setActiveTab
 }) => {
   return (
     <div className="flex items-center h-full px-3">

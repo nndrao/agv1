@@ -54,10 +54,10 @@ export const GridOptionsPropertyTab: React.FC<GridOptionsPropertyTabProps> = ({
   ];
 
   const renderPropertyRow = (field: GridOptionField) => {
-    const value = options[field.key];
-    const profileValue = profileOptions[field.key];
+    const key = field.key as keyof GridOptionsConfig;
+    const value = options[key];
+    const profileValue = profileOptions[key];
     const hasChanged = value !== profileValue && value !== undefined;
-    const isDefault = value === undefined || value === field.defaultValue;
 
     return (
       <div 
@@ -83,7 +83,7 @@ export const GridOptionsPropertyTab: React.FC<GridOptionsPropertyTabProps> = ({
         </TooltipProvider>
 
         <div className="grid-option-property-value-cell">
-          {renderField(field, value, hasChanged, isDefault)}
+          {renderField(field, value, key)}
         </div>
       </div>
     );
@@ -92,8 +92,7 @@ export const GridOptionsPropertyTab: React.FC<GridOptionsPropertyTabProps> = ({
   const renderField = (
     field: GridOptionField, 
     value: any, 
-    hasChanged: boolean, 
-    isDefault: boolean
+    key: keyof GridOptionsConfig
   ) => {
     switch (field.type) {
       case 'number':
@@ -105,7 +104,7 @@ export const GridOptionsPropertyTab: React.FC<GridOptionsPropertyTabProps> = ({
               value={value ?? field.defaultValue ?? ''}
               onChange={(e) => {
                 const val = e.target.value === '' ? undefined : Number(e.target.value);
-                onChange(field.key, val);
+                onChange(key, val);
               }}
               min={field.min}
               max={field.max}
@@ -123,7 +122,7 @@ export const GridOptionsPropertyTab: React.FC<GridOptionsPropertyTabProps> = ({
           <Switch
             id={field.key}
             checked={value ?? field.defaultValue ?? false}
-            onCheckedChange={(checked) => onChange(field.key, checked)}
+            onCheckedChange={(checked) => onChange(key, checked)}
             className="grid-option-switch"
           />
         );
@@ -133,9 +132,9 @@ export const GridOptionsPropertyTab: React.FC<GridOptionsPropertyTabProps> = ({
           <Select
             value={String(value ?? field.defaultValue ?? '')}
             onValueChange={(val) => {
-              if (val === 'null') onChange(field.key, null);
-              else if (val === 'undefined') onChange(field.key, undefined);
-              else onChange(field.key, val);
+              if (val === 'null') onChange(key, null);
+              else if (val === 'undefined') onChange(key, undefined);
+              else onChange(key, val);
             }}
           >
             <SelectTrigger className="grid-option-select-trigger">
@@ -187,12 +186,12 @@ export const GridOptionsPropertyTab: React.FC<GridOptionsPropertyTabProps> = ({
                           onCheckedChange={(checked) => {
                             if (!isArray && value === false) {
                               const newValues = checked ? [option.value] : [];
-                              onChange(field.key, newValues);
+                              onChange(key, newValues);
                             } else {
                               const newValues = checked
                                 ? [...valuesArray, option.value]
                                 : valuesArray.filter((v: any) => v !== option.value);
-                              onChange(field.key, newValues.length > 0 ? newValues : false);
+                              onChange(key, newValues.length > 0 ? newValues : false);
                             }
                           }}
                         />

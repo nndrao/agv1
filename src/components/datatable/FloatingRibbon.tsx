@@ -201,7 +201,7 @@ export const FloatingRibbon: React.FC<FloatingRibbonProps> = ({
           const colDef = getColumnDef();
           const existingBaseStyle = colDef?.cellStyle && typeof colDef.cellStyle === 'function' 
             ? (colDef.cellStyle as CellStyleFunction).__baseStyle || {}
-            : colDef?.cellStyle || {};
+            : (typeof colDef?.cellStyle === 'object' ? colDef.cellStyle : {}) as React.CSSProperties;
             
           const cellStyleFn = createCellStyleFunction(formatString, existingBaseStyle);
           updateColumnProperty('cellStyle', cellStyleFn);

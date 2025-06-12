@@ -68,8 +68,8 @@ export const GridOptionsPropertyGrid: React.FC<GridOptionsPropertyGridProps> = (
   }, [sections, searchTerm, viewMode]);
 
   const renderPropertyRow = (field: GridOptionField) => {
-    const value = options[field.key];
-    const profileValue = profileOptions[field.key];
+    const value = options[field.key as keyof GridOptionsConfig];
+    const profileValue = profileOptions[field.key as keyof GridOptionsConfig];
     const hasChanged = value !== profileValue && value !== undefined;
 
     return (
@@ -112,7 +112,7 @@ export const GridOptionsPropertyGrid: React.FC<GridOptionsPropertyGridProps> = (
           <div className="flex items-center gap-1 w-full">
             <InputNumber
               value={value ?? field.defaultValue}
-              onChange={(val) => onChange(field.key, val)}
+              onChange={(val) => onChange(field.key as keyof GridOptionsConfig, val)}
               min={field.min}
               max={field.max}
               step={field.step}
@@ -129,7 +129,7 @@ export const GridOptionsPropertyGrid: React.FC<GridOptionsPropertyGridProps> = (
         return (
           <Switch
             checked={value ?? field.defaultValue ?? false}
-            onCheckedChange={(checked) => onChange(field.key, checked)}
+            onCheckedChange={(checked) => onChange(field.key as keyof GridOptionsConfig, checked)}
             className="h-4 w-7"
           />
         );
@@ -139,9 +139,9 @@ export const GridOptionsPropertyGrid: React.FC<GridOptionsPropertyGridProps> = (
           <Select
             value={String(value ?? field.defaultValue ?? '')}
             onValueChange={(val) => {
-              if (val === 'null') onChange(field.key, null);
-              else if (val === 'undefined') onChange(field.key, undefined);
-              else onChange(field.key, val);
+              if (val === 'null') onChange(field.key as keyof GridOptionsConfig, null);
+              else if (val === 'undefined') onChange(field.key as keyof GridOptionsConfig, undefined);
+              else onChange(field.key as keyof GridOptionsConfig, val);
             }}
           >
             <SelectTrigger className="h-6 text-xs w-full">
@@ -193,12 +193,12 @@ export const GridOptionsPropertyGrid: React.FC<GridOptionsPropertyGridProps> = (
                         onCheckedChange={(checked) => {
                           if (!isArray && value === false) {
                             const newValues = checked ? [option.value] : [];
-                            onChange(field.key, newValues);
+                            onChange(field.key as keyof GridOptionsConfig, newValues);
                           } else {
                             const newValues = checked
                               ? [...valuesArray, option.value]
                               : valuesArray.filter((v: any) => v !== option.value);
-                            onChange(field.key, newValues.length > 0 ? newValues : false);
+                            onChange(field.key as keyof GridOptionsConfig, newValues.length > 0 ? newValues : false);
                           }
                         }}
                         className="h-3 w-3"

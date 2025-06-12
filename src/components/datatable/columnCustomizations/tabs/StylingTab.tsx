@@ -150,13 +150,6 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode: _uiMode = 'simpl
     updateBulkProperty('headerStyle', headerStyleFn);
   };
 
-  // Clear all styles
-  const _clearAllStyles = () => {
-    updateBulkProperty('cellStyle', undefined);
-    updateBulkProperty('headerStyle', undefined);
-    updateBulkProperty('cellClass', undefined);
-    updateBulkProperty('headerClass', undefined);
-  };
 
   // Clear only cell styles
   const clearCellStyles = () => {
@@ -190,7 +183,6 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode: _uiMode = 'simpl
       // This is the same as handleCellStyleSave but with empty base styles
       const cellStyleFn = (params: { value: unknown }) => {
         // No base styles (cleared)
-        const _baseStyles = {};
         
         // Get conditional styles using createCellStyleFunction with empty base
         const conditionalStyleFn = createCellStyleFunction(formatString, {});
@@ -233,28 +225,6 @@ export const StylingTab: React.FC<StylingTabProps> = ({ uiMode: _uiMode = 'simpl
   const clearHeaderStyles = () => {
     updateBulkProperty('headerStyle', undefined);
     updateBulkProperty('headerClass', undefined);
-  };
-
-  // Clear only alignment classes (keep other styles)
-  const _clearAlignment = () => {
-    const currentHeaderClass = getMixedValue('headerClass');
-    const currentCellClass = getMixedValue('cellClass');
-
-    // Remove alignment classes from headerClass
-    if (currentHeaderClass.value) {
-      const headerClasses = (currentHeaderClass.value as string).split(' ').filter(c =>
-        !c.startsWith('header-align-') && !c.startsWith('header-valign-')
-      );
-      updateBulkProperty('headerClass', headerClasses.length > 0 ? headerClasses.join(' ') : undefined);
-    }
-
-    // Remove alignment classes from cellClass
-    if (currentCellClass.value) {
-      const cellClasses = (currentCellClass.value as string).split(' ').filter(c =>
-        !c.startsWith('cell-align-') && !c.startsWith('cell-valign-')
-      );
-      updateBulkProperty('cellClass', cellClasses.length > 0 ? cellClasses.join(' ') : undefined);
-    }
   };
 
   // Get current cell style (if consistent across selected columns)

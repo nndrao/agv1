@@ -17,18 +17,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
   Grid3X3,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Settings,
-  Check,
-  X
+  Settings
 } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 
@@ -164,7 +154,7 @@ export function ColumnBuilder({ schema, columnDefs, onChange }: ColumnBuilderPro
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={column.cellDataType}
+                          value={typeof column.cellDataType === 'string' ? column.cellDataType : 'text'}
                           onValueChange={(value) => 
                             handleColumnChange(column.field!, { cellDataType: value })
                           }
@@ -230,7 +220,7 @@ export function ColumnBuilder({ schema, columnDefs, onChange }: ColumnBuilderPro
                               <div className="flex items-center space-x-2">
                                 <Switch
                                   id={`editable-${column.field}`}
-                                  checked={column.editable}
+                                  checked={typeof column.editable === 'boolean' ? column.editable : false}
                                   onCheckedChange={(checked) => 
                                     handleColumnChange(column.field!, { editable: checked })
                                   }

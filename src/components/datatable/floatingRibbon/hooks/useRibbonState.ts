@@ -34,7 +34,7 @@ export const useRibbonState = ({
   } = useColumnCustomizationStore();
 
   // Profile store integration
-  const { saveColumnSettings, getActiveProfile } = useProfileStore();
+  const { getActiveProfile } = useProfileStore();
 
   // Local state
   const [activeTab, setActiveTab] = useState<RibbonTab>('styling');

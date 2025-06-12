@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Settings2, Sliders, Type, Database, MoreVertical, User, Save, Plus, Copy } from "lucide-react";
+import { Settings2, Sliders, Database, MoreVertical, User, Save, Plus, Copy } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,9 +15,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuLabel,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -98,9 +95,7 @@ export function DataTableToolbar({
     createProfile,
     duplicateProfile, 
     saveColumnCustomizations,
-    saveGridState,
-    saveGridOptions,
-    getColumnDefs
+    saveGridState
   } = useProfileStore();
   
   // State for profile dialogs
@@ -185,20 +180,20 @@ export function DataTableToolbar({
           
           // Apply filters after column state
           setTimeout(() => {
-            if (profile.gridState.filterModel) {
+            if (profile.gridState?.filterModel) {
               console.log('[DataTableToolbar] Applying filters');
               gridApi.setFilterModel(profile.gridState.filterModel);
             }
             
             // Apply sorting after filters
             setTimeout(() => {
-              if (profile.gridState.sortModel) {
+              if (profile.gridState?.sortModel) {
                 console.log('[DataTableToolbar] Applying sorts');
                 gridApi.applyColumnState({
                   state: profile.gridState.sortModel.map(sort => ({
                     colId: sort.colId,
                     sort: sort.sort,
-                    sortIndex: sort.sortIndex
+                    sortIndex: (sort as any).sortIndex
                   }))
                 });
               }
@@ -248,11 +243,10 @@ export function DataTableToolbar({
       const filterModel = gridApi.getFilterModel() || {};
       const sortModel = gridApi.getColumnState()
         ?.filter(col => col.sort)
-        .map((col, index) => ({
+        .map((col) => ({
           colId: col.colId,
-          sort: col.sort,
-          sortIndex: col.sortIndex || index
-        })) || [];
+          sort: col.sort
+        } as any)) || [];
       
       // Clean column definitions (remove functions that can't be serialized)
       const cleanedColumnDefs = columnDefs.map(col => {
@@ -273,17 +267,17 @@ export function DataTableToolbar({
         ];
         
         propsToRemove.forEach(prop => {
-          if (typeof cleaned[prop] === 'function') {
-            delete cleaned[prop];
+          if (typeof (cleaned as any)[prop] === 'function') {
+            delete (cleaned as any)[prop];
           }
         });
         
         // Handle headerStyle
         if (cleaned.headerStyle && typeof cleaned.headerStyle === 'function') {
           try {
-            const regularStyle = cleaned.headerStyle({ floatingFilter: false });
-            const floatingStyle = cleaned.headerStyle({ floatingFilter: true });
-            cleaned.headerStyle = {
+            const regularStyle = (cleaned.headerStyle as any)({ floatingFilter: false } as any);
+            const floatingStyle = (cleaned.headerStyle as any)({ floatingFilter: true } as any);
+            (cleaned as any).headerStyle = {
               _isHeaderStyleConfig: true,
               regular: regularStyle,
               floating: floatingStyle
@@ -298,7 +292,7 @@ export function DataTableToolbar({
         if (cleaned.valueFormatter && typeof cleaned.valueFormatter === 'function') {
           const formatterFunc = cleaned.valueFormatter as { __formatString?: string };
           if (formatterFunc.__formatString) {
-            cleaned.valueFormatter = {
+            (cleaned as any).valueFormatter = {
               _isFormatterConfig: true,
               type: 'excel',
               formatString: formatterFunc.__formatString

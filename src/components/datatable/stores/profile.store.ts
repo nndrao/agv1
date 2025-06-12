@@ -37,7 +37,35 @@ export interface GridProfile {
     filterModel: FilterModel;
     // Sort model
     sortModel: SortModelItem[];
+    // --- Added properties for full compatibility ---
+    // Column definitions with all customizations
+    columnDefs?: ColDef[];
+    // Lightweight column customizations (new format)
+    columnCustomizations?: Record<string, ColumnCustomization>;
+    // Base column definitions snapshot (for reference)
+    baseColumnDefs?: ColDef[];
+    // Templates
+    templates?: Record<string, unknown>[];
+    // Column customization templates
+    columnTemplates?: Record<string, unknown>[];
+    // UI preferences
+    font?: string;
+    // Other grid options
+    gridOptions?: {
+      rowHeight?: number;
+      headerHeight?: number;
+      floatingFiltersHeight?: number;
+      groupHeaderHeight?: number;
+      pivotHeaderHeight?: number;
+      pivotGroupHeaderHeight?: number;
+      animateRows?: boolean;
+      pagination?: boolean;
+      paginationPageSize?: number;
+      font?: string;
+      fontSize?: string;
+    };
   };
+
   // Grid options from editor (row height, header height, etc)
   gridOptions?: {
     rowHeight?: number;
@@ -159,9 +187,9 @@ async function performMigration(state: PersistedState): Promise<PersistedState> 
     newState.profiles = state.profiles.map((profile: GridProfile) => {
       const newProfile = { ...profile };
       
-      if (profile.gridState && profile.gridState.columnDefs) {
+      if (profile.gridState && profile.gridState.columnDefs && newProfile.gridState) {
         // Clean invalid properties from each column definition
-        newProfile.gridState.columnDefs = profile.gridState.columnDefs.map((col: ColDef) => {
+        newProfile.gridState.columnDefs = profile.gridState.columnDefs.map((col: any) => {
           const cleaned = { ...col } as any;
           // Remove invalid properties that AG-Grid doesn't recognize
           delete cleaned.valueFormat;
@@ -169,10 +197,7 @@ async function performMigration(state: PersistedState): Promise<PersistedState> 
           delete cleaned.excelFormat;
           return cleaned;
         });
-      }
-      
-      // Convert headerStyle objects to new format
-      if (newProfile.gridState && newProfile.gridState.columnDefs) {
+        // Convert headerStyle objects to new format
         newProfile.gridState.columnDefs = newProfile.gridState.columnDefs.map((col: ColDef) => {
           if (col.headerStyle && typeof col.headerStyle === 'object' && !(col.headerStyle as any)._isHeaderStyleConfig) {
             // Convert old format to new format
@@ -312,7 +337,7 @@ export const useProfileStore = create<ProfileStore>()(
           },
           // Start with clean grid state (no filters/sorts)
           gridState: {
-            columnState: [...(defaultProfile?.gridState?.columnState || [])],
+            columnState: [...((defaultProfile?.gridState?.columnState as ColumnState[]) || [])],
             filterModel: {},  // Start with no filters
             sortModel: []     // Start with no sorting
           },

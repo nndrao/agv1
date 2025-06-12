@@ -85,14 +85,14 @@ const FORMAT_TEMPLATES = {
   }
 };
 
-export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
+export function FormatTab({ }: FormatTabProps) {
   const {
     selectedColumns,
     columnDefinitions,
     pendingChanges,
     updateBulkProperties,
-    updateSingleProperty,
     updateBulkProperty,
+    setSelectedColumns,
   } = useColumnCustomizationStore();
 
   const [showFormatterEditor, setShowFormatterEditor] = useState(false);
@@ -126,6 +126,13 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
       const formatter = createExcelFormatter(formatString);
       const newFormatClasses = getExcelStyleClass(formatString);
       
+      // Preserve existing alignment classes
+      const properties: any = {
+        valueFormatter: formatter,
+        useValueFormatterForExport: true,
+        cellStyleUpdates: undefined
+      };
+      
       // Check if format string has conditional styling and create cellStyle if needed
       console.log('[applyFormat] Checking if cellStyle needed for format:', formatString);
       let cellStyle = undefined;
@@ -154,7 +161,7 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
               } else {
                 // Try calling the function to see if it returns static styles
                 // This handles the case where styling tab created a function that returns static styles
-                const testStyle = existingCellStyle({ value: null });
+                const testStyle = existingCellStyle({ value: null } as any);
                 if (testStyle && typeof testStyle === 'object') {
                   baseStyle = testStyle;
                 }
@@ -178,15 +185,9 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
         } else {
           // Different base styles, we'll need to apply them individually
           // Store for later individual application
-          properties.cellStyleUpdates = cellStyleUpdates;
+          (properties as any).cellStyleUpdates = cellStyleUpdates;
         }
       }
-      
-      // Preserve existing alignment classes
-      const properties: any = {
-        valueFormatter: formatter,
-        useValueFormatterForExport: true
-      };
       
       if (cellStyle) {
         properties.cellStyle = cellStyle;
@@ -200,7 +201,7 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
         const existingCellClass = pendingChange?.cellClass || colDef?.cellClass || '';
         
         // Extract alignment classes from existing cellClass (both custom and Tailwind)
-        const existingClasses = existingCellClass.split(' ').filter(Boolean);
+        const existingClasses = typeof existingCellClass === 'string' ? existingCellClass.split(' ').filter(Boolean) : [];
         const alignmentClasses = existingClasses.filter((cls: string) => 
           // Custom alignment classes
           cls.startsWith('cell-align-') || cls.startsWith('cell-valign-') ||
@@ -226,24 +227,40 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
       
       // Apply individual cellClass updates if needed
       if (uniqueCellClasses.size > 1) {
+        // We need to apply updates individually per column
+        // Save current selection and update each column separately
+        const originalSelection = new Set(selectedColumns);
         selectedColumns.forEach(colId => {
-          updateSingleProperty(colId, 'cellClass', cellClassUpdates[colId]);
+          // Temporarily select only this column
+          setSelectedColumns(new Set([colId]));
+          // Apply the cellClass for this column
+          updateBulkProperties({ cellClass: cellClassUpdates[colId] });
         });
+        // Restore original selection
+        setSelectedColumns(originalSelection);
       }
       
       // Apply individual cellStyle updates if needed
-      if (properties.cellStyleUpdates) {
+      if ((properties as any).cellStyleUpdates) {
+        // We need to apply updates individually per column
+        // Save current selection and update each column separately
+        const originalSelection = new Set(selectedColumns);
         selectedColumns.forEach(colId => {
-          updateSingleProperty(colId, 'cellStyle', properties.cellStyleUpdates[colId]);
+          // Temporarily select only this column
+          setSelectedColumns(new Set([colId]));
+          // Apply the cellStyle for this column
+          updateBulkProperties({ cellStyle: (properties as any).cellStyleUpdates[colId] });
         });
-        delete properties.cellStyleUpdates; // Clean up
+        // Restore original selection
+        setSelectedColumns(originalSelection);
+        delete (properties as any).cellStyleUpdates; // Clean up
       }
       
       setSelectedTemplate(formatString);
     } catch (error) {
       console.error('Error applying format:', error);
     }
-  }, [selectedColumns, updateBulkProperties, updateSingleProperty, columnDefinitions, pendingChanges]);
+  }, [selectedColumns, updateBulkProperties, updateBulkProperty, setSelectedColumns, columnDefinitions, pendingChanges]);
 
   // Clear format
   const clearFormat = useCallback(() => {
@@ -257,14 +274,14 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
       const existingCellClass = pendingChange?.cellClass || colDef?.cellClass || '';
       
       // Extract only alignment classes to preserve (both custom and Tailwind)
-      const alignmentClasses = existingCellClass.split(' ').filter((cls: string) => 
+      const alignmentClasses = typeof existingCellClass === 'string' ? existingCellClass.split(' ').filter((cls: string) => 
         // Custom alignment classes
         cls.startsWith('cell-align-') || cls.startsWith('cell-valign-') ||
         // Tailwind alignment classes
         cls === 'text-left' || cls === 'text-center' || cls === 'text-right' ||
         cls === 'justify-start' || cls === 'justify-center' || cls === 'justify-end' ||
         cls === 'items-start' || cls === 'items-center' || cls === 'items-end'
-      );
+      ) : [];
       
       cellClassUpdates[colId] = alignmentClasses.length > 0 ? alignmentClasses.join(' ') : undefined;
     });
@@ -284,14 +301,22 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
     
     // Apply individual cellClass updates if needed
     if (uniqueCellClasses.size > 1) {
+      // We need to apply updates individually per column
+      // Save current selection and update each column separately
+      const originalSelection = new Set(selectedColumns);
       selectedColumns.forEach(colId => {
-        updateSingleProperty(colId, 'cellClass', cellClassUpdates[colId]);
+        // Temporarily select only this column
+        setSelectedColumns(new Set([colId]));
+        // Apply the cellClass for this column
+        updateBulkProperties({ cellClass: cellClassUpdates[colId] });
       });
+      // Restore original selection
+      setSelectedColumns(originalSelection);
     }
     
     setSelectedTemplate(null);
     setCustomFormat('');
-  }, [selectedColumns, updateBulkProperties, updateSingleProperty, columnDefinitions, pendingChanges]);
+  }, [selectedColumns, updateBulkProperties, updateBulkProperty, setSelectedColumns, columnDefinitions, pendingChanges]);
 
   // Handle custom format input
   const handleCustomFormatApply = useCallback(() => {
@@ -521,9 +546,14 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
             const colId = Array.from(selectedColumns)[0];
             const colDef = columnDefinitions.get(colId);
             const pendingChange = pendingChanges.get(colId);
-            return pendingChange?.valueFormatter || colDef?.valueFormatter;
+            const formatter = pendingChange?.valueFormatter || colDef?.valueFormatter;
+            if (typeof formatter === 'function') {
+              // Wrap ag-grid formatter to match expected signature
+              return (params: { value: unknown }) => formatter({ value: params.value } as any);
+            }
+            return undefined;
           })()}
-          onSave={async (formatter, cellStyle) => {
+          onSave={async (formatter: any, cellStyle: any) => {
             console.log('[FormatTab] Received from ValueFormatterEditor:', {
               hasFormatter: !!formatter,
               formatterType: typeof formatter,
@@ -559,7 +589,7 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
                       baseStyle = metadata;
                     } else {
                       // Try calling the function to see if it returns static styles
-                      const testStyle = existingCellStyle({ value: null });
+                      const testStyle = existingCellStyle({ value: null } as any);
                       if (testStyle && typeof testStyle === 'object') {
                         baseStyle = testStyle;
                       }
@@ -571,7 +601,7 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
                 
                 // Create a merged cellStyle function that preserves base styles
                 if (baseStyle && Object.keys(baseStyle).length > 0) {
-                  const mergedCellStyle = (params: { value: unknown }) => {
+                  const mergedCellStyle = (params: any) => {
                     const conditionalStyles = cellStyle(params) || {};
                     // Always merge base and conditional styles, with conditional taking precedence
                     const merged = { ...baseStyle, ...conditionalStyles };
@@ -613,7 +643,7 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
                 properties.cellStyle = Object.values(cellStyleUpdates)[0];
               } else {
                 // Different styles, need individual updates
-                properties.cellStyleUpdates = cellStyleUpdates;
+                (properties as any).cellStyleUpdates = cellStyleUpdates;
               }
             }
             
@@ -621,20 +651,33 @@ export function FormatTab({ uiMode = 'simple' }: FormatTabProps) {
             updateBulkProperties(properties);
             
             // Apply individual cellStyle updates if needed
-            if (properties.cellStyleUpdates) {
+            if ((properties as any).cellStyleUpdates) {
+              // We need to apply updates individually per column
+              // Save current selection and update each column separately
+              const originalSelection = new Set(selectedColumns);
               selectedColumns.forEach(colId => {
-                updateSingleProperty(colId, 'cellStyle', properties.cellStyleUpdates[colId]);
+                // Temporarily select only this column
+                setSelectedColumns(new Set([colId]));
+                // Apply the cellStyle for this column
+                updateBulkProperties({ cellStyle: (properties as any).cellStyleUpdates[colId] });
               });
-              delete properties.cellStyleUpdates; // Clean up
+              // Restore original selection
+              setSelectedColumns(originalSelection);
+              delete (properties as any).cellStyleUpdates; // Clean up
             }
             
             setShowFormatterEditor(false);
           }}
-          dataType={(() => {
+          title="Format Values"
+          columnType={(() => {
             if (selectedColumns.size === 0) return 'text';
             const colId = Array.from(selectedColumns)[0];
             const colDef = columnDefinitions.get(colId);
-            return colDef?.cellDataType as string || 'text';
+            const cellDataType = colDef?.cellDataType;
+            if (cellDataType === 'number') return 'number';
+            if (cellDataType === 'date') return 'date';
+            if (cellDataType === 'boolean') return 'boolean';
+            return 'text';
           })()}
         />
       )}

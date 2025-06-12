@@ -11,8 +11,7 @@ import type { RibbonPreviewProps } from '../types';
 
 export const RibbonPreview: React.FC<RibbonPreviewProps> = ({
   activeTab,
-  selectedColumns,
-  currentFormat
+  selectedColumns
 }) => {
   const { columnDefinitions, pendingChanges } = useColumnCustomizationStore();
 

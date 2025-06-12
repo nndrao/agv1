@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,14 +9,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  AlertCircle,
   Plus,
-  Settings,
-  Trash2,
   Play,
-  Pause,
-  CheckCircle,
-  XCircle,
   Loader2,
   Database,
   Globe,
@@ -72,7 +66,6 @@ export function DataSourceDialog({
     addDataSource,
     updateDataSource,
     deleteDataSource,
-    setActiveDataSource,
     testDataSource
   } = storeData;
 
@@ -119,7 +112,7 @@ export function DataSourceDialog({
       setTestResults(results);
       
       // If no schema provided, infer it from test results
-      if (!editingDataSource.schema && results.data && results.data.length > 0) {
+      if (!editingDataSource.schema && 'data' in results && results.data && results.data.length > 0) {
         const inferredSchema = inferSchema(results.data);
         setEditingDataSource({
           ...editingDataSource,
@@ -129,7 +122,7 @@ export function DataSourceDialog({
 
       toast({
         title: "Connection successful",
-        description: `Retrieved ${results.data?.length || 0} records`
+        description: `Retrieved ${'data' in results ? results.data?.length || 0 : 0} records`
       });
     } catch (error) {
       toast({

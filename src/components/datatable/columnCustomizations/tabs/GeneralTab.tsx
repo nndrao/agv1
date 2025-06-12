@@ -88,7 +88,6 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
                   onChange={(value) => updateBulkProperty('headerName', value)}
                   disabled={isDisabled || isMultipleSelection}
                   placeholder="Display name"
-                  title={isMultipleSelection ? "Header Name can only be edited for single columns" : ""}
                 />
               </div>
 
@@ -149,7 +148,13 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
                       const colDef = columnDefinitions.get(colId);
                       const pendingChange = pendingChanges.get(colId);
                       const dataType = pendingChange?.cellDataType || colDef?.cellDataType || pendingChange?.type || colDef?.type || 'text';
-                      dataTypes.add(dataType);
+                      if (typeof dataType === 'string') {
+                        dataTypes.add(dataType);
+                      } else if (Array.isArray(dataType)) {
+                        dataType.forEach(dt => dataTypes.add(dt));
+                      } else {
+                        dataTypes.add('text');
+                      }
                     });
                     
                     // If all columns have the same data type, set appropriate filter
@@ -200,7 +205,6 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
                   onChange={(value) => updateBulkProperty('field', value)}
                   disabled={true} // Field should never be editable
                   placeholder="Column field name"
-                  title="Field cannot be edited"
                 />
               </div>
 
@@ -217,7 +221,6 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
                   onChange={(value) => updateBulkProperty('headerName', value)}
                   disabled={isDisabled || isMultipleSelection} // Disable for multiple selection
                   placeholder="Display name"
-                  title={isMultipleSelection ? "Header Name can only be edited for single columns" : ""}
                 />
               </div>
 
@@ -376,7 +379,13 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({ uiMode = 'simple' }) => 
                       const colDef = columnDefinitions.get(colId);
                       const pendingChange = pendingChanges.get(colId);
                       const dataType = pendingChange?.cellDataType || colDef?.cellDataType || pendingChange?.type || colDef?.type || 'text';
-                      dataTypes.add(dataType);
+                      if (typeof dataType === 'string') {
+                        dataTypes.add(dataType);
+                      } else if (Array.isArray(dataType)) {
+                        dataType.forEach(dt => dataTypes.add(dt));
+                      } else {
+                        dataTypes.add('text');
+                      }
                     });
                     
                     // If all columns have the same data type, set appropriate filter

@@ -152,7 +152,6 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
   setFormatCategory,
   currentFormat,
   setCurrentFormat,
-  showConditionalDialog,
   setShowConditionalDialog
 }) => {
   const { updateBulkProperty, columnDefinitions, pendingChanges } = useColumnCustomizationStore();

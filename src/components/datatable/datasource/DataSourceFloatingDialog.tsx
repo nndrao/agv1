@@ -1,4 +1,3 @@
-import React from 'react';
 import { FloatingDialog } from '../floatingDialog/FloatingDialog';
 import { DataSourceDialog } from './DataSourceDialog';
 import './datasource-floating-dialog.css';

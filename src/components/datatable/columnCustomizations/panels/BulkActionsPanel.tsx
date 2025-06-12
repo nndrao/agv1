@@ -311,7 +311,7 @@ export const BulkActionsPanel: React.FC = () => {
     
     TEMPLATE_PROPERTIES.forEach(property => {
       // Check pending changes first, then column definition
-      const value = changes?.[property] ?? columnDef[property as keyof ColDef];
+      const value = changes?.[property as keyof typeof changes] ?? columnDef[property as keyof ColDef];
       if (value !== undefined) {
         // Special handling for functions - convert to serializable format
         if (typeof value === 'function') {
