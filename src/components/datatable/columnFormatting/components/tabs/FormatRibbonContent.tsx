@@ -270,10 +270,29 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
     const hasConditionalStyling = finalFormat.match(/\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right|#[0-9A-Fa-f]{3,6}|Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan)/i);
     
     if (hasConditionalStyling && !existingCellStyle.isMixed) {
-      // Extract base styles from existing cellStyle
+      // Extract base styles from existing cellStyle OR pending changes
       let baseStyle: React.CSSProperties | undefined;
       
-      if (existingCellStyle.value) {
+      // First check if there's a pending cellStyle change
+      const pendingCellStyle = selectedColumns.size > 0 ? 
+        (() => {
+          const firstColId = Array.from(selectedColumns)[0];
+          const pending = pendingChanges.get(firstColId);
+          return pending?.cellStyle;
+        })() : undefined;
+      
+      if (pendingCellStyle) {
+        if (typeof pendingCellStyle === 'object') {
+          // Direct style object from styling tab (pending)
+          baseStyle = pendingCellStyle;
+        } else if (typeof pendingCellStyle === 'function') {
+          // Function style - check for base style metadata
+          const metadata = (pendingCellStyle as any).__baseStyle;
+          if (metadata) {
+            baseStyle = metadata;
+          }
+        }
+      } else if (existingCellStyle.value) {
         if (typeof existingCellStyle.value === 'object') {
           // Direct style object from styling tab
           baseStyle = existingCellStyle.value;
@@ -347,9 +366,50 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
         // Create the formatter function from the format string
         const formatter = createExcelFormatter(finalFormat);
         updateBulkProperty('valueFormatter', formatter);
+        
+        // Check if we need to create/update cellStyle for conditional formatting
+        const hasConditionalStyling = finalFormat.match(/\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right|#[0-9A-Fa-f]{3,6}|Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan)/i);
+        
+        if (hasConditionalStyling) {
+          const existingCellStyle = getMixedValueLocal('cellStyle');
+          if (!existingCellStyle.isMixed) {
+            let baseStyle: React.CSSProperties | undefined;
+            
+            // First check if there's a pending cellStyle change
+            const pendingCellStyle = selectedColumns.size > 0 ? 
+              (() => {
+                const firstColId = Array.from(selectedColumns)[0];
+                const pending = pendingChanges.get(firstColId);
+                return pending?.cellStyle;
+              })() : undefined;
+            
+            if (pendingCellStyle) {
+              if (typeof pendingCellStyle === 'object') {
+                baseStyle = pendingCellStyle;
+              } else if (typeof pendingCellStyle === 'function') {
+                const metadata = (pendingCellStyle as any).__baseStyle;
+                if (metadata) {
+                  baseStyle = metadata;
+                }
+              }
+            } else if (existingCellStyle.value) {
+              if (typeof existingCellStyle.value === 'object') {
+                baseStyle = existingCellStyle.value;
+              } else if (typeof existingCellStyle.value === 'function') {
+                const metadata = (existingCellStyle.value as any).__baseStyle;
+                if (metadata) {
+                  baseStyle = metadata;
+                }
+              }
+            }
+            
+            const cellStyleFn = createCellStyleFunction(finalFormat, baseStyle);
+            updateBulkProperty('cellStyle', cellStyleFn);
+          }
+        }
       }
     }
-  }, [selectedBaseFormat, formatCategory, noSeparator, colorized, selectedCurrency, updateBulkProperty]);
+  }, [selectedBaseFormat, formatCategory, noSeparator, colorized, selectedCurrency, updateBulkProperty, selectedColumns, columnDefinitions, pendingChanges]);
 
   const handleQuickScaleFormat = useCallback((scale: 'K' | 'M' | 'B') => {
     setSelectedBaseFormat(scale.toLowerCase());
@@ -618,7 +678,24 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
                     if (!existingCellStyle.isMixed) {
                       let baseStyle: React.CSSProperties | undefined;
                       
-                      if (existingCellStyle.value) {
+                      // First check if there's a pending cellStyle change
+                      const pendingCellStyle = selectedColumns.size > 0 ? 
+                        (() => {
+                          const firstColId = Array.from(selectedColumns)[0];
+                          const pending = pendingChanges.get(firstColId);
+                          return pending?.cellStyle;
+                        })() : undefined;
+                      
+                      if (pendingCellStyle) {
+                        if (typeof pendingCellStyle === 'object') {
+                          baseStyle = pendingCellStyle;
+                        } else if (typeof pendingCellStyle === 'function') {
+                          const metadata = (pendingCellStyle as any).__baseStyle;
+                          if (metadata) {
+                            baseStyle = metadata;
+                          }
+                        }
+                      } else if (existingCellStyle.value) {
                         if (typeof existingCellStyle.value === 'object') {
                           baseStyle = existingCellStyle.value;
                         } else if (typeof existingCellStyle.value === 'function') {
@@ -1090,7 +1167,24 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
                   if (!existingCellStyle.isMixed) {
                     let baseStyle: React.CSSProperties | undefined;
                     
-                    if (existingCellStyle.value) {
+                    // First check if there's a pending cellStyle change
+                    const pendingCellStyle = selectedColumns.size > 0 ? 
+                      (() => {
+                        const firstColId = Array.from(selectedColumns)[0];
+                        const pending = pendingChanges.get(firstColId);
+                        return pending?.cellStyle;
+                      })() : undefined;
+                    
+                    if (pendingCellStyle) {
+                      if (typeof pendingCellStyle === 'object') {
+                        baseStyle = pendingCellStyle;
+                      } else if (typeof pendingCellStyle === 'function') {
+                        const metadata = (pendingCellStyle as any).__baseStyle;
+                        if (metadata) {
+                          baseStyle = metadata;
+                        }
+                      }
+                    } else if (existingCellStyle.value) {
                       if (typeof existingCellStyle.value === 'object') {
                         baseStyle = existingCellStyle.value;
                       } else if (typeof existingCellStyle.value === 'function') {
