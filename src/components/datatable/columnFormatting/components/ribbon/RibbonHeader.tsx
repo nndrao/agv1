@@ -179,42 +179,34 @@ const ColumnSelectorDropdown: React.FC<{
       });
     }
 
-    // Filter by visibility using column state
-    if (visibilityFilter !== 'all') {
-      filtered = filtered.filter(col => {
-        // Try multiple ways to match column with state
-        const field = col.field || '';
-        const colId = col.colId || field;
-        
-        // Try to find column state by field first, then by colId
-        let colState = columnState.get(field);
-        if (!colState && field !== colId) {
-          colState = columnState.get(colId);
-        }
-        
-        // Check if column state exists at all - if not, the grid API might not be returning state for all columns
-        // AG-Grid only includes columns in getColumnState if they have been modified from defaults
-        // So if a column has no state, it means it's using default settings (visible)
-        const isHidden = colState?.hide === true; // Only hidden if explicitly set to true
-        
-        return visibilityFilter === 'hidden' ? isHidden : !isHidden;
-      });
-    }
+    // ALWAYS filter by visibility - show only visible columns by default
+    // Users can explicitly choose "All Columns" if they want to see hidden ones
+    const effectiveVisibilityFilter = visibilityFilter === 'all' ? 'visible' : visibilityFilter;
+    
+    filtered = filtered.filter(col => {
+      // Try multiple ways to match column with state
+      const field = col.field || '';
+      const colId = col.colId || field;
+      
+      // Try to find column state by field first, then by colId
+      let colState = columnState.get(field);
+      if (!colState && field !== colId) {
+        colState = columnState.get(colId);
+      }
+      
+      // Check if column state exists at all - if not, the grid API might not be returning state for all columns
+      // AG-Grid only includes columns in getColumnState if they have been modified from defaults
+      // So if a column has no state, it means it's using default settings (visible)
+      const isHidden = colState?.hide === true; // Only hidden if explicitly set to true
+      
+      return effectiveVisibilityFilter === 'hidden' ? isHidden : !isHidden;
+    });
 
     return filtered;
   }, [allColumns, searchTerm, cellDataTypeFilter, visibilityFilter, columnState]);
 
   // Handle column toggle with proper synchronization
   const handleToggleColumn = useCallback((columnId: string) => {
-    console.log('[ColumnSelector] Toggle column:', {
-      columnId,
-      currentSelection: Array.from(selectedColumns),
-      isCurrentlySelected: selectedColumns.has(columnId),
-      currentSearchTerm: searchTerm,
-      currentTypeFilter: cellDataTypeFilter,
-      currentVisibilityFilter: visibilityFilter
-    });
-    
     // Create new selection set and update parent
     const newSelection = new Set(selectedColumns);
     if (newSelection.has(columnId)) {
@@ -223,11 +215,9 @@ const ColumnSelectorDropdown: React.FC<{
       newSelection.add(columnId);
     }
     
-    console.log('[ColumnSelector] New selection:', Array.from(newSelection));
-    
     // Update parent which will update the store
     onSelectionChange(newSelection);
-  }, [selectedColumns, onSelectionChange, searchTerm, cellDataTypeFilter, visibilityFilter]);
+  }, [selectedColumns, onSelectionChange]);
 
   // Bulk selection handlers
   const selectAllFilteredColumns = useCallback(() => {
@@ -384,11 +374,11 @@ const ColumnSelectorDropdown: React.FC<{
 
               {/* Visibility Filter */}
               <Select
-                value={visibilityFilter}
+                value={visibilityFilter === 'all' ? 'visible' : visibilityFilter}
                 onValueChange={(value: 'all' | 'visible' | 'hidden') => setVisibilityFilter(value)}
               >
                 <SelectTrigger className="h-8 text-sm rounded-md border-border/60 bg-background/80 backdrop-blur-sm">
-                  {visibilityFilter === 'visible' ? (
+                  {(visibilityFilter === 'visible' || visibilityFilter === 'all') ? (
                     <Eye className="h-3.5 w-3.5 mr-2" />
                   ) : visibilityFilter === 'hidden' ? (
                     <EyeOff className="h-3.5 w-3.5 mr-2" />

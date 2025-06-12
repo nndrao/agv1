@@ -167,7 +167,7 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
       compareMode: false,
       searchTerm: '',
       cellDataTypeFilter: 'all',
-      visibilityFilter: 'all',
+      visibilityFilter: 'visible',
       bulkActionsPanelCollapsed: false,
       templateColumns: new Set<string>(),
       appliedTemplates: new Map<string, { templateId: string; templateName: string; appliedAt: number }>(),
@@ -664,7 +664,22 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
             if (Array.isArray(state.appliedTemplates)) {
               state.appliedTemplates = new Map(state.appliedTemplates);
             }
+            // Ensure visibilityFilter has a valid value, default to 'visible'
+            if (!state.visibilityFilter || state.visibilityFilter === 'all') {
+              state.visibilityFilter = 'visible';
+            }
           }
+        },
+        version: 1, // Add version to help with migrations
+        migrate: (persistedState: any, version: number) => {
+          // Migrate from version 0 (no version) to version 1
+          if (version === 0) {
+            // If old state has 'all' visibility filter, change to 'visible'
+            if (persistedState.visibilityFilter === 'all') {
+              persistedState.visibilityFilter = 'visible';
+            }
+          }
+          return persistedState;
         },
       }
     )
