@@ -69,12 +69,11 @@ export const ColumnFormattingDialog: React.FC<ColumnFormattingDialogProps> = mem
   // Don't render if not open
   if (!open) return null;
 
-  // Get the target column from selected columns (first selected)
-  const targetColumn = selectedColumns.size > 0 ? Array.from(selectedColumns)[0] : undefined;
-
+  // Don't pass a specific target column - let the ribbon use existing selection
+  // or determine selection based on the current state
   return (
     <FloatingRibbonUI
-      targetColumn={targetColumn}
+      targetColumn={undefined}
       initialPosition={{ x: 50, y: 50 }}
       onClose={() => onOpenChange(false)}
       columnDefs={columnDefs}

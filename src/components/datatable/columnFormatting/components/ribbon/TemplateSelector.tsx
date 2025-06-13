@@ -64,16 +64,135 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
   const getCurrentSettings = () => {
     if (selectedColumns.size === 0) return null;
     
+    console.log('[TemplateSelector] getCurrentSettings called');
+    
     // Get the first selected column's settings as a base
     const firstColId = Array.from(selectedColumns)[0];
     const colDef = columnDefinitions.get(firstColId);
     const changes = pendingChanges.get(firstColId);
     
-    return { ...colDef, ...changes };
+    console.log('[TemplateSelector] Column state:', {
+      firstColId,
+      hasColDef: !!colDef,
+      hasChanges: !!changes,
+      changesKeys: changes ? Object.keys(changes) : [],
+      wrapTextInChanges: changes?.wrapText,
+      autoHeightInChanges: changes?.autoHeight
+    });
+    
+    // Start with column definition, then overlay pending changes
+    // This ensures we capture all properties, not just changed ones
+    const combined = { ...colDef, ...changes };
+    
+    // Explicitly check for wrap properties that might be undefined
+    // and convert them to false to ensure they're saved
+    const wrapProperties = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
+    wrapProperties.forEach(prop => {
+      if (!(prop in combined) || combined[prop] === undefined) {
+        combined[prop] = false;
+      }
+    });
+    
+    // Only log if wrap properties exist
+    if (Object.keys(combined).some(key => ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'].includes(key))) {
+      console.log('[TemplateSelector] Wrap properties in combined:', {
+        wrapText: combined.wrapText,
+        autoHeight: combined.autoHeight,
+        wrapHeaderText: combined.wrapHeaderText,
+        autoHeaderHeight: combined.autoHeaderHeight
+      });
+    }
+    
+    // Special handling for function-based properties
+    const processedSettings: Record<string, unknown> = {};
+    
+    Object.entries(combined).forEach(([key, value]) => {
+      if (key === 'cellStyle' && typeof value === 'function') {
+        // For cellStyle functions, extract the base style if available
+        const styleFunc = value as any;
+        if (styleFunc.__baseStyle) {
+          processedSettings[key] = styleFunc.__baseStyle;
+        } else {
+          // Try to extract style by calling the function with a dummy params
+          try {
+            const style = value({ value: null, data: {}, node: {}, colDef: {} } as any);
+            processedSettings[key] = style;
+          } catch (e) {
+            // If function call fails, skip this property
+            console.warn('Could not extract cellStyle for template', e);
+          }
+        }
+      } else if (key === 'headerStyle' && typeof value === 'function') {
+        // For headerStyle functions, extract styles for both regular and floating headers
+        const styleFunc = value as any;
+        if (styleFunc._isHeaderStyleConfig) {
+          // Already in the right format
+          processedSettings[key] = styleFunc;
+        } else {
+          try {
+            const regularStyle = value({ floatingFilter: false } as any);
+            const floatingStyle = value({ floatingFilter: true } as any);
+            processedSettings[key] = {
+              _isHeaderStyleConfig: true,
+              regular: regularStyle,
+              floating: floatingStyle
+            };
+          } catch (e) {
+            console.warn('Could not extract headerStyle for template', e);
+          }
+        }
+      } else if (key === 'valueFormatter' && typeof value === 'function') {
+        // For formatters, check if they have a format string
+        const formatterFunc = value as any;
+        if (formatterFunc.__formatString) {
+          processedSettings[key] = {
+            _isFormatterConfig: true,
+            type: 'excel',
+            formatString: formatterFunc.__formatString
+          };
+        } else {
+          // Skip function-based formatters that don't have format strings
+          console.warn('Skipping function-based valueFormatter without format string');
+        }
+      } else if (typeof value !== 'function') {
+        // For non-function values, just copy them as-is
+        processedSettings[key] = value;
+      }
+      // Skip other function-based properties that we can't serialize
+    });
+    
+    // Ensure wrap properties are always included, even if they're false
+    const ensureWrapProperties = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
+    ensureWrapProperties.forEach(prop => {
+      if (!(prop in processedSettings)) {
+        processedSettings[prop] = combined[prop] || false;
+        console.log(`[TemplateSelector] Added missing wrap property ${prop}:`, combined[prop] || false);
+      } else {
+        console.log(`[TemplateSelector] Wrap property ${prop} already in processedSettings:`, processedSettings[prop]);
+      }
+    });
+    
+    // Only log wrap properties if they exist
+    const hasWrapInProcessed = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight']
+      .some(prop => prop in processedSettings);
+    
+    if (hasWrapInProcessed) {
+      console.log('[TemplateSelector] Wrap properties in processedSettings:', {
+        wrapText: processedSettings.wrapText,
+        autoHeight: processedSettings.autoHeight,
+        wrapHeaderText: processedSettings.wrapHeaderText,
+        autoHeaderHeight: processedSettings.autoHeaderHeight
+      });
+    }
+    
+    return processedSettings;
   };
 
   // Available properties that can be saved in a template
   const availableProperties = [
+    // General Properties
+    { key: 'headerName', label: 'Header Name' },
+    { key: 'type', label: 'Column Type' },
     { key: 'width', label: 'Column Width' },
     { key: 'minWidth', label: 'Min Width' },
     { key: 'maxWidth', label: 'Max Width' },
@@ -81,17 +200,35 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
     { key: 'pinned', label: 'Pin Position' },
     { key: 'sortable', label: 'Sortable' },
     { key: 'resizable', label: 'Resizable' },
-    { key: 'editable', label: 'Editable' },
-    { key: 'filter', label: 'Filter Type' },
-    { key: 'floatingFilter', label: 'Floating Filter' },
+    { key: 'lockPosition', label: 'Lock Position' },
+    { key: 'lockVisible', label: 'Lock Visible' },
+    
+    // Styling Properties
     { key: 'cellClass', label: 'Cell CSS Class' },
     { key: 'cellStyle', label: 'Cell Style' },
     { key: 'headerClass', label: 'Header CSS Class' },
     { key: 'headerStyle', label: 'Header Style' },
-    { key: 'valueFormatter', label: 'Value Formatter' },
     { key: 'wrapText', label: 'Wrap Text' },
     { key: 'autoHeight', label: 'Auto Height' },
+    { key: 'wrapHeaderText', label: 'Wrap Header Text' },
+    { key: 'autoHeaderHeight', label: 'Auto Header Height' },
+    
+    // Format Properties
+    { key: 'valueFormatter', label: 'Value Formatter' },
+    
+    // Filter Properties
+    { key: 'filter', label: 'Filter Type' },
+    { key: 'filterParams', label: 'Filter Parameters' },
+    { key: 'floatingFilter', label: 'Floating Filter' },
+    { key: 'suppressHeaderMenuButton', label: 'Hide Header Menu' },
+    { key: 'suppressFiltersToolPanel', label: 'Hide in Filters Panel' },
+    
+    // Editor Properties
+    { key: 'editable', label: 'Editable' },
     { key: 'cellEditor', label: 'Cell Editor' },
+    { key: 'cellEditorParams', label: 'Editor Parameters' },
+    { key: 'singleClickEdit', label: 'Single Click Edit' },
+    { key: 'cellEditorPopup', label: 'Editor Popup' },
   ];
 
   // Get properties that have been modified by the user
@@ -101,10 +238,25 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
     // Check pending changes for all selected columns
     selectedColumns.forEach(colId => {
       const changes = pendingChanges.get(colId);
+      const colDef = columnDefinitions.get(colId);
+      
       if (changes) {
         // Add all properties that have been modified
         Object.keys(changes).forEach(prop => {
           if (availableProperties.some(available => available.key === prop)) {
+            modifiedProps.add(prop);
+          }
+        });
+      }
+      
+      // Also check for wrap properties that might be set in the column definition
+      // but not in pending changes (e.g., set before dialog opened)
+      if (colDef) {
+        const wrapProperties = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
+        wrapProperties.forEach(prop => {
+          // Include wrap properties if they're true in either colDef or changes
+          const value = changes?.[prop] !== undefined ? changes[prop] : colDef[prop];
+          if (value === true && availableProperties.some(available => available.key === prop)) {
             modifiedProps.add(prop);
           }
         });
@@ -135,6 +287,9 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
 
   // Reset dialog when closing
   const handleSaveDialogChange = (open: boolean) => {
+    if (open) {
+      console.log('[TemplateSelector] Opening save dialog');
+    }
     setShowSaveDialog(open);
     if (!open) {
       setTemplateName('');
@@ -144,6 +299,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
   };
 
   const handleSaveTemplate = () => {
+    console.log('[TemplateSelector] Save Template button clicked');
+    
     const settings = getCurrentSettings();
     if (!settings) {
       toast({
@@ -153,15 +310,52 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
       });
       return;
     }
+    
+    console.log('[TemplateSelector] Settings to save:', {
+      templateName,
+      selectedProperties,
+      allAvailableSettings: settings,
+      wrapText: settings.wrapText,
+      autoHeight: settings.autoHeight,
+      wrapHeaderText: settings.wrapHeaderText,
+      autoHeaderHeight: settings.autoHeaderHeight
+    });
 
     // Filter settings to only include selected properties
     const filteredSettings: Record<string, unknown> = {};
     selectedProperties.forEach(prop => {
       if (prop in settings) {
         filteredSettings[prop] = settings[prop as keyof typeof settings];
+      } else {
+        // For wrap properties, check the combined object directly
+        const wrapProperties = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
+        if (wrapProperties.includes(prop)) {
+          const firstColId = Array.from(selectedColumns)[0];
+          const colDef = columnDefinitions.get(firstColId);
+          const changes = pendingChanges.get(firstColId);
+          const combined = { ...colDef, ...changes };
+          
+          if (prop in combined) {
+            filteredSettings[prop] = combined[prop];
+            console.log(`[TemplateSelector] Added wrap property ${prop} from combined:`, combined[prop]);
+          }
+        }
       }
     });
-
+    
+    // Always log what we're about to save
+    console.log('[TemplateSelector] Final filtered settings to save:', {
+      templateName,
+      selectedProperties,
+      filteredSettings,
+      wrapPropsIncluded: ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight']
+        .filter(prop => prop in filteredSettings),
+      wrapText: filteredSettings.wrapText,
+      autoHeight: filteredSettings.autoHeight,
+      wrapHeaderText: filteredSettings.wrapHeaderText,
+      autoHeaderHeight: filteredSettings.autoHeaderHeight
+    });
+    
     saveTemplate(
       templateName,
       templateDescription,
@@ -183,6 +377,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
 
   const handleApplyTemplate = (templateId: string) => {
     const settings = applyTemplate(templateId);
+    
     if (settings) {
       updateBulkProperties(settings);
       onApplyTemplate?.(templateId);
@@ -190,8 +385,10 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
       const template = templates.find(t => t.id === templateId);
       toast({
         title: "Template applied",
-        description: `Applied "${template?.name}" to selected columns`,
+        description: `Applied "${template?.name}" to ${selectedColumns.size} column${selectedColumns.size === 1 ? '' : 's'}`,
       });
+    } else {
+      console.warn('[TemplateSelector] No settings returned from applyTemplate');
     }
   };
 
@@ -373,7 +570,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
 
       {/* Save Template Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={handleSaveDialogChange}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Save Column Template</DialogTitle>
             <DialogDescription>
@@ -446,36 +643,64 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
               <ScrollArea className="h-48 p-2 border rounded-md">
                 <div className="grid grid-cols-2 gap-2">
                 {(() => {
+                  console.log('[TemplateSelector] Rendering properties grid, availableProperties:', availableProperties.length);
                   const modifiedProps = getModifiedProperties();
+                  const settings = getCurrentSettings();
                   
                   return availableProperties.map(prop => {
                     const isModified = modifiedProps.includes(prop.key);
+                    const currentValue = settings?.[prop.key];
+                    const isWrapProperty = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'].includes(prop.key);
+                    const isEnabled = currentValue === true;
+                    
+                    // Build tooltip
+                    let tooltip = '';
+                    if (isModified) {
+                      tooltip = 'This property has been modified in the current session';
+                    }
+                    if (isWrapProperty && isEnabled) {
+                      tooltip = tooltip ? `${tooltip} (Currently: ON)` : 'Currently: ON';
+                    } else if (isWrapProperty && currentValue === false) {
+                      tooltip = tooltip ? `${tooltip} (Currently: OFF)` : 'Currently: OFF';
+                    }
                     
                     return (
                       <label
                         key={prop.key}
                         className={`flex items-center space-x-2 cursor-pointer hover:bg-accent p-1 rounded ${
                           isModified ? 'bg-blue-50 border border-blue-200' : ''
-                        }`}
-                        title={isModified ? 'This property has been modified in the current session' : ''}
+                        } ${isWrapProperty && isEnabled ? 'ring-1 ring-green-400' : ''}`}
+                        title={tooltip}
                       >
                         <input
                           type="checkbox"
                           checked={selectedProperties.includes(prop.key)}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setSelectedProperties([...selectedProperties, prop.key]);
+                              const newProps = [...selectedProperties, prop.key];
+                              setSelectedProperties(newProps);
+                              if (['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'].includes(prop.key)) {
+                                console.log(`[TemplateSelector] Selected wrap property: ${prop.key}, total selected: ${newProps.length}`);
+                              }
                             } else {
-                              setSelectedProperties(selectedProperties.filter(p => p !== prop.key));
+                              const newProps = selectedProperties.filter(p => p !== prop.key);
+                              setSelectedProperties(newProps);
+                              if (['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'].includes(prop.key)) {
+                                console.log(`[TemplateSelector] Deselected wrap property: ${prop.key}, total selected: ${newProps.length}`);
+                              }
                             }
                           }}
                           className="rounded border-gray-300"
                         />
-                        <span className={`text-sm ${isModified ? 'font-medium text-blue-700' : ''}`}>
+                        <span className={`text-sm ${isModified ? 'font-medium text-blue-700' : ''} ${isWrapProperty && isEnabled ? 'text-green-700' : ''}`}>
                           {prop.label}
+                          {isWrapProperty && isEnabled && ' ✓'}
                         </span>
-                        {isModified && (
+                        {isModified && !isWrapProperty && (
                           <div className="w-2 h-2 bg-blue-500 rounded-full ml-auto" />
+                        )}
+                        {isWrapProperty && isEnabled && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full ml-auto" />
                         )}
                       </label>
                     );
@@ -499,7 +724,16 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveTemplate}
+              onClick={() => {
+                console.log('[TemplateSelector] Save button clicked, validation:', {
+                  templateName,
+                  hasTemplateName: !!templateName,
+                  selectedPropertiesCount: selectedProperties.length,
+                  selectedProperties,
+                  isDisabled: !templateName || selectedProperties.length === 0
+                });
+                handleSaveTemplate();
+              }}
               disabled={!templateName || selectedProperties.length === 0}
             >
               <Save className="h-4 w-4 mr-2" />

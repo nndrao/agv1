@@ -22,16 +22,7 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
   const dragRef = useRef<HTMLDivElement>(null);
   const dragStartPos = useRef({ x: 0, y: 0 });
 
-  // Log initialization for debugging
-  useEffect(() => {
-    console.log('[FloatingRibbonUI] Initializing with props:', {
-      targetColumn,
-      columnDefsCount: columnDefs?.length || 0,
-      columnStateCount: columnState?.length || 0,
-      hasOnApply: !!onApply,
-      position: initialPosition
-    });
-  }, [targetColumn, columnDefs, columnState, onApply, initialPosition]);
+  // Log initialization for debugging - removed to reduce noise
 
   // Use the custom hook for all ribbon state and logic
   const ribbonState = useRibbonState({

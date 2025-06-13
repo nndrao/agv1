@@ -66,19 +66,46 @@ export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
       return;
     }
 
-    // Include commonly customized properties
-    const propertiesToSave = [
-      'width', 'minWidth', 'maxWidth', 'hide', 'pinned',
-      'cellClass', 'cellStyle', 'headerClass', 'headerStyle',
-      'valueFormatter', 'filter', 'floatingFilter',
-      'editable', 'sortable', 'resizable'
-    ];
-
+    // Get all properties that have been modified (from pendingChanges)
+    const firstColId = Array.from(selectedColumns)[0];
+    const changes = pendingChanges.get(firstColId) || {};
+    
+    // If there are pending changes, use those. Otherwise use all non-undefined settings
     const filteredSettings: Record<string, unknown> = {};
-    propertiesToSave.forEach(prop => {
-      if (prop in settings && settings[prop] !== undefined) {
+    
+    if (Object.keys(changes).length > 0) {
+      // Save only the modified properties
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value !== undefined) {
+          filteredSettings[key] = value;
+        }
+      });
+      console.log('[SimpleTemplateControls] Saving modified properties:', Object.keys(filteredSettings));
+    } else {
+      // No pending changes, save all non-undefined, non-function properties
+      Object.entries(settings).forEach(([key, value]) => {
+        if (value !== undefined && typeof value !== 'function' && !key.startsWith('_')) {
+          filteredSettings[key] = value;
+        }
+      });
+      console.log('[SimpleTemplateControls] No pending changes, saving all properties:', Object.keys(filteredSettings));
+    }
+
+    // Always include wrap properties if they exist in settings
+    const wrapProps = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
+    wrapProps.forEach(prop => {
+      if (prop in settings && !(prop in filteredSettings)) {
         filteredSettings[prop] = settings[prop];
       }
+    });
+
+    console.log('[SimpleTemplateControls] Final settings to save:', {
+      templateName,
+      properties: Object.keys(filteredSettings),
+      wrapText: filteredSettings.wrapText,
+      autoHeight: filteredSettings.autoHeight,
+      wrapHeaderText: filteredSettings.wrapHeaderText,
+      autoHeaderHeight: filteredSettings.autoHeaderHeight
     });
 
     saveTemplate(
@@ -94,7 +121,7 @@ export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
     setShowSaveDialog(false);
     setTemplateName('');
     setTemplateDescription('');
-  }, [getCurrentSettings, saveTemplate, templateName, templateDescription]);
+  }, [getCurrentSettings, saveTemplate, templateName, templateDescription, selectedColumns, pendingChanges]);
 
   // Apply selected templates to columns
   const handleApplyTemplates = useCallback(() => {
@@ -293,7 +320,10 @@ export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveAsTemplate}
+              onClick={() => {
+                console.log('[SimpleTemplateControls] Save Template button clicked');
+                handleSaveAsTemplate();
+              }}
               disabled={!templateName.trim()}
             >
               <Save className="h-4 w-4 mr-2" />

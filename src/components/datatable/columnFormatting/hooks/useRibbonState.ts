@@ -73,20 +73,29 @@ export const useRibbonState = ({
       });
       setColumnDefinitions(columnMap);
 
-      // Select target column if provided, otherwise select first column
-      if (targetColumn) {
-        setSelectedColumns(new Set([targetColumn]));
-      } else if (columnDefs.length > 0) {
-        // Check current selection first to avoid unnecessary updates
-        const currentSelection = useColumnFormattingStore.getState().selectedColumns;
-        if (currentSelection.size === 0) {
+      // Check current selection first
+      const currentSelection = useColumnFormattingStore.getState().selectedColumns;
+      
+      // If no columns are currently selected
+      if (currentSelection.size === 0) {
+        if (targetColumn) {
+          // Select the target column
+          setSelectedColumns(new Set([targetColumn]));
+        } else if (columnDefs.length > 0) {
           // Select first column if none selected
           const firstColId = columnDefs[0].field || columnDefs[0].colId;
           if (firstColId) {
             setSelectedColumns(new Set([firstColId]));
           }
         }
+      } else if (targetColumn && !currentSelection.has(targetColumn)) {
+        // If a target column is provided and it's not in the current selection,
+        // add it to the selection instead of replacing the entire selection
+        const newSelection = new Set(currentSelection);
+        newSelection.add(targetColumn);
+        setSelectedColumns(newSelection);
       }
+      // Otherwise, keep the current selection as is
     }
   }, [columnDefs, targetColumn, setColumnDefinitions, setSelectedColumns, getActiveProfile, setVisibilityFilter]);
 

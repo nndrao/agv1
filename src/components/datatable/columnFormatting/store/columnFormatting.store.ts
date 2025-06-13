@@ -239,6 +239,16 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
         const { selectedColumns, pendingChanges } = get();
         if (selectedColumns.size === 0) return;
         
+        // Log wrap property updates
+        if (['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'].includes(property)) {
+          console.log('[Store] Wrap property updated:', {
+            property,
+            value,
+            selectedColumnsCount: selectedColumns.size,
+            selectedColumns: Array.from(selectedColumns)
+          });
+        }
+        
         // Prevent editing field property
         if (property === 'field') {
           console.warn('[Store] Field property cannot be edited');
@@ -283,6 +293,20 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
       updateBulkProperties: (properties) => {
         const { selectedColumns, pendingChanges } = get();
         
+        // Only log if wrap properties are involved
+        const hasWrapProperties = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight']
+          .some(prop => prop in properties);
+        
+        if (hasWrapProperties) {
+          console.log('[Store] updateBulkProperties with wrap properties:', {
+            wrapText: properties.wrapText,
+            autoHeight: properties.autoHeight,
+            wrapHeaderText: properties.wrapHeaderText,
+            autoHeaderHeight: properties.autoHeaderHeight,
+            selectedColumnsCount: selectedColumns.size
+          });
+        }
+        
         // Filter out field and headerName for safety
         const filteredProperties = { ...properties };
         
@@ -315,6 +339,7 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
           } else {
             newPendingChanges.set(colId, updated);
           }
+          
         });
 
         set({ pendingChanges: newPendingChanges });
