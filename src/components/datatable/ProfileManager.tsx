@@ -46,14 +46,7 @@ import {
 } from '@/components/datatable/stores/profile.store';
 import { GridApi, ColDef } from 'ag-grid-community';
 import { profileOptimizer } from '@/components/datatable/lib/profileOptimizer';
-import { useAgGridStateManager, type AgGridState } from '../../../ag-grid-state-functions';
-
-// Interface for style configurations
-interface _HeaderStyleConfig {
-  _isHeaderStyleConfig: boolean;
-  regular?: React.CSSProperties;
-  floating?: React.CSSProperties;
-}
+import { useAgGridStateManager } from '../../../ag-grid-state-functions';
 
 interface ProfileManagerProps {
   gridApi: GridApi | null;
@@ -70,7 +63,6 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     createProfile,
     deleteProfile,
     duplicateProfile,
-    saveCurrentState,
     saveColumnCustomizations,
     getColumnDefs,
     autoSave,
@@ -87,7 +79,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
   const [isSaving, setIsSaving] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const previousProfileRef = useRef<GridProfile | null>(null);
-  const { extractState, applyState } = useAgGridStateManager(gridApi);
+  useAgGridStateManager(gridApi); // Not using extractState or applyState directly
 
   // Preload profiles on mount
   useEffect(() => {
@@ -141,28 +133,28 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
         if (profile.gridState.columnState) {
           console.log('[ProfileManager] Step 3a: Applying column state');
           gridApi.applyColumnState({
-            state: profile.gridState.columnState,
+            state: profile.gridState?.columnState,
             applyOrder: true
           });
         }
         
         // Apply filters after column state
         setTimeout(() => {
-          if (profile.gridState.filterModel) {
+          if (profile.gridState?.filterModel) {
             console.log('[ProfileManager] Step 3b: Applying filters');
             gridApi.setFilterModel(profile.gridState.filterModel);
           }
           
           // Apply sorting after filters
           setTimeout(() => {
-            if (profile.gridState.sortModel) {
+            if (profile.gridState?.sortModel) {
               console.log('[ProfileManager] Step 3c: Applying sorts');
               gridApi.applyColumnState({
                 state: profile.gridState.sortModel.map(sort => ({
                   colId: sort.colId,
-                  sort: sort.sort,
-                  sortIndex: sort.sortIndex
-                }))
+                  sort: sort.sort
+                })),
+                defaultState: { sort: null }
               });
             }
             
@@ -302,219 +294,89 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
   };
 
   const handleSaveCurrentState = async () => {
-    if (!gridApi || !activeProfile) {
-      console.warn('[ProfileManager] Cannot save state:', {
-        hasGridApi: !!gridApi,
-        hasActiveProfile: !!activeProfile
-      });
-      return;
-    }
-
-    // Try to get column defs with styles from our stored reference first
-    const columnDefs = getColumnDefsWithStyles ? getColumnDefsWithStyles() : gridApi.getColumnDefs() || [];
-    
-    // Debug: Check if headerStyle exists in column definitions
-    const _columnsWithHeaderStyle = columnDefs.filter(col => col.headerStyle);
-    const _columnsWithCellStyle = columnDefs.filter(col => col.cellStyle);
-    // console.log('[ProfileManager] Styles from grid:', {
-    //   usingStoredRef: !!getColumnDefsWithStyles,
-    //   headerStyleCount: columnsWithHeaderStyle.length,
-    //   cellStyleCount: columnsWithCellStyle.length,
-    //   headerStyleSamples: columnsWithHeaderStyle.slice(0, 3).map(col => ({
-    //     field: col.field,
-    //     headerStyleType: typeof col.headerStyle,
-    //     headerStyle: typeof col.headerStyle === 'function' ? 'function' : col.headerStyle
-    //   })),
-    //   cellStyleSamples: columnsWithCellStyle.slice(0, 3).map(col => ({
-    //     field: col.field,
-    //     cellStyleType: typeof col.cellStyle,
-    //     cellStyle: typeof col.cellStyle === 'function' ? 'function' : col.cellStyle
-    //   }))
-    // });
-    
-    // Extract comprehensive state using ag-grid-state-functions
-    const extractedState = extractState({
-      includeRowData: false,
-      customStateExtractor: undefined
-    });
-    
-    if (!extractedState) {
-      console.error('[ProfileManager] Failed to extract grid state');
-      toast({
-        title: 'Save failed',
-        description: 'Failed to extract grid state',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    // Use the extracted column state which includes column order
-    const columnState = extractedState.columnState;
-    
-    console.log('[ProfileManager] Extracted column state:', {
-      totalColumns: columnState.length,
-      visibleColumns: columnState.filter(col => !col.hide).length,
-      hiddenColumns: columnState.filter(col => col.hide).length,
-      columnOrder: columnState.slice(0, 5).map(col => col.colId)
-    });
-    
-    // Log column state details
-    // console.log('[ProfileManager] Column state details:', {
-    //   totalColumns: columnState.length,
-    //   visibleColumns: columnState.filter(col => !col.hide).length,
-    //   hiddenColumns: columnState.filter(col => col.hide).length,
-    //   pinnedColumns: columnState.filter(col => col.pinned).length,
-    //   sampleState: columnState.slice(0, 3).map(col => ({
-    //     colId: col.colId,
-    //     hide: col.hide,
-    //     width: col.width,
-    //     pinned: col.pinned,
-    //     sort: col.sort,
-    //     sortIndex: col.sortIndex
-    //   }))
-    // });
-    
-    // Use extracted state for filter and sort models
-    const filterModel = extractedState.filterModel || {};
-    const sortModel = extractedState.sortModel || [];
-
-    // Clean up column definitions for serialization
-    const cleanedColumnDefs = columnDefs.map(col => {
-      const cleaned = { ...col };
-      
-      // Debug editor properties
-      if (col.cellEditor || col.editable) {
-        console.log('[ProfileManager] Column has editor properties:', {
-          field: col.field,
-          editable: col.editable,
-          cellEditor: col.cellEditor,
-          cellEditorParams: col.cellEditorParams,
-          cellEditorPopup: col.cellEditorPopup,
-          singleClickEdit: col.singleClickEdit
-        });
-      }
-      
-      // Log what we're saving for each column
-      // console.log('[ProfileManager] Saving column properties:', {
-      //   field: col.field,
-      //   headerName: col.headerName,
-      //   hasHeaderStyle: !!col.headerStyle,
-      //   hasCellStyle: !!col.cellStyle,
-      //   sortable: col.sortable,
-      //   resizable: col.resizable,
-      //   editable: col.editable,
-      //   filter: col.filter,
-      //   floatingFilter: col.floatingFilter,
-      //   suppressHeaderMenuButton: col.suppressHeaderMenuButton,
-      //   suppressFiltersToolPanel: col.suppressFiltersToolPanel,
-      //   minWidth: col.minWidth,
-      //   maxWidth: col.maxWidth
-      // });
-      
-      // Remove invalid properties that AG-Grid doesn't recognize
-      delete cleaned.valueFormat;
-      delete cleaned._hasFormatter;
-      delete cleaned.excelFormat;
-      
-      
-      // Store headerStyle as a serializable format that includes the logic
-      if (cleaned.headerStyle && typeof cleaned.headerStyle === 'function') {
-        try {
-          // Extract styles for both regular header and floating filter
-          const regularStyle = cleaned.headerStyle({ floatingFilter: false });
-          const floatingStyle = cleaned.headerStyle({ floatingFilter: true });
-          
-          // Store as an object that preserves the conditional logic
-          cleaned.headerStyle = {
-            _isHeaderStyleConfig: true,
-            regular: regularStyle,
-            floating: floatingStyle
-          };
-          
-          // console.log('[ProfileManager] Converted headerStyle for:', col.field, {
-          //   regular: regularStyle,
-          //   floating: floatingStyle
-          // });
-        } catch (e) {
-          console.error('[ProfileManager] Error converting headerStyle:', e);
-          cleaned.headerStyle = undefined;
-        }
-      }
-      
-      // Store valueFormatter metadata if it exists
-      if (cleaned.valueFormatter && typeof cleaned.valueFormatter === 'function') {
-        // Check if it has format metadata
-        const formatterFunc = cleaned.valueFormatter as { __formatString?: string };
-        if (formatterFunc.__formatString) {
-          cleaned.valueFormatter = {
-            _isFormatterConfig: true,
-            type: 'excel',
-            formatString: formatterFunc.__formatString
-          };
-          // console.log('[ProfileManager] Saved valueFormatter config:', cleaned.valueFormatter);
-        } else {
-          // Can't serialize custom functions without metadata
-          console.warn('[ProfileManager] valueFormatter has no format string metadata, removing');
-          delete cleaned.valueFormatter;
-        }
-      }
-      
-      return cleaned;
-    });
-
-    // Note: Grid options are already stored in the profile when user clicks Apply in Grid Options Editor
-    // We don't need to extract them here - they're already in activeProfile.gridOptions
-    // This prevents overwriting user's saved grid options with a limited subset
-    
-    console.log('[ProfileManager] handleSaveCurrentState:', {
-      activeProfileId: activeProfile.id,
-      activeProfileName: activeProfile.name,
-      columnDefsCount: columnDefs.length,
-      columnStateCount: columnState.length,
-      filterCount: Object.keys(filterModel).length,
-      sortCount: sortModel.length,
-      hasCustomizations: columnDefs.some(col => 
-        col.cellStyle || col.valueFormatter || col.cellClass
-      )
-    });
-
-    // Set saving state
     setIsSaving(true);
     
     try {
-      // Add a small delay to show the loading state
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Save column customizations using the lightweight format
-      // Get the base columns from the active profile if available, otherwise use current
-      const baseColumns = activeProfile.columnSettings?.baseColumnDefs || columnDefs;
-      saveColumnCustomizations(cleanedColumnDefs, baseColumns);
-      
-      // Save grid state separately
-      const { saveGridState, saveGridOptions } = useProfileStore.getState();
-      
-      // Save AG-Grid state (column state, filters, sorts)
-      saveGridState({
-        columnState,
-        filterModel,
-        sortModel
+      if (!gridApi || !activeProfile) {
+        toast({
+          title: 'Save failed',
+          description: 'Grid not initialized or no active profile',
+          variant: 'destructive',
+        });
+        return;
+      }
+  
+      // Get current column definitions
+      const columnDefs = getColumnDefsWithStyles ? getColumnDefsWithStyles() : (gridApi.getColumnDefs() || []);
+      // Extract current grid state using the already imported hook
+      const stateManager = useAgGridStateManager(gridApi);
+      const extractedState = stateManager.extractState({});
+      if (!extractedState) {
+        toast({
+          title: 'Save failed',
+          description: 'Failed to extract grid state',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const columnState = extractedState.columnState;
+      const filterModel = extractedState.filterModel || {};
+      const sortModel = extractedState.sortModel || [];
+
+      // Clean up column definitions for serialization
+      const cleanedColumnDefs = columnDefs.map(col => {
+        const cleaned = { ...col };
+        if ('valueFormat' in cleaned) delete cleaned.valueFormat;
+        if ('_hasFormatter' in cleaned) delete cleaned._hasFormatter;
+        if ('excelFormat' in cleaned) delete cleaned.excelFormat;
+        if ('headerStyle' in cleaned && typeof cleaned.headerStyle === 'function') {
+          try {
+            const regularStyle = cleaned.headerStyle({ floatingFilter: false } as any);
+            const floatingStyle = cleaned.headerStyle({ floatingFilter: true } as any);
+            // Store the metadata in a separate property for serialization
+            (cleaned as any).headerStyleConfig = {
+              regular: regularStyle,
+              floating: floatingStyle
+            };
+            // Remove the function to avoid type errors
+            delete cleaned.headerStyle;
+          } catch (e) {
+            delete cleaned.headerStyle;
+          }
+        }
+        if ('valueFormatter' in cleaned && typeof cleaned.valueFormatter === 'function') {
+          const formatterFunc = cleaned.valueFormatter as { __formatString?: string };
+          if (formatterFunc.__formatString) {
+            (cleaned as any).valueFormatterConfig = {
+              type: 'excel',
+              formatString: formatterFunc.__formatString
+            };
+          }
+          // Remove the function to avoid type errors
+          delete cleaned.valueFormatter;
+        }
+        return cleaned;
       });
-      
-      // Grid options are already saved when user clicks Apply in Grid Options Editor
-      // Column customizations are saved above
-      // So we just need to persist everything to localStorage by updating the profile
-      
+
+      // Save column customizations using the lightweight format
+      const baseColumns = activeProfile?.columnSettings?.baseColumnDefs || columnDefs;
+      saveColumnCustomizations(cleanedColumnDefs, baseColumns);
+
+      // Save grid state separately
+      const { saveGridState } = useProfileStore.getState();
+      saveGridState({ columnState, filterModel, sortModel });
+
       // Clear optimizer cache for this profile so it gets reprocessed
       profileOptimizer.clearCache(activeProfile.id);
-      
       toast({
         title: 'Profile saved',
         description: `Current state saved to profile: ${activeProfile.name}`,
       });
-    } catch {
+    } catch (error) {
+      console.error('[ProfileManager] Error saving profile state:', error);
       toast({
-        title: 'Save failed',
-        description: 'Failed to save profile state',
+        title: 'Error',
+        description: 'Failed to save profile state.',
         variant: 'destructive',
       });
     } finally {
@@ -522,11 +384,7 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
     }
   };
 
-  const handleCreateProfile = () => {
-    if (!profileName.trim()) return;
-
-    console.log('[ProfileManager] Creating new profile:', profileName);
-
+  const handleCreateProfile = async () => {
     try {
       const newProfile = createProfile(profileName, profileDescription);
       
@@ -548,7 +406,6 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
         title: 'Profile created',
         description: `Profile "${newProfile.name}" has been created and selected.`,
       });
-      
     } catch (error) {
       console.error('[ProfileManager] Error creating profile:', error);
       toast({

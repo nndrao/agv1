@@ -11,7 +11,12 @@ export function useGridState(initialColumnDefs: ColumnDef[]) {
   
   // Initialize font from active profile
   const [selectedFont, setSelectedFont] = useState(() => {
-    return activeProfile?.gridState?.font || 'monospace';
+    return activeProfile?.gridOptions?.font || 'monospace';
+  });
+  
+  // Initialize font size from active profile
+  const [selectedFontSize, setSelectedFontSize] = useState(() => {
+    return activeProfile?.gridOptions?.fontSize || '13';
   });
   
   // Dialog visibility
@@ -46,6 +51,12 @@ export function useGridState(initialColumnDefs: ColumnDef[]) {
     // Font changes are only saved when Save Profile button is clicked
   }, []);
   
+  // Font size change handler
+  const handleFontSizeChange = useCallback((size: string) => {
+    setSelectedFontSize(size);
+    // Font size changes are only saved when Save Profile button is clicked
+  }, []);
+  
   // Update column definitions
   const updateColumnDefs = useCallback((columns: ColumnDef[]) => {
     setCurrentColumnDefs(columns);
@@ -55,11 +66,13 @@ export function useGridState(initialColumnDefs: ColumnDef[]) {
     // State
     currentColumnDefs,
     selectedFont,
+    selectedFontSize,
     showColumnDialog,
     
     // Actions
     setCurrentColumnDefs: updateColumnDefs,
     setSelectedFont: handleFontChange,
+    setSelectedFontSize: handleFontSizeChange,
     setShowColumnDialog,
   };
 }

@@ -137,19 +137,19 @@ export function useGridCallbacks(
             
             // Apply filter model
             setTimeout(() => {
-              if (activeProfile.gridState.filterModel) {
+              if (activeProfile.gridState?.filterModel) {
                 console.log('[useGridCallbacks] Step 3b: Applying filter model');
                 params.api.setFilterModel(activeProfile.gridState.filterModel);
               }
               
               // Apply sort model
               setTimeout(() => {
-                if (activeProfile.gridState.sortModel && activeProfile.gridState.sortModel.length > 0) {
+                if (activeProfile.gridState?.sortModel && activeProfile.gridState.sortModel.length > 0) {
                   console.log('[useGridCallbacks] Step 3c: Applying sort model');
                   const sortState = activeProfile.gridState.sortModel.map(sort => ({
                     colId: sort.colId,
                     sort: sort.sort,
-                    sortIndex: sort.sortIndex
+                    sortIndex: (sort as any).sortIndex
                   }));
                   params.api.applyColumnState({ state: sortState });
                 }

@@ -1,0 +1,33 @@
+/* DataSource Floating Dialog Styles */
+
+.datasource-floating-dialog {
+  /* Ensure proper layering */
+  z-index: 1000;
+}
+
+.datasource-floating-dialog .floating-dialog-content {
+  /* Remove default padding since the DataSourceDialog has its own */
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Ensure tabs and content fill available space */
+.datasource-floating-dialog .tabs-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.datasource-floating-dialog .tabs-content {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Footer styling */
+.datasource-floating-dialog .dialog-footer {
+  border-top: 1px solid var(--border);
+  padding: 1rem;
+  background: var(--background);
+}

@@ -3,8 +3,9 @@ import { GridApi } from 'ag-grid-community';
 import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
 import { DataTableToolbar } from './DataTableToolbar';
-import { ColumnCustomizationDialog } from './dialogs/columnSettings/ColumnCustomizationDialog';
+import { ColumnFormattingDialog } from './columnFormatting/ColumnFormattingDialog';
 import { GridOptionsPropertyEditor } from './gridOptions/GridOptionsPropertyEditor';
+import { DataSourceFloatingDialog } from './datasource/DataSourceFloatingDialog';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
 import { useGridState } from './hooks/useGridState';
 import { useProfileSync } from './hooks/useProfileSync';
@@ -13,7 +14,7 @@ import { useGridOptions } from './gridOptions/hooks/useGridOptions';
 import { DataTableProps } from './types';
 import { useProfileStore } from '@/components/datatable/stores/profile.store';
 import { useTheme } from '@/components/datatable/ThemeProvider';
-import { useColumnCustomizationStore } from './dialogs/columnSettings/store/columnCustomization.store';
+import { useColumnFormattingStore } from './columnFormatting/store/columnFormatting.store';
 import './datatable.css';
 
 /**
@@ -30,14 +31,22 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   const {
     currentColumnDefs,
     selectedFont,
+    selectedFontSize,
     showColumnDialog,
     setCurrentColumnDefs,
     setSelectedFont,
+    setSelectedFontSize,
     setShowColumnDialog,
   } = useGridState(columnDefs);
   
-  // State for grid options dialog
+  // State for dialogs
   const [showGridOptionsDialog, setShowGridOptionsDialog] = useState(false);
+  const [showDataSourceDialog, setShowDataSourceDialog] = useState(false);
+  
+  // Debug log for dialog state
+  React.useEffect(() => {
+    console.log('[DataTableContainer] showDataSourceDialog:', showDataSourceDialog);
+  }, [showDataSourceDialog]);
   
   // Initialize grid options hook
   const {
@@ -52,7 +61,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   const processedColumns = useColumnProcessor(currentColumnDefs);
   
   // Handle profile synchronization
-  const { handleProfileChange } = useProfileSync(setCurrentColumnDefs, setSelectedFont);
+  const { handleProfileChange } = useProfileSync(setCurrentColumnDefs, setSelectedFont, setSelectedFontSize);
   
   // Handle column operations - pass processedColumns which have the styles
   const { handleApplyColumnChanges, getColumnDefsWithStyles } = useColumnOperations(
@@ -69,7 +78,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
     const activeProfile = useProfileStore.getState().getActiveProfile();
     if (activeProfile && activeProfile.id === 'default-profile' && 
         !activeProfile.columnSettings?.columnCustomizations && 
-        (!activeProfile.gridState?.columnDefs || activeProfile.gridState?.columnDefs?.length === 0)) {
+        (!activeProfile.gridState_legacy?.columnDefs || activeProfile.gridState_legacy?.columnDefs?.length === 0)) {
       console.log('[DataTableContainer] Initializing default profile with base columnDefs');
       // Pass columnDefs as both current and base since this is the initial setup
       // The first parameter is current state, second is the original base columns
@@ -89,6 +98,35 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       gridApiRef.current.refreshCells({ force: true });
     }
   }, [setSelectedFont, saveGridOptions]);
+  
+  // Handle font size changes
+  const handleFontSizeChange = React.useCallback((size: string) => {
+    setSelectedFontSize(size);
+    
+    // Save font size to profile's grid options
+    saveGridOptions({ fontSize: size });
+    
+    if (gridApiRef.current) {
+      gridApiRef.current.refreshCells({ force: true });
+    }
+  }, [setSelectedFontSize, saveGridOptions]);
+  
+  // Handle data source changes
+  const handleApplyDataSources = React.useCallback((dataSources: any[]) => {
+    console.log('[DataTableContainer] Applying data sources:', dataSources);
+    
+    // TODO: Implement data source loading logic
+    // This would typically:
+    // 1. Connect to active data sources
+    // 2. Fetch data from each source
+    // 3. Merge/combine data as needed
+    // 4. Update the grid with new data
+    
+    // For now, just log the data sources
+    dataSources.forEach(ds => {
+      console.log(`Loading data from ${ds.name} (${ds.type})`);
+    });
+  }, []);
   
   // Handle grid options apply
   const handleApplyGridOptions = React.useCallback((options: any) => {
@@ -134,7 +172,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       if (colId) {
         // Use the store directly to select the column
         setTimeout(() => {
-          const store = useColumnCustomizationStore.getState();
+          const store = useColumnFormattingStore.getState();
           store.setSelectedColumns(new Set([colId]));
         }, 100);
       }
@@ -191,7 +229,9 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   const contextValue = useMemo(() => ({
     processedColumns,
     selectedFont,
+    selectedFontSize,
     handleFontChange,
+    handleFontSizeChange,
     showColumnDialog,
     setShowColumnDialog,
     gridApiRef,
@@ -200,7 +240,9 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
   }), [
     processedColumns,
     selectedFont,
+    selectedFontSize,
     handleFontChange,
+    handleFontSizeChange,
     showColumnDialog,
     setShowColumnDialog,
     getColumnDefsWithStyles,
@@ -211,10 +253,16 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
       <div className="h-full w-full flex flex-col overflow-hidden">
         <DataTableToolbar
           selectedFont={selectedFont}
+          selectedFontSize={selectedFontSize}
           onFontChange={handleFontChange}
+          onFontSizeChange={handleFontSizeChange}
           onSpacingChange={() => {}} // Empty function to satisfy prop requirements
           onOpenColumnSettings={() => setShowColumnDialog(true)}
           onOpenGridOptions={() => setShowGridOptionsDialog(true)}
+          onOpenDataSource={() => {
+            console.log('[DataTableContainer] Opening data source dialog');
+            setShowDataSourceDialog(true);
+          }}
           gridApi={gridApi}
           onProfileChange={handleProfileChange}
           getColumnDefsWithStyles={getColumnDefsWithStyles}
@@ -226,7 +274,7 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
           gridApiRef={gridApiRef}
         />
         
-        <ColumnCustomizationDialog
+        <ColumnFormattingDialog
           open={showColumnDialog}
           onOpenChange={setShowColumnDialog}
           columnDefs={processedColumns}
@@ -240,7 +288,15 @@ export const DataTableContainer = memo(({ columnDefs, dataRow }: DataTableProps)
           onApply={handleApplyGridOptions}
           currentOptions={gridOptions}
         />
+        
       </div>
+      
+      {/* Render dialogs outside the main container to avoid overflow issues */}
+      <DataSourceFloatingDialog
+        open={showDataSourceDialog}
+        onOpenChange={setShowDataSourceDialog}
+        onApply={handleApplyDataSources}
+      />
     </DataTableProvider>
   );
 });

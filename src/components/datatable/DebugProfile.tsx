@@ -10,11 +10,11 @@ export function DebugProfile() {
     console.log('Active Profile:', activeProfile);
     console.log('Active Profile ID:', activeProfileId);
     
-    if (activeProfile?.gridState.columnDefs) {
-      console.log('Column Definitions Count:', activeProfile.gridState.columnDefs.length);
+    if (activeProfile?.gridState_legacy?.columnDefs) {
+      console.log('Column Definitions Count:', activeProfile.gridState_legacy.columnDefs.length);
       
       // Show first 5 columns in detail
-      const columnsWithCustomizations = activeProfile.gridState.columnDefs.filter(col => {
+      const columnsWithCustomizations = activeProfile.gridState_legacy.columnDefs.filter((col: any) => {
         const customProps = Object.keys(col).filter(key => 
           !['field', 'headerName', 'width', 'hide', 'colId', 'sort', 'sortIndex'].includes(key)
         );
@@ -23,7 +23,7 @@ export function DebugProfile() {
       
       console.log('Columns with customizations:', columnsWithCustomizations.length);
       
-      columnsWithCustomizations.slice(0, 5).forEach((col, idx) => {
+      columnsWithCustomizations.slice(0, 5).forEach((col: any, idx: number) => {
         console.log(`Customized Column ${idx}:`, {
           field: col.field,
           headerName: col.headerName,

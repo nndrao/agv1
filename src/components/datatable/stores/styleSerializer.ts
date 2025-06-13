@@ -32,7 +32,7 @@ export function serializeColumnDef(colDef: ColDef): SerializedColumnDef {
     } else {
       serialized.cellStyle = {
         type: 'static',
-        value: colDef.cellStyle as React.CSSProperties
+        value: colDef.cellStyle as any
       };
     }
   }
@@ -42,12 +42,12 @@ export function serializeColumnDef(colDef: ColDef): SerializedColumnDef {
     if (typeof colDef.headerStyle === 'function') {
       serialized.headerStyle = {
         type: 'function',
-        value: {} // Header style functions typically return empty for floating filters
+        value: {} as any // Header style functions typically return empty for floating filters
       };
     } else {
       serialized.headerStyle = {
         type: 'static',
-        value: colDef.headerStyle as React.CSSProperties
+        value: colDef.headerStyle as any
       };
     }
   }

@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -26,7 +25,6 @@ import { GridOptionsConfig } from './types';
 import { useProfileStore } from '../stores/profile.store';
 import { GridOptionsPropertyGrid } from './components/GridOptionsPropertyGrid';
 import { gridOptionsSections } from './gridOptionsConfig';
-import { cn } from '@/lib/utils';
 import './grid-options-shadcn.css';
 
 interface GridOptionsPropertyEditorProps {

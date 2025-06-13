@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { GridOptionsConfig, GridOptionsSection, GridOptionField } from '../types';
-import { cn } from '@/lib/utils';
 
 interface GridOptionsTabProps {
   section: GridOptionsSection;
@@ -22,8 +21,9 @@ export const GridOptionsTab: React.FC<GridOptionsTabProps> = ({
   profileOptions
 }) => {
   const renderField = (field: GridOptionField) => {
-    const value = options[field.key];
-    const profileValue = profileOptions[field.key];
+    const key = field.key as keyof GridOptionsConfig;
+    const value = options[key];
+    const profileValue = profileOptions[key];
     const hasChanged = value !== profileValue && value !== undefined;
     const isDefault = value === undefined || value === field.defaultValue;
 
@@ -48,7 +48,7 @@ export const GridOptionsTab: React.FC<GridOptionsTabProps> = ({
                 value={value ?? field.defaultValue ?? ''}
                 onChange={(e) => {
                   const val = e.target.value === '' ? undefined : Number(e.target.value);
-                  onChange(field.key, val);
+                  onChange(key, val);
                 }}
                 min={field.min}
                 max={field.max}
@@ -79,7 +79,7 @@ export const GridOptionsTab: React.FC<GridOptionsTabProps> = ({
               <Switch
                 id={field.key}
                 checked={value ?? field.defaultValue ?? false}
-                onCheckedChange={(checked) => onChange(field.key, checked)}
+                onCheckedChange={(checked) => onChange(key, checked)}
                 className="grid-option-switch"
               />
             </div>
@@ -103,9 +103,9 @@ export const GridOptionsTab: React.FC<GridOptionsTabProps> = ({
               value={String(value ?? field.defaultValue ?? '')}
               onValueChange={(val) => {
                 // Handle special conversions
-                if (val === 'null') onChange(field.key, null);
-                else if (val === 'undefined') onChange(field.key, undefined);
-                else onChange(field.key, val);
+                if (val === 'null') onChange(key, null);
+                else if (val === 'undefined') onChange(key, undefined);
+                else onChange(key, val);
               }}
             >
               <SelectTrigger className="grid-option-select-trigger">
@@ -156,12 +156,12 @@ export const GridOptionsTab: React.FC<GridOptionsTabProps> = ({
                         if (!isArray && value === false) {
                           // If it was false (disabled), start with empty array
                           const newValues = checked ? [option.value] : [];
-                          onChange(field.key, newValues);
+                          onChange(key, newValues);
                         } else {
                           const newValues = checked
                             ? [...valuesArray, option.value]
                             : valuesArray.filter((v: any) => v !== option.value);
-                          onChange(field.key, newValues.length > 0 ? newValues : false);
+                          onChange(key, newValues.length > 0 ? newValues : false);
                         }
                       }}
                     />

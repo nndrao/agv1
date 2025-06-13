@@ -71,3 +71,40 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom scrollbar styles for column selector */
+@layer utilities {
+  /* Custom scrollbar for WebKit browsers */
+  .overflow-auto::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .overflow-auto::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .overflow-auto::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+    transition: background-color 0.2s;
+  }
+
+  .overflow-auto::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground;
+  }
+
+  /* Firefox scrollbar */
+  .overflow-auto {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  /* Dark mode scrollbar adjustments */
+  .dark .overflow-auto::-webkit-scrollbar-thumb {
+    @apply bg-border/60;
+  }
+
+  .dark .overflow-auto::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/60;
+  }
+}

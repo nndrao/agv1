@@ -3,7 +3,27 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  // Uncomment and set this if deploying to a subdirectory
+  // base: '/myapp/',
   plugins: [react()],
+  optimizeDeps: {
+    include: [
+      'ag-grid-community',
+      'ag-grid-react',
+      'ag-grid-enterprise',
+      'zustand',
+      'react',
+      'react-dom',
+      'react-error-boundary',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      'clsx',
+      'tailwind-merge',
+      'class-variance-authority',
+    ],
+    exclude: ['@vite/client', '@vite/env'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -33,18 +53,7 @@ export default defineConfig({
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
   },
-  // Optimize dependencies
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'ag-grid-community',
-      'ag-grid-react',
-      'ag-grid-enterprise',
-      'zustand',
-    ],
-    exclude: ['@vite/client', '@vite/env'],
-  },
+
   // Server configuration for development
   server: {
     // Warm up frequently used modules

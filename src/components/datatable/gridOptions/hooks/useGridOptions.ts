@@ -21,7 +21,7 @@ export const useGridOptions = (gridApi?: any): UseGridOptionsReturn => {
 
   // Get current grid options from profile
   const activeProfile = getActiveProfile();
-  const profileOptions = activeProfile?.gridOptions || {};
+  const profileOptions: GridOptionsConfig = activeProfile?.gridOptions || {};
 
   // Initialize local options from profile
   useEffect(() => {

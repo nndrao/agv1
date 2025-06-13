@@ -91,17 +91,17 @@ export interface ColumnCustomization {
   // Boolean flags (only if changed from defaults)
   sortable?: boolean;
   resizable?: boolean;
-  editable?: boolean;
+  editable?: boolean | ((params: any) => boolean);
   filter?: boolean;
   floatingFilter?: boolean;
   hide?: boolean;
-  lockPosition?: boolean;
+  lockPosition?: boolean | 'left' | 'right';
   lockVisible?: boolean;
   lockPinned?: boolean;
   suppressHeaderMenuButton?: boolean;
   
   // Positioning
-  pinned?: 'left' | 'right' | null;
+  pinned?: boolean | 'left' | 'right' | null;
   
   // Styles (serialized format)
   cellStyle?: {
@@ -117,8 +117,8 @@ export interface ColumnCustomization {
   };
   
   // CSS Classes
-  cellClass?: string | string[];
-  headerClass?: string | string[];
+  cellClass?: string | string[] | ((params: any) => string | string[] | null | undefined);
+  headerClass?: string | string[] | ((params: any) => string | string[] | undefined);
   
   // Formatters (metadata only)
   valueFormatter?: {
@@ -130,7 +130,7 @@ export interface ColumnCustomization {
   };
   
   // Cell data type
-  cellDataType?: 'text' | 'number' | 'date' | 'boolean';
+  cellDataType?: string | boolean;
   
   // Editor properties
   cellEditor?: string;
@@ -141,11 +141,11 @@ export interface ColumnCustomization {
   // Other commonly customized properties
   headerTooltip?: string;
   tooltipField?: string;
-  headerCheckboxSelection?: boolean;
-  checkboxSelection?: boolean;
+  headerCheckboxSelection?: boolean | ((params: any) => boolean);
+  checkboxSelection?: boolean | ((params: any) => boolean);
   rowGroup?: boolean;
   pivot?: boolean;
-  aggFunc?: string | null;
+  aggFunc?: string | null | ((params: any) => any);
   
   // Alignment classes
   cellClassRules?: Record<string, any>;
@@ -345,8 +345,8 @@ function extractCustomizations(col: ColDef, baseCol?: ColDef): ColumnCustomizati
         customization.valueFormatter = {
           type: (config.type as 'excel' | 'visual' | 'custom') || 'excel',
           formatString: config.formatString as string,
-          ...(config.rules && { rules: config.rules as SerializedFormattingRule[] }),
-          ...(config.defaultFallback && { defaultFallback: config.defaultFallback as SerializedDefaultFallback })
+          ...(config.rules ? { rules: config.rules as SerializedFormattingRule[] } : {}),
+          ...(config.defaultFallback ? { defaultFallback: config.defaultFallback as SerializedDefaultFallback } : {})
         };
         console.log('[ColumnSerializer] ✅ Serialized object formatter for field:', col.field);
       } else {
@@ -545,7 +545,7 @@ export function deserializeColumnCustomizations(
     // Apply cell style
     if (custom.cellStyle) {
       if (custom.cellStyle.type === 'static' && custom.cellStyle.value) {
-        merged.cellStyle = custom.cellStyle.value;
+        merged.cellStyle = custom.cellStyle.value as any;
       } else if (custom.cellStyle.type === 'function' && custom.cellStyle.formatString) {
         console.log('[ColumnSerializer] Loading cellStyle function:', {
           field,
@@ -575,15 +575,15 @@ export function deserializeColumnCustomizations(
     // Apply header style
     if (custom.headerStyle) {
       if (custom.headerStyle.type === 'static' && custom.headerStyle.regular) {
-        merged.headerStyle = custom.headerStyle.regular;
+        merged.headerStyle = custom.headerStyle.regular as any;
       } else if (custom.headerStyle.type === 'function') {
         // Create the header style function
-        merged.headerStyle = (params: { floatingFilter?: boolean }) => {
+        merged.headerStyle = ((params: { floatingFilter?: boolean }) => {
           if (params?.floatingFilter) {
             return custom.headerStyle?.floating || null;
           }
           return custom.headerStyle?.regular || null;
-        };
+        }) as any;
         
         // Also store as object format for persistence
         (merged.headerStyle as any)._isHeaderStyleConfig = true;

@@ -51,7 +51,7 @@ export function useColumnOperations(
         
         // Verify the columns were set
         setTimeout(() => {
-          const currentCols = gridApiRef.current.getColumnDefs();
+          const currentCols = gridApiRef.current?.getColumnDefs();
           console.log('[useColumnOperations] Columns after setGridOption:', {
             currentColsCount: currentCols?.length,
             hasCustomizations: currentCols?.some((col: any) => col.cellStyle || col.valueFormatter || col.cellClass)
@@ -76,7 +76,7 @@ export function useColumnOperations(
           const sortState = activeProfile.gridState.sortModel.map(sort => ({
             colId: sort.colId,
             sort: sort.sort,
-            sortIndex: sort.sortIndex
+            sortIndex: (sort as any).sortIndex
           }));
           gridApiRef.current.applyColumnState({ state: sortState });
         }

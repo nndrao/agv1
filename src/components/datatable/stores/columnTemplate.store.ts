@@ -48,6 +48,22 @@ export const useColumnTemplateStore = create<ColumnTemplateStore>()(
       // Save a new template
       saveTemplate: (name, description, settings, includedProperties) => {
         const id = `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Only log if wrap properties are being saved
+        const wrapProps = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
+        const savedWrapProps = includedProperties.filter(prop => wrapProps.includes(prop));
+        
+        if (savedWrapProps.length > 0) {
+          console.log('[ColumnTemplateStore] Saving template with wrap properties:', {
+            name,
+            savedWrapProps,
+            wrapText: settings.wrapText,
+            autoHeight: settings.autoHeight,
+            wrapHeaderText: settings.wrapHeaderText,
+            autoHeaderHeight: settings.autoHeaderHeight
+          });
+        }
+        
         const newTemplate: ColumnTemplate = {
           id,
           name,
@@ -105,6 +121,21 @@ export const useColumnTemplateStore = create<ColumnTemplateStore>()(
         const template = get().getTemplate(templateId);
         if (!template) return null;
 
+        // Only log if template contains wrap properties
+        const wrapProps = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
+        const templateWrapProps = template.includedProperties.filter(prop => wrapProps.includes(prop));
+        
+        if (templateWrapProps.length > 0) {
+          console.log('[ColumnTemplateStore] Applying template with wrap properties:', {
+            templateName: template.name,
+            templateWrapProps,
+            wrapText: template.settings.wrapText,
+            autoHeight: template.settings.autoHeight,
+            wrapHeaderText: template.settings.wrapHeaderText,
+            autoHeaderHeight: template.settings.autoHeaderHeight
+          });
+        }
+
         // Record usage
         get().recordTemplateUse(templateId);
 
@@ -112,33 +143,70 @@ export const useColumnTemplateStore = create<ColumnTemplateStore>()(
         const appliedSettings: Record<string, any> = {};
         template.includedProperties.forEach(prop => {
           if (prop in template.settings) {
+            const value = template.settings[prop];
+            
             // Convert string formatter shortcuts to actual formatter functions
-            if (prop === 'valueFormatter' && typeof template.settings[prop] === 'string') {
-              const formatterShortcut = template.settings[prop];
-              let formatter;
-              
-              switch (formatterShortcut) {
-                case 'currency':
-                  formatter = createExcelFormatter('$#,##0.00');
-                  break;
-                case 'percentage':
-                  formatter = createExcelFormatter('0.00%');
-                  break;
-                case 'date':
-                  formatter = createExcelFormatter('MM/DD/YYYY');
-                  break;
-                default:
-                  // If it's an unknown string, just use it as is
-                  formatter = formatterShortcut;
+            if (prop === 'valueFormatter') {
+              if (typeof value === 'string') {
+                let formatter;
+                switch (value) {
+                  case 'currency':
+                    formatter = createExcelFormatter('$#,##0.00');
+                    break;
+                  case 'percentage':
+                    formatter = createExcelFormatter('0.00%');
+                    break;
+                  case 'date':
+                    formatter = createExcelFormatter('MM/DD/YYYY');
+                    break;
+                  default:
+                    // If it's an unknown string, just use it as is
+                    formatter = value;
+                }
+                appliedSettings[prop] = formatter;
+              } else if (value && typeof value === 'object' && value._isFormatterConfig) {
+                // Restore formatter from saved configuration
+                if (value.type === 'excel' && value.formatString) {
+                  appliedSettings[prop] = createExcelFormatter(value.formatString);
+                }
+              } else {
+                appliedSettings[prop] = value;
               }
-              
-              appliedSettings[prop] = formatter;
+            } else if (prop === 'headerStyle' && value && typeof value === 'object' && value._isHeaderStyleConfig) {
+              // Restore headerStyle function from saved configuration
+              const headerStyleConfig = value;
+              appliedSettings[prop] = (params: any) => {
+                return params.floatingFilter ? headerStyleConfig.floating : headerStyleConfig.regular;
+              };
+              // Mark the function with the config for future saves
+              (appliedSettings[prop] as any)._isHeaderStyleConfig = true;
+              (appliedSettings[prop] as any).regular = headerStyleConfig.regular;
+              (appliedSettings[prop] as any).floating = headerStyleConfig.floating;
+            } else if (prop === 'cellStyle' && value && typeof value === 'object') {
+              // For cellStyle, if it's an object (not a function), use it directly
+              appliedSettings[prop] = value;
             } else {
-              appliedSettings[prop] = template.settings[prop];
+              // For all other properties, apply as-is
+              appliedSettings[prop] = value;
             }
           }
         });
 
+        // Only log if returning wrap properties
+        const returnedWrapProps = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight']
+          .filter(prop => prop in appliedSettings);
+        
+        if (returnedWrapProps.length > 0) {
+          console.log('[ColumnTemplateStore] Returning wrap properties:', {
+            templateName: template.name,
+            returnedWrapProps,
+            wrapText: appliedSettings.wrapText,
+            autoHeight: appliedSettings.autoHeight,
+            wrapHeaderText: appliedSettings.wrapHeaderText,
+            autoHeaderHeight: appliedSettings.autoHeaderHeight
+          });
+        }
+        
         return appliedSettings;
       },
 
@@ -219,67 +287,174 @@ export const useColumnTemplateStore = create<ColumnTemplateStore>()(
 export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updatedAt'>[] = [
   {
     name: 'Currency Format',
-    description: 'Format numbers as currency with right alignment',
+    description: 'Format numbers as currency with right alignment and styling',
     settings: {
+      // Styling
       cellClass: 'ag-currency-cell text-right',
+      cellStyle: { fontWeight: 'bold', color: '#2e7d32' },
+      headerClass: 'text-right',
+      // Formatting
       valueFormatter: 'currency', // Will be converted to createExcelFormatter('$#,##0.00')
+      // Filter
       filter: 'agNumberColumnFilter',
-      width: 120
+      floatingFilter: true,
+      // Size
+      width: 120,
+      minWidth: 100,
+      // Editor
+      editable: true,
+      cellEditor: 'agNumberCellEditor',
+      cellEditorParams: { precision: 2 }
     } as Record<string, any>,
-    includedProperties: ['cellClass', 'valueFormatter', 'filter', 'width']
+    includedProperties: ['cellClass', 'cellStyle', 'headerClass', 'valueFormatter', 'filter', 'floatingFilter', 'width', 'minWidth', 'editable', 'cellEditor', 'cellEditorParams']
   },
   {
     name: 'Percentage Format',
-    description: 'Format numbers as percentages',
+    description: 'Format numbers as percentages with center alignment',
     settings: {
-      cellClass: 'ag-percentage-cell text-right',
+      // Styling
+      cellClass: 'ag-percentage-cell text-center',
+      headerClass: 'text-center',
+      // Formatting
       valueFormatter: 'percentage', // Will be converted to createExcelFormatter('0.00%')
+      // Filter
       filter: 'agNumberColumnFilter',
-      width: 100
+      floatingFilter: true,
+      // Size
+      width: 100,
+      // Editor
+      editable: true,
+      cellEditor: 'agNumberCellEditor',
+      cellEditorParams: { precision: 2 }
     } as Record<string, any>,
-    includedProperties: ['cellClass', 'valueFormatter', 'filter', 'width']
+    includedProperties: ['cellClass', 'headerClass', 'valueFormatter', 'filter', 'floatingFilter', 'width', 'editable', 'cellEditor', 'cellEditorParams']
   },
   {
     name: 'Date Format',
-    description: 'Standard date formatting',
+    description: 'Standard date formatting with calendar picker',
     settings: {
+      // Styling
       cellClass: 'ag-date-cell',
+      // Formatting
       valueFormatter: 'date', // Will be converted to createExcelFormatter('MM/DD/YYYY')
+      // Filter
       filter: 'agDateColumnFilter',
-      width: 120
+      floatingFilter: true,
+      filterParams: {
+        comparator: (filterLocalDateAtMidnight: Date, cellValue: string) => {
+          const cellDate = new Date(cellValue);
+          if (filterLocalDateAtMidnight.getTime() === cellDate.getTime()) {
+            return 0;
+          }
+          if (cellDate < filterLocalDateAtMidnight) {
+            return -1;
+          }
+          if (cellDate > filterLocalDateAtMidnight) {
+            return 1;
+          }
+          return 0;
+        }
+      },
+      // Size
+      width: 120,
+      // Editor
+      editable: true,
+      cellEditor: 'agDateCellEditor'
     } as Record<string, any>,
-    includedProperties: ['cellClass', 'valueFormatter', 'filter', 'width']
+    includedProperties: ['cellClass', 'valueFormatter', 'filter', 'floatingFilter', 'filterParams', 'width', 'editable', 'cellEditor']
   },
   {
     name: 'Editable Text',
-    description: 'Enable editing with text editor',
+    description: 'Enable editing with text editor and search filter',
     settings: {
+      // Editor
       editable: true,
       cellEditor: 'agTextCellEditor',
+      singleClickEdit: true,
+      // Filter
       filter: 'agTextColumnFilter',
-      floatingFilter: true
+      floatingFilter: true,
+      filterParams: {
+        filterOptions: ['contains', 'notContains', 'equals', 'notEqual', 'startsWith', 'endsWith'],
+        defaultOption: 'contains'
+      },
+      // Size
+      resizable: true,
+      // Styling
+      wrapText: true,
+      autoHeight: true
     } as Record<string, any>,
-    includedProperties: ['editable', 'cellEditor', 'filter', 'floatingFilter']
+    includedProperties: ['editable', 'cellEditor', 'singleClickEdit', 'filter', 'floatingFilter', 'filterParams', 'resizable', 'wrapText', 'autoHeight']
   },
   {
     name: 'Read-only Locked',
-    description: 'Non-editable, position locked column',
+    description: 'Non-editable, position locked column with gray background',
     settings: {
+      // Editor
       editable: false,
+      // Position
       lockPosition: true,
       lockVisible: true,
-      resizable: false
+      pinned: 'left',
+      // Size
+      resizable: false,
+      // Styling
+      cellClass: 'ag-readonly-cell',
+      cellStyle: { backgroundColor: '#f5f5f5', color: '#666' },
+      headerStyle: {
+        _isHeaderStyleConfig: true,
+        regular: { backgroundColor: '#e0e0e0' },
+        floating: { backgroundColor: '#e0e0e0' }
+      }
     } as Record<string, any>,
-    includedProperties: ['editable', 'lockPosition', 'lockVisible', 'resizable']
+    includedProperties: ['editable', 'lockPosition', 'lockVisible', 'pinned', 'resizable', 'cellClass', 'cellStyle', 'headerStyle']
   },
   {
     name: 'Wrapped Text',
-    description: 'Enable text wrapping with auto height',
+    description: 'Enable text wrapping with auto height for long content',
     settings: {
+      // Text wrapping
       wrapText: true,
       autoHeight: true,
-      wrapHeaderText: true
+      wrapHeaderText: true,
+      autoHeaderHeight: true,
+      // Size
+      minWidth: 150,
+      maxWidth: 300,
+      // Editor
+      editable: true,
+      cellEditor: 'agLargeTextCellEditor',
+      cellEditorPopup: true,
+      cellEditorParams: {
+        maxLength: 500,
+        rows: 10,
+        cols: 50
+      }
     } as Record<string, any>,
-    includedProperties: ['wrapText', 'autoHeight', 'wrapHeaderText']
+    includedProperties: ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight', 'minWidth', 'maxWidth', 'editable', 'cellEditor', 'cellEditorPopup', 'cellEditorParams']
+  },
+  {
+    name: 'Numeric Column',
+    description: 'Right-aligned numeric column with number filter',
+    settings: {
+      // Type
+      type: 'numericColumn',
+      // Styling
+      cellClass: 'ag-numeric-cell text-right',
+      headerClass: 'text-right',
+      // Filter
+      filter: 'agNumberColumnFilter',
+      floatingFilter: true,
+      filterParams: {
+        filterOptions: ['equals', 'notEqual', 'lessThan', 'lessThanOrEqual', 'greaterThan', 'greaterThanOrEqual', 'inRange'],
+        defaultOption: 'greaterThan'
+      },
+      // Editor
+      editable: true,
+      cellEditor: 'agNumberCellEditor',
+      // Size
+      width: 100
+    } as Record<string, any>,
+    includedProperties: ['type', 'cellClass', 'headerClass', 'filter', 'floatingFilter', 'filterParams', 'editable', 'cellEditor', 'width']
   }
 ];
