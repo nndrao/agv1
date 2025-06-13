@@ -326,6 +326,20 @@ export function ProfileManager({ gridApi, onProfileChange, getColumnDefsWithStyl
       // Clean up column definitions for serialization
       const cleanedColumnDefs = columnDefs.map(col => {
         const cleaned = { ...col };
+        // Remove state properties that should NEVER be in column definitions
+        // These are managed by AG-Grid's column state
+        const stateProperties = [
+          'width', 'actualWidth', 'hide', 'pinned', 'sort', 'sortIndex',
+          'flex', 'rowGroup', 'rowGroupIndex', 'pivot', 'pivotIndex',
+          'aggFunc', 'moving', 'menuTabs', 'columnsMenuParams'
+        ];
+        stateProperties.forEach(prop => {
+          if (prop in cleaned) {
+            console.log(`[ProfileManager] Removing state property '${prop}' from column:`, (col as any).field || (col as any).colId);
+            delete (cleaned as any)[prop];
+          }
+        });
+        
         if ('valueFormat' in cleaned) delete cleaned.valueFormat;
         if ('_hasFormatter' in cleaned) delete cleaned._hasFormatter;
         if ('excelFormat' in cleaned) delete cleaned.excelFormat;

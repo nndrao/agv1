@@ -170,3 +170,236 @@ export interface TemplateProperty {
   value: unknown;
   type?: string;
 }
+
+/**
+ * Grid profile for storing grid state
+ */
+export interface GridProfile {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  isDefault?: boolean;
+  description?: string;
+  columnSettings?: {
+    columnCustomizations?: Record<string, ColumnCustomization>;
+    baseColumnDefs?: ColumnDef[];
+    templates?: Record<string, unknown>[];
+    columnTemplates?: Record<string, unknown>[];
+  };
+  gridState?: GridState;
+  gridOptions?: Record<string, unknown>;
+  gridState_legacy?: GridState;
+}
+
+/**
+ * Column customization settings
+ */
+export interface ColumnCustomization {
+  field: string;
+  headerName?: string;
+  valueFormatter?: string;
+  cellStyle?: Record<string, unknown>;
+  cellClass?: string | string[];
+  headerClass?: string | string[];
+  width?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  hide?: boolean;
+  pinned?: 'left' | 'right' | null;
+  sort?: 'asc' | 'desc' | null;
+  sortIndex?: number;
+  flex?: number;
+  resizable?: boolean;
+  sortable?: boolean;
+  filter?: boolean | string | {
+    type: string;
+    params?: any;
+    showFloatingFilter?: boolean;
+  };
+  floatingFilter?: boolean;
+  editable?: boolean;
+  cellEditor?: string;
+  cellEditorParams?: unknown;
+  headerTooltip?: string;
+  tooltip?: string;
+  wrapText?: boolean;
+  autoHeight?: boolean;
+  wrapHeaderText?: boolean;
+  autoHeaderHeight?: boolean;
+  
+  // Additional properties for FormattingEngine compatibility
+  format?: any;
+  style?: StyleSettings;
+  editor?: EditorSettings;
+  general?: Record<string, any>;
+  conditionalFormats?: ConditionalFormat[];
+}
+
+/**
+ * Grid state
+ */
+export interface GridState {
+  columnDefs?: ColumnDef[];
+  columnCustomizations?: Record<string, ColumnCustomization>;
+  baseColumnDefs?: ColumnDef[];
+  columnState: unknown[];
+  filterModel: unknown;
+  sortModel: unknown[];
+  templates?: Record<string, unknown>[];
+  columnTemplates?: Record<string, unknown>[];
+  font?: string;
+  gridOptions?: Record<string, unknown>;
+}
+
+/**
+ * Template definition
+ */
+export interface Template {
+  id: string;
+  name: string;
+  description?: string;
+  properties: Record<string, unknown>;
+  category?: string;
+  tags?: string[];
+}
+
+/**
+ * Data source configuration
+ */
+export interface DataSourceConfig {
+  id: string;
+  name: string;
+  type: 'stomp' | 'rest';
+  active: boolean;
+  config: unknown;
+  schema: unknown | null;
+  columnDefs: ColumnDef[];
+  createdAt: number;
+  updatedAt: number;
+  lastFetch?: number;
+  lastError?: string;
+}
+
+/**
+ * Format rule for conditional formatting
+ */
+export interface FormatRule {
+  id: string;
+  condition: {
+    type: string;
+    value: unknown;
+    value2?: unknown;
+  };
+  format: {
+    backgroundColor?: string;
+    color?: string;
+    fontWeight?: string;
+    fontStyle?: string;
+  };
+  enabled: boolean;
+}
+
+/**
+ * Style settings
+ */
+export interface StyleSettings {
+  backgroundColor?: string;
+  color?: string;
+  textColor?: string;
+  fontSize?: number;
+  fontWeight?: string;
+  fontStyle?: string;
+  textAlign?: string;
+  textDecoration?: string;
+  border?: unknown;
+  borderTop?: string;
+  borderRight?: string;
+  borderBottom?: string;
+  borderLeft?: string;
+  padding?: unknown;
+  className?: string;
+  highlight?: boolean;
+  bold?: boolean;
+  italic?: boolean;
+}
+
+/**
+ * Editor settings
+ */
+export interface EditorSettings {
+  enabled?: boolean;
+  editable?: boolean;
+  type?: string;
+  cellEditor?: string;
+  params?: unknown;
+  cellEditorParams?: unknown;
+  onCellValueChanged?: unknown;
+}
+
+/**
+ * Filter settings
+ */
+export interface FilterSettings {
+  filter?: boolean | string;
+  filterParams?: unknown;
+  floatingFilter?: boolean;
+  floatingFilterComponent?: string;
+  floatingFilterComponentParams?: unknown;
+}
+
+/**
+ * Format settings
+ */
+export interface FormatSettings {
+  type?: 'number' | 'currency' | 'percent' | 'date' | 'text' | 'excel' | 'percentage' | 'custom';
+  format?: string;
+  precision?: number;
+  prefix?: string;
+  suffix?: string;
+  dateFormat?: string;
+  locale?: string;
+  decimalPlaces?: number;
+  thousandsSeparator?: boolean;
+  negativeFormat?: string;
+  currency?: string;
+  multiply100?: boolean;
+  customFunction?: string;
+}
+
+/**
+ * Conditional format
+ */
+export interface ConditionalFormat {
+  id: string;
+  condition: {
+    type: string;
+    value: unknown;
+    value2?: unknown;
+  };
+  style: StyleSettings;
+  enabled: boolean;
+  className?: string;
+  operator?: string;
+  value?: any;
+  customExpression?: string;
+}
+
+/**
+ * Excel format
+ */
+export interface ExcelFormat {
+  formatCode: string;
+  type: 'number' | 'currency' | 'percent' | 'date' | 'time' | 'datetime' | 'text';
+  pattern?: string;
+  format?: string;
+}
+
+/**
+ * Visual format
+ */
+export interface VisualFormat {
+  type: 'conditional' | 'gradient' | 'dataBar' | 'icon';
+  rules?: FormatRule[];
+  config?: unknown;
+}

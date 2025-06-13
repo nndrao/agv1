@@ -83,10 +83,9 @@ export interface ColumnCustomization {
   
   // Basic properties (only if changed from defaults)
   headerName?: string;
-  width?: number;
+  // Only save min/max constraints, not actual width (which is state)
   minWidth?: number;
   maxWidth?: number;
-  flex?: number;
   
   // Boolean flags (only if changed from defaults)
   sortable?: boolean;
@@ -94,14 +93,12 @@ export interface ColumnCustomization {
   editable?: boolean | ((params: any) => boolean);
   filter?: boolean;
   floatingFilter?: boolean;
-  hide?: boolean;
+  // NEVER save state properties like hide, width, pinned, etc.
+  // These are managed by AG-Grid's column state
   lockPosition?: boolean | 'left' | 'right';
   lockVisible?: boolean;
   lockPinned?: boolean;
   suppressHeaderMenuButton?: boolean;
-  
-  // Positioning
-  pinned?: boolean | 'left' | 'right' | null;
   
   // Styles (serialized format)
   cellStyle?: {
@@ -152,13 +149,15 @@ export interface ColumnCustomization {
 }
 
 // Default values for comparison
+// IMPORTANT: Do NOT include state properties (hide, width, pinned, sort) here
+// These are managed by AG-Grid's column state API
 const COLUMN_DEFAULTS: Partial<ColDef> = {
   sortable: true,
   resizable: true,
   filter: true,
   floatingFilter: true,
   editable: false,
-  hide: false,
+  // REMOVED: hide: false, // This is a state property!
   lockPosition: false,
   lockVisible: false,
   lockPinned: false,
@@ -182,19 +181,20 @@ function extractCustomizations(col: ColDef, baseCol?: ColDef): ColumnCustomizati
     customization.headerName = col.headerName;
   }
   
-  // Width properties
-  if (col.width !== undefined && col.width !== compareBase.width) {
-    customization.width = col.width;
-  }
+  // Width properties - only save min/max constraints, not actual width
+  // Actual width is managed by column state
+  // if (col.width !== undefined && col.width !== compareBase.width) {
+  //   customization.width = col.width;
+  // }
   if (col.minWidth !== undefined && col.minWidth !== compareBase.minWidth) {
     customization.minWidth = col.minWidth;
   }
   if (col.maxWidth !== undefined && col.maxWidth !== compareBase.maxWidth) {
     customization.maxWidth = col.maxWidth;
   }
-  if (col.flex !== undefined && col.flex !== compareBase.flex) {
-    customization.flex = col.flex;
-  }
+  // if (col.flex !== undefined && col.flex !== compareBase.flex) {
+  //   customization.flex = col.flex;
+  // }
   
   // Boolean flags - only save if different from defaults
   if (col.sortable !== undefined && col.sortable !== compareBase.sortable) {
@@ -212,9 +212,10 @@ function extractCustomizations(col: ColDef, baseCol?: ColDef): ColumnCustomizati
   if (col.floatingFilter !== undefined && col.floatingFilter !== compareBase.floatingFilter) {
     customization.floatingFilter = col.floatingFilter;
   }
-  if (col.hide !== undefined && col.hide !== compareBase.hide) {
-    customization.hide = col.hide;
-  }
+  // NEVER save hide property - visibility is managed by column state, not column definitions
+  // if (col.hide !== undefined && col.hide !== compareBase.hide) {
+  //   customization.hide = col.hide;
+  // }
   if (col.lockPosition !== undefined && col.lockPosition !== compareBase.lockPosition) {
     customization.lockPosition = col.lockPosition;
   }
@@ -228,10 +229,10 @@ function extractCustomizations(col: ColDef, baseCol?: ColDef): ColumnCustomizati
     customization.suppressHeaderMenuButton = col.suppressHeaderMenuButton;
   }
   
-  // Positioning
-  if (col.pinned !== undefined && col.pinned !== null) {
-    customization.pinned = col.pinned;
-  }
+  // NEVER save positioning properties - these are managed by column state
+  // if (col.pinned !== undefined && col.pinned !== null) {
+  //   customization.pinned = col.pinned;
+  // }
   
   // Cell style
   if (col.cellStyle) {
@@ -521,10 +522,10 @@ export function deserializeColumnCustomizations(
     
     // Apply basic properties
     if (custom.headerName !== undefined) merged.headerName = custom.headerName;
-    if (custom.width !== undefined) merged.width = custom.width;
+    // NEVER apply state properties (width, hide, pinned, etc.)
+    // These should only come from AG-Grid's column state
     if (custom.minWidth !== undefined) merged.minWidth = custom.minWidth;
     if (custom.maxWidth !== undefined) merged.maxWidth = custom.maxWidth;
-    if (custom.flex !== undefined) merged.flex = custom.flex;
     
     // Apply boolean flags
     if (custom.sortable !== undefined) merged.sortable = custom.sortable;
@@ -532,15 +533,11 @@ export function deserializeColumnCustomizations(
     if (custom.editable !== undefined) merged.editable = custom.editable;
     if (custom.filter !== undefined) merged.filter = custom.filter;
     if (custom.floatingFilter !== undefined) merged.floatingFilter = custom.floatingFilter;
-    // Don't apply hide property from customizations - column visibility should be controlled by column state only
-    // if (custom.hide !== undefined) merged.hide = custom.hide;
+    // NEVER apply state properties from customizations
     if (custom.lockPosition !== undefined) merged.lockPosition = custom.lockPosition;
     if (custom.lockVisible !== undefined) merged.lockVisible = custom.lockVisible;
     if (custom.lockPinned !== undefined) merged.lockPinned = custom.lockPinned;
     if (custom.suppressHeaderMenuButton !== undefined) merged.suppressHeaderMenuButton = custom.suppressHeaderMenuButton;
-    
-    // Apply positioning
-    if (custom.pinned !== undefined) merged.pinned = custom.pinned;
     
     // Apply cell style
     if (custom.cellStyle) {

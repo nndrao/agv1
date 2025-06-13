@@ -82,16 +82,7 @@ export const GeneralRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
       {/* Row 2: Quick toggles in a compact strip */}
       <div className="flex items-center gap-4 px-2 py-1 bg-muted/30 rounded-md">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <Switch 
-              id="initially-hidden"
-              checked={!getMixedValueLocal('hide').isMixed && getMixedValueLocal('hide').value === true}
-              onCheckedChange={(checked) => updateBulkProperty('hide', checked)}
-            />
-            <Label htmlFor="initially-hidden" className="cursor-pointer">
-              Initially Hidden
-            </Label>
-          </div>
+          {/* Note: 'hide' property removed - column visibility should be managed separately, not in formatter */}
           <div className="flex items-center gap-1.5">
             <Switch 
               id="floating-filter"

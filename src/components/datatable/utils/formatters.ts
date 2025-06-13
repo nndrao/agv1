@@ -788,3 +788,8 @@ export function getExcelExportFormat(formatString: string): string | undefined {
   
   return formatMap[formatString] || formatString;
 }
+
+/**
+ * Parse Excel format string (alias for createExcelFormatter for backward compatibility)
+ */
+export const parseExcelFormat = createExcelFormatter;

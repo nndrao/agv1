@@ -17,10 +17,12 @@ import {
 } from 'lucide-react';
 import { useColumnTemplateStore } from '@/components/datatable/stores/columnTemplate.store';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
+import { useProfileStore } from '@/components/datatable/stores/profile.store';
 
 interface SimpleTemplateControlsProps {
   selectedColumns: Set<string>;
   columnDefinitions: Map<string, any>;
+  gridApi?: any; // Optional grid API to get current column state
 }
 
 export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
@@ -40,6 +42,12 @@ export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
   } = useColumnFormattingStore();
 
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [savedTemplateDetails, setSavedTemplateDetails] = useState<{
+    templateInfo: any;
+    savedSettings: any;
+    localStorage: any;
+  } | null>(null);
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
   const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set());
@@ -53,67 +61,187 @@ export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
     // Get the first selected column's settings as a base
     const firstColId = Array.from(selectedColumns)[0];
     const colDef = columnDefinitions.get(firstColId);
-    const changes = pendingChanges.get(firstColId);
+    const changes = pendingChanges.get(firstColId) || {};
     
-    return { ...colDef, ...changes };
+    // First check if we have any applied customizations from a previous save
+    
+    // If we have pending changes, those take priority
+    let allSettings = {};
+    
+    if (Object.keys(changes).length > 0) {
+      // Use pending changes combined with column def
+      allSettings = { ...colDef, ...changes };
+    } else {
+      // No pending changes - get the current column state from the grid
+      // The column def should have all applied formatting
+      allSettings = { ...colDef };
+      
+      // Also check if there are any previously applied customizations
+      // that might be stored in the profile system
+      const profileStore = useProfileStore.getState();
+      const activeProfile = profileStore.getActiveProfile();
+      if (activeProfile) {
+        const columnCustomization = activeProfile?.columnSettings?.columnCustomizations?.[firstColId];
+        if (columnCustomization) {
+          console.log('[SimpleTemplateControls] Found column customization in profile:', columnCustomization);
+          allSettings = { ...allSettings, ...columnCustomization };
+        }
+      }
+    }
+    
+    // Debug: Log what we have
+    console.log('[SimpleTemplateControls] getCurrentSettings:', {
+      firstColId,
+      hasColDef: !!colDef,
+      colDefKeys: colDef ? Object.keys(colDef).filter(k => (colDef as any)[k] !== undefined) : [],
+      pendingChangesKeys: Object.keys(changes),
+      allSettingsKeys: Object.keys(allSettings).filter(k => (allSettings as any)[k] !== undefined),
+      allSettings
+    });
+    
+    // Extract only formatting-related properties (exclude column identity and state)
+    const formattingProps = [
+      // Style properties
+      'cellStyle', 'cellClass', 'cellClassRules',
+      'headerClass', 'headerStyle',
+      
+      // Text wrapping
+      'wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight',
+      
+      // Formatting
+      'valueFormatter', 'valueGetter', 'type',
+      
+      // Filter properties
+      'filter', 'filterParams', 'floatingFilter',
+      
+      // Editor properties
+      'editable', 'cellEditor', 'cellEditorParams',
+      'singleClickEdit', 'cellEditorPopup',
+      
+      // Other formatting
+      'tooltipField', 'tooltipValueGetter',
+      'suppressMenu', 'menuTabs',
+      
+      // Additional common properties
+      'sortable', 'resizable', 'suppressSizeToFit',
+      'suppressAutoSize', 'suppressColumnsToolPanel',
+      'suppressFiltersToolPanel', 'suppressHeaderMenuButton'
+    ];
+    
+    const formattingSettings = {};
+    formattingProps.forEach(prop => {
+      if (prop in allSettings && (allSettings as any)[prop] !== undefined) {
+        (formattingSettings as any)[prop] = (allSettings as any)[prop];
+      }
+    });
+    
+    // If we still don't have any settings, try to create a minimal template
+    // with at least the column type (this ensures the template is not empty)
+    if (Object.keys(formattingSettings).length === 0 && colDef) {
+      // Add at least the type if available
+      if (colDef.type) {
+        (formattingSettings as any).type = colDef.type;
+      }
+      
+      // Check for any basic properties that might be set
+      const basicProps = ['sortable', 'resizable', 'editable', 'filter'];
+      basicProps.forEach(prop => {
+        if ((colDef as any)[prop] !== undefined) {
+          (formattingSettings as any)[prop] = (colDef as any)[prop];
+        }
+      });
+      
+      // Add a note that this is a minimal template
+      (formattingSettings as any)._minimal = true;
+    }
+    
+    // Log the final formatting settings
+    console.log('[SimpleTemplateControls] Extracted formatting settings:', {
+      settingsCount: Object.keys(formattingSettings).length,
+      settings: formattingSettings
+    });
+    
+    return formattingSettings;
   }, [selectedColumns, columnDefinitions, pendingChanges]);
 
   // Save current settings as template
   const handleSaveAsTemplate = useCallback(() => {
     const settings = getCurrentSettings();
-    if (!settings) {
-      toast.error("No columns selected");
+    if (!settings || Object.keys(settings).length === 0) {
+      toast.error("No formatting settings to save. Please apply some formatting to the column first, or click 'Apply' if you have pending changes.");
       return;
     }
 
-    // Get all properties that have been modified (from pendingChanges)
-    const firstColId = Array.from(selectedColumns)[0];
-    const changes = pendingChanges.get(firstColId) || {};
+    // The settings from getCurrentSettings are already filtered for formatting-only properties
+    const filteredSettings = { ...settings };
     
-    // If there are pending changes, use those. Otherwise use all non-undefined settings
-    const filteredSettings: Record<string, unknown> = {};
+    // Define properties that should never be in templates (additional safety check)
+    const excludedProps = [
+      // Column identity properties
+      'field', 'headerName', 'colId', 'columnGroupShow', 
+      'headerComponentFramework', 'headerComponentParams',
+      'floatingFilterComponent', 'floatingFilterComponentFramework',
+      'floatingFilterComponentParams',
+      'keyCreator', 'checkboxSelection',
+      'showRowGroup', 'dndSource', 'dndSourceOnRowDrag',
+      'rowDrag', 'rowDragText', 'aggFunc', 'initialAggFunc',
+      'defaultAggFunc', 'allowedAggFuncs',
+      // Column state properties (should be managed separately, not in formatter)
+      'width', 'minWidth', 'maxWidth', 'flex',
+      'hide', 'pinned', 'lockPosition', 'lockVisible',
+      'sort', 'sortIndex', 'sortedAt'
+    ];
     
-    if (Object.keys(changes).length > 0) {
-      // Save only the modified properties
-      Object.entries(changes).forEach(([key, value]) => {
-        if (value !== undefined) {
-          filteredSettings[key] = value;
-        }
-      });
-      console.log('[SimpleTemplateControls] Saving modified properties:', Object.keys(filteredSettings));
-    } else {
-      // No pending changes, save all non-undefined, non-function properties
-      Object.entries(settings).forEach(([key, value]) => {
-        if (value !== undefined && typeof value !== 'function' && !key.startsWith('_')) {
-          filteredSettings[key] = value;
-        }
-      });
-      console.log('[SimpleTemplateControls] No pending changes, saving all properties:', Object.keys(filteredSettings));
-    }
-
-    // Always include wrap properties if they exist in settings
-    const wrapProps = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
-    wrapProps.forEach(prop => {
-      if (prop in settings && !(prop in filteredSettings)) {
-        filteredSettings[prop] = settings[prop];
-      }
+    // Additional safety: remove any excluded properties that might have slipped through
+    excludedProps.forEach(prop => {
+      delete (filteredSettings as any)[prop];
     });
 
     console.log('[SimpleTemplateControls] Final settings to save:', {
       templateName,
       properties: Object.keys(filteredSettings),
-      wrapText: filteredSettings.wrapText,
-      autoHeight: filteredSettings.autoHeight,
-      wrapHeaderText: filteredSettings.wrapHeaderText,
-      autoHeaderHeight: filteredSettings.autoHeaderHeight
+      wrapText: (filteredSettings as any).wrapText,
+      autoHeight: (filteredSettings as any).autoHeight,
+      wrapHeaderText: (filteredSettings as any).wrapHeaderText,
+      autoHeaderHeight: (filteredSettings as any).autoHeaderHeight
     });
 
-    saveTemplate(
+    // Save the template and get the generated ID
+    const templateId = saveTemplate(
       templateName,
       templateDescription,
       filteredSettings,
       Object.keys(filteredSettings)
     );
+
+    // Get the full template store state to show what was persisted
+    const storeState = useColumnTemplateStore.getState();
+    const savedTemplate = storeState.templates.find(t => t.id === templateId);
+    
+    // Get localStorage data
+    const localStorageKey = 'column-template-store';
+    const localStorageData = localStorage.getItem(localStorageKey);
+    const parsedLocalStorage = localStorageData ? JSON.parse(localStorageData) : null;
+
+    // Prepare details for the popup
+    setSavedTemplateDetails({
+      templateInfo: {
+        id: templateId,
+        name: templateName,
+        description: templateDescription,
+        createdAt: new Date().toISOString(),
+        includedProperties: Object.keys(filteredSettings)
+      },
+      savedSettings: filteredSettings,
+      localStorage: {
+        key: localStorageKey,
+        totalTemplates: parsedLocalStorage?.state?.templates?.length || 0,
+        savedTemplate: savedTemplate || null
+      }
+    });
+
+    // Show the details dialog
+    setShowDetailsDialog(true);
 
     toast.success(`Template "${templateName}" saved successfully`);
     
@@ -328,6 +456,70 @@ export const SimpleTemplateControls: React.FC<SimpleTemplateControlsProps> = ({
             >
               <Save className="h-4 w-4 mr-2" />
               Save Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Template Saved Successfully</DialogTitle>
+            <DialogDescription>
+              Here are the details of what was saved and persisted
+            </DialogDescription>
+          </DialogHeader>
+          
+          {savedTemplateDetails && (
+            <div className="flex-1 overflow-auto space-y-4 py-4">
+              {/* Template Information */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Template Information</h3>
+                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+                  {JSON.stringify(savedTemplateDetails.templateInfo, null, 2)}
+                </pre>
+              </div>
+
+              {/* Saved Settings */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Saved Settings</h3>
+                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+                  {JSON.stringify(savedTemplateDetails.savedSettings, null, 2)}
+                </pre>
+              </div>
+
+              {/* LocalStorage Information */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">LocalStorage Persistence</h3>
+                <div className="space-y-1 text-sm">
+                  <p><strong>Storage Key:</strong> {savedTemplateDetails.localStorage.key}</p>
+                  <p><strong>Total Templates Stored:</strong> {savedTemplateDetails.localStorage.totalTemplates}</p>
+                </div>
+                {savedTemplateDetails.localStorage.savedTemplate && (
+                  <div className="mt-2">
+                    <p className="text-sm font-medium mb-1">Full Template Object in Storage:</p>
+                    <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+                      {JSON.stringify(savedTemplateDetails.localStorage.savedTemplate, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+
+              {/* Profile Settings Note */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Profile Settings</h3>
+                <p className="text-sm text-muted-foreground">
+                  Templates are stored independently from profiles. To include this template in a profile, 
+                  apply the template to columns and then save the profile.
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setShowDetailsDialog(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

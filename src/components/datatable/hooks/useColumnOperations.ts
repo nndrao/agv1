@@ -39,26 +39,93 @@ export function useColumnOperations(
       });
       
       if (gridApiRef.current) {
-        console.log('[useColumnOperations] Applying column definitions to grid:', {
-          columnsCount: columns.length,
-          hasCustomizations: columns.some(col => col.cellStyle || col.valueFormatter || col.cellClass),
-          sampleColumn: columns[0]
+        // Get column state BEFORE applying changes
+        const columnStateBefore = gridApiRef.current.getColumnState();
+        const visibleColumnsBefore = columnStateBefore.filter(col => !col.hide);
+        console.log('[useColumnOperations] BEFORE applying column definitions:', {
+          totalColumns: columnStateBefore.length,
+          visibleColumns: visibleColumnsBefore.length,
+          hiddenColumns: columnStateBefore.length - visibleColumnsBefore.length,
+          visibleColumnIds: visibleColumnsBefore.map(col => col.colId)
         });
         
-        // Simply update the column definitions
-        console.log('[useColumnOperations] About to setGridOption with columns:', columns);
-        gridApiRef.current.setGridOption('columnDefs', columns);
+        // Clean column definitions to remove ALL stateful properties
+        // According to AG-Grid docs, these should NEVER be in column definitions
+        const statefulProperties = [
+          'width', 'initialWidth', 
+          'sort', 'initialSort', 
+          'sortIndex', 'initialSortIndex',
+          'hide', 'initialHide',
+          'pinned', 'initialPinned',
+          'rowGroup', 'initialRowGroup',
+          'rowGroupIndex', 'initialRowGroupIndex',
+          'pivot', 'initialPivot',
+          'pivotIndex', 'initialPivotIndex',
+          'aggFunc', 'initialAggFunc',
+          'flex', 'initialFlex',
+          'filter' // Filter state is managed through filter API
+        ];
         
-        // Verify the columns were set
+        // Create clean column definitions without stateful properties
+        const cleanColumns = columns.map(col => {
+          const cleanCol = { ...col };
+          
+          // Remove all stateful properties
+          statefulProperties.forEach(prop => {
+            if (prop in cleanCol) {
+              console.log(`[useColumnOperations] Removing stateful property '${prop}' from column:`, col.field || col.colId);
+              delete (cleanCol as any)[prop];
+            }
+          });
+          
+          return cleanCol;
+        });
+        
+        console.log('[useColumnOperations] Applying CLEAN column definitions to grid:', {
+          columnsCount: cleanColumns.length,
+          hasCustomizations: cleanColumns.some(col => col.cellStyle || col.valueFormatter || col.cellClass),
+          sampleColumn: cleanColumns[0]
+        });
+        
+        // Update the column definitions with cleaned versions
+        gridApiRef.current.setGridOption('columnDefs', cleanColumns);
+        
+        // IMPORTANT: Restore the column state that existed before applying changes
+        // This preserves visibility, width, order, etc.
+        console.log('[useColumnOperations] Restoring column state to preserve visibility');
+        gridApiRef.current.applyColumnState({
+          state: columnStateBefore,
+          applyOrder: true
+        });
+        
+        // Verify the columns were set and check state AFTER
         setTimeout(() => {
           const currentCols = gridApiRef.current?.getColumnDefs();
-          console.log('[useColumnOperations] Columns after setGridOption:', {
+          const columnStateAfter = gridApiRef.current?.getColumnState() || [];
+          const visibleColumnsAfter = columnStateAfter.filter(col => !col.hide);
+          
+          console.log('[useColumnOperations] AFTER setGridOption and state restore:', {
             currentColsCount: currentCols?.length,
-            hasCustomizations: currentCols?.some((col: any) => col.cellStyle || col.valueFormatter || col.cellClass)
+            hasCustomizations: currentCols?.some((col: any) => col.cellStyle || col.valueFormatter || col.cellClass),
+            totalColumns: columnStateAfter.length,
+            visibleColumns: visibleColumnsAfter.length,
+            hiddenColumns: columnStateAfter.length - visibleColumnsAfter.length,
+            visibleColumnIds: visibleColumnsAfter.map(col => col.colId),
+            visibilityChanged: visibleColumnsBefore.length !== visibleColumnsAfter.length
           });
+          
+          if (visibleColumnsBefore.length !== visibleColumnsAfter.length) {
+            console.warn('[useColumnOperations] VISIBILITY CHANGED!', {
+              before: visibleColumnsBefore.length,
+              after: visibleColumnsAfter.length,
+              difference: visibleColumnsAfter.length - visibleColumnsBefore.length
+            });
+          }
         }, 10);
         
         // Apply the column state from the active profile
+        // TEMPORARILY DISABLED to test column behavior without state application
+        /*
         if (activeProfile && activeProfile.gridState?.columnState && activeProfile.gridState.columnState.length > 0) {
           console.log('[useColumnOperations] Applying column state from active profile:', {
             profileName: activeProfile.name,
@@ -70,6 +137,8 @@ export function useColumnOperations(
             applyOrder: true
           });
         }
+        */
+        console.log('[useColumnOperations] Column state application DISABLED for testing');
         
         // Apply sort model from profile
         if (activeProfile && activeProfile.gridState?.sortModel && activeProfile.gridState.sortModel.length > 0) {
@@ -110,8 +179,21 @@ export function useColumnOperations(
     // Store the columns with styles for later retrieval
     columnDefsWithStylesRef.current = updatedColumns as ColumnDef[];
     
-    // Update the currentColumnDefs state
-    setCurrentColumnDefs(updatedColumns as ColumnDef[]);
+    // Normalize column definitions (ensure field and headerName are set)
+    const normalizedColumns = updatedColumns.map((col) => {
+      if (col.field && col.headerName) {
+        return col as ColumnDef;
+      }
+      
+      return {
+        ...col,
+        field: col.field || '',
+        headerName: col.headerName || col.field || ''
+      };
+    });
+    
+    // Update React state ONCE
+    setCurrentColumnDefs(normalizedColumns);
     
     // Apply the changes to the grid
     if (gridApiRef.current) {
@@ -130,19 +212,6 @@ export function useColumnOperations(
         totalColumns: updatedColumns.length
       });
     }
-    
-    // Update React state
-    setCurrentColumnDefs(updatedColumns.map((col) => {
-      if (col.field && col.headerName) {
-        return col as ColumnDef;
-      }
-      
-      return {
-        ...col,
-        field: col.field || '',
-        headerName: col.headerName || col.field || ''
-      };
-    }));
     
     // Clear optimizer cache for active profile since columns changed
     if (activeProfile) {

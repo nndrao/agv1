@@ -239,6 +239,19 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
         const { selectedColumns, pendingChanges } = get();
         if (selectedColumns.size === 0) return;
         
+        // Column state properties that should NEVER be updated via formatter
+        const columnStateProperties = [
+          'width', 'minWidth', 'maxWidth', 'flex',
+          'hide', 'pinned', 'lockPosition', 'lockVisible',
+          'sort', 'sortIndex', 'sortedAt'
+        ];
+        
+        // Prevent editing column state properties
+        if (columnStateProperties.includes(property)) {
+          console.warn('[Store] Column state property cannot be edited via formatter:', property);
+          return;
+        }
+        
         // Log wrap property updates
         if (['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'].includes(property)) {
           console.log('[Store] Wrap property updated:', {
@@ -307,16 +320,30 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
           });
         }
         
-        // Filter out field and headerName for safety
+        // Filter out column-specific properties for safety
         const filteredProperties = { ...properties };
         
-        // Always remove field from bulk updates
-        delete filteredProperties.field;
+        // Define column-specific and state properties that should never be copied between columns
+        const excludedProps = [
+          // Column identity properties
+          'field', 'headerName', 'colId', 'columnGroupShow', 
+          'headerComponentFramework', 'headerComponentParams',
+          'floatingFilterComponent', 'floatingFilterComponentFramework',
+          'floatingFilterComponentParams', 'tooltipField',
+          'tooltipValueGetter', 'keyCreator', 'checkboxSelection',
+          'showRowGroup', 'dndSource', 'dndSourceOnRowDrag',
+          'rowDrag', 'rowDragText', 'aggFunc', 'initialAggFunc',
+          'defaultAggFunc', 'allowedAggFuncs',
+          // Column state properties (should be managed separately, not in formatter)
+          'width', 'minWidth', 'maxWidth', 'flex',
+          'hide', 'pinned', 'lockPosition', 'lockVisible',
+          'sort', 'sortIndex', 'sortedAt'
+        ];
         
-        // Remove headerName if multiple columns are selected
-        if (selectedColumns.size > 1) {
-          delete filteredProperties.headerName;
-        }
+        // Remove all excluded properties from bulk updates
+        excludedProps.forEach(prop => {
+          delete filteredProperties[prop];
+        });
         
         const newPendingChanges = new Map(pendingChanges);
 
@@ -361,8 +388,25 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
           columnDefinitionsCount: columnDefinitions.size,
           pendingChangesCount: pendingChanges.size
         });
+        
+        // Check original column definitions for hide property
+        const originalColumnsWithHide = Array.from(columnDefinitions.values()).filter(col => 'hide' in col);
+        if (originalColumnsWithHide.length > 0) {
+          console.log('[ColumnFormattingStore] Original columns with hide property:', 
+            originalColumnsWithHide.map(col => ({ field: col.field, hide: col.hide }))
+          );
+        }
+
+        // Column state properties that should NEVER be applied to column definitions
+        // These are managed separately by AG-Grid's column state
+        const columnStateProperties = [
+          'width', 'minWidth', 'maxWidth', 'flex',
+          'hide', 'pinned', 'lockPosition', 'lockVisible',
+          'sort', 'sortIndex', 'sortedAt'
+        ];
 
         // List of properties that should be explicitly cleared (set to undefined)
+        // Excluding column state properties from this list
         const clearableProperties = [
           'cellStyle', 'headerStyle', 'cellClass', 'headerClass', 'cellClassRules',
           'valueFormatter', 'valueGetter', 'valueSetter', 'useValueFormatterForExport',
@@ -375,10 +419,9 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
           'wrapText', 'autoHeight', 'rowSpan', 'colSpan', 'textAlign', 'verticalAlign',
           'headerTooltip', 'headerComponent', 'headerComponentParams', 'headerTextAlign',
           'headerCheckboxSelection', 'headerCheckboxSelectionFilteredOnly',
-          'wrapHeaderText', 'autoHeaderHeight', 'sortable', 'sort', 'sortingOrder',
+          'wrapHeaderText', 'autoHeaderHeight', 'sortable', 'sortingOrder',
           'comparator', 'unSortIcon', 'aggFunc', 'allowedAggFuncs',
-          'pinned', 'lockPosition', 'lockPinned', 'lockVisible',
-          'width', 'minWidth', 'maxWidth', 'flex', 'resizable', 'suppressSizeToFit',
+          'lockPinned', 'resizable', 'suppressSizeToFit',
           'initialWidth', 'initialHide', 'initialPinned',
           'tooltip', 'tooltipField', 'tooltipValueGetter', 'tooltipComponent',
           'tooltipComponentParams', 'suppressKeyboardEvent', 'suppressNavigable',
@@ -396,8 +439,14 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
             // Start with the original column to preserve all properties
             const mergedColumn = { ...colDef };
             
-            // Apply changes
+            // Apply changes, filtering out column state properties
             Object.entries(changes).forEach(([key, value]) => {
+              // Skip column state properties entirely
+              if (columnStateProperties.includes(key)) {
+                console.log('[ColumnFormattingStore] Skipping column state property:', key, 'for column:', colId);
+                return;
+              }
+              
               if (value === undefined && clearableProperties.includes(key)) {
                 // Explicitly set clearable properties to undefined
                 delete (mergedColumn as Record<string, unknown>)[key];
@@ -428,11 +477,22 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
         set({ pendingChanges: new Map() });
 
         const endTime = performance.now();
+        
+        // Check if any columns have hide property
+        const columnsWithHide = updatedColumns.filter(col => 'hide' in col);
+        
         console.log('[ColumnFormattingStore] applyChanges completed:', {
           totalColumns: updatedColumns.length,
           columnsWithChanges: pendingChanges.size,
+          columnsWithHideProperty: columnsWithHide.length,
           executionTime: `${(endTime - startTime).toFixed(2)}ms`
         });
+        
+        if (columnsWithHide.length > 0) {
+          console.warn('[ColumnFormattingStore] WARNING: Some columns have hide property:', 
+            columnsWithHide.map(col => ({ field: col.field, hide: col.hide }))
+          );
+        }
 
         return updatedColumns;
       },

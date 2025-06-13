@@ -19,7 +19,6 @@ export const ColumnFormattingDialog: React.FC<ColumnFormattingDialogProps> = mem
   onApply
 }) => {
   const {
-    selectedColumns,
     columnDefinitions,
     setOpen,
     setColumnDefinitions,
@@ -28,7 +27,8 @@ export const ColumnFormattingDialog: React.FC<ColumnFormattingDialogProps> = mem
 
   // Initialize column definitions when dialog opens
   useEffect(() => {
-    if (open) {
+    // Only process when dialog is opening, not on every prop change
+    if (open && !useColumnFormattingStore.getState().open) {
       // Only update if columnDefs have actually changed
       const needsUpdate = columnDefs.length !== columnDefinitions.size ||
         columnDefs.some(col => {
@@ -42,7 +42,21 @@ export const ColumnFormattingDialog: React.FC<ColumnFormattingDialogProps> = mem
         columnDefs.forEach(col => {
           const colId = col.field || col.colId || '';
           if (colId) {
-            columnMap.set(colId, col);
+            // Clean the column definition to remove state properties
+            const cleanCol = { ...col };
+            // Remove state properties that should never be in column definitions
+            const stateProperties = [
+              'width', 'actualWidth', 'hide', 'pinned', 'sort', 'sortIndex',
+              'flex', 'rowGroup', 'rowGroupIndex', 'pivot', 'pivotIndex',
+              'aggFunc', 'moving', 'menuTabs', 'columnsMenuParams'
+            ];
+            stateProperties.forEach(prop => {
+              if (prop in cleanCol) {
+                console.log(`[ColumnFormattingDialog] Removing state property '${prop}' from column:`, colId);
+                delete (cleanCol as any)[prop];
+              }
+            });
+            columnMap.set(colId, cleanCol);
           }
         });
         setColumnDefinitions(columnMap);
@@ -63,8 +77,12 @@ export const ColumnFormattingDialog: React.FC<ColumnFormattingDialogProps> = mem
         console.log('[ColumnFormattingDialog] No column state provided');
       }
     }
-    setOpen(open);
-  }, [open, columnDefs, columnState, columnDefinitions, setColumnDefinitions, setColumnState, setOpen]);
+    
+    // Always sync the open state
+    if (open !== useColumnFormattingStore.getState().open) {
+      setOpen(open);
+    }
+  }, [open]); // Only depend on 'open' to prevent re-initialization on column changes
 
   // Don't render if not open
   if (!open) return null;

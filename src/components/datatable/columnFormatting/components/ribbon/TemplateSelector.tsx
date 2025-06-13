@@ -56,6 +56,12 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
 
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [savedTemplateDetails, setSavedTemplateDetails] = useState<{
+    templateInfo: any;
+    savedSettings: any;
+    localStorage: any;
+  } | null>(null);
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
@@ -69,7 +75,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
     // Get the first selected column's settings as a base
     const firstColId = Array.from(selectedColumns)[0];
     const colDef = columnDefinitions.get(firstColId);
-    const changes = pendingChanges.get(firstColId);
+    const changes = pendingChanges.get(firstColId) || {};
     
     console.log('[TemplateSelector] Column state:', {
       firstColId,
@@ -80,33 +86,72 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
       autoHeightInChanges: changes?.autoHeight
     });
     
-    // Start with column definition, then overlay pending changes
-    // This ensures we capture all properties, not just changed ones
-    const combined = { ...colDef, ...changes };
+    // IMPORTANT: Only use pending changes for templates, not the entire column definition
+    // Templates should be independent of the original column
+    const settingsToSave = { ...changes };
+    
+    // For certain style properties that might be in the colDef but not in changes,
+    // we need to check if they're actually custom styles (not defaults)
+    const styleProperties = ['cellStyle', 'headerStyle', 'cellClass', 'headerClass'];
+    styleProperties.forEach(prop => {
+      if (!(prop in settingsToSave) && colDef && (colDef as any)[prop]) {
+        // Only include if it's not a default value
+        const value = (colDef as any)[prop];
+        if (value && (typeof value === 'object' || typeof value === 'string')) {
+          (settingsToSave as any)[prop] = value;
+        }
+      }
+    });
+    
+    // For formatter properties that might be custom
+    if (!(('valueFormatter' in settingsToSave)) && colDef?.valueFormatter) {
+      settingsToSave.valueFormatter = colDef.valueFormatter;
+    }
     
     // Explicitly check for wrap properties that might be undefined
     // and convert them to false to ensure they're saved
     const wrapProperties = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
     wrapProperties.forEach(prop => {
-      if (!(prop in combined) || combined[prop] === undefined) {
-        combined[prop] = false;
+      if (prop in settingsToSave && (settingsToSave as any)[prop] === undefined) {
+        (settingsToSave as any)[prop] = false;
       }
     });
     
     // Only log if wrap properties exist
-    if (Object.keys(combined).some(key => ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'].includes(key))) {
-      console.log('[TemplateSelector] Wrap properties in combined:', {
-        wrapText: combined.wrapText,
-        autoHeight: combined.autoHeight,
-        wrapHeaderText: combined.wrapHeaderText,
-        autoHeaderHeight: combined.autoHeaderHeight
+    if (Object.keys(settingsToSave).some(key => ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'].includes(key))) {
+      console.log('[TemplateSelector] Wrap properties in settingsToSave:', {
+        wrapText: settingsToSave.wrapText,
+        autoHeight: settingsToSave.autoHeight,
+        wrapHeaderText: settingsToSave.wrapHeaderText,
+        autoHeaderHeight: settingsToSave.autoHeaderHeight
       });
     }
     
     // Special handling for function-based properties
     const processedSettings: Record<string, unknown> = {};
     
-    Object.entries(combined).forEach(([key, value]) => {
+    Object.entries(settingsToSave).forEach(([key, value]) => {
+      // Skip column-specific and state properties to ensure templates are formatting-only
+      const excludedProps = [
+        // Column identity properties
+        'field', 'headerName', 'colId', 'columnGroupShow', 
+        'headerComponentFramework', 'headerComponentParams',
+        'floatingFilterComponent', 'floatingFilterComponentFramework',
+        'floatingFilterComponentParams', 'tooltipField',
+        'tooltipValueGetter', 'keyCreator', 'checkboxSelection',
+        'showRowGroup', 'dndSource', 'dndSourceOnRowDrag',
+        'rowDrag', 'rowDragText', 'aggFunc', 'initialAggFunc',
+        'defaultAggFunc', 'allowedAggFuncs',
+        // Column state properties (should be managed separately, not in formatter)
+        'width', 'minWidth', 'maxWidth', 'flex',
+        'hide', 'pinned', 'lockPosition', 'lockVisible',
+        'sort', 'sortIndex', 'sortedAt'
+      ];
+      
+      if (excludedProps.includes(key)) {
+        return;
+      }
+      
       if (key === 'cellStyle' && typeof value === 'function') {
         // For cellStyle functions, extract the base style if available
         const styleFunc = value as any;
@@ -165,8 +210,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
     const ensureWrapProperties = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
     ensureWrapProperties.forEach(prop => {
       if (!(prop in processedSettings)) {
-        processedSettings[prop] = combined[prop] || false;
-        console.log(`[TemplateSelector] Added missing wrap property ${prop}:`, combined[prop] || false);
+        processedSettings[prop] = (settingsToSave as any)[prop] || false;
+        console.log(`[TemplateSelector] Added missing wrap property ${prop}:`, (settingsToSave as any)[prop] || false);
       } else {
         console.log(`[TemplateSelector] Wrap property ${prop} already in processedSettings:`, processedSettings[prop]);
       }
@@ -191,17 +236,11 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
   // Available properties that can be saved in a template
   const availableProperties = [
     // General Properties
-    { key: 'headerName', label: 'Header Name' },
+    // Note: Column state properties (width, visibility, position) are excluded
+    // Templates should only contain formatting/styling properties
     { key: 'type', label: 'Column Type' },
-    { key: 'width', label: 'Column Width' },
-    { key: 'minWidth', label: 'Min Width' },
-    { key: 'maxWidth', label: 'Max Width' },
-    { key: 'hide', label: 'Visibility' },
-    { key: 'pinned', label: 'Pin Position' },
     { key: 'sortable', label: 'Sortable' },
     { key: 'resizable', label: 'Resizable' },
-    { key: 'lockPosition', label: 'Lock Position' },
-    { key: 'lockVisible', label: 'Lock Visible' },
     
     // Styling Properties
     { key: 'cellClass', label: 'Cell CSS Class' },
@@ -255,7 +294,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
         const wrapProperties = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'];
         wrapProperties.forEach(prop => {
           // Include wrap properties if they're true in either colDef or changes
-          const value = changes?.[prop] !== undefined ? changes[prop] : colDef[prop];
+          const value = (changes as any)?.[prop] !== undefined ? (changes as any)[prop] : (colDef as any)[prop];
           if (value === true && availableProperties.some(available => available.key === prop)) {
             modifiedProps.add(prop);
           }
@@ -336,8 +375,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
           const combined = { ...colDef, ...changes };
           
           if (prop in combined) {
-            filteredSettings[prop] = combined[prop];
-            console.log(`[TemplateSelector] Added wrap property ${prop} from combined:`, combined[prop]);
+            (filteredSettings as any)[prop] = (combined as any)[prop];
+            console.log(`[TemplateSelector] Added wrap property ${prop} from combined:`, (combined as any)[prop]);
           }
         }
       }
@@ -350,18 +389,48 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
       filteredSettings,
       wrapPropsIncluded: ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight']
         .filter(prop => prop in filteredSettings),
-      wrapText: filteredSettings.wrapText,
-      autoHeight: filteredSettings.autoHeight,
-      wrapHeaderText: filteredSettings.wrapHeaderText,
-      autoHeaderHeight: filteredSettings.autoHeaderHeight
+      wrapText: (filteredSettings as any).wrapText,
+      autoHeight: (filteredSettings as any).autoHeight,
+      wrapHeaderText: (filteredSettings as any).wrapHeaderText,
+      autoHeaderHeight: (filteredSettings as any).autoHeaderHeight
     });
     
-    saveTemplate(
+    // Save the template and get the generated ID
+    const templateId = saveTemplate(
       templateName,
       templateDescription,
       filteredSettings,
       selectedProperties
     );
+
+    // Get the full template store state to show what was persisted
+    const storeState = useColumnTemplateStore.getState();
+    const savedTemplate = storeState.templates.find(t => t.id === templateId);
+    
+    // Get localStorage data
+    const localStorageKey = 'column-template-store';
+    const localStorageData = localStorage.getItem(localStorageKey);
+    const parsedLocalStorage = localStorageData ? JSON.parse(localStorageData) : null;
+
+    // Prepare details for the popup
+    setSavedTemplateDetails({
+      templateInfo: {
+        id: templateId,
+        name: templateName,
+        description: templateDescription,
+        createdAt: new Date().toISOString(),
+        includedProperties: selectedProperties
+      },
+      savedSettings: filteredSettings,
+      localStorage: {
+        key: localStorageKey,
+        totalTemplates: parsedLocalStorage?.state?.templates?.length || 0,
+        savedTemplate: savedTemplate || null
+      }
+    });
+
+    // Show the details dialog
+    setShowDetailsDialog(true);
 
     toast({
       title: "Template saved",
@@ -748,6 +817,70 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
         open={showBulkDialog}
         onOpenChange={setShowBulkDialog}
       />
+
+      {/* Template Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Template Saved Successfully</DialogTitle>
+            <DialogDescription>
+              Here are the details of what was saved and persisted
+            </DialogDescription>
+          </DialogHeader>
+          
+          {savedTemplateDetails && (
+            <div className="flex-1 overflow-auto space-y-4">
+              {/* Template Information */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Template Information</h3>
+                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+                  {JSON.stringify(savedTemplateDetails.templateInfo, null, 2)}
+                </pre>
+              </div>
+
+              {/* Saved Settings */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Saved Settings</h3>
+                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+                  {JSON.stringify(savedTemplateDetails.savedSettings, null, 2)}
+                </pre>
+              </div>
+
+              {/* LocalStorage Information */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">LocalStorage Persistence</h3>
+                <div className="space-y-1 text-sm">
+                  <p><strong>Storage Key:</strong> {savedTemplateDetails.localStorage.key}</p>
+                  <p><strong>Total Templates Stored:</strong> {savedTemplateDetails.localStorage.totalTemplates}</p>
+                </div>
+                {savedTemplateDetails.localStorage.savedTemplate && (
+                  <div className="mt-2">
+                    <p className="text-sm font-medium mb-1">Full Template Object in Storage:</p>
+                    <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+                      {JSON.stringify(savedTemplateDetails.localStorage.savedTemplate, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+
+              {/* Profile Settings Note */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Profile Settings</h3>
+                <p className="text-sm text-muted-foreground">
+                  Templates are stored independently from profiles. To include this template in a profile, 
+                  apply the template to columns and then save the profile.
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setShowDetailsDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
