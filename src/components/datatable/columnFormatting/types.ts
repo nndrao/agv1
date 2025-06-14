@@ -18,6 +18,7 @@ export interface RibbonHeaderProps {
   onReset: () => void;
   onClose: () => void;
   onDragStart: (e: React.MouseEvent) => void;
+  onClearSelected?: () => void;
 }
 
 export interface RibbonTabsProps {

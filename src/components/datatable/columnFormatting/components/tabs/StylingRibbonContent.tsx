@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Toggle } from '@/components/ui/toggle';
@@ -24,7 +25,8 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
-  X
+  X,
+  RotateCcw
 } from 'lucide-react';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
 import { createCellStyleFunction } from '@/components/datatable/utils/formatters';
@@ -624,8 +626,50 @@ export const StylingRibbonContent: React.FC<TabContentProps> = ({ selectedColumn
     }
   };
 
+  // Reset all styling settings to defaults
+  const resetStylingSettings = useCallback(() => {
+    // Reset color states
+    setTextColor('');
+    setFillColor('');
+    setBorderColor('#cccccc');
+    
+    // Reset font states
+    setFontFamily('inter');
+    setFontWeight('400');
+    setFontSize('14');
+    
+    // Reset border states
+    setBorderSide('none');
+    setBorderWidth('1px');
+    setBorderStyle('solid');
+    
+    // Clear all styles for selected columns
+    updateBulkProperty('cellStyle', undefined);
+    updateBulkProperty('headerStyle', undefined);
+    updateBulkProperty('cellClass', undefined);
+    updateBulkProperty('headerClass', undefined);
+    updateBulkProperty('wrapText', undefined);
+    updateBulkProperty('autoHeight', undefined);
+    updateBulkProperty('wrapHeaderText', undefined);
+    updateBulkProperty('autoHeaderHeight', undefined);
+  }, [updateBulkProperty]);
+
   return (
     <div className="space-y-2">
+      {/* Reset Button */}
+      <div className="flex justify-end mb-2">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-7 px-2 text-xs text-destructive"
+          onClick={resetStylingSettings}
+          title="Reset all styling settings to defaults"
+        >
+          <RotateCcw className="ribbon-icon-xs mr-1" />
+          Reset All
+        </Button>
+      </div>
+      
       {/* 5-Column Layout with Cell/Header Toggle in First Column */}
       <div className="grid grid-cols-5 gap-2">
         {/* Column 1 - Cell/Header Toggle */}

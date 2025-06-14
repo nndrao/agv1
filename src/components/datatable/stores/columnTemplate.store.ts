@@ -160,14 +160,38 @@ export const useColumnTemplateStore = create<ColumnTemplateStore>()(
                     formatter = createExcelFormatter('MM/DD/YYYY');
                     break;
                   default:
-                    // If it's an unknown string, just use it as is
-                    formatter = value;
+                    // If it's a format string (contains brackets or format codes), create formatter
+                    if (value.includes('[') || value.includes('#') || value.includes('0') || value.includes('"')) {
+                      console.log('[ColumnTemplateStore] Creating formatter from format string:', value);
+                      formatter = createExcelFormatter(value);
+                    } else {
+                      // Otherwise, just use it as is
+                      formatter = value;
+                    }
                 }
                 appliedSettings[prop] = formatter;
               } else if (value && typeof value === 'object' && value._isFormatterConfig) {
                 // Restore formatter from saved configuration
                 if (value.type === 'excel' && value.formatString) {
-                  appliedSettings[prop] = createExcelFormatter(value.formatString);
+                  console.log('[ColumnTemplateStore] Creating formatter from config:', {
+                    templateName: template.name,
+                    prop,
+                    formatString: value.formatString,
+                    configObject: value
+                  });
+                  const formatter = createExcelFormatter(value.formatString);
+                  console.log('[ColumnTemplateStore] Created formatter:', {
+                    isFunction: typeof formatter === 'function',
+                    hasFormatString: !!(formatter as any).__formatString,
+                    actualFormatString: (formatter as any).__formatString
+                  });
+                  // CRITICAL: Make sure we're setting a function
+                  if (typeof formatter !== 'function') {
+                    console.error('[ColumnTemplateStore] ERROR: createExcelFormatter did not return a function!');
+                  }
+                  appliedSettings[prop] = formatter;
+                } else {
+                  console.warn('[ColumnTemplateStore] Formatter config missing type or formatString:', value);
                 }
               } else {
                 appliedSettings[prop] = value;

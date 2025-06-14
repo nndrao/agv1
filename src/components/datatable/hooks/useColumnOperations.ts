@@ -157,10 +157,48 @@ export function useColumnOperations(
         
         // Refresh the grid to show the changes
         gridApiRef.current.refreshHeader();
-        // Don't force refresh as it might clear styles
-        gridApiRef.current.refreshCells({ 
-          suppressFlash: true 
-        });
+        
+        // Check if any columns have valueFormatter
+        const hasFormatters = cleanColumns.some(col => col.valueFormatter);
+        console.log('[useColumnOperations] Has formatters:', hasFormatters);
+        
+        // Force refresh cells when formatters are present to ensure they're applied
+        if (hasFormatters) {
+          console.log('[useColumnOperations] Force refreshing cells due to formatters');
+          
+          // Get columns that have formatters
+          const formatterColumns = cleanColumns
+            .filter(col => col.valueFormatter)
+            .map(col => col.field || col.colId)
+            .filter(Boolean);
+          
+          console.log('[useColumnOperations] Columns with formatters:', formatterColumns);
+          
+          // First, refresh all cells with force to clear cache
+          gridApiRef.current.refreshCells({ 
+            force: true,
+            suppressFlash: true 
+          });
+          
+          // Then specifically refresh formatter columns
+          if (formatterColumns.length > 0 && gridApiRef.current) {
+            setTimeout(() => {
+              console.log('[useColumnOperations] Second refresh for formatter columns');
+              if (gridApiRef.current) {
+                gridApiRef.current.refreshCells({
+                  columns: formatterColumns as string[],
+                  force: true,
+                  suppressFlash: true
+                });
+              }
+            }, 50);
+          }
+        } else {
+          // Don't force refresh as it might clear styles
+          gridApiRef.current.refreshCells({ 
+            suppressFlash: true 
+          });
+        }
       }
     }, COLUMN_UPDATE_DEBOUNCE_MS),
     [activeProfile]

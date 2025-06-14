@@ -447,6 +447,15 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
   const handleApplyTemplate = (templateId: string) => {
     const settings = applyTemplate(templateId);
     
+    console.log('[TemplateSelector] handleApplyTemplate called:', {
+      templateId,
+      settings,
+      hasSettings: !!settings,
+      hasValueFormatter: settings && 'valueFormatter' in settings,
+      valueFormatterType: settings && settings.valueFormatter ? typeof settings.valueFormatter : undefined,
+      valueFormatterValue: settings && settings.valueFormatter
+    });
+    
     if (settings) {
       updateBulkProperties(settings);
       onApplyTemplate?.(templateId);
@@ -572,6 +581,13 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onApplyTempl
                     key={`default-${index}`}
                     onClick={() => {
                       // Create and apply default template
+                      console.log('[TemplateSelector] Default template clicked:', {
+                        name: template.name,
+                        settings: template.settings,
+                        valueFormatter: template.settings.valueFormatter,
+                        valueFormatterType: typeof template.settings.valueFormatter
+                      });
+                      
                       const id = saveTemplate(
                         template.name,
                         template.description || '',

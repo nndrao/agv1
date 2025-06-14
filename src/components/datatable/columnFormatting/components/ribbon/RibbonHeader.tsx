@@ -7,7 +7,8 @@ import {
   Save,
   RotateCcw,
   X,
-  GripHorizontal
+  GripHorizontal,
+  Eraser
 } from 'lucide-react';
 import { SimpleTemplateControls } from './SimpleTemplateControls';
 import { ColumnSelectorTable } from './ColumnSelectorTable';
@@ -21,7 +22,8 @@ export const RibbonHeader: React.FC<RibbonHeaderProps> = ({
   onApply,
   onReset,
   onClose,
-  onDragStart
+  onDragStart,
+  onClearSelected
 }) => {
   return (
     <TooltipProvider>
@@ -59,6 +61,22 @@ export const RibbonHeader: React.FC<RibbonHeaderProps> = ({
 
         {/* Right: Action Buttons */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {selectedColumns.size > 0 && onClearSelected && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="h-7 px-2.5 text-xs hover:bg-muted/50 transition-all duration-200 text-orange-600 dark:text-orange-400"
+                  onClick={onClearSelected}
+                >
+                  <Eraser className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline ml-1.5 font-medium">Clear</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="ribbon-tooltip">Clear all formatting from selected columns</TooltipContent>
+            </Tooltip>
+          )}
+          
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

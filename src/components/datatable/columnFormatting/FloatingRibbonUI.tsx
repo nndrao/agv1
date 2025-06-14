@@ -145,6 +145,7 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
           onReset={ribbonState.handleReset}
           onClose={handleClose}
           onDragStart={handleMouseDown}
+          onClearSelected={ribbonState.handleClearSelected}
         />
       </div>
       

@@ -18,8 +18,8 @@ import {
   X,
   HelpCircle,
   Smile,
-  FileText,
-  Palette
+  Palette,
+  RotateCcw
 } from 'lucide-react';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
 import { createExcelFormatter, createCellStyleFunction } from '@/components/datatable/utils/formatters';
@@ -57,13 +57,13 @@ const customFormats: CustomFormat[] = [
   // Conditional Formatting
   { 
     label: 'Traffic Lights', 
-    format: '[Red][<50]0;[Yellow][<80]0;[Green]0', 
+    format: '[<50]"🔴 "0;[<80]"🟡 "0;"🟢 "0', 
     example: '🔴 45 → 🟡 75 → 🟢 95',
     category: 'conditional'
   },
   { 
     label: 'Pass/Fail', 
-    format: '[Green][>=60]"✓ PASS";[Red]"✗ FAIL"', 
+    format: '[>=60]"✓ PASS";"✗ FAIL"', 
     example: '✓ PASS (75) or ✗ FAIL (45)',
     category: 'conditional'
   },
@@ -77,13 +77,13 @@ const customFormats: CustomFormat[] = [
   // Visual Indicators
   { 
     label: 'Progress Bar', 
-    format: '[<25]▰▱▱▱;[<50]▰▰▱▱;[<75]▰▰▰▱;▰▰▰▰', 
+    format: '[<25]"▰▱▱▱";[<50]"▰▰▱▱";[<75]"▰▰▰▱";"▰▰▰▰"', 
     example: '▰▰▱▱ (50%)',
     category: 'visual'
   },
   { 
     label: 'Data Bars', 
-    format: '[<20]█_____;[<40]██____;[<60]███___;[<80]████__;█████', 
+    format: '[<20]"█_____";[<40]"██____";[<60]"███___";[<80]"████__";"█████"', 
     example: '███___ (60%)',
     category: 'visual'
   },
@@ -97,7 +97,7 @@ const customFormats: CustomFormat[] = [
   // Rating Systems
   { 
     label: 'Star Rating', 
-    format: '[<1]☆☆☆☆☆;[<2]★☆☆☆☆;[<3]★★☆☆☆;[<4]★★★☆☆;[<5]★★★★☆;★★★★★', 
+    format: '[<1]"☆☆☆☆☆";[<2]"★☆☆☆☆";[<3]"★★☆☆☆";[<4]"★★★☆☆";[<5]"★★★★☆";"★★★★★"', 
     example: '★★★☆☆ (3.5)',
     category: 'rating'
   },
@@ -117,7 +117,7 @@ const customFormats: CustomFormat[] = [
   },
   { 
     label: 'Check/Cross', 
-    format: '[=1]✓;[=0]✗;0', 
+    format: '[=1]"✓";[=0]"✗";0', 
     example: '✓ Yes, ✗ No',
     category: 'indicator'
   },
@@ -183,11 +183,8 @@ const commonEmoji = [
 
 export const FormatRibbonContent: React.FC<FormatTabProps> = ({ 
   selectedColumns,
-  formatCategory,
-  setFormatCategory,
   currentFormat,
-  setCurrentFormat,
-  setShowConditionalDialog
+  setCurrentFormat
 }) => {
   const { updateBulkProperty, columnDefinitions, pendingChanges } = useColumnFormattingStore();
   const [formatMode, setFormatMode] = useState<FormatMode>('standard');
@@ -209,6 +206,7 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
   // Preview
   const [testValue, setTestValue] = useState('1234.56');
   const [previewResult, setPreviewResult] = useState('');
+  const [previewColor, setPreviewColor] = useState<string | null>(null);
 
   // Helper to get mixed values for multi-column editing
   const getMixedValueLocal = (property: string) => {
@@ -250,7 +248,6 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
     switch (format.controls) {
       case 'number':
         // Build base format with or without thousands separator
-        const numberSeparator = useThousandsSeparator ? ',' : '';
         if (decimalPlaces === 0) {
           formatString = useThousandsSeparator ? '#,##0' : '0';
         } else {
@@ -263,7 +260,12 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
         
         // Add color for positive/negative if enabled
         if (useColorForSign) {
-          formatString = `[Green]${formatString};[Red]-${formatString}`;
+          // Use explicit conditions for positive/negative to ensure proper formatting
+          // For negative numbers, we need to format the absolute value to remove minus sign
+          // We'll use a special marker that the formatter will recognize
+          const positiveFormat = formatString;
+          const negativeFormat = formatString; // Same format, but formatter will use absolute value
+          formatString = `[>0][Green]${positiveFormat};[<0][Red]${negativeFormat};${formatString};@`;
         }
         break;
 
@@ -284,11 +286,11 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
         
         // Add color for positive/negative if enabled
         if (useColorForSign) {
-          // For currency, handle negative with parentheses and colors
+          // For currency, use explicit conditions and remove minus sign for negative
           const negativeFormat = currencySymbol === 'kr' 
-            ? `-${currencyBaseFormat} "${currencySymbol}"`
-            : `"${currencySymbol}" -${currencyBaseFormat}`;
-          formatString = `[Green]${formatString};[Red]${negativeFormat}`;
+            ? `${currencyBaseFormat} "${currencySymbol}"`
+            : `"${currencySymbol}" ${currencyBaseFormat}`;
+          formatString = `[>0][Green]${formatString};[<0][Red]${negativeFormat};${formatString};@`;
         }
         
         // Debug CHF/Fr. issue
@@ -309,7 +311,9 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
         
         // Add color for positive/negative if enabled
         if (useColorForSign) {
-          formatString = `[Green]${formatString};[Red]-${formatString}`;
+          // Use explicit conditions for positive/negative
+          // Remove minus sign for negative numbers when using colors
+          formatString = `[>0][Green]${formatString};[<0][Red]${formatString};${formatString};@`;
         }
         // Note: multiplyBy100 is handled by the formatter, not the format string
         break;
@@ -335,10 +339,21 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
       formatMode,
       selectedStandardFormat,
       formatString,
+      useColorForSign,
       currencySymbol,
       decimalPlaces,
       formatStringChars: formatString.split('').map(c => `${c}(${c.charCodeAt(0)})`).join('')
     });
+    
+    // Extra logging for currency formats
+    if (selectedStandardFormat === 'currency') {
+      console.log('[FormatRibbonContent] Currency format details:', {
+        currencySymbol,
+        formatString,
+        hasSpace: formatString.includes('" '),
+        spaceAfterSymbol: formatString.indexOf('"' + currencySymbol + '" ') > -1
+      });
+    }
 
     // Create the formatter function
     let formatter;
@@ -353,67 +368,204 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
     } else {
       formatter = createExcelFormatter(formatString);
     }
+    
+    // Debug: Ensure formatter is a function
+    console.log('[FormatRibbonContent] Created formatter:', {
+      formatString,
+      formatterType: typeof formatter,
+      isFunction: typeof formatter === 'function',
+      formatterValue: typeof formatter === 'string' ? formatter : 'function'
+    });
+    
+    if (typeof formatter !== 'function') {
+      console.error('[FormatRibbonContent] ERROR: Formatter is not a function!', formatter);
+    }
+    
     updateBulkProperty('valueFormatter', formatter);
 
     // Check if we need to create/update cellStyle for conditional formatting
     const hasConditionalStyling = formatString.match(/\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right|#[0-9A-Fa-f]{3,6}|Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan)/i);
     
+    console.log('[FormatRibbonContent] Format analysis:', {
+      formatString,
+      hasConditionalStyling: !!hasConditionalStyling,
+      useColorForSign,
+      selectedColumns: Array.from(selectedColumns),
+      containsGreen: formatString.includes('[Green]'),
+      containsRed: formatString.includes('[Red]')
+    });
+    
     if (hasConditionalStyling) {
+      // Get existing cellStyle to preserve base styles
       const existingCellStyle = getMixedValueLocal('cellStyle');
-      if (!existingCellStyle.isMixed) {
-        let baseStyle: React.CSSProperties | undefined;
-        
-        // Check for pending cellStyle changes
-        const pendingCellStyle = selectedColumns.size > 0 ? 
-          (() => {
-            const firstColId = Array.from(selectedColumns)[0];
-            const pending = pendingChanges.get(firstColId);
-            return pending?.cellStyle;
-          })() : undefined;
-        
-        if (pendingCellStyle) {
-          if (typeof pendingCellStyle === 'object') {
-            baseStyle = pendingCellStyle;
-          } else if (typeof pendingCellStyle === 'function') {
-            const metadata = (pendingCellStyle as any).__baseStyle;
-            if (metadata) {
-              baseStyle = metadata;
-            }
-          }
-        } else if (existingCellStyle.value) {
-          if (typeof existingCellStyle.value === 'object') {
-            baseStyle = existingCellStyle.value;
-          } else if (typeof existingCellStyle.value === 'function') {
-            const metadata = (existingCellStyle.value as any).__baseStyle;
-            if (metadata) {
-              baseStyle = metadata;
-            }
+      let baseStyle: React.CSSProperties | undefined;
+      
+      if (!existingCellStyle.isMixed && existingCellStyle.value) {
+        if (typeof existingCellStyle.value === 'object') {
+          baseStyle = existingCellStyle.value;
+        } else if (typeof existingCellStyle.value === 'function') {
+          const metadata = (existingCellStyle.value as any).__baseStyle;
+          if (metadata) {
+            baseStyle = metadata;
           }
         }
-        
-        const cellStyleFn = createCellStyleFunction(formatString, baseStyle);
-        updateBulkProperty('cellStyle', cellStyleFn);
       }
+      
+      // Create cellStyle function for conditional formatting
+      const cellStyleFn = createCellStyleFunction(formatString, baseStyle);
+      console.log('[FormatRibbonContent] Creating cellStyle function');
+      updateBulkProperty('cellStyle', cellStyleFn);
+      
+    } else {
+      // No conditional styling - need to clear cellStyle
+      console.log('[FormatRibbonContent] No conditional styling, need to clear cellStyle');
+      
+      // Get current cellStyle to check if we need to preserve base styles
+      const existingCellStyle = getMixedValueLocal('cellStyle');
+      let baseStyle: React.CSSProperties | undefined;
+      
+      if (!existingCellStyle.isMixed && existingCellStyle.value) {
+        if (typeof existingCellStyle.value === 'object') {
+          // This is a plain object from Styling tab - preserve it
+          baseStyle = existingCellStyle.value;
+        } else if (typeof existingCellStyle.value === 'function') {
+          // Check if there's a base style to preserve
+          const metadata = (existingCellStyle.value as any).__baseStyle;
+          if (metadata && Object.keys(metadata).length > 0) {
+            baseStyle = metadata;
+          }
+        }
+      }
+      
+      if (baseStyle && Object.keys(baseStyle).length > 0) {
+        console.log('[FormatRibbonContent] Preserving base style:', baseStyle);
+        updateBulkProperty('cellStyle', baseStyle);
+      } else {
+        console.log('[FormatRibbonContent] No conditional styling, setting explicit default styles');
+        // Based on your research: ag-Grid won't remove styles automatically
+        // We need to explicitly set default values
+        const defaultStyleFunction = () => ({
+          color: 'inherit',
+          backgroundColor: 'inherit'
+        });
+        // Mark this as a reset function
+        Object.defineProperty(defaultStyleFunction, '__formatString', { 
+          value: 'reset', 
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        updateBulkProperty('cellStyle', defaultStyleFunction);
+      }
+      
     }
   }, [buildFormatString, updateBulkProperty, selectedColumns, columnDefinitions, pendingChanges]);
+
+  // Helper to extract color from format string based on value
+  const getColorForValue = (formatString: string, value: string): string | null => {
+    const numValue = parseFloat(value);
+    const sections = formatString.split(';');
+    
+    if (!isNaN(numValue) && sections.length >= 2) {
+      // Look for the appropriate section based on value
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        
+        // Check if this section has a condition that matches our value
+        const conditionMatch = section.match(/\[([<>=]+)(\d+\.?\d*)\]/);
+        if (conditionMatch) {
+          const operator = conditionMatch[1];
+          const threshold = parseFloat(conditionMatch[2]);
+          
+          let matches = false;
+          switch (operator) {
+            case '>': matches = numValue > threshold; break;
+            case '<': matches = numValue < threshold; break;
+            case '>=': matches = numValue >= threshold; break;
+            case '<=': matches = numValue <= threshold; break;
+            case '=': matches = numValue === threshold; break;
+          }
+          
+          if (matches) {
+            // Extract color from this section
+            const colorMatch = section.match(/\[(Green|Red|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan|#[0-9A-Fa-f]{3,6})\]/i);
+            return colorMatch ? colorMatch[1].toLowerCase() : null;
+          }
+        } else if (i === 0 && numValue > 0 && !sections[0].includes('[<') && !sections[0].includes('[>')) {
+          // First section without condition is for positive
+          const colorMatch = section.match(/\[(Green|Red|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan|#[0-9A-Fa-f]{3,6})\]/i);
+          return colorMatch ? colorMatch[1].toLowerCase() : null;
+        } else if (i === 1 && numValue < 0 && !sections[1].includes('[<') && !sections[1].includes('[>')) {
+          // Second section without condition is for negative
+          const colorMatch = section.match(/\[(Green|Red|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan|#[0-9A-Fa-f]{3,6})\]/i);
+          return colorMatch ? colorMatch[1].toLowerCase() : null;
+        } else if (i === 2 && numValue === 0) {
+          // Third section is for zero
+          const colorMatch = section.match(/\[(Green|Red|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan|#[0-9A-Fa-f]{3,6})\]/i);
+          return colorMatch ? colorMatch[1].toLowerCase() : null;
+        }
+      }
+    } else {
+      // Single section format
+      const colorMatch = formatString.match(/\[(Green|Red|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan|#[0-9A-Fa-f]{3,6})\]/i);
+      return colorMatch ? colorMatch[1].toLowerCase() : null;
+    }
+    
+    return null;
+  };
 
   // Update preview when format changes
   useEffect(() => {
     const formatString = buildFormatString();
-    setCurrentFormat(formatString);
+    
+    // Only update if format actually changed
+    if (formatString !== currentFormat) {
+      setCurrentFormat(formatString);
+    }
     
     if (formatString) {
       try {
+        // CRITICAL: Ensure testValue is not the format string
+        let valueToFormat = testValue;
+        if (testValue === formatString || testValue.includes('[') && testValue.includes(']')) {
+          console.warn('[FormatRibbonContent] Test value contains format string! Resetting to default.');
+          valueToFormat = '1234.56';
+          setTestValue('1234.56');
+        }
+        
+        console.log('[FormatRibbonContent] Creating preview formatter:', {
+          formatString,
+          testValue: valueToFormat,
+          isTrafficLights: formatString.includes('🔴')
+        });
+        
         const formatter = createExcelFormatter(formatString);
-        const result = formatter({ value: testValue });
+        console.log('[FormatRibbonContent] Preview formatter created:', {
+          isFunction: typeof formatter === 'function',
+          formatterToString: formatter.toString().substring(0, 100)
+        });
+        
+        const result = formatter({ value: valueToFormat } as any);
+        console.log('[FormatRibbonContent] Preview result:', {
+          input: valueToFormat,
+          output: result,
+          formatString: formatString.substring(0, 50) + '...'
+        });
+        
         setPreviewResult(result || '');
+        
+        // Extract color for preview
+        const color = getColorForValue(formatString, testValue);
+        setPreviewColor(color);
       } catch (error) {
         setPreviewResult('Error in format');
+        setPreviewColor(null);
       }
     } else {
       setPreviewResult('');
+      setPreviewColor(null);
     }
-  }, [buildFormatString, testValue, setCurrentFormat]);
+  }, [buildFormatString, testValue, currentFormat]);
 
   // Apply format immediately when settings change
   useEffect(() => {
@@ -421,6 +573,9 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
       applyFormat();
     }
   }, [selectedStandardFormat, decimalPlaces, prefix, suffix, currencySymbol, multiplyBy100, dateFormat, formatMode, currentFormat, useThousandsSeparator, useColorForSign]);
+
+
+
 
   // Clear format
   const clearFormat = useCallback(() => {
@@ -443,6 +598,29 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
       }
     }
   }, [updateBulkProperty, selectedColumns, columnDefinitions, pendingChanges]);
+
+  // Reset all format settings to defaults
+  const resetFormatSettings = useCallback(() => {
+    // Reset format mode and selections
+    setFormatMode('standard');
+    setSelectedStandardFormat('number');
+    setSelectedCustomFormat('');
+    
+    // Reset standard format controls
+    setDecimalPlaces(2);
+    setPrefix('');
+    setSuffix('');
+    setCurrencySymbol('$');
+    setMultiplyBy100(true);
+    setDateFormat('MM/DD/YYYY');
+    
+    // Reset format modifiers
+    setUseThousandsSeparator(true);
+    setUseColorForSign(false);
+    
+    // Clear the format
+    clearFormat();
+  }, [clearFormat]);
 
   // Insert emoji at cursor position
   const insertEmoji = (emoji: string) => {
@@ -494,6 +672,16 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
           >
             <X className="ribbon-icon-xs mr-1" />
             Clear
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2 text-xs text-destructive"
+            onClick={resetFormatSettings}
+            title="Reset all format settings to defaults"
+          >
+            <RotateCcw className="ribbon-icon-xs mr-1" />
+            Reset All
           </Button>
         </div>
       </div>
@@ -758,6 +946,11 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
                 setSelectedCustomFormat(value);
                 const format = customFormats.find(f => f.label === value);
                 if (format) {
+                  console.log('[FormatRibbonContent] Selected custom format:', {
+                    label: format.label,
+                    format: format.format,
+                    example: format.example
+                  });
                   setCurrentFormat(format.format);
                 }
               }}
@@ -947,7 +1140,26 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
             className="h-8 text-xs flex-1"
           />
           <div className="text-xs text-muted-foreground">→</div>
-          <div className="h-8 px-3 flex items-center bg-muted rounded-md min-w-[100px] text-xs font-mono">
+          <div 
+            className="h-8 px-3 flex items-center bg-muted rounded-md min-w-[100px] text-xs font-mono"
+            style={{
+              color: previewColor ? (
+                previewColor.startsWith('#') ? previewColor :
+                previewColor === 'red' ? '#FF6347' :
+                previewColor === 'green' ? '#00AA99' :
+                previewColor === 'blue' ? '#3b82f6' :
+                previewColor === 'yellow' ? '#eab308' :
+                previewColor === 'orange' ? '#f97316' :
+                previewColor === 'purple' ? '#a855f7' :
+                previewColor === 'gray' || previewColor === 'grey' ? '#6b7280' :
+                previewColor === 'black' ? '#000000' :
+                previewColor === 'white' ? '#ffffff' :
+                previewColor === 'magenta' ? '#ec4899' :
+                previewColor === 'cyan' ? '#06b6d4' :
+                undefined
+              ) : undefined
+            }}
+          >
             {previewResult || <span className="text-muted-foreground">No format</span>}
           </div>
         </div>
@@ -972,8 +1184,8 @@ export const FormatRibbonContent: React.FC<FormatTabProps> = ({
           {selectedFormat?.controls === 'percentage' && (
             <>
               <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setTestValue('0.1234')}>0.1234</Button>
-              <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setTestValue('0.05')}>0.05</Button>
-              <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setTestValue('1')}>1</Button>
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setTestValue('-0.05')}>-0.05</Button>
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setTestValue('0')}>0</Button>
             </>
           )}
           {selectedFormat?.controls === 'date' && (

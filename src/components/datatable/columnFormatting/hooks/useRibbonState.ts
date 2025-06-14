@@ -30,7 +30,8 @@ export const useRibbonState = ({
     updateBulkProperty,
     applyChanges,
     resetChanges,
-    setVisibilityFilter
+    setVisibilityFilter,
+    clearSelectedColumnsCustomizations
   } = useColumnFormattingStore();
 
   // Profile store integration
@@ -210,6 +211,16 @@ export const useRibbonState = ({
     toast.success('Reset all pending changes');
   }, [resetChanges]);
 
+  // Clear selected columns customizations
+  const handleClearSelected = useCallback(() => {
+    const clearedCount = clearSelectedColumnsCustomizations();
+    if (clearedCount > 0) {
+      toast.success(`Cleared formatting from ${clearedCount} column${clearedCount > 1 ? 's' : ''}`);
+    } else {
+      toast.info('No columns selected');
+    }
+  }, [clearSelectedColumnsCustomizations]);
+
 
   // Direct pass-through to store's updateBulkProperty
   // The StylingRibbonContent component now handles all the cellStyle/headerStyle logic
@@ -265,6 +276,7 @@ export const useRibbonState = ({
     
     // Actions
     handleApply,
-    handleReset
+    handleReset,
+    handleClearSelected
   };
 }; 
