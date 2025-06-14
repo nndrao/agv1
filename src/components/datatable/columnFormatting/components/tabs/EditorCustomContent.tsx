@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
 import type { TabContentProps } from '../../types';
-import '../../ribbon-styles.css';
+import '../../custom-styles.css';
 
 // Editor types with icons
 const EDITOR_TYPES = [
@@ -36,7 +36,7 @@ const EDITOR_TYPES = [
   { value: 'agCheckboxCellEditor', label: 'Checkbox', icon: ToggleLeft, description: 'Boolean checkbox' }
 ];
 
-export const EditorRibbonContent: React.FC<TabContentProps> = ({ selectedColumns }) => {
+export const EditorCustomContent: React.FC<TabContentProps> = ({ selectedColumns }) => {
   const { updateBulkProperty, columnDefinitions, pendingChanges } = useColumnFormattingStore();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectValues, setSelectValues] = useState<string[]>(['Option 1', 'Option 2', 'Option 3']);

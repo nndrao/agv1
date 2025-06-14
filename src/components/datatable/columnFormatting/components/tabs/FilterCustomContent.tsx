@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
 import type { FilterTabProps } from '../../types';
-import '../../ribbon-styles.css';
+import '../../custom-styles.css';
 
 // Filter types with icons
 const FILTER_TYPES = [
@@ -38,7 +38,7 @@ interface MultiFilterConfig {
   title?: string;
 }
 
-export const FilterRibbonContent: React.FC<FilterTabProps> = ({ selectedColumns }) => {
+export const FilterCustomContent: React.FC<FilterTabProps> = ({ selectedColumns }) => {
   const { updateBulkProperty, columnDefinitions, pendingChanges } = useColumnFormattingStore();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [expandedMultiFilter, setExpandedMultiFilter] = useState(false);

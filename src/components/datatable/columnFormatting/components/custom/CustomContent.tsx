@@ -1,12 +1,12 @@
 import React from 'react';
-import { StylingRibbonContent } from '../tabs/StylingRibbonContent';
-import { GeneralRibbonContent } from '../tabs/GeneralRibbonContent';
-import { FormatRibbonContent } from '../tabs/FormatRibbonContent';
-import { FilterRibbonContent } from '../tabs/FilterRibbonContent';
-import { EditorRibbonContent } from '../tabs/EditorRibbonContent';
+import { StylingCustomContent } from '../tabs/StylingCustomContent';
+import { GeneralCustomContent } from '../tabs/GeneralCustomContent';
+import { FormatCustomContent } from '../tabs/FormatCustomContent';
+import { FilterCustomContent } from '../tabs/FilterCustomContent';
+import { EditorCustomContent } from '../tabs/EditorCustomContent';
 import type { RibbonContentProps } from '../../types';
 
-export const RibbonContent: React.FC<RibbonContentProps> = ({
+export const CustomContent: React.FC<RibbonContentProps> = ({
   activeTab,
   selectedColumns,
   formatCategory,
@@ -23,21 +23,21 @@ export const RibbonContent: React.FC<RibbonContentProps> = ({
       case 'general':
         return (
           <div className="p-3">
-            <GeneralRibbonContent selectedColumns={selectedColumns} />
+            <GeneralCustomContent selectedColumns={selectedColumns} />
           </div>
         );
         
       case 'styling':
         return (
           <div className="p-3">
-            <StylingRibbonContent selectedColumns={selectedColumns} />
+            <StylingCustomContent selectedColumns={selectedColumns} />
           </div>
         );
         
       case 'format':
         return (
           <div className="p-3">
-            <FormatRibbonContent 
+            <FormatCustomContent 
               selectedColumns={selectedColumns}
               formatCategory={formatCategory}
               setFormatCategory={setFormatCategory}
@@ -52,7 +52,7 @@ export const RibbonContent: React.FC<RibbonContentProps> = ({
       case 'filter':
         return (
           <div className="p-3">
-            <FilterRibbonContent 
+            <FilterCustomContent 
               selectedColumns={selectedColumns}
               advancedFilterTab={advancedFilterTab}
               setAdvancedFilterTab={setAdvancedFilterTab}
@@ -63,7 +63,7 @@ export const RibbonContent: React.FC<RibbonContentProps> = ({
       case 'editor':
         return (
           <div className="p-3">
-            <EditorRibbonContent selectedColumns={selectedColumns} />
+            <EditorCustomContent selectedColumns={selectedColumns} />
           </div>
         );
         

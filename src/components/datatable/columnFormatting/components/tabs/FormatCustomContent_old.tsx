@@ -24,7 +24,7 @@ import {
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
 import { createExcelFormatter, createCellStyleFunction } from '@/components/datatable/utils/formatters';
 import type { FormatTabProps } from '../../types';
-import '../../ribbon-styles.css';
+import '../../custom-styles.css';
 
 type FormatMode = 'standard' | 'custom';
 
@@ -181,7 +181,7 @@ const commonEmoji = [
   { emoji: '❄️', name: 'Snowflake' },
 ];
 
-export const FormatRibbonContent: React.FC<FormatTabProps> = ({ 
+export const FormatCustomContent: React.FC<FormatTabProps> = ({ 
   selectedColumns,
   currentFormat,
   setCurrentFormat

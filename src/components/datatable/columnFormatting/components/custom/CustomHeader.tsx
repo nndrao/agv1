@@ -14,7 +14,7 @@ import { SimpleTemplateControls } from './SimpleTemplateControls';
 import { ColumnSelectorTable } from './ColumnSelectorTable';
 import type { RibbonHeaderProps } from '../../types';
 
-export const RibbonHeader: React.FC<RibbonHeaderProps> = ({
+export const CustomHeader: React.FC<RibbonHeaderProps> = ({
   selectedColumns,
   columnDefinitions,
   hasChanges,

@@ -8,7 +8,7 @@ import {
   Edit3
 } from 'lucide-react';
 import type { RibbonTabsProps } from '../../types';
-import '../../ribbon-styles.css';
+import '../../custom-styles.css';
 
 const tabs = [
   { value: 'general', icon: FileText, label: 'General' },
@@ -18,7 +18,7 @@ const tabs = [
   { value: 'editor', icon: Edit3, label: 'Editor' },
 ] as const;
 
-export const RibbonTabs: React.FC<RibbonTabsProps> = ({
+export const CustomTabs: React.FC<RibbonTabsProps> = ({
   activeTab,
   setActiveTab
 }) => {

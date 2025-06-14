@@ -9,7 +9,7 @@ import {
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
 import type { RibbonPreviewProps } from '../../types';
 
-export const RibbonPreview: React.FC<RibbonPreviewProps> = ({
+export const CustomPreview: React.FC<RibbonPreviewProps> = ({
   activeTab,
   selectedColumns
 }) => {
