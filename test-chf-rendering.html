@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test CHF Rendering</title>
+    <style>
+        body { padding: 20px; }
+        .test-case { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .ag-theme-alpine { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .monospace { font-family: monospace; }
+        .test-grid { display: grid; grid-template-columns: 200px 200px 200px; gap: 10px; }
+        .test-cell { padding: 10px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>CHF Rendering Test</h1>
+    
+    <div class="test-case">
+        <h2>Direct Text Rendering</h2>
+        <div>Normal: CHF</div>
+        <div>In quotes: "CHF"</div>
+        <div>Full format: "CHF" #,##0.00</div>
+    </div>
+    
+    <div class="test-case">
+        <h2>Different Fonts</h2>
+        <div style="font-family: Arial">Arial: "CHF" #,##0.00</div>
+        <div style="font-family: Helvetica">Helvetica: "CHF" #,##0.00</div>
+        <div style="font-family: monospace">Monospace: "CHF" #,##0.00</div>
+        <div style="font-family: 'SF Pro Display', -apple-system">SF Pro: "CHF" #,##0.00</div>
+        <div class="ag-theme-alpine">AG Grid Font: "CHF" #,##0.00</div>
+    </div>
+    
+    <div class="test-case">
+        <h2>Character by Character</h2>
+        <div>C-H-F: <span>C</span><span>H</span><span>F</span></div>
+        <div>With codes: 
+            C(67) H(72) F(70)
+        </div>
+    </div>
+    
+    <div class="test-case">
+        <h2>Grid-like Display</h2>
+        <div class="test-grid">
+            <div class="test-cell ag-theme-alpine">"CHF" #,##0.00</div>
+            <div class="test-cell ag-theme-alpine">"C$" #,##0.00</div>
+            <div class="test-cell ag-theme-alpine">"$" #,##0.00</div>
+        </div>
+    </div>
+    
+    <div class="test-case">
+        <h2>Possible Transformations</h2>
+        <div>CHF → C19F ?</div>
+        <div>H (72) → 19 ?</div>
+        <div>H (0x48) → 0x19 ?</div>
+    </div>
+    
+    <script>
+        // Test if H can be transformed to 19 in any way
+        const h = 'H';
+        console.log('H character code:', h.charCodeAt(0)); // 72
+        console.log('H in hex:', h.charCodeAt(0).toString(16)); // 48
+        console.log('Does 72 relate to 19?', {
+            subtract53: 72 - 53,
+            modulo53: 72 % 53,
+            divide4: Math.floor(72 / 4)
+        });
+    </script>
+</body>
+</html>

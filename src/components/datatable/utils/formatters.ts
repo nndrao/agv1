@@ -179,23 +179,53 @@ function processFormatSection(format: string, value: unknown, _params?: ValueFor
   textMatches.forEach(match => {
     const text = match.replace(/"/g, '');
     const index = cleanFormat.indexOf(match);
+    const matchEnd = index + match.length;
+    
+    // Debug CHF
+    if (text === 'CHF') {
+      console.log('[CHF Debug in formatter] Found CHF:', {
+        match,
+        text,
+        cleanFormat,
+        index,
+        matchEnd
+      });
+    }
     
     // Find where the number format starts (first occurrence of #, 0, @, or $)
     const numberStartMatch = cleanFormat.match(/[$#0@]/);
     const numberStart = numberStartMatch ? cleanFormat.indexOf(numberStartMatch[0]) : cleanFormat.length;
     
     if (index < numberStart) {
-      prefix += text;
+      // Check if there's a space after the quoted text before the number format
+      if (matchEnd < cleanFormat.length && cleanFormat[matchEnd] === ' ' && numberStartMatch) {
+        prefix += text + ' ';
+        // Remove the quoted text AND the space after it
+        numberFormat = numberFormat.replace(match + ' ', '');
+      } else {
+        prefix += text;
+        // Remove just the quoted text
+        numberFormat = numberFormat.replace(match, '');
+      }
     } else {
       suffix += text;
+      // Remove the quoted text from the format
+      numberFormat = numberFormat.replace(match, '');
     }
-    
-    // Remove the quoted text from the format
-    numberFormat = numberFormat.replace(match, '');
   });
   
   // Check if this is a text-only format (only quoted text, no @ or number patterns)
   const isTextOnlyFormat = numberFormat.trim() === '' || !numberFormat.match(/[@#0$]/);
+  
+  // Debug CHF prefix
+  if (prefix.includes('CHF')) {
+    console.log('[CHF Debug] After processing:', {
+      prefix,
+      suffix,
+      numberFormat,
+      prefixChars: prefix.split('').map((c, i) => `[${i}:${c}:${c.charCodeAt(0)}]`).join('')
+    });
+  }
   
   if (isTextOnlyFormat) {
     // For text-only formats, just return the prefix/suffix
@@ -269,7 +299,9 @@ function processFormatSection(format: string, value: unknown, _params?: ValueFor
       formattedNumber = displayValue.toFixed(decimals);
     }
   } else {
-    formattedNumber = displayValue.toString();
+    // If no number format specified, just use the value as is
+    // This is important for formats like emoji-only formats where we just want the emoji
+    formattedNumber = numValue.toString();
   }
   
   // Check if this format section has a condition that already handles negative display
@@ -278,12 +310,24 @@ function processFormatSection(format: string, value: unknown, _params?: ValueFor
   
   // Add minus sign back if needed and value is negative
   // But skip if this section has explicit negative handling
-  if (numValue < 0 && !hasNegativeCondition) {
+  if (numValue < 0 && !hasNegativeCondition && numberFormat.match(/[#0]/)) {
     formattedNumber = '-' + formattedNumber;
   }
   
   // Apply text transformations to the final result
   let result = prefix + formattedNumber + suffix;
+  
+  // Debug CHF result
+  if (prefix.includes('CHF') || result.includes('CHF') || result.includes('C19F')) {
+    console.log('[CHF Debug] Final result:', {
+      prefix,
+      formattedNumber,
+      suffix,
+      result,
+      resultChars: result.split('').map((c, i) => `[${i}:${c}:${c.charCodeAt(0)}]`).join('')
+    });
+  }
+  
   if (textTransform) {
     result = textTransform(result);
   }
@@ -308,6 +352,11 @@ export function createExcelFormatter(formatString: string) {
     if (params.value == null || params.value === '') return '';
     
     const value = params.value;
+    
+    // Debug CHF formatting
+    if (formatString.includes('CHF') || formatString.includes('Fr.')) {
+      console.log('[CHF Formatter Called] with value:', value, 'format:', formatString, 'params:', params);
+    }
     
     // Only log for specific format string and specific values
     const isDebugFormat = formatString.includes('[="A"][#') || formatString.includes('[="A"][#3bceb1]');

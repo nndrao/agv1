@@ -894,6 +894,31 @@ input[type="color"].ribbon-color {
   @apply shadow-md;
 }
 
+/* Fix checkbox styling in ribbon */
+.format-ribbon-checkbox {
+  @apply h-4 w-4 shrink-0 rounded-sm border border-input bg-background shadow-sm;
+  @apply focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring;
+  @apply disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.format-ribbon-checkbox[data-state="checked"] {
+  @apply bg-primary text-primary-foreground border-primary;
+}
+
+.format-ribbon-checkbox[data-state="indeterminate"] {
+  @apply bg-primary text-primary-foreground border-primary;
+}
+
+/* Dark mode checkbox fixes */
+.dark .format-ribbon-checkbox {
+  @apply border-border bg-background;
+}
+
+.dark .format-ribbon-checkbox[data-state="checked"],
+.dark .format-ribbon-checkbox[data-state="indeterminate"] {
+  @apply bg-primary border-primary;
+}
+
 /* Responsive improvements */
 @media (max-width: 1024px) {
   .ribbon-options-grid {

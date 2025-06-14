@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Format Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-case { margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 4px; }
+        .format { font-family: monospace; background: #e0e0e0; padding: 2px 4px; border-radius: 2px; }
+        .result { font-weight: bold; color: #2196F3; }
+        .error { color: #f44336; }
+        .success { color: #4CAF50; }
+        h2 { color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        h3 { color: #666; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Excel Format String Debug</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        // Simplified version of the formatter for testing
+        function processFormatSection(format, value) {
+            // Remove all condition brackets to get the display format
+            const cleanFormat = format.replace(/\[[^\]]+\]/g, '');
+            
+            // Handle text in quotes
+            const textMatches = cleanFormat.match(/"([^"]+)"/g) || [];
+            let prefix = '';
+            let suffix = '';
+            let numberFormat = cleanFormat;
+            
+            textMatches.forEach(match => {
+                const text = match.replace(/"/g, '');
+                const index = cleanFormat.indexOf(match);
+                
+                // Find where the number format starts
+                const numberStartMatch = cleanFormat.match(/[$#0@]/);
+                const numberStart = numberStartMatch ? cleanFormat.indexOf(numberStartMatch[0]) : cleanFormat.length;
+                
+                if (index < numberStart) {
+                    prefix += text;
+                } else {
+                    suffix += text;
+                }
+                
+                numberFormat = numberFormat.replace(match, '');
+            });
+            
+            // Check if this is a text-only format
+            const isTextOnlyFormat = numberFormat.trim() === '' || !numberFormat.match(/[@#0$]/);
+            
+            if (isTextOnlyFormat) {
+                return prefix + suffix;
+            }
+            
+            // Handle @ symbol (original text value)
+            if (numberFormat.includes('@')) {
+                return prefix + String(value || '') + suffix;
+            }
+            
+            // Handle number formatting
+            const numValue = typeof value === 'number' ? value : parseFloat(String(value));
+            if (isNaN(numValue)) {
+                return prefix + String(value || '') + suffix;
+            }
+            
+            const displayValue = Math.abs(numValue);
+            let formattedNumber = '';
+            
+            // Handle currency symbol
+            const currencyMatch = numberFormat.match(/\$([#0,.-]+)/);
+            if (currencyMatch) {
+                const numFormat = currencyMatch[1];
+                const hasThousands = numFormat.includes(',');
+                const decimalMatch = numFormat.match(/\.([0#]+)/);
+                const decimals = decimalMatch ? decimalMatch[1].length : 0;
+                
+                if (hasThousands) {
+                    formattedNumber = '$' + displayValue.toLocaleString('en-US', {
+                        minimumFractionDigits: decimals,
+                        maximumFractionDigits: decimals
+                    });
+                } else {
+                    formattedNumber = '$' + displayValue.toFixed(decimals);
+                }
+            } else if (numberFormat.match(/[#0]/)) {
+                // Regular number format
+                const hasThousands = numberFormat.includes(',');
+                const decimalMatch = numberFormat.match(/\.([0#]+)/);
+                const decimals = decimalMatch ? decimalMatch[1].length : 0;
+                
+                if (hasThousands) {
+                    formattedNumber = displayValue.toLocaleString('en-US', {
+                        minimumFractionDigits: decimals,
+                        maximumFractionDigits: decimals
+                    });
+                } else {
+                    formattedNumber = displayValue.toFixed(decimals);
+                }
+            } else {
+                // If no number format specified, just use the value
+                formattedNumber = numValue.toString();
+            }
+            
+            // Check if this format section has a condition that already handles negative display
+            const hasNegativeCondition = format.match(/\[<0\]|\[Red\]/i);
+            
+            // Add minus sign back if needed
+            if (numValue < 0 && !hasNegativeCondition && numberFormat.match(/[#0]/)) {
+                formattedNumber = '-' + formattedNumber;
+            }
+            
+            return prefix + formattedNumber + suffix;
+        }
+
+        function checkCondition(condition, value) {
+            // Remove brackets
+            const conditionContent = condition.slice(1, -1);
+            
+            // Skip color specifications
+            if (conditionContent.match(/^#[0-9A-Fa-f]{6}$/) || 
+                conditionContent.match(/^#[0-9A-Fa-f]{3}$/) ||
+                ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'gray', 'grey', 'black', 'white', 'magenta', 'cyan'].includes(conditionContent.toLowerCase())) {
+                return null; // Not a condition
+            }
+            
+            // Handle numeric conditions
+            const numericCondition = conditionContent.match(/^([<>=!]+)([\d.-]+)$/);
+            if (numericCondition) {
+                const operator = numericCondition[1];
+                const threshold = parseFloat(numericCondition[2]);
+                const numValue = typeof value === 'number' ? value : parseFloat(String(value));
+                
+                if (isNaN(numValue)) return false;
+                
+                switch (operator) {
+                    case '>': return numValue > threshold;
+                    case '<': return numValue < threshold;
+                    case '>=': return numValue >= threshold;
+                    case '<=': return numValue <= threshold;
+                    case '=': case '==': return numValue === threshold;
+                    case '<>': case '!=': return numValue !== threshold;
+                }
+            }
+            
+            return null;
+        }
+
+        function formatValue(formatString, value) {
+            try {
+                // Handle percentage formats
+                if (formatString.includes('%')) {
+                    const num = typeof value === 'number' ? value : parseFloat(value);
+                    if (isNaN(num)) return value.toString();
+                    
+                    const decimals = (formatString.match(/0/g) || []).length - 1;
+                    return (num * 100).toFixed(Math.max(0, decimals)) + '%';
+                }
+                
+                // Handle multi-section formats
+                const sections = formatString.split(';');
+                
+                if (sections.length > 1) {
+                    // Process each section to find matching condition
+                    for (let i = 0; i < sections.length; i++) {
+                        const section = sections[i];
+                        const conditions = section.match(/\[[^\]]+\]/g) || [];
+                        
+                        let hasMatchingCondition = true;
+                        for (const condition of conditions) {
+                            const result = checkCondition(condition, value);
+                            if (result === false) {
+                                hasMatchingCondition = false;
+                                break;
+                            }
+                        }
+                        
+                        if (hasMatchingCondition) {
+                            return processFormatSection(section, value);
+                        }
+                    }
+                    
+                    // If no conditions matched, use the last section as fallback
+                    return processFormatSection(sections[sections.length - 1], value);
+                }
+                
+                // Single format section
+                return processFormatSection(formatString, value);
+                
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        }
+
+        // Test cases
+        const testCases = [
+            {
+                title: 'Custom Emoji Formatters',
+                tests: [
+                    { 
+                        name: 'Traffic Light', 
+                        format: '[Red][<50]🔴 0;[Yellow][<80]🟡 0;[Green]🟢 0',
+                        values: [45, 75, 95]
+                    },
+                    { 
+                        name: 'Emoji Status', 
+                        format: '[<0]😟 0;[=0]😐 0;😊 0',
+                        values: [-5, 0, 10]
+                    },
+                    { 
+                        name: 'Progress Bar', 
+                        format: '[<25]▰▱▱▱;[<50]▰▰▱▱;[<75]▰▰▰▱;▰▰▰▰',
+                        values: [20, 40, 60, 80]
+                    },
+                    { 
+                        name: 'Temperature', 
+                        format: '[Blue][<32]0°F ❄️;[Red][>80]0°F 🔥;0°F',
+                        values: [30, 70, 85]
+                    },
+                    { 
+                        name: 'Currency Status', 
+                        format: '[Red]($0.00);[Green]$0.00;"Break Even"',
+                        values: [-100, 100, 0]
+                    },
+                    { 
+                        name: 'Star Rating', 
+                        format: '[<1]☆☆☆☆☆;[<2]★☆☆☆☆;[<3]★★☆☆☆;[<4]★★★☆☆;[<5]★★★★☆;★★★★★',
+                        values: [0.5, 1.5, 2.5, 3.5, 4.5, 5]
+                    }
+                ]
+            },
+            {
+                title: 'Currency Formatters',
+                tests: [
+                    { 
+                        name: 'Basic USD', 
+                        format: '$#,##0.00',
+                        values: [1234.56, -1234.56, 0]
+                    },
+                    { 
+                        name: 'EUR Currency', 
+                        format: '€#,##0.00',
+                        values: [1234.56, -1234.56]
+                    },
+                    { 
+                        name: 'Accounting Format', 
+                        format: '$#,##0.00;($#,##0.00)',
+                        values: [1234.56, -1234.56]
+                    },
+                    { 
+                        name: 'Currency with Emojis', 
+                        format: '[Green][>0]💰 $#,##0.00;[Red][<0]💸 ($#,##0.00);$0.00',
+                        values: [100, -100, 0]
+                    }
+                ]
+            },
+            {
+                title: 'Conditional Color Formatters',
+                tests: [
+                    { 
+                        name: 'Positive/Negative Colors', 
+                        format: '[>0][Green]#,##0.00;[<0][Red]#,##0.00;[Blue]#,##0.00',
+                        values: [100, -50, 0]
+                    },
+                    { 
+                        name: 'Percentage with Colors', 
+                        format: '[Green][>0.1]📈 0.00%;[Red][<-0.1]📉 0.00%;0.00%',
+                        values: [0.15, -0.15, 0.05]
+                    }
+                ]
+            }
+        ];
+
+        // Run tests and display results
+        const resultsDiv = document.getElementById('results');
+        
+        testCases.forEach(testCase => {
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = 'test-section';
+            
+            const title = document.createElement('h2');
+            title.textContent = testCase.title;
+            sectionDiv.appendChild(title);
+            
+            testCase.tests.forEach(test => {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-case';
+                
+                const testTitle = document.createElement('h3');
+                testTitle.textContent = test.name;
+                testDiv.appendChild(testTitle);
+                
+                const formatDiv = document.createElement('div');
+                formatDiv.innerHTML = `Format: <span class="format">${test.format}</span>`;
+                testDiv.appendChild(formatDiv);
+                
+                const resultsTable = document.createElement('table');
+                resultsTable.style.width = '100%';
+                resultsTable.style.marginTop = '10px';
+                
+                test.values.forEach(value => {
+                    const result = formatValue(test.format, value);
+                    const row = resultsTable.insertRow();
+                    
+                    const inputCell = row.insertCell();
+                    inputCell.textContent = `Input: ${value}`;
+                    inputCell.style.width = '30%';
+                    
+                    const arrowCell = row.insertCell();
+                    arrowCell.textContent = '→';
+                    arrowCell.style.width = '10%';
+                    arrowCell.style.textAlign = 'center';
+                    
+                    const resultCell = row.insertCell();
+                    resultCell.innerHTML = `<span class="result">${result}</span>`;
+                    resultCell.style.width = '60%';
+                });
+                
+                testDiv.appendChild(resultsTable);
+                sectionDiv.appendChild(testDiv);
+            });
+            
+            resultsDiv.appendChild(sectionDiv);
+        });
+    </script>
+</body>
+</html>

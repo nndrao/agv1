@@ -286,15 +286,19 @@ export const useColumnTemplateStore = create<ColumnTemplateStore>()(
 // Default templates - use string shortcuts that will be converted to formatters
 export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updatedAt'>[] = [
   {
-    name: 'Currency Format',
+    name: '💰 Currency Format',
     description: 'Format numbers as currency with right alignment and styling',
     settings: {
       // Styling
       cellClass: 'ag-currency-cell text-right',
       cellStyle: { fontWeight: 'bold', color: '#2e7d32' },
       headerClass: 'text-right',
-      // Formatting
-      valueFormatter: 'currency', // Will be converted to createExcelFormatter('$#,##0.00')
+      // Formatting - using emoji-rich format
+      valueFormatter: {
+        _isFormatterConfig: true,
+        type: 'excel',
+        formatString: '[Green][>0]💰 $#,##0.00;[Red][<0]💸 ($#,##0.00);$0.00'
+      },
       // Filter
       filter: 'agNumberColumnFilter',
       floatingFilter: true,
@@ -309,14 +313,18 @@ export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updat
     includedProperties: ['cellClass', 'cellStyle', 'headerClass', 'valueFormatter', 'filter', 'floatingFilter', 'width', 'minWidth', 'editable', 'cellEditor', 'cellEditorParams']
   },
   {
-    name: 'Percentage Format',
-    description: 'Format numbers as percentages with center alignment',
+    name: '📊 Percentage Format',
+    description: 'Format numbers as percentages with visual indicators',
     settings: {
       // Styling
       cellClass: 'ag-percentage-cell text-center',
       headerClass: 'text-center',
-      // Formatting
-      valueFormatter: 'percentage', // Will be converted to createExcelFormatter('0.00%')
+      // Formatting with visual indicators
+      valueFormatter: {
+        _isFormatterConfig: true,
+        type: 'excel',
+        formatString: '[Green][>0.1]📈 0.00%;[Red][<-0.1]📉 0.00%;0.00%'
+      },
       // Filter
       filter: 'agNumberColumnFilter',
       floatingFilter: true,
@@ -330,7 +338,7 @@ export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updat
     includedProperties: ['cellClass', 'headerClass', 'valueFormatter', 'filter', 'floatingFilter', 'width', 'editable', 'cellEditor', 'cellEditorParams']
   },
   {
-    name: 'Date Format',
+    name: '📅 Date Format',
     description: 'Standard date formatting with calendar picker',
     settings: {
       // Styling
@@ -364,7 +372,7 @@ export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updat
     includedProperties: ['cellClass', 'valueFormatter', 'filter', 'floatingFilter', 'filterParams', 'width', 'editable', 'cellEditor']
   },
   {
-    name: 'Editable Text',
+    name: '✏️ Editable Text',
     description: 'Enable editing with text editor and search filter',
     settings: {
       // Editor
@@ -387,7 +395,7 @@ export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updat
     includedProperties: ['editable', 'cellEditor', 'singleClickEdit', 'filter', 'floatingFilter', 'filterParams', 'resizable', 'wrapText', 'autoHeight']
   },
   {
-    name: 'Read-only Locked',
+    name: '🔒 Read-only Locked',
     description: 'Non-editable, position locked column with gray background',
     settings: {
       // Editor
@@ -410,7 +418,7 @@ export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updat
     includedProperties: ['editable', 'lockPosition', 'lockVisible', 'pinned', 'resizable', 'cellClass', 'cellStyle', 'headerStyle']
   },
   {
-    name: 'Wrapped Text',
+    name: '📝 Wrapped Text',
     description: 'Enable text wrapping with auto height for long content',
     settings: {
       // Text wrapping
@@ -434,7 +442,7 @@ export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updat
     includedProperties: ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight', 'minWidth', 'maxWidth', 'editable', 'cellEditor', 'cellEditorPopup', 'cellEditorParams']
   },
   {
-    name: 'Numeric Column',
+    name: '🔢 Numeric Column',
     description: 'Right-aligned numeric column with number filter',
     settings: {
       // Type
@@ -456,5 +464,68 @@ export const DEFAULT_TEMPLATES: Omit<ColumnTemplate, 'id' | 'createdAt' | 'updat
       width: 100
     } as Record<string, any>,
     includedProperties: ['type', 'cellClass', 'headerClass', 'filter', 'floatingFilter', 'filterParams', 'editable', 'cellEditor', 'width']
+  },
+  {
+    name: '🚦 Traffic Light Status',
+    description: 'Visual status indicator with traffic light colors',
+    settings: {
+      // Styling
+      cellClass: 'text-center',
+      headerClass: 'text-center',
+      // Formatting
+      valueFormatter: {
+        _isFormatterConfig: true,
+        type: 'excel',
+        formatString: '[Red][<50]🔴 0;[Yellow][<80]🟡 0;[Green]🟢 0'
+      },
+      // Filter
+      filter: 'agNumberColumnFilter',
+      floatingFilter: true,
+      // Size
+      width: 100
+    } as Record<string, any>,
+    includedProperties: ['cellClass', 'headerClass', 'valueFormatter', 'filter', 'floatingFilter', 'width']
+  },
+  {
+    name: '😊 Emoji Status',
+    description: 'Show emoji based on positive/negative/zero values',
+    settings: {
+      // Styling
+      cellClass: 'text-center',
+      headerClass: 'text-center',
+      // Formatting
+      valueFormatter: {
+        _isFormatterConfig: true,
+        type: 'excel',
+        formatString: '[<0]😟 0;[=0]😐 0;😊 0'
+      },
+      // Filter
+      filter: 'agNumberColumnFilter',
+      floatingFilter: true,
+      // Size
+      width: 80
+    } as Record<string, any>,
+    includedProperties: ['cellClass', 'headerClass', 'valueFormatter', 'filter', 'floatingFilter', 'width']
+  },
+  {
+    name: '⭐ Star Rating',
+    description: 'Display values as star ratings (0-5)',
+    settings: {
+      // Styling
+      cellClass: 'text-center',
+      headerClass: 'text-center',
+      // Formatting
+      valueFormatter: {
+        _isFormatterConfig: true,
+        type: 'excel',
+        formatString: '[<1]☆☆☆☆☆;[<2]★☆☆☆☆;[<3]★★☆☆☆;[<4]★★★☆☆;[<5]★★★★☆;★★★★★'
+      },
+      // Filter
+      filter: 'agNumberColumnFilter',
+      floatingFilter: true,
+      // Size
+      width: 120
+    } as Record<string, any>,
+    includedProperties: ['cellClass', 'headerClass', 'valueFormatter', 'filter', 'floatingFilter', 'width']
   }
 ];
