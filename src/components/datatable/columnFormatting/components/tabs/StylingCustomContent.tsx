@@ -175,8 +175,8 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
   // Colors state
   const [textColor, setTextColor] = useState('');
   const [backgroundColor, setBackgroundColor] = useState('');
-  const [applyTextColor, setApplyTextColor] = useState(true);
-  const [applyBackgroundColor, setApplyBackgroundColor] = useState(true);
+  const [applyTextColor, setApplyTextColor] = useState(false);
+  const [applyBackgroundColor, setApplyBackgroundColor] = useState(false);
   
   // Layout state
   const [wrapText, setWrapText] = useState(false);
@@ -187,7 +187,7 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
   const [borderStyle, setBorderStyle] = useState('solid');
   const [borderColor, setBorderColor] = useState('#CCCCCC');
   const [borderSides, setBorderSides] = useState('all');
-  const [applyBorder, setApplyBorder] = useState(true);
+  const [applyBorder, setApplyBorder] = useState(false);
 
   // Font size options
   const fontSizeOptions = [
@@ -201,6 +201,76 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
     { value: '20', label: '20px' },
     { value: '24', label: '24px' },
   ];
+  
+  // Check if selected columns have existing styles on mount or when selection changes
+  useEffect(() => {
+    if (selectedColumns.size === 0) return;
+    
+    // Only check on initial load of columns, not on every state change
+    let hasTextColor = false;
+    let hasBackgroundColor = false;
+    let hasBorder = false;
+    let foundTextColor = '';
+    let foundBackgroundColor = '';
+    
+    selectedColumns.forEach(colId => {
+      const colDef = columnDefinitions.get(colId);
+      const changes = pendingChanges.get(colId) || {};
+      
+      // Check cellStyle or headerStyle based on active tab
+      const styleToCheck = activeSubTab === 'cell' 
+        ? (changes.cellStyle !== undefined ? changes.cellStyle : colDef?.cellStyle)
+        : (changes.headerStyle !== undefined ? changes.headerStyle : colDef?.headerStyle);
+      
+      if (styleToCheck) {
+        let styleObj: any = {};
+        
+        // Handle function-based styles
+        if (typeof styleToCheck === 'function') {
+          // Check if it has __baseStyle metadata
+          styleObj = (styleToCheck as any).__baseStyle || {};
+        } else if (typeof styleToCheck === 'object') {
+          styleObj = styleToCheck;
+        }
+        
+        // Check for color properties
+        if (styleObj.color) {
+          hasTextColor = true;
+          foundTextColor = styleObj.color;
+        }
+        if (styleObj.backgroundColor) {
+          hasBackgroundColor = true;
+          foundBackgroundColor = styleObj.backgroundColor;
+        }
+        if (styleObj.border || styleObj.borderTop || styleObj.borderRight || 
+            styleObj.borderBottom || styleObj.borderLeft) {
+          hasBorder = true;
+          // Try to parse border properties if it's a shorthand
+          if (styleObj.border) {
+            const borderParts = styleObj.border.split(' ');
+            if (borderParts.length >= 3) {
+              setBorderWidth(borderParts[0].replace('px', ''));
+              setBorderStyle(borderParts[1]);
+              setBorderColor(borderParts[2]);
+            }
+          }
+        }
+      }
+    });
+    
+    // Only update if we found values
+    if (hasTextColor) {
+      setTextColor(foundTextColor);
+      setApplyTextColor(true);
+    }
+    if (hasBackgroundColor) {
+      setBackgroundColor(foundBackgroundColor);
+      setApplyBackgroundColor(true);
+    }
+    if (hasBorder) {
+      setApplyBorder(true);
+    }
+  }, [selectedColumns, activeSubTab]); // Remove columnDefinitions and pendingChanges from deps to avoid loops
 
   // Border side options
   const borderSideOptions = [
@@ -409,15 +479,15 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
     setVerticalAlign('middle');
     setTextColor('');
     setBackgroundColor('');
-    setApplyTextColor(true);
-    setApplyBackgroundColor(true);
+    setApplyTextColor(false);
+    setApplyBackgroundColor(false);
     setWrapText(false);
     setAutoHeight(false);
     setBorderWidth('1');
     setBorderStyle('solid');
     setBorderColor('#CCCCCC');
     setBorderSides('all');
-    setApplyBorder(true);
+    setApplyBorder(false);
   };
 
   return (
@@ -560,12 +630,13 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
 
             {/* Text Color */}
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Label className="ribbon-section-header flex-1">TEXT COLOR</Label>
+              <div className="flex items-center justify-between gap-2 mb-1 h-5">
+                <Label className="ribbon-section-header flex-1 mb-0">TEXT COLOR</Label>
                 <Switch 
+                  id="apply-text-color"
                   checked={applyTextColor}
                   onCheckedChange={setApplyTextColor}
-                  className="h-4 w-7"
+                  className="h-4 w-7 data-[state=checked]:bg-primary"
                 />
               </div>
               <ColorPicker 
@@ -577,12 +648,13 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
 
             {/* Background Color */}
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Label className="ribbon-section-header flex-1">BACKGROUND</Label>
+              <div className="flex items-center justify-between gap-2 mb-1 h-5">
+                <Label className="ribbon-section-header flex-1 mb-0">BACKGROUND</Label>
                 <Switch 
+                  id="apply-background-color"
                   checked={applyBackgroundColor}
                   onCheckedChange={setApplyBackgroundColor}
-                  className="h-4 w-7"
+                  className="h-4 w-7 data-[state=checked]:bg-primary"
                 />
               </div>
               <ColorPicker 
@@ -614,12 +686,13 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
             {/* Row 3: Border controls */}
             {/* Border Sides */}
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Label className="ribbon-section-header flex-1">BORDER</Label>
+              <div className="flex items-center justify-between gap-2 mb-1 h-5">
+                <Label className="ribbon-section-header flex-1 mb-0">BORDER</Label>
                 <Switch 
+                  id="apply-border"
                   checked={applyBorder}
                   onCheckedChange={setApplyBorder}
-                  className="h-4 w-7"
+                  className="h-4 w-7 data-[state=checked]:bg-primary"
                 />
               </div>
               <Select value={borderSides} onValueChange={setBorderSides}>

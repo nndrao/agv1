@@ -55,6 +55,28 @@
   line-height: 1.3;
 }
 
+/* When section header is used with a switch, ensure proper alignment */
+.ribbon-section-header.flex-1 {
+  margin-bottom: 0 !important;
+  display: flex;
+  align-items: center;
+}
+
+/* Ensure switches in styling tab are interactive */
+.floating-ribbon .h-4.w-7[role="switch"] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Ensure switch containers don't block interaction */
+.floating-ribbon .flex.items-center.justify-between {
+  pointer-events: auto !important;
+}
+
 /* Visual grouping for related controls */
 .ribbon-group {
   @apply p-2 bg-muted/10 border border-border/20 rounded-md;
@@ -514,6 +536,8 @@ input[type="color"].ribbon-color {
   cursor: pointer !important;
   border: 2px solid transparent !important;
   background-color: hsl(var(--input)) !important;
+  pointer-events: auto !important;
+  z-index: 1;
 }
 
 .floating-ribbon [role="switch"][data-state="checked"] {
