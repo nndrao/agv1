@@ -1,718 +1,665 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Toggle } from '@/components/ui/toggle';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { 
-  Bold,
-  Italic,
-  Underline,
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import {
+  Type,
+  Palette,
+  Square,
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Type,
-  PaintBucket,
-  Square,
-  Columns,
-  FileText,
-  AlignVerticalJustifyStart,
+  AlignJustify,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  WrapText,
+  Maximize2,
+  Square as BorderAll,
+  Minus as BorderTop,
+  Minus as BorderRight,
+  Minus as BorderBottom,
+  Minus as BorderLeft,
+  RotateCcw,
+  Sparkles,
+  Pipette,
+  AlignVerticalSpaceAround,
   AlignVerticalJustifyCenter,
-  AlignVerticalJustifyEnd,
-  ArrowUp,
-  ArrowDown,
-  ArrowRight,
-  RotateCcw
+  AlignVerticalJustifyStart,
+  AlignVerticalJustifyEnd
 } from 'lucide-react';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
-import { useMixedValue } from '../../hooks/useMixedValue';
-import { CustomSection, CustomSwitch, CustomSelect, CustomColorPicker } from '../common';
-import { createCellStyleFunction } from '@/components/datatable/utils/formatters';
-import type { TabContentProps } from '../../types';
-import type { SelectOption } from '../common';
+import { cn } from '@/lib/utils';
 import '../../custom-styles.css';
 
-// Font options
-const FONT_FAMILY_OPTIONS: SelectOption[] = [
-  { value: 'inter', label: 'Inter' },
-  { value: 'roboto', label: 'Roboto' },
-  { value: 'arial', label: 'Arial' },
-  { value: 'helvetica', label: 'Helvetica' },
-  { value: 'georgia', label: 'Georgia' },
-  { value: 'mono', label: 'JetBrains Mono' }
-];
+interface ColorPickerProps {
+  value: string;
+  onChange: (color: string) => void;
+  label: string;
+  showTransparent?: boolean;
+}
 
-const FONT_WEIGHT_OPTIONS: SelectOption[] = [
-  { value: '300', label: 'Light' },
-  { value: '400', label: 'Regular' },
-  { value: '500', label: 'Medium' },
-  { value: '600', label: 'Semibold' },
-  { value: '700', label: 'Bold' }
-];
-
-const FONT_SIZE_OPTIONS: SelectOption[] = [
-  { value: '8', label: '8' },
-  { value: '9', label: '9' },
-  { value: '10', label: '10' },
-  { value: '11', label: '11' },
-  { value: '12', label: '12' },
-  { value: '14', label: '14' },
-  { value: '16', label: '16' },
-  { value: '18', label: '18' },
-  { value: '20', label: '20' },
-  { value: '24', label: '24' },
-  { value: '28', label: '28' },
-  { value: '32', label: '32' }
-];
-
-const BORDER_WIDTH_OPTIONS: SelectOption[] = [
-  { value: '0px', label: 'None' },
-  { value: '1px', label: '1px' },
-  { value: '2px', label: '2px' },
-  { value: '3px', label: '3px' },
-  { value: '4px', label: '4px' }
-];
-
-const BORDER_STYLE_OPTIONS: SelectOption[] = [
-  { value: 'none', label: 'None' },
-  { value: 'solid', label: 'Solid' },
-  { value: 'dashed', label: 'Dashed' },
-  { value: 'dotted', label: 'Dotted' },
-  { value: 'double', label: 'Double' }
-];
-
-export const StylingCustomContent: React.FC<TabContentProps> = ({ selectedColumns }) => {
-  const { updateBulkProperty, columnDefinitions, pendingChanges } = useColumnFormattingStore();
+const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange, label }) => {
+  const [inputValue, setInputValue] = useState(value || '');
   
-  // Use the new hooks for mixed values
-  const cellStyleValue = useMixedValue('cellStyle', selectedColumns);
-  const headerStyleValue = useMixedValue('headerStyle', selectedColumns);
-  const cellClassValue = useMixedValue('cellClass', selectedColumns);
-  const headerClassValue = useMixedValue('headerClass', selectedColumns);
-  const wrapTextValue = useMixedValue('wrapText', selectedColumns);
-  const autoHeightValue = useMixedValue('autoHeight', selectedColumns);
-  const wrapHeaderTextValue = useMixedValue('wrapHeaderText', selectedColumns);
-  const autoHeaderHeightValue = useMixedValue('autoHeaderHeight', selectedColumns);
-  
-  // Style target state (cell or header)
-  const [styleTarget, setStyleTarget] = useState<'cell' | 'header'>('cell');
-  
-  // Color state management - empty string means use default
-  const [textColor, setTextColor] = useState('');
-  const [fillColor, setFillColor] = useState('');
-  const [borderColor, setBorderColor] = useState('#cccccc');
-  
-  // Font state management
-  const [fontFamily, setFontFamily] = useState('inter');
-  const [fontWeight, setFontWeight] = useState('400');
-  const [fontSize, setFontSize] = useState('14');
-  
-  // Border state management
-  const [borderSide, setBorderSide] = useState<'none' | 'all' | 'top' | 'right' | 'bottom' | 'left'>('none');
-  const [borderWidth, setBorderWidth] = useState('1px');
-  const [borderStyle, setBorderStyle] = useState('solid');
+  const presetColors = [
+    'transparent',
+    '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF',
+    '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080',
+    '#FFC0CB', '#808080', '#A52A2A', '#000080', '#008000'
+  ];
 
-  // Extract style object from cellStyle if it's a function - matching StylingTab
-  const getCellStyleObject = () => {
-    const currentCellStyle = cellStyleValue;
-    if (currentCellStyle.value && typeof currentCellStyle.value === 'function') {
-      // Check if this function has base style metadata
-      const baseStyle = (currentCellStyle.value as any).__baseStyle;
-      if (baseStyle) {
-        return baseStyle;
-      }
-      // Don't pass function-based styles to the editor without base style
-      return {};
-    }
-    return currentCellStyle.value || {};
+  const handleColorChange = (color: string) => {
+    onChange(color);
+    setInputValue(color);
   };
-
-  // Extract style object from headerStyle if it's a function - matching StylingTab
-  const getHeaderStyleObject = () => {
-    const currentHeaderStyle = headerStyleValue;
-    if (currentHeaderStyle.value && typeof currentHeaderStyle.value === 'function') {
-      // Check if this function has base style metadata
-      const baseStyle = (currentHeaderStyle.value as any).__baseStyle;
-      if (baseStyle) {
-        return baseStyle;
-      }
-      // Don't pass function-based styles to the editor without base style
-      return {};
-    }
-    return currentHeaderStyle.value || {};
-  };
-
-  // Initialize styles from current selection
-  useEffect(() => {
-    if (styleTarget === 'cell') {
-      const styles = getCellStyleObject();
-      if (typeof styles === 'object' && styles !== null) {
-        setTextColor(styles.color || '');
-        setFillColor(styles.backgroundColor || '');
-        
-        // Font styles
-        const fontFamilyMap: Record<string, string> = {
-          'Inter': 'inter',
-          'Roboto': 'roboto',
-          'Arial': 'arial',
-          'Helvetica': 'helvetica',
-          'Georgia': 'georgia',
-          '"JetBrains Mono"': 'mono',
-          'JetBrains Mono': 'mono'
-        };
-        
-        if (styles.fontFamily) {
-          const mappedFamily = fontFamilyMap[styles.fontFamily] || 'inter';
-          setFontFamily(mappedFamily);
-        }
-        
-        if (styles.fontWeight) {
-          setFontWeight(String(styles.fontWeight));
-        }
-        
-        if (styles.fontSize) {
-          setFontSize(String(styles.fontSize).replace('px', ''));
-        }
-        
-        // Border styles
-        if (styles.border) {
-          setBorderWidth('1px');
-          setBorderStyle('solid');
-          setBorderSide('all');
-        } else if (styles.borderTop || styles.borderRight || styles.borderBottom || styles.borderLeft) {
-          if (styles.borderTop) setBorderSide('top');
-          else if (styles.borderRight) setBorderSide('right');
-          else if (styles.borderBottom) setBorderSide('bottom');
-          else if (styles.borderLeft) setBorderSide('left');
-        } else {
-          setBorderSide('none');
-        }
-      }
-    } else {
-      const styles = getHeaderStyleObject();
-      if (typeof styles === 'object' && styles !== null) {
-        setTextColor(styles.color || '');
-        setFillColor(styles.backgroundColor || '');
-        
-        // Similar style extraction for header...
-      }
-    }
-  }, [styleTarget, selectedColumns]);
-
-  // Font change handler
-  const handleFontChange = (type: 'family' | 'weight' | 'size', value: string) => {
-    if (type === 'family') {
-      setFontFamily(value);
-    } else if (type === 'weight') {
-      setFontWeight(value);
-    } else if (type === 'size') {
-      setFontSize(value);
-    }
-    updateStyleProperty();
-  };
-
-  // Color change handler
-  const handleColorChange = (type: 'text' | 'fill' | 'border', value: string) => {
-    if (type === 'text') {
-      setTextColor(value);
-    } else if (type === 'fill') {
-      setFillColor(value);
-    } else if (type === 'border') {
-      setBorderColor(value);
-    }
-    updateStyleProperty();
-  };
-
-  // Border change handler
-  const handleBorderChange = (type: 'side' | 'width' | 'style', value: string) => {
-    if (type === 'side') {
-      setBorderSide(value as any);
-    } else if (type === 'width') {
-      setBorderWidth(value);
-    } else if (type === 'style') {
-      setBorderStyle(value);
-    }
-    updateStyleProperty();
-  };
-
-  // Update style property based on current state
-  const updateStyleProperty = useCallback(() => {
-    const style: React.CSSProperties = {};
-    
-    // Text color
-    if (textColor) {
-      style.color = textColor;
-    }
-    
-    // Background color
-    if (fillColor) {
-      style.backgroundColor = fillColor;
-    }
-    
-    // Font styles
-    const fontFamilyMap: Record<string, string> = {
-      'inter': 'Inter',
-      'roboto': 'Roboto',
-      'arial': 'Arial',
-      'helvetica': 'Helvetica',
-      'georgia': 'Georgia',
-      'mono': '"JetBrains Mono"'
-    };
-    
-    style.fontFamily = fontFamilyMap[fontFamily] || 'Inter';
-    style.fontWeight = fontWeight as any;
-    style.fontSize = `${fontSize}px`;
-    
-    // Border styles
-    if (borderSide !== 'none' && borderWidth !== '0px') {
-      const borderValue = `${borderWidth} ${borderStyle} ${borderColor}`;
-      
-      if (borderSide === 'all') {
-        style.border = borderValue;
-      } else {
-        const borderKey = `border${borderSide.charAt(0).toUpperCase() + borderSide.slice(1)}` as keyof React.CSSProperties;
-        style[borderKey] = borderValue as any;
-      }
-    }
-    
-    if (styleTarget === 'cell') {
-      handleCellStyleSave(style);
-    } else {
-      handleHeaderStyleSave(style);
-    }
-  }, [textColor, fillColor, fontFamily, fontWeight, fontSize, borderSide, borderWidth, borderStyle, borderColor, styleTarget]);
-
-  // Handle alignment changes - converted to work with style target
-  const handleAlignmentChange = (type: 'horizontal' | 'vertical', value: string) => {
-    const property = styleTarget === 'cell' ? 'cellClass' : 'headerClass';
-    const currentClass = styleTarget === 'cell' ? cellClassValue.value : headerClassValue.value;
-    
-    let classes = (currentClass as string || '').split(' ').filter(c => c);
-    
-    if (type === 'horizontal') {
-      // Remove existing horizontal alignment classes
-      classes = classes.filter(c => !['text-left', 'text-center', 'text-right'].includes(c));
-      
-      // Add new horizontal alignment
-      if (value === 'left') {
-        classes.push('text-left');
-      } else if (value === 'center') {
-        classes.push('text-center');
-      } else if (value === 'right') {
-        classes.push('text-right');
-      }
-    } else {
-      // Remove existing vertical alignment classes
-      classes = classes.filter(c => !['items-start', 'items-center', 'items-end'].includes(c));
-      
-      // Add new vertical alignment
-      if (value === 'top') {
-        classes.push('items-start');
-      } else if (value === 'middle') {
-        classes.push('items-center');
-      } else if (value === 'bottom') {
-        classes.push('items-end');
-      }
-    }
-    
-    const newClass = classes.join(' ').trim();
-    updateBulkProperty(property, newClass || undefined);
-  };
-
-  // Handle cell style updates - matching the exact pattern from StylingTab
-  const handleCellStyleSave = (style: React.CSSProperties) => {
-    // Check if we have conditional formatting that needs to be preserved
-    let hasConditionalFormatting = false;
-    let formatString = '';
-    
-    selectedColumns.forEach(colId => {
-      const colDef = columnDefinitions.get(colId);
-      const pendingChange = pendingChanges.get(colId);
-      
-      // Check pending changes first, then column definition
-      const valueFormatter = pendingChange?.valueFormatter || colDef?.valueFormatter;
-      const cellStyle = pendingChange?.cellStyle || colDef?.cellStyle;
-      
-      // First check if valueFormatter has format string metadata
-      if (valueFormatter && typeof valueFormatter === 'function') {
-        const metadata = (valueFormatter as any).__formatString;
-        if (metadata && metadata.includes('[') && metadata.includes(']')) {
-          // Check if format string contains style directives OR color specifications
-          const hasStyleDirectives = metadata.match(/\[(BG:|Background:|Border:|B:|Size:|FontSize:|Align:|TextAlign:|Padding:|P:|Weight:|FontWeight:|Bold|Italic|Underline|Center|Left|Right|#[0-9A-Fa-f]{3,6}|Red|Green|Blue|Yellow|Orange|Purple|Gray|Grey|Black|White|Magenta|Cyan)/i);
-          if (hasStyleDirectives) {
-            hasConditionalFormatting = true;
-            formatString = metadata;
-          }
-        }
-      }
-      
-      // Also check if existing cellStyle has format string metadata
-      if (!hasConditionalFormatting && cellStyle && typeof cellStyle === 'function') {
-        const metadata = (cellStyle as any).__formatString;
-        if (metadata && metadata.includes('[') && metadata.includes(']')) {
-          hasConditionalFormatting = true;
-          formatString = metadata;
-        }
-      }
-    });
-    
-    if (hasConditionalFormatting) {
-      // We have conditional formatting from valueFormatter
-      // Create a cellStyle function that merges base styles with conditional styles
-      const cellStyleFn = (params: { value: unknown }) => {
-        // Always start with base styles
-        const baseStyles = style && Object.keys(style).length > 0 ? { ...style } : {};
-        
-        // Get conditional styles using createCellStyleFunction with empty base
-        const conditionalStyleFn = createCellStyleFunction(formatString, {});
-        const conditionalStyles = conditionalStyleFn(params) || {};
-        
-        // Always merge base and conditional styles, with conditional taking precedence
-        const mergedStyles = { ...baseStyles, ...conditionalStyles };
-        
-        // Return merged styles if we have any, otherwise undefined
-        return Object.keys(mergedStyles).length > 0 ? mergedStyles : undefined;
-      };
-      
-      // Attach metadata for future serialization
-      Object.defineProperty(cellStyleFn, '__formatString', { 
-        value: formatString, 
-        writable: false,
-        enumerable: false,
-        configurable: true
-      });
-      Object.defineProperty(cellStyleFn, '__baseStyle', { 
-        value: style, 
-        writable: false,
-        enumerable: false,
-        configurable: true
-      });
-      updateBulkProperty('cellStyle', cellStyleFn);
-    } else {
-      // No conditional formatting, just save the style directly
-      updateBulkProperty('cellStyle', style);
-    }
-  };
-
-  // Handle header style updates - matching the exact pattern from StylingTab
-  const handleHeaderStyleSave = (style: React.CSSProperties) => {
-    // Create a function that applies styles only to regular headers, not floating filters
-    const headerStyleFn = (params: { floatingFilter?: boolean }) => {
-      // Don't apply styles to floating filter row
-      if (params?.floatingFilter) {
-        return null;
-      }
-      return style;
-    };
-    
-    // Add metadata for serialization
-    Object.defineProperty(headerStyleFn, '__baseStyle', { 
-      value: style, 
-      writable: false,
-      enumerable: false,
-      configurable: true
-    });
-    
-    updateBulkProperty('headerStyle', headerStyleFn);
-  };
-
-  // Get current alignment from class
-  const getCurrentAlignment = (type: 'horizontal' | 'vertical'): string => {
-    const currentClass = styleTarget === 'cell' ? cellClassValue.value : headerClassValue.value;
-    const classes = (currentClass as string || '').split(' ');
-    
-    if (type === 'horizontal') {
-      if (classes.includes('text-center')) return 'center';
-      if (classes.includes('text-right')) return 'right';
-      return 'left';
-    } else {
-      if (classes.includes('items-center')) return 'middle';
-      if (classes.includes('items-end')) return 'bottom';
-      return 'top';
-    }
-  };
-
-  // Reset all styling settings
-  const resetStylingSettings = useCallback(() => {
-    // Reset all style properties
-    updateBulkProperty('cellStyle', undefined);
-    updateBulkProperty('headerStyle', undefined);
-    updateBulkProperty('cellClass', undefined);
-    updateBulkProperty('headerClass', undefined);
-    updateBulkProperty('wrapText', undefined);
-    updateBulkProperty('autoHeight', undefined);
-    updateBulkProperty('wrapHeaderText', undefined);
-    updateBulkProperty('autoHeaderHeight', undefined);
-  }, [updateBulkProperty]);
 
   return (
-    <div className="space-y-2">
-      {/* Reset Button */}
-      <div className="flex justify-end mb-2">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-7 px-2 text-xs text-destructive"
-          onClick={resetStylingSettings}
-          title="Reset all styling settings to defaults"
-        >
-          <RotateCcw className="ribbon-icon-xs mr-1" />
-          Reset All
-        </Button>
-      </div>
-      
-      {/* 5-Column Layout with Cell/Header Toggle in First Column */}
-      <div className="grid grid-cols-5 gap-2">
-        {/* Column 1 - Cell/Header Toggle */}
-        <div className="flex items-start justify-start">
-          <ToggleGroup 
-            type="single" 
-            value={styleTarget} 
-            onValueChange={(value) => value && setStyleTarget(value as 'cell' | 'header')}
-            orientation="vertical"
-            className="grid grid-rows-2 gap-0.5"
+    <div className="space-y-1">
+      {label && <Label className="ribbon-section-header">{label}</Label>}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className="w-full h-6 justify-between px-2 text-xs"
           >
-            <ToggleGroupItem value="cell" className="cell-header-toggle h-6 w-14 text-[10px] px-1">
-              <Columns className="ribbon-icon-xs mr-0.5" />
+            <div className="flex items-center gap-2">
+              <div 
+                className={cn(
+                  "w-4 h-4 rounded border",
+                  value === 'transparent' || !value ? "bg-checkered" : ""
+                )}
+                style={{ 
+                  backgroundColor: value === 'transparent' || !value ? undefined : value,
+                  borderColor: value === '#FFFFFF' || !value ? '#E2E8F0' : 'transparent'
+                }}
+              />
+              <span className="text-xs">{!value ? 'Default' : value === 'transparent' ? 'Transparent' : value}</span>
+            </div>
+            <Pipette className="h-3 w-3 text-muted-foreground" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 p-3">
+          <div className="space-y-3">
+            {/* Color Input */}
+            <div className="flex gap-2">
+              <Input
+                type="color"
+                value={value === 'transparent' ? '#FFFFFF' : value}
+                onChange={(e) => handleColorChange(e.target.value)}
+                className="h-9 w-16 p-1 cursor-pointer"
+              />
+              <Input
+                value={inputValue}
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  if (e.target.value.match(/^#[0-9A-Fa-f]{6}$/) || e.target.value === 'transparent') {
+                    handleColorChange(e.target.value);
+                  }
+                }}
+                placeholder="#000000"
+                className="h-9 flex-1 font-mono text-xs"
+              />
+            </div>
+            
+            {/* Preset Colors */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-2 block">Preset Colors</Label>
+              <div className="grid grid-cols-8 gap-1">
+                {presetColors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => handleColorChange(color)}
+                    className={cn(
+                      "w-8 h-8 rounded border-2 transition-all",
+                      "hover:scale-110 hover:shadow-md",
+                      value === color ? "border-primary" : "border-transparent",
+                      color === 'transparent' ? "bg-checkered" : ""
+                    )}
+                    style={{ 
+                      backgroundColor: color === 'transparent' ? undefined : color,
+                      borderColor: value === color ? undefined : (color === '#FFFFFF' ? '#E2E8F0' : 'transparent')
+                    }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            {/* Recent Colors */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-2 block">Recent</Label>
+              <div className="flex gap-1">
+                <Badge variant="secondary" className="text-xs">No recent colors</Badge>
+              </div>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
+
+interface StylingCustomContentProps {
+  selectedColumns: Set<string>;
+}
+
+export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ selectedColumns }) => {
+  const { 
+    updateBulkProperty
+  } = useColumnFormattingStore();
+
+  const [activeSubTab, setActiveSubTab] = useState<'cell' | 'header'>('cell');
+  
+  // Typography state
+  const [fontFamily, setFontFamily] = useState('Inter');
+  const [fontSize, setFontSize] = useState('14');
+  const [fontWeight, setFontWeight] = useState('normal');
+  const [fontStyle, setFontStyle] = useState('normal');
+  const [textDecoration, setTextDecoration] = useState<string[]>([]);
+  const [textAlign, setTextAlign] = useState('left');
+  const [verticalAlign, setVerticalAlign] = useState('middle');
+  
+  // Colors state
+  const [textColor, setTextColor] = useState('');
+  const [backgroundColor, setBackgroundColor] = useState('');
+  
+  // Layout state
+  const [wrapText, setWrapText] = useState(false);
+  const [autoHeight, setAutoHeight] = useState(false);
+  
+  // Border state
+  const [borderWidth, setBorderWidth] = useState('1');
+  const [borderStyle, setBorderStyle] = useState('solid');
+  const [borderColor, setBorderColor] = useState('#CCCCCC');
+  const [borderSides, setBorderSides] = useState('all');
+
+  // Font size options
+  const fontSizeOptions = [
+    { value: '10', label: '10px' },
+    { value: '11', label: '11px' },
+    { value: '12', label: '12px' },
+    { value: '13', label: '13px' },
+    { value: '14', label: '14px' },
+    { value: '16', label: '16px' },
+    { value: '18', label: '18px' },
+    { value: '20', label: '20px' },
+    { value: '24', label: '24px' },
+  ];
+
+  // Border side options
+  const borderSideOptions = [
+    { value: 'all', label: 'All Sides' },
+    { value: 'top', label: 'Top' },
+    { value: 'right', label: 'Right' },
+    { value: 'bottom', label: 'Bottom' },
+    { value: 'left', label: 'Left' },
+    { value: 'none', label: 'None' },
+  ];
+
+  // Helper function to toggle text decoration
+  const toggleTextDecoration = (decoration: string) => {
+    setTextDecoration(prev => 
+      prev.includes(decoration) 
+        ? prev.filter(d => d !== decoration)
+        : [...prev, decoration]
+    );
+  };
+
+  // Apply styles
+  const applyStyles = () => {
+    const styleObject: any = {
+      fontFamily,
+      fontSize: `${fontSize}px`,
+      fontWeight,
+      fontStyle,
+      textAlign,
+      verticalAlign,
+      whiteSpace: wrapText ? 'normal' : 'nowrap',
+    };
+    
+    // Handle text decoration
+    if (textDecoration.length > 0) {
+      styleObject.textDecoration = textDecoration.join(' ');
+    }
+    
+    // Only add color properties if they're explicitly set
+    if (textColor) {
+      styleObject.color = textColor;
+    }
+    if (backgroundColor) {
+      styleObject.backgroundColor = backgroundColor;
+    }
+
+    // Add borders
+    if (borderSides === 'none') {
+      styleObject.border = 'none';
+    } else if (borderSides === 'all') {
+      styleObject.border = `${borderWidth}px ${borderStyle} ${borderColor}`;
+    } else {
+      styleObject.borderTop = borderSides === 'top' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
+      styleObject.borderRight = borderSides === 'right' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
+      styleObject.borderBottom = borderSides === 'bottom' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
+      styleObject.borderLeft = borderSides === 'left' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
+    }
+
+    // Apply to cell or header based on active tab
+    if (activeSubTab === 'cell') {
+      updateBulkProperty('cellStyle', styleObject);
+    } else {
+      // Use callback function to apply styles only to header, not floating filter
+      const headerStyleFunction = (params: any) => {
+        // params.floatingFilter is true when styling the floating filter
+        if (params.floatingFilter) {
+          return null; // Don't apply any styles to floating filter
+        }
+        // Apply styles only to the actual header
+        return styleObject;
+      };
+      // Store the base style in the function for potential future reference
+      (headerStyleFunction as any).__baseStyle = styleObject;
+      updateBulkProperty('headerStyle', headerStyleFunction);
+    }
+  };
+
+  // Auto-apply on changes
+  useEffect(() => {
+    if (selectedColumns.size > 0) {
+      applyStyles();
+    }
+  }, [
+    fontFamily, fontSize, fontWeight, fontStyle, textDecoration, textAlign, verticalAlign,
+    textColor, backgroundColor, wrapText, autoHeight,
+    borderWidth, borderStyle, borderColor, borderSides,
+    activeSubTab
+  ]);
+
+  const resetStyles = () => {
+    setFontFamily('Inter');
+    setFontSize('14');
+    setFontWeight('normal');
+    setFontStyle('normal');
+    setTextDecoration([]);
+    setTextAlign('left');
+    setVerticalAlign('middle');
+    setTextColor('');
+    setBackgroundColor('');
+    setWrapText(false);
+    setAutoHeight(false);
+    setBorderWidth('1');
+    setBorderStyle('solid');
+    setBorderColor('#CCCCCC');
+    setBorderSides('all');
+  };
+
+  return (
+    <div className="flex h-full gap-3">
+      {/* Main controls section */}
+      <div className="flex-1">
+        {/* Cell/Header Toggle */}
+        <div className="flex items-center justify-between mb-3">
+          <ToggleGroup type="single" value={activeSubTab} onValueChange={(v) => v && setActiveSubTab(v as 'cell' | 'header')}>
+            <ToggleGroupItem value="cell" className="ribbon-toggle-group-item">
+              <Square className="ribbon-icon-xs mr-1" />
               Cell
             </ToggleGroupItem>
-            <ToggleGroupItem value="header" className="cell-header-toggle h-6 w-14 text-[10px] px-1">
-              <FileText className="ribbon-icon-xs mr-0.5" />
+            <ToggleGroupItem value="header" className="ribbon-toggle-group-item">
+              <Type className="ribbon-icon-xs mr-1" />
               Header
             </ToggleGroupItem>
           </ToggleGroup>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={resetStyles}
+            className="h-6 px-2 text-xs"
+          >
+            <RotateCcw className="w-3 h-3 mr-1" />
+            Reset
+          </Button>
         </div>
 
-        {/* Column 2 - Font */}
+        {/* Main content - Compact layout with proper column alignment */}
         <div className="space-y-2">
-          <CustomSection label="FONT">
-            <div className="space-y-1.5">
-              <CustomSelect
-                value={fontFamily}
-                onChange={(value) => handleFontChange('family', value)}
-                options={FONT_FAMILY_OPTIONS}
-                showIcons={false}
-                triggerClassName="text-[10px] h-6"
-              />
-              
-              <div className="flex gap-0.5">
-                <CustomSelect
-                  value={fontWeight}
-                  onChange={(value) => handleFontChange('weight', value)}
-                  options={FONT_WEIGHT_OPTIONS}
-                  showIcons={false}
-                  className="flex-1"
-                  triggerClassName="text-[10px] h-6"
-                />
-                <CustomSelect
-                  value={fontSize}
-                  onChange={(value) => handleFontChange('size', value)}
-                  options={FONT_SIZE_OPTIONS}
-                  showIcons={false}
-                  className="w-12"
-                  triggerClassName="text-[10px] h-6"
-                />
-              </div>
-              
-              <div className="flex gap-0.5">
-                <Toggle 
-                  size="sm"
-                  pressed={fontWeight === '700'}
-                  onPressedChange={(pressed) => handleFontChange('weight', pressed ? '700' : '400')}
-                  className="ribbon-toggle h-6 w-6"
-                  title="Bold"
-                >
-                  <Bold className="h-3 w-3" />
-                </Toggle>
-                <Toggle 
-                  size="sm"
-                  className="ribbon-toggle h-6 w-6"
-                  title="Italic"
-                  disabled
-                >
-                  <Italic className="h-3 w-3" />
-                </Toggle>
-                <Toggle 
-                  size="sm"
-                  className="ribbon-toggle h-6 w-6"
-                  title="Underline"
-                  disabled
-                >
-                  <Underline className="h-3 w-3" />
-                </Toggle>
-              </div>
+          {/* Define a consistent grid with fixed column widths */}
+          <div className="grid grid-cols-4 gap-4">
+            {/* Row 1: Font, Size, Weight, Alignment */}
+            {/* Font Family */}
+            <div>
+              <Label className="ribbon-section-header">FONT</Label>
+              <Select value={fontFamily} onValueChange={setFontFamily}>
+                <SelectTrigger className="h-6 w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Inter">Inter</SelectItem>
+                  <SelectItem value="Arial">Arial</SelectItem>
+                  <SelectItem value="Helvetica">Helvetica</SelectItem>
+                  <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                  <SelectItem value="Georgia">Georgia</SelectItem>
+                  <SelectItem value="Courier New">Courier New</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </CustomSection>
-        </div>
 
-        {/* Column 3 - Alignment */}
-        <div className="space-y-2">
-          <CustomSection label="ALIGNMENT">
-            <div className="space-y-1.5">
-              <ToggleGroup 
-                type="single" 
-                value={getCurrentAlignment('horizontal')}
-                onValueChange={(value) => value && handleAlignmentChange('horizontal', value)}
-                className="grid grid-cols-3 gap-0.5"
-              >
-                <ToggleGroupItem value="left" className="ribbon-toggle-group-item h-6 p-0">
-                  <AlignLeft className="h-3 w-3" />
+            {/* Font Size */}
+            <div>
+              <Label className="ribbon-section-header">SIZE</Label>
+              <Select value={fontSize} onValueChange={setFontSize}>
+                <SelectTrigger className="h-6 w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {fontSizeOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Font Weight */}
+            <div>
+              <Label className="ribbon-section-header">WEIGHT</Label>
+              <Select value={fontWeight} onValueChange={setFontWeight}>
+                <SelectTrigger className="h-6 w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="300">Light</SelectItem>
+                  <SelectItem value="normal">Regular</SelectItem>
+                  <SelectItem value="500">Medium</SelectItem>
+                  <SelectItem value="600">Semibold</SelectItem>
+                  <SelectItem value="bold">Bold</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Text Alignment */}
+            <div>
+              <Label className="ribbon-section-header">ALIGN</Label>
+              <ToggleGroup type="single" value={textAlign} onValueChange={setTextAlign} className="h-6 w-full">
+                <ToggleGroupItem value="left" className="h-6 flex-1" title="Align Left">
+                  <AlignLeft className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="center" className="ribbon-toggle-group-item h-6 p-0">
-                  <AlignCenter className="h-3 w-3" />
+                <ToggleGroupItem value="center" className="h-6 flex-1" title="Align Center">
+                  <AlignCenter className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="right" className="ribbon-toggle-group-item h-6 p-0">
-                  <AlignRight className="h-3 w-3" />
+                <ToggleGroupItem value="right" className="h-6 flex-1" title="Align Right">
+                  <AlignRight className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="justify" className="h-6 flex-1" title="Justify">
+                  <AlignJustify className="h-4 w-4" />
                 </ToggleGroupItem>
               </ToggleGroup>
+            </div>
 
-              <ToggleGroup 
-                type="single" 
-                value={getCurrentAlignment('vertical')}
-                onValueChange={(value) => value && handleAlignmentChange('vertical', value)}
-                className="grid grid-cols-3 gap-0.5"
-              >
-                <ToggleGroupItem value="top" className="ribbon-toggle-group-item h-6 p-0">
-                  <AlignVerticalJustifyStart className="h-3 w-3" />
+            {/* Row 2: Font Style, Colors */}
+            {/* Font Style Controls */}
+            <div>
+              <Label className="ribbon-section-header">STYLE</Label>
+              <ToggleGroup type="multiple" value={[
+                ...(fontWeight === 'bold' || fontWeight === '600' || fontWeight === '700' ? ['bold'] : []),
+                ...(fontStyle === 'italic' ? ['italic'] : []),
+                ...textDecoration
+              ]} onValueChange={(values) => {
+                // Handle bold
+                if (values.includes('bold') && !fontWeight.includes('bold') && fontWeight !== '600' && fontWeight !== '700') {
+                  setFontWeight('bold');
+                } else if (!values.includes('bold') && (fontWeight === 'bold' || fontWeight === '600' || fontWeight === '700')) {
+                  setFontWeight('normal');
+                }
+                
+                // Handle italic
+                setFontStyle(values.includes('italic') ? 'italic' : 'normal');
+                
+                // Handle decorations
+                setTextDecoration(values.filter(v => ['underline', 'line-through'].includes(v)));
+              }} className="h-6 w-full">
+                <ToggleGroupItem value="bold" className="h-6 flex-1">
+                  <Bold className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="middle" className="ribbon-toggle-group-item h-6 p-0">
-                  <AlignVerticalJustifyCenter className="h-3 w-3" />
+                <ToggleGroupItem value="italic" className="h-6 flex-1">
+                  <Italic className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="bottom" className="ribbon-toggle-group-item h-6 p-0">
-                  <AlignVerticalJustifyEnd className="h-3 w-3" />
+                <ToggleGroupItem value="underline" className="h-6 flex-1">
+                  <Underline className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="line-through" className="h-6 flex-1">
+                  <Strikethrough className="h-4 w-4" />
                 </ToggleGroupItem>
               </ToggleGroup>
-
-              {styleTarget === 'cell' && (
-                <div className="space-y-1">
-                  <CustomSwitch
-                    id="wrap-text"
-                    label="Wrap"
-                    value={wrapTextValue}
-                    onChange={(checked) => updateBulkProperty('wrapText', checked)}
-                    className="text-[10px]"
-                  />
-                  <CustomSwitch
-                    id="auto-height"
-                    label="Auto Height"
-                    value={autoHeightValue}
-                    onChange={(checked) => updateBulkProperty('autoHeight', checked)}
-                    className="text-[10px]"
-                  />
-                </div>
-              )}
-
-              {styleTarget === 'header' && (
-                <div className="space-y-1">
-                  <CustomSwitch
-                    id="wrap-header"
-                    label="Wrap"
-                    value={wrapHeaderTextValue}
-                    onChange={(checked) => updateBulkProperty('wrapHeaderText', checked)}
-                    className="text-[10px]"
-                  />
-                  <CustomSwitch
-                    id="auto-header-height"
-                    label="Auto Height"
-                    value={autoHeaderHeightValue}
-                    onChange={(checked) => updateBulkProperty('autoHeaderHeight', checked)}
-                    className="text-[10px]"
-                  />
-                </div>
-              )}
             </div>
-          </CustomSection>
-        </div>
-        
-        {/* Column 4 - Colors */}
-        <div className="space-y-2">
-          <CustomSection label="COLORS">
-            <div className="space-y-1">
-              <CustomColorPicker
-                icon={Type}
+
+            {/* Text Color */}
+            <div>
+              <ColorPicker 
                 value={textColor}
-                onChange={(value) => handleColorChange('text', value)}
-                placeholder="Default"
-              />
-              
-              <CustomColorPicker
-                icon={PaintBucket}
-                value={fillColor}
-                onChange={(value) => handleColorChange('fill', value)}
-                placeholder="Default"
+                onChange={setTextColor}
+                label="TEXT COLOR"
               />
             </div>
-          </CustomSection>
+
+            {/* Background Color */}
+            <div>
+              <ColorPicker 
+                value={backgroundColor}
+                onChange={setBackgroundColor}
+                label="BACKGROUND"
+              />
+            </div>
+
+            {/* Vertical Alignment */}
+            <div>
+              <Label className="ribbon-section-header">V-ALIGN</Label>
+              <ToggleGroup type="single" value={verticalAlign} onValueChange={setVerticalAlign} className="h-6 w-full">
+                <ToggleGroupItem value="top" className="h-6 flex-1" title="Align Top">
+                  <AlignVerticalJustifyStart className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="middle" className="h-6 flex-1" title="Align Middle">
+                  <AlignVerticalJustifyCenter className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="bottom" className="h-6 flex-1" title="Align Bottom">
+                  <AlignVerticalJustifyEnd className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="stretch" className="h-6 flex-1" title="Stretch">
+                  <AlignVerticalSpaceAround className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
+            {/* Row 3: Border controls */}
+            {/* Border Sides */}
+            <div>
+              <Label className="ribbon-section-header">BORDER</Label>
+              <Select value={borderSides} onValueChange={setBorderSides}>
+                <SelectTrigger className="h-6 w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {borderSideOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Border Style */}
+            <div>
+              <Label className="ribbon-section-header">STYLE</Label>
+              <Select value={borderStyle} onValueChange={setBorderStyle}>
+                <SelectTrigger className="h-6 w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="solid">Solid</SelectItem>
+                  <SelectItem value="dashed">Dashed</SelectItem>
+                  <SelectItem value="dotted">Dotted</SelectItem>
+                  <SelectItem value="double">Double</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Border Width */}
+            <div>
+              <Label className="ribbon-section-header">WIDTH</Label>
+              <Select value={borderWidth} onValueChange={setBorderWidth}>
+                <SelectTrigger className="h-6 w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1px</SelectItem>
+                  <SelectItem value="2">2px</SelectItem>
+                  <SelectItem value="3">3px</SelectItem>
+                  <SelectItem value="4">4px</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Border Color */}
+            <div>
+              <Label className="ribbon-section-header">COLOR</Label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="color"
+                  value={borderColor}
+                  onChange={(e) => setBorderColor(e.target.value)}
+                  className="h-6 w-6 border rounded cursor-pointer flex-shrink-0"
+                  title="Border Color"
+                />
+                <Input
+                  value={borderColor}
+                  onChange={(e) => {
+                    if (e.target.value.match(/^#[0-9A-Fa-f]{6}$/)) {
+                      setBorderColor(e.target.value);
+                    }
+                  }}
+                  className="h-6 flex-1 text-xs font-mono px-2"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Row 4: Wrap and Auto Height */}
+          <div className="flex items-center gap-6 pt-1">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="wrap-text"
+                checked={wrapText}
+                onCheckedChange={setWrapText}
+                className="h-4 w-7"
+              />
+              <Label htmlFor="wrap-text" className="text-xs cursor-pointer flex items-center gap-1">
+                <WrapText className="h-3 w-3" />
+                Wrap Text
+              </Label>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Switch
+                id="auto-height"
+                checked={autoHeight}
+                onCheckedChange={setAutoHeight}
+                className="h-4 w-7"
+              />
+              <Label htmlFor="auto-height" className="text-xs cursor-pointer flex items-center gap-1">
+                <Maximize2 className="h-3 w-3" />
+                Auto Height
+              </Label>
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* Column 5 - Borders */}
-        <div className="space-y-2">
-          <CustomSection label="BORDERS">
-            <div className="space-y-1.5">
-              <div className="grid grid-cols-5 gap-0.5">
-                <Toggle 
-                  size="sm"
-                  pressed={borderSide === 'all'}
-                  onPressedChange={(pressed) => handleBorderChange('side', pressed ? 'all' : 'none')}
-                  className="ribbon-toggle h-6 col-span-2"
-                  title="All borders"
-                >
-                  <Square className="h-3 w-3" strokeWidth={2.5} />
-                </Toggle>
-                <Toggle 
-                  size="sm"
-                  pressed={borderSide === 'top'}
-                  onPressedChange={(pressed) => handleBorderChange('side', pressed ? 'top' : 'none')}
-                  className="ribbon-toggle h-6 p-0"
-                  title="Top border"
-                >
-                  <ArrowUp className="h-3 w-3" />
-                </Toggle>
-                <Toggle 
-                  size="sm"
-                  pressed={borderSide === 'right'}
-                  onPressedChange={(pressed) => handleBorderChange('side', pressed ? 'right' : 'none')}
-                  className="ribbon-toggle h-6 p-0"
-                  title="Right border"
-                >
-                  <ArrowRight className="h-3 w-3" />
-                </Toggle>
-                <Toggle 
-                  size="sm"
-                  pressed={borderSide === 'bottom'}
-                  onPressedChange={(pressed) => handleBorderChange('side', pressed ? 'bottom' : 'none')}
-                  className="ribbon-toggle h-6 p-0"
-                  title="Bottom border"
-                >
-                  <ArrowDown className="h-3 w-3" />
-                </Toggle>
-              </div>
-
-              <div className="flex gap-0.5">
-                <CustomSelect
-                  value={borderWidth}
-                  onChange={(value) => handleBorderChange('width', value)}
-                  options={BORDER_WIDTH_OPTIONS}
-                  showIcons={false}
-                  className="flex-1"
-                  triggerClassName="text-[10px] h-6"
-                />
-                <CustomSelect
-                  value={borderStyle}
-                  onChange={(value) => handleBorderChange('style', value)}
-                  options={BORDER_STYLE_OPTIONS}
-                  showIcons={false}
-                  className="flex-1"
-                  triggerClassName="text-[10px] h-6"
-                />
-              </div>
-
-              <CustomColorPicker
-                icon={Square}
-                value={borderColor}
-                onChange={(value) => handleColorChange('border', value)}
-                placeholder="#cccccc"
-              />
+      {/* Preview section */}
+      <div className="w-48 border-l pl-4 flex flex-col">
+        <Label className="ribbon-section-header block">PREVIEW</Label>
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="space-y-4">
+          {/* Cell Preview */}
+          <div>
+            <div className="text-[10px] text-muted-foreground mb-1">Cell Style</div>
+            <div 
+              className="p-2 border rounded h-[48px] flex"
+              style={{
+                alignItems: activeSubTab === 'cell' ? (
+                  verticalAlign === 'top' ? 'flex-start' :
+                  verticalAlign === 'bottom' ? 'flex-end' :
+                  verticalAlign === 'stretch' ? 'stretch' : 'center'
+                ) : 'center',
+                fontFamily,
+                fontSize: `${fontSize}px`,
+                fontWeight: activeSubTab === 'cell' ? fontWeight : 'normal',
+                fontStyle: activeSubTab === 'cell' ? fontStyle : 'normal',
+                textDecoration: activeSubTab === 'cell' && textDecoration.length > 0 ? textDecoration.join(' ') : 'none',
+                color: activeSubTab === 'cell' && textColor ? textColor : 'inherit',
+                backgroundColor: activeSubTab === 'cell' && backgroundColor ? backgroundColor : 'transparent',
+                textAlign: activeSubTab === 'cell' ? textAlign as any : 'left',
+                verticalAlign: activeSubTab === 'cell' ? verticalAlign as any : 'middle',
+                whiteSpace: activeSubTab === 'cell' && wrapText ? 'normal' : 'nowrap',
+                ...(activeSubTab === 'cell' ? 
+                  (borderSides === 'none' ? { border: 'none' } : 
+                    borderSides === 'all' ? { border: `${borderWidth}px ${borderStyle} ${borderColor}` } : {
+                      borderTop: borderSides === 'top' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                      borderRight: borderSides === 'right' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                      borderBottom: borderSides === 'bottom' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                      borderLeft: borderSides === 'left' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                    })
+                  : {})
+              }}
+            >
+              Sample Text
             </div>
-          </CustomSection>
+          </div>
+          
+          {/* Header Preview */}
+          <div>
+            <div className="text-[10px] text-muted-foreground mb-1">Header Style</div>
+            <div 
+              className="p-2 border rounded font-semibold h-[48px] flex"
+              style={{
+                alignItems: activeSubTab === 'header' ? (
+                  verticalAlign === 'top' ? 'flex-start' :
+                  verticalAlign === 'bottom' ? 'flex-end' :
+                  verticalAlign === 'stretch' ? 'stretch' : 'center'
+                ) : 'center',
+                fontFamily,
+                fontSize: `${fontSize}px`,
+                fontWeight: activeSubTab === 'header' ? fontWeight : '600',
+                fontStyle: activeSubTab === 'header' ? fontStyle : 'normal',
+                textDecoration: activeSubTab === 'header' && textDecoration.length > 0 ? textDecoration.join(' ') : 'none',
+                color: activeSubTab === 'header' && textColor ? textColor : 'inherit',
+                backgroundColor: activeSubTab === 'header' && backgroundColor ? backgroundColor : 'transparent',
+                textAlign: activeSubTab === 'header' ? textAlign as any : 'left',
+                verticalAlign: activeSubTab === 'header' ? verticalAlign as any : 'middle',
+                ...(activeSubTab === 'header' ? 
+                  (borderSides === 'none' ? { border: 'none' } : 
+                    borderSides === 'all' ? { border: `${borderWidth}px ${borderStyle} ${borderColor}` } : {
+                      borderTop: borderSides === 'top' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                      borderRight: borderSides === 'right' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                      borderBottom: borderSides === 'bottom' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                      borderLeft: borderSides === 'left' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                    })
+                  : {})
+              }}
+            >
+              Column Title
+            </div>
+          </div>
+
+          </div>
+        </div>
+        {/* Active indicator */}
+        <div className="text-[10px] text-muted-foreground pt-2 mt-auto border-t">
+          Editing: <span className="font-medium text-foreground">{activeSubTab === 'cell' ? 'Cell' : 'Header'}</span> styles
         </div>
       </div>
     </div>

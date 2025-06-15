@@ -4,16 +4,16 @@
 .floating-ribbon {
   --ribbon-border-radius: 10px;
   --ribbon-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 6px 10px -6px rgba(0, 0, 0, 0.1);
-  --ribbon-header-height: 48px;
-  --ribbon-tab-height: 26px;
-  --ribbon-content-padding: 6px;
+  --ribbon-header-height: 40px;
+  --ribbon-tab-height: 24px;
+  --ribbon-content-padding: 8px;
   
-  /* Standardized Font Sizes - More Readable */
-  --ribbon-font-xs: 12px;     /* Small labels, badges */
-  --ribbon-font-sm: 13px;     /* Standard controls, buttons */
-  --ribbon-font-base: 14px;   /* Content text, inputs */
-  --ribbon-font-md: 15px;     /* Emphasized text */
-  --ribbon-font-lg: 17px;     /* Headers, titles */
+  /* Standardized Font Sizes - Ultra Compact */
+  --ribbon-font-xs: 10px;     /* Small labels, badges */
+  --ribbon-font-sm: 11px;     /* Standard controls, buttons */
+  --ribbon-font-base: 11px;   /* Content text, inputs */
+  --ribbon-font-md: 12px;     /* Emphasized text */
+  --ribbon-font-lg: 13px;     /* Headers, titles */
 }
 
 /* Smooth transitions for all interactive elements */
@@ -42,8 +42,8 @@
 /* Content area styling - Full opacity */
 .ribbon-content {
   @apply bg-background;
-  padding: var(--ribbon-content-padding);
-  min-height: 70px;
+  padding: 8px;
+  min-height: 0;
   position: relative;
 }
 
@@ -72,8 +72,8 @@
 /* Compact Toggle Groups and Buttons */
 .ribbon-toggle,
 .ribbon-toggle-group-item {
-  font-size: var(--ribbon-font-sm);
-  @apply h-[26px] px-2;
+  font-size: 11px;
+  @apply h-6 px-2;
 }
 
 /* Toggle States - Clear visual hierarchy */
@@ -90,8 +90,8 @@
 
 /* Cell/Header Toggle - Special styling */
 .cell-header-toggle {
-  font-size: var(--ribbon-font-sm);
-  @apply h-7 px-3;
+  font-size: 11px;
+  @apply h-6 px-3;
 }
 
 .cell-header-toggle[data-state="on"] {
@@ -110,8 +110,8 @@
 
 /* Tab buttons - Clean tab design */
 .ribbon-tab {
-  font-size: var(--ribbon-font-sm);
-  @apply h-[26px] px-3 rounded-t-md mr-1;
+  font-size: 11px;
+  @apply h-6 px-3 rounded-t-md mr-1;
   @apply text-muted-foreground hover:text-foreground;
 }
 
@@ -365,16 +365,16 @@ input[type="color"].ribbon-color {
   --ribbon-spacing-md: 12px;
   --ribbon-spacing-lg: 16px;
   
-  /* Standard heights */
+  /* Standard heights - More Compact */
   --ribbon-input-height: 24px;
-  --ribbon-button-height: 26px;
+  --ribbon-button-height: 24px;
   --ribbon-select-height: 24px;
 }
 
 /* All labels should be consistent */
 .floating-ribbon label:not(.ribbon-section-header):not(.ribbon-config-title) {
-  font-size: var(--ribbon-font-sm) !important;
-  @apply text-muted-foreground font-medium;
+  font-size: 11px !important;
+  color: hsl(var(--muted-foreground));
   text-transform: none;
   letter-spacing: normal;
 }
@@ -386,14 +386,14 @@ input[type="color"].ribbon-color {
 .floating-ribbon select,
 .floating-ribbon .ribbon-input,
 .floating-ribbon .ribbon-select-trigger {
-  height: var(--ribbon-input-height) !important;
-  font-size: var(--ribbon-font-sm) !important;
+  height: 24px !important;
+  font-size: 11px !important;
 }
 
 /* Standardize all buttons */
 .floating-ribbon button {
-  min-height: var(--ribbon-button-height);
-  font-size: var(--ribbon-font-sm);
+  min-height: 24px;
+  font-size: 11px;
 }
 
 /* Consistent section spacing */
@@ -459,9 +459,9 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-label {
-  font-size: var(--ribbon-font-base);
-  @apply font-medium text-muted-foreground;
-  @apply whitespace-nowrap;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
 }
 
 /* Toggle group improvements */
@@ -489,9 +489,9 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-option-label {
-  font-size: var(--ribbon-font-base);
-  @apply text-muted-foreground;
-  @apply font-medium whitespace-nowrap;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
 }
 
 /* Force shadcn/ui switch default styling - override any inherited styles */
@@ -542,8 +542,8 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-action-button {
-  font-size: var(--ribbon-font-base);
-  @apply h-7 px-3;
+  font-size: 11px;
+  @apply h-6 px-2;
   @apply flex items-center gap-1.5;
   @apply border border-border/40;
   @apply hover:border-border/60 hover:bg-muted/50;
@@ -657,7 +657,7 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-field-label {
-  font-size: var(--ribbon-font-base);
+  font-size: 11px;
   @apply font-medium text-muted-foreground;
   @apply block;
 }
@@ -708,8 +708,8 @@ input[type="color"].ribbon-color {
 }
 
 .ribbon-switch-label {
-  font-size: var(--ribbon-font-base);
-  @apply font-medium text-foreground;
+  font-size: 11px;
+  @apply text-foreground;
 }
 
 /* Ribbon destructive/warning colors - More visible than default */
@@ -833,9 +833,9 @@ input[type="color"].ribbon-color {
 
 /* Button text consistency */
 .floating-ribbon button {
-  font-size: var(--ribbon-font-sm) !important;
+  font-size: 11px !important;
   padding: 0 8px !important;
-  min-height: var(--ribbon-button-height) !important;
+  min-height: 24px !important;
 }
 
 /* Input placeholders */
@@ -936,4 +936,265 @@ input[type="color"].ribbon-color {
   .ribbon-switches-row {
     @apply flex-col items-start gap-3;
   }
+}
+
+/* Checkered background for transparent color picker */
+.bg-checkered {
+  background-image: 
+    linear-gradient(45deg, #ccc 25%, transparent 25%), 
+    linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #ccc 75%), 
+    linear-gradient(-45deg, transparent 75%, #ccc 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+}
+
+/* Compact Column Customization Dialog Specific */
+.column-customization-dialog {
+  max-height: 220px !important;
+}
+
+.column-customization-dialog .tab-content {
+  padding: 8px !important;
+  height: calc(100% - 32px) !important;
+}
+
+/* Remove excess spacing in dialog */
+.column-customization-dialog .space-y-4 > * + * {
+  margin-top: 8px !important;
+}
+
+/* Ensure tabs content is properly sized */
+.column-customization-dialog [role="tabpanel"] {
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Force consistent text sizes across all tabs */
+.floating-ribbon .text-xs {
+  font-size: 11px !important;
+}
+
+.floating-ribbon .text-sm {
+  font-size: 11px !important;
+}
+
+.floating-ribbon .text-base {
+  font-size: 11px !important;
+}
+
+.floating-ribbon .text-\\[10px\\] {
+  font-size: 10px !important;
+}
+
+.floating-ribbon .text-\\[11px\\] {
+  font-size: 11px !important;
+}
+
+/* Override any inline font sizes */
+.floating-ribbon span,
+.floating-ribbon div,
+.floating-ribbon p {
+  font-size: inherit;
+}
+
+/* Compact spacing rules */
+.floating-ribbon .space-y-3 > * + * {
+  margin-top: 8px !important;
+}
+
+.floating-ribbon .space-y-2 > * + * {
+  margin-top: 6px !important;
+}
+
+.floating-ribbon .space-y-1 > * + * {
+  margin-top: 4px !important;
+}
+
+.floating-ribbon .gap-4 {
+  gap: 12px !important;
+}
+
+.floating-ribbon .gap-3 {
+  gap: 8px !important;
+}
+
+.floating-ribbon .gap-2 {
+  gap: 6px !important;
+}
+
+/* Compact margins and paddings */
+.floating-ribbon .mb-3 {
+  margin-bottom: 8px !important;
+}
+
+.floating-ribbon .mb-2 {
+  margin-bottom: 6px !important;
+}
+
+.floating-ribbon .p-4 {
+  padding: 12px !important;
+}
+
+.floating-ribbon .p-3 {
+  padding: 8px !important;
+}
+
+.floating-ribbon .p-2 {
+  padding: 6px !important;
+}
+
+/* Ensure all h-7 heights are h-6 */
+.floating-ribbon .h-7 {
+  height: 24px !important;
+}
+
+.floating-ribbon .h-6 {
+  height: 24px !important;
+}
+
+/* Preview panels - compact */
+.floating-ribbon .w-48 {
+  width: 140px !important;
+}
+
+.floating-ribbon .w-40 {
+  width: 120px !important;
+}
+
+.floating-ribbon .w-32 {
+  width: 100px !important;
+}
+
+/* Consistent section headers */
+.ribbon-section-header,
+.floating-ribbon .uppercase {
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  margin-bottom: 4px !important;
+}
+
+/* Action button sizes */
+.ribbon-action-button,
+.ribbon-field-action {
+  font-size: 11px !important;
+  height: 24px !important;
+  padding: 0 8px !important;
+}
+
+/* Switch sizes - ultra compact */
+.floating-ribbon [role="switch"] {
+  height: 16px !important;
+  width: 28px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+}
+
+.floating-ribbon [role="switch"] span {
+  height: 12px !important;
+  width: 12px !important;
+  min-height: 12px !important;
+  max-height: 12px !important;
+  min-width: 12px !important;
+  max-width: 12px !important;
+}
+
+.floating-ribbon [role="switch"][data-state="checked"] span {
+  transform: translateX(12px) !important;
+}
+
+/* Color picker compact */
+.floating-ribbon .w-5.h-5 {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Alignment toggles compact */
+.alignment-toggle-item {
+  height: 24px !important;
+  width: 24px !important;
+}
+
+/* Border style and other selects - consistent height */
+.floating-ribbon select,
+.floating-ribbon [role="combobox"] {
+  height: 24px !important;
+  font-size: 11px !important;
+}
+
+/* Input number fields */
+.floating-ribbon input[type="number"] {
+  width: 60px !important;
+}
+
+/* Consistent icon sizes */
+.floating-ribbon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.floating-ribbon .ribbon-icon-xs svg,
+.floating-ribbon .h-3.w-3 {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.floating-ribbon .h-4.w-4 {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* Info/Preview Panels - Same as main content */
+.floating-ribbon .border-l {
+  padding-left: 12px !important;
+}
+
+/* Info panel headers - keep smaller for hierarchy */
+.floating-ribbon .border-l .ribbon-section-header,
+.floating-ribbon .border-l .uppercase {
+  font-size: 10px !important;
+  margin-bottom: 6px !important;
+}
+
+/* Info panel content - same as main content */
+.floating-ribbon .border-l .text-xs,
+.floating-ribbon .border-l .text-sm,
+.floating-ribbon .border-l .text-base,
+.floating-ribbon .border-l span:not(.ribbon-section-header),
+.floating-ribbon .border-l div:not(.ribbon-section-header) {
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+}
+
+/* Info panel muted text */
+.floating-ribbon .border-l [class*="text-muted"] {
+  font-size: 11px !important;
+}
+
+/* Current value displays */
+.floating-ribbon .border-l .font-semibold,
+.floating-ribbon .border-l .font-medium {
+  font-size: 11px !important;
+}
+
+/* Info boxes */
+.floating-ribbon .border-l .border.rounded {
+  padding: 6px 8px !important;
+  min-height: 24px !important;
+}
+
+/* Value/status text */
+.floating-ribbon .border-l .text-\\[10px\\] {
+  font-size: 11px !important;
+}
+
+/* Buttons in info panels */
+.floating-ribbon .border-l button {
+  font-size: 11px !important;
+  height: 24px !important;
+  padding: 0 8px !important;
 }

@@ -1,6 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -222,441 +225,512 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
   }));
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Format Mode Toggle and Action Buttons */}
-      <div className="flex items-center justify-between">
-        <ToggleGroup 
-          type="single" 
-          value={formatMode}
-          onValueChange={(value) => value && setFormatMode(value as FormatMode)}
-          className="flex"
-        >
-          <ToggleGroupItem value="standard" className="ribbon-toggle-group-item">
-            <Palette className="ribbon-icon-xs mr-1" />
-            Standard
-          </ToggleGroupItem>
-          <ToggleGroupItem value="custom" className="ribbon-toggle-group-item">
-            <Sparkles className="ribbon-icon-xs mr-1" />
-            Custom
-          </ToggleGroupItem>
-        </ToggleGroup>
-
-        <div className="flex items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-7 px-2 text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300"
-            onClick={clearFormat}
-            title="Clear format"
+    <div className="flex h-full gap-4">
+      {/* Main controls section */}
+      <div className="flex-1">
+        {/* Format Mode Toggle and Action Buttons */}
+        <div className="flex items-center justify-between mb-3">
+          <ToggleGroup 
+            type="single" 
+            value={formatMode}
+            onValueChange={(value) => value && setFormatMode(value as FormatMode)}
+            className="flex"
           >
-            <X className="ribbon-icon-xs mr-1" />
-            Clear
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-7 px-2 text-xs bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400 border-red-500/30"
-            onClick={resetFormatSettings}
-            title="Reset all format settings to defaults"
-          >
-            <RotateCcw className="ribbon-icon-xs mr-1" />
-            Reset All
-          </Button>
+            <ToggleGroupItem value="standard" className="ribbon-toggle-group-item">
+              <Palette className="ribbon-icon-xs mr-1" />
+              Standard
+            </ToggleGroupItem>
+            <ToggleGroupItem value="custom" className="ribbon-toggle-group-item">
+              <Sparkles className="ribbon-icon-xs mr-1" />
+              Custom
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 px-2 text-xs"
+              onClick={clearFormat}
+              title="Clear format"
+            >
+              <X className="ribbon-icon-xs mr-1" />
+              Clear
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 px-2 text-xs"
+              onClick={resetFormatSettings}
+              title="Reset all"
+            >
+              <RotateCcw className="ribbon-icon-xs mr-1" />
+              Reset All
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <Separator />
-
-      {/* Standard Format Controls - Two Column Layout */}
-      {formatMode === 'standard' && (
-        <div className="space-y-4">
-          {/* Format Type Selector - Full Width */}
-          <CustomField label="Format" labelWidth="w-16">
-            <CustomSelect
-              value={selectedStandardFormat}
-              onChange={setSelectedStandardFormat}
-              options={formatOptions}
-              showIcons={true}
-              className="flex-1"
-            />
-          </CustomField>
-
-          {/* Context-specific controls in two columns */}
-          {selectedFormat?.controls === 'number' && (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-              {/* Left Column */}
-              <CustomField label="Decimals" labelWidth="w-16">
-                <InputNumber
-                  value={decimalPlaces}
-                  onChange={(value) => setDecimalPlaces(value || 0)}
-                  min={0}
-                  max={10}
-                  className="h-7 w-full text-xs"
-                />
-              </CustomField>
-
-              <CustomField label="Prefix" labelWidth="w-16">
-                <Input
-                  value={prefix}
-                  onChange={(e) => setPrefix(e.target.value)}
-                  placeholder="e.g., $"
-                  className="h-7 text-xs"
-                />
-              </CustomField>
-
-              <CustomField label="Suffix" labelWidth="w-16">
-                <Input
-                  value={suffix}
-                  onChange={(e) => setSuffix(e.target.value)}
-                  placeholder="e.g., USD"
-                  className="h-7 text-xs"
-                />
-              </CustomField>
-
-              <div className="flex flex-col gap-2">
-                <CustomSwitch
-                  id="thousands-separator"
-                  label="Thousands separator"
-                  value={useThousandsSeparator}
-                  onChange={setUseThousandsSeparator}
-                  className="text-xs"
-                />
-                <CustomSwitch
-                  id="color-sign"
-                  label="+/- colors"
-                  value={useColorForSign}
-                  onChange={setUseColorForSign}
-                  className="text-xs"
-                />
-              </div>
-            </div>
-          )}
-
-          {selectedFormat?.controls === 'currency' && (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-              <CustomField label="Symbol" labelWidth="w-16">
-                <CustomSelect
-                  value={currencySymbol}
-                  onChange={setCurrencySymbol}
-                  options={currencyOptions}
-                  showIcons={false}
-                  className="flex-1"
-                />
-              </CustomField>
-
-              <CustomField label="Decimals" labelWidth="w-16">
-                <InputNumber
-                  value={decimalPlaces}
-                  onChange={(value) => setDecimalPlaces(value || 0)}
-                  min={0}
-                  max={10}
-                  className="h-7 w-full text-xs"
-                />
-              </CustomField>
-
-              <div className="flex flex-col gap-2">
-                <CustomSwitch
-                  id="currency-thousands"
-                  label="Thousands separator"
-                  value={useThousandsSeparator}
-                  onChange={setUseThousandsSeparator}
-                  className="text-xs"
-                />
+        {/* Standard Format Controls - Grid Layout */}
+        {formatMode === 'standard' && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+              {/* Format Type */}
+              <div className="space-y-1">
+                <Label className="ribbon-section-header">FORMAT TYPE</Label>
+                <Select value={selectedStandardFormat} onValueChange={setSelectedStandardFormat}>
+                  <SelectTrigger className="h-7 w-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formatOptions.map(opt => {
+                      const Icon = opt.icon;
+                      return (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-3 w-3" />
+                            {opt.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <CustomSwitch
-                  id="currency-colors"
-                  label="+/- colors"
-                  value={useColorForSign}
-                  onChange={setUseColorForSign}
-                  className="text-xs"
-                />
-              </div>
-            </div>
-          )}
-
-          {selectedFormat?.controls === 'percentage' && (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-              <CustomField label="Decimals" labelWidth="w-16">
-                <InputNumber
-                  value={decimalPlaces}
-                  onChange={(value) => setDecimalPlaces(value || 0)}
-                  min={0}
-                  max={10}
-                  className="h-7 w-full text-xs"
-                />
-              </CustomField>
-
-              <div className="flex flex-col gap-2">
-                <CustomSwitch
-                  id="multiply-100"
-                  label="Multiply by 100"
-                  value={multiplyBy100}
-                  onChange={setMultiplyBy100}
-                  className="text-xs"
-                />
-              </div>
-            </div>
-          )}
-
-          {selectedFormat?.controls === 'date' && (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-              <div className="col-span-2">
-                <CustomField label="Format" labelWidth="w-16">
-                  <CustomSelect
-                    value={dateFormat}
-                    onChange={setDateFormat}
-                    options={dateFormatOptions}
-                    showIcons={false}
-                    className="flex-1"
-                  />
-                </CustomField>
-              </div>
-            </div>
-          )}
-
-          {/* Preview Section */}
-          <CustomSection label="PREVIEW" className="mt-4">
-            <div className="bg-muted/50 rounded-md p-3">
-              <div className="flex items-center justify-between">
-                <Input
-                  value={previewValue}
-                  onChange={(e) => setPreviewValue(e.target.value)}
-                  className="h-7 text-xs w-32"
-                  placeholder="Test value"
-                />
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">→</span>
-                  <div className="font-mono text-sm">
-                    {(() => {
-                      try {
-                        const formatter = createExcelFormatter(buildFormatString());
-                        return formatter({ value: previewValue } as any);
-                      } catch {
-                        return previewValue;
-                      }
-                    })()}
+              {/* Context-specific controls */}
+              {selectedFormat?.controls === 'number' && (
+                <>
+                  {/* Decimals */}
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">DECIMALS</Label>
+                    <Select value={decimalPlaces.toString()} onValueChange={(v) => setDecimalPlaces(Number(v))}>
+                      <SelectTrigger className="h-7 w-full text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0,1,2,3,4,5,6,7,8,9,10].map(d => (
+                          <SelectItem key={d} value={d.toString()}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-              </div>
-              
-              {/* Quick test values */}
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-muted-foreground">Quick:</span>
-                {['1234567.89', '-5000', '0', '0.5'].map(val => (
-                  <Button
-                    key={val}
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={() => setPreviewValue(val)}
-                  >
-                    {val}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </CustomSection>
-        </div>
-      )}
 
-      {/* Custom Format Controls */}
-      {formatMode === 'custom' && (
-        <div className="space-y-3">
-          {/* Template Selector */}
-          <CustomField label="Template" labelWidth="w-16">
-            <CustomSelect
-              value={selectedCustomFormat}
-              onChange={(value) => {
-                setSelectedCustomFormat(value);
-                const format = customFormats.find(f => f.label === value);
-                if (format) {
-                  setManualFormat(format.format);
-                }
-              }}
-              options={[
-                { value: '', label: 'Select a template...' },
-                ...customFormats.map(f => ({
-                  value: f.label,
-                  label: f.label
-                }))
-              ]}
-              showIcons={false}
-              className="flex-1"
-            />
-          </CustomField>
-
-          {/* Format Editor */}
-          <CustomField label="Format" labelWidth="w-16">
-            <div className="flex gap-1">
-              <Input
-                value={manualFormat}
-                onChange={(e) => setManualFormat(e.target.value)}
-                placeholder="Enter custom format..."
-                className="h-7 text-xs font-mono flex-1"
-              />
-              <Popover open={emojiPopoverOpen} onOpenChange={setEmojiPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    title="Insert emoji"
-                  >
-                    <Smile className="w-3 h-3" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-2" side="bottom" align="end">
-                  <div className="grid grid-cols-5 gap-1">
-                    {commonEmoji.map(({ emoji, name }) => (
-                      <Button
-                        key={emoji}
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-sm"
-                        onClick={() => {
-                          setManualFormat(prev => prev + emoji);
-                          setEmojiPopoverOpen(false);
-                        }}
-                        title={name}
-                      >
-                        {emoji}
-                      </Button>
-                    ))}
+                  {/* Prefix */}
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">PREFIX</Label>
+                    <Input
+                      value={prefix}
+                      onChange={(e) => setPrefix(e.target.value)}
+                      placeholder="e.g., $"
+                      className="h-7 text-xs"
+                    />
                   </div>
-                </PopoverContent>
-              </Popover>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    title="Format guide"
-                  >
-                    <HelpCircle className="w-3 h-3" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0" side="bottom" align="end">
-                  <div className="p-3 border-b">
-                    <h3 className="font-semibold text-sm">Excel Format Guide</h3>
+
+                  {/* Suffix */}
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">SUFFIX</Label>
+                    <Input
+                      value={suffix}
+                      onChange={(e) => setSuffix(e.target.value)}
+                      placeholder="e.g., USD"
+                      className="h-7 text-xs"
+                    />
                   </div>
-                  <ScrollArea className="h-[300px]">
-                    <div className="p-3 space-y-3 text-xs">
-                      <div>
-                        <h4 className="font-medium mb-1">Basic Syntax</h4>
-                        <div className="bg-muted p-2 rounded font-mono text-[10px]">
-                          [condition]format;[condition]format;default
-                        </div>
-                        <p className="text-muted-foreground mt-1 text-[10px]">
-                          Up to 4 sections: positive; negative; zero; text
-                        </p>
-                      </div>
 
-                      <div>
-                        <h4 className="font-medium mb-1">Conditions</h4>
-                        <div className="space-y-0.5 text-[10px]">
-                          <div><code className="bg-muted px-1">[&gt;100]</code> Greater than 100</div>
-                          <div><code className="bg-muted px-1">[&lt;0]</code> Less than 0</div>
-                          <div><code className="bg-muted px-1">[=50]</code> Equal to 50</div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium mb-1">Colors</h4>
-                        <div className="grid grid-cols-2 gap-1 text-[10px]">
-                          <div><code className="bg-muted px-1">[Red]</code> Red text</div>
-                          <div><code className="bg-muted px-1">[Green]</code> Green text</div>
-                          <div><code className="bg-muted px-1">[Blue]</code> Blue text</div>
-                          <div><code className="bg-muted px-1">[Yellow]</code> Yellow text</div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium mb-1">Number Formats</h4>
-                        <div className="space-y-0.5 text-[10px]">
-                          <div><code className="bg-muted px-1">0</code> Display digit or 0</div>
-                          <div><code className="bg-muted px-1">#</code> Display digit if present</div>
-                          <div><code className="bg-muted px-1">,</code> Thousand separator</div>
-                          <div><code className="bg-muted px-1">.</code> Decimal point</div>
-                          <div><code className="bg-muted px-1">%</code> Multiply by 100 and add %</div>
-                        </div>
-                      </div>
+                  {/* Switches */}
+                  <div className="col-span-2 flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="thousands-separator"
+                        checked={useThousandsSeparator}
+                        onCheckedChange={setUseThousandsSeparator}
+                        className="h-4 w-7"
+                      />
+                      <Label htmlFor="thousands-separator" className="text-xs cursor-pointer">
+                        Thousands separator
+                      </Label>
                     </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </CustomField>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="color-sign"
+                        checked={useColorForSign}
+                        onCheckedChange={setUseColorForSign}
+                        className="h-4 w-7"
+                      />
+                      <Label htmlFor="color-sign" className="text-xs cursor-pointer">
+                        +/- colors
+                      </Label>
+                    </div>
+                  </div>
+                </>
+              )}
 
-          {/* Custom Format Examples */}
-          <CustomSection label="FORMAT EXAMPLES" className="mt-4">
-            <div className="grid grid-cols-2 gap-2">
-              {customFormats.slice(0, 6).map((format) => (
+              {selectedFormat?.controls === 'currency' && (
+                <>
+                  {/* Currency Symbol */}
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">SYMBOL</Label>
+                    <Select value={currencySymbol} onValueChange={setCurrencySymbol}>
+                      <SelectTrigger className="h-7 w-full text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currencyOptions.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Decimals */}
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">DECIMALS</Label>
+                    <Select value={decimalPlaces.toString()} onValueChange={(v) => setDecimalPlaces(Number(v))}>
+                      <SelectTrigger className="h-7 w-full text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0,1,2,3,4,5,6,7,8,9,10].map(d => (
+                          <SelectItem key={d} value={d.toString()}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Switches */}
+                  <div className="col-span-3 flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="currency-thousands"
+                        checked={useThousandsSeparator}
+                        onCheckedChange={setUseThousandsSeparator}
+                        className="h-4 w-7"
+                      />
+                      <Label htmlFor="currency-thousands" className="text-xs cursor-pointer">
+                        Thousands separator
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="currency-colors"
+                        checked={useColorForSign}
+                        onCheckedChange={setUseColorForSign}
+                        className="h-4 w-7"
+                      />
+                      <Label htmlFor="currency-colors" className="text-xs cursor-pointer">
+                        +/- colors
+                      </Label>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {selectedFormat?.controls === 'percentage' && (
+                <>
+                  {/* Decimals */}
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">DECIMALS</Label>
+                    <Select value={decimalPlaces.toString()} onValueChange={(v) => setDecimalPlaces(Number(v))}>
+                      <SelectTrigger className="h-7 w-full text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0,1,2,3,4,5,6,7,8,9,10].map(d => (
+                          <SelectItem key={d} value={d.toString()}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Multiply by 100 switch */}
+                  <div className="col-span-2 flex items-center gap-2">
+                    <Switch
+                      id="multiply-100"
+                      checked={multiplyBy100}
+                      onCheckedChange={setMultiplyBy100}
+                      className="h-4 w-7"
+                    />
+                    <Label htmlFor="multiply-100" className="text-xs cursor-pointer">
+                      Multiply by 100
+                    </Label>
+                  </div>
+                </>
+              )}
+
+              {selectedFormat?.controls === 'date' && (
+                <>
+                  {/* Date Format */}
+                  <div className="col-span-2 space-y-1">
+                    <Label className="ribbon-section-header">DATE FORMAT</Label>
+                    <Select value={dateFormat} onValueChange={setDateFormat}>
+                      <SelectTrigger className="h-7 w-full text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dateFormatOptions.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+            </div>
+
+            {/* Quick test values for standard format */}
+            <div className="flex items-center gap-2 pt-2">
+              <Label className="text-xs text-muted-foreground">Quick test:</Label>
+              {['1234567.89', '-5000', '0', '0.5'].map(val => (
                 <Button
-                  key={format.label}
+                  key={val}
                   variant="outline"
                   size="sm"
-                  className="h-auto px-2 py-1.5 text-xs justify-start"
-                  onClick={() => {
-                    setSelectedCustomFormat(format.label);
-                    setManualFormat(format.format);
-                  }}
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setPreviewValue(val)}
                 >
-                  <div className="flex flex-col items-start gap-0.5">
-                    <span className="font-medium">{format.label}</span>
-                    <span className="text-[10px] text-muted-foreground">{format.example}</span>
-                  </div>
+                  {val}
                 </Button>
               ))}
             </div>
-          </CustomSection>
+          </div>
+        )}
 
-          {/* Preview Section */}
-          <CustomSection label="PREVIEW" className="mt-4">
-            <div className="bg-muted/50 rounded-md p-3">
-              <div className="flex items-center justify-between">
-                <Input
-                  value={previewValue}
-                  onChange={(e) => setPreviewValue(e.target.value)}
-                  className="h-7 text-xs w-32"
-                  placeholder="Test value"
-                />
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">→</span>
-                  <div className="font-mono text-sm">
-                    {(() => {
-                      try {
-                        const formatter = createExcelFormatter(manualFormat || buildFormatString());
-                        return formatter({ value: previewValue } as any);
-                      } catch {
-                        return previewValue;
-                      }
-                    })()}
-                  </div>
+        {/* Custom Format Controls */}
+        {formatMode === 'custom' && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {/* Template Selector */}
+              <div className="space-y-1">
+                <Label className="ribbon-section-header">TEMPLATE</Label>
+                <Select 
+                  value={selectedCustomFormat || 'none'}
+                  onValueChange={(value) => {
+                    if (value === 'none') {
+                      setSelectedCustomFormat('');
+                      return;
+                    }
+                    setSelectedCustomFormat(value);
+                    const format = customFormats.find(f => f.label === value);
+                    if (format) {
+                      setManualFormat(format.format);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-7 w-full text-xs">
+                    <SelectValue placeholder="Select a template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select a template...</SelectItem>
+                    {customFormats.map(f => (
+                      <SelectItem key={f.label} value={f.label}>{f.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Format String Editor */}
+              <div className="space-y-1">
+                <Label className="ribbon-section-header">FORMAT STRING</Label>
+                <div className="flex gap-1">
+                  <Input
+                    value={manualFormat}
+                    onChange={(e) => setManualFormat(e.target.value)}
+                    placeholder="Enter custom format..."
+                    className="h-7 text-xs font-mono flex-1"
+                  />
+                  <Popover open={emojiPopoverOpen} onOpenChange={setEmojiPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        title="Insert emoji"
+                      >
+                        <Smile className="w-3 h-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-2" side="bottom" align="end">
+                      <div className="grid grid-cols-5 gap-1">
+                        {commonEmoji.map(({ emoji, name }) => (
+                          <Button
+                            key={emoji}
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-sm"
+                            onClick={() => {
+                              setManualFormat(prev => prev + emoji);
+                              setEmojiPopoverOpen(false);
+                            }}
+                            title={name}
+                          >
+                            {emoji}
+                          </Button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        title="Format guide"
+                      >
+                        <HelpCircle className="w-3 h-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0" side="bottom" align="end">
+                      <div className="p-3 border-b">
+                        <h3 className="font-semibold text-sm">Excel Format Guide</h3>
+                      </div>
+                      <ScrollArea className="h-[300px]">
+                        <div className="p-3 space-y-3 text-xs">
+                          <div>
+                            <h4 className="font-medium mb-1">Basic Syntax</h4>
+                            <div className="bg-muted p-2 rounded font-mono text-[10px]">
+                              [condition]format;[condition]format;default
+                            </div>
+                            <p className="text-muted-foreground mt-1 text-[10px]">
+                              Up to 4 sections: positive; negative; zero; text
+                            </p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-medium mb-1">Conditions</h4>
+                            <div className="space-y-0.5 text-[10px]">
+                              <div><code className="bg-muted px-1">[&gt;100]</code> Greater than 100</div>
+                              <div><code className="bg-muted px-1">[&lt;0]</code> Less than 0</div>
+                              <div><code className="bg-muted px-1">[=50]</code> Equal to 50</div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="font-medium mb-1">Colors</h4>
+                            <div className="grid grid-cols-2 gap-1 text-[10px]">
+                              <div><code className="bg-muted px-1">[Red]</code> Red text</div>
+                              <div><code className="bg-muted px-1">[Green]</code> Green text</div>
+                              <div><code className="bg-muted px-1">[Blue]</code> Blue text</div>
+                              <div><code className="bg-muted px-1">[Yellow]</code> Yellow text</div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="font-medium mb-1">Number Formats</h4>
+                            <div className="space-y-0.5 text-[10px]">
+                              <div><code className="bg-muted px-1">0</code> Display digit or 0</div>
+                              <div><code className="bg-muted px-1">#</code> Display digit if present</div>
+                              <div><code className="bg-muted px-1">,</code> Thousand separator</div>
+                              <div><code className="bg-muted px-1">.</code> Decimal point</div>
+                              <div><code className="bg-muted px-1">%</code> Multiply by 100 and add %</div>
+                            </div>
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
-              
-              {/* Quick test values */}
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-muted-foreground">Quick:</span>
-                {['45', '75', '95', '0', '-10'].map(val => (
+            </div>
+
+            {/* Format Examples */}
+            <div className="mt-3">
+              <Label className="ribbon-section-header mb-2 block">FORMAT EXAMPLES</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {customFormats.slice(0, 6).map((format) => (
                   <Button
-                    key={val}
-                    variant="ghost"
+                    key={format.label}
+                    variant="outline"
                     size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={() => setPreviewValue(val)}
+                    className="h-auto px-2 py-1.5 text-xs justify-start"
+                    onClick={() => {
+                      setSelectedCustomFormat(format.label);
+                      setManualFormat(format.format);
+                    }}
                   >
-                    {val}
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="font-medium text-xs">{format.label}</span>
+                      <span className="text-[10px] text-muted-foreground">{format.example}</span>
+                    </div>
                   </Button>
                 ))}
               </div>
             </div>
-          </CustomSection>
+
+            {/* Quick test values for custom format */}
+            <div className="flex items-center gap-2 pt-2">
+              <Label className="text-xs text-muted-foreground">Quick test:</Label>
+              {['45', '75', '95', '0', '-10'].map(val => (
+                <Button
+                  key={val}
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setPreviewValue(val)}
+                >
+                  {val}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Preview section */}
+      <div className="w-48 border-l pl-3">
+        <Label className="ribbon-section-header mb-2 block">PREVIEW</Label>
+        <div className="space-y-3">
+          {/* Input for testing */}
+          <div>
+            <Label className="text-[10px] text-muted-foreground mb-1 block">Test Value</Label>
+            <Input
+              value={previewValue}
+              onChange={(e) => setPreviewValue(e.target.value)}
+              className="h-7 text-xs font-mono"
+              placeholder="Enter test value"
+            />
+          </div>
+
+          {/* Preview output */}
+          <div>
+            <Label className="text-[10px] text-muted-foreground mb-1 block">Formatted Output</Label>
+            <div className="p-2 border rounded bg-muted/20 min-h-[32px] flex items-center">
+              <span className="text-sm font-mono">
+                {(() => {
+                  try {
+                    const formatString = formatMode === 'custom' && manualFormat ? manualFormat : buildFormatString();
+                    const formatter = createExcelFormatter(formatString);
+                    return formatter({ value: previewValue } as any);
+                  } catch {
+                    return previewValue;
+                  }
+                })()}
+              </span>
+            </div>
+          </div>
+
+          {/* Format string display */}
+          <div>
+            <Label className="text-[10px] text-muted-foreground mb-1 block">Format String</Label>
+            <div className="p-2 border rounded bg-muted/10">
+              <code className="text-[10px] font-mono text-muted-foreground break-all">
+                {formatMode === 'custom' && manualFormat ? manualFormat : buildFormatString()}
+              </code>
+            </div>
+          </div>
+
+          {/* Active format type */}
+          <div className="text-[10px] text-muted-foreground pt-1 border-t">
+            Mode: <span className="font-medium text-foreground">{formatMode === 'standard' ? 'Standard' : 'Custom'}</span>
+            {formatMode === 'standard' && (
+              <>
+                <br />Type: <span className="font-medium text-foreground">{selectedFormat?.label}</span>
+              </>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

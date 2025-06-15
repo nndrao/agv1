@@ -19,7 +19,9 @@ import {
   ToggleLeft,
   List,
   FileText,
-  Check
+  Check,
+  RotateCcw,
+  Square
 } from 'lucide-react';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
 import type { TabContentProps } from '../../types';
@@ -160,40 +162,59 @@ export const EditorCustomContent: React.FC<TabContentProps> = ({ selectedColumns
     updateBulkProperty('cellEditorParams', newParams);
   };
 
+  const resetEditor = () => {
+    updateBulkProperty('cellEditor', undefined);
+    updateBulkProperty('cellEditorParams', undefined);
+    updateBulkProperty('singleClickEdit', false);
+    updateBulkProperty('cellEditorPopup', false);
+    setShowAdvanced(false);
+  };
+
   return (
-    <div className="ribbon-section-container">
-      {/* Prerequisites Notice */}
-      {!editableValue.value && !editableValue.isMixed && (
-        <div className="ribbon-notice-container">
-          <div className="ribbon-notice-content">
-            <div className="ribbon-notice-text">
+    <div className="flex h-full gap-4">
+      {/* Main controls section */}
+      <div className="flex-1">
+        {/* Prerequisites Notice */}
+        {!editableValue.value && !editableValue.isMixed && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/30 rounded-md p-2 mb-3">
+            <div className="text-xs text-amber-700 dark:text-amber-300">
               Enable editing in the General tab to configure cell editors
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Editor Type Selection & Options */}
-      <div className="ribbon-primary-controls">
-        {/* Editor Type Selector */}
-        <div className="ribbon-control-group">
-          <div className="ribbon-control-label">
-            <Edit3 className="ribbon-icon" />
-            <Label className="ribbon-section-header">TYPE</Label>
-          </div>
-          <div className="ribbon-control-content">
+        {/* Editor Type Selection */}
+        <div className="flex items-center justify-between mb-3">
+          <Label className="ribbon-section-header">EDITOR TYPE</Label>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={resetEditor}
+            className="h-6 px-2 text-xs"
+            disabled={!editableValue.value}
+          >
+            <RotateCcw className="w-3 h-3 mr-1" />
+            Reset
+          </Button>
+        </div>
+
+        {/* Main content - Grid layout */}
+        <div className="space-y-3">
+          {/* Editor Type Toggle Group */}
+          <div className="flex flex-wrap gap-1">
             <ToggleGroup 
               type="single" 
               value={getCurrentEditorType()}
               onValueChange={handleEditorTypeChange}
-              className="ribbon-toggle-group-compact"
+              disabled={!editableValue.value}
             >
               <ToggleGroupItem 
                 value="none" 
-                className="ribbon-toggle-group-item ribbon-toggle-square"
+                className="h-8 px-3 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-sm"
                 title="No Editor"
               >
-                <X className="ribbon-icon-xs" />
+                <X className="h-3 w-3 mr-1" />
+                None
               </ToggleGroupItem>
               {EDITOR_TYPES.map((editor) => {
                 const Icon = editor.icon;
@@ -201,428 +222,381 @@ export const EditorCustomContent: React.FC<TabContentProps> = ({ selectedColumns
                   <ToggleGroupItem 
                     key={editor.value} 
                     value={editor.value}
-                    className="ribbon-toggle-group-item ribbon-toggle-square"
-                    title={`${editor.label} - ${editor.description}`}
+                    className="h-8 px-3 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-sm"
+                    title={editor.description}
                   >
-                    <Icon className="ribbon-icon-xs" />
+                    <Icon className="h-3 w-3 mr-1" />
+                    {editor.label}
                   </ToggleGroupItem>
                 );
               })}
             </ToggleGroup>
           </div>
-        </div>
-        
-        <Separator orientation="vertical" className="ribbon-separator" />
-        
-        {/* Editor Options */}
-        <div className="ribbon-control-group">
-          <div className="ribbon-control-label">
-            <Label className="ribbon-section-header">OPTIONS</Label>
-          </div>
-          <div className="ribbon-control-content ribbon-options-grid">
-            <div className="ribbon-option-item">
-              <Label htmlFor="single-click">Single Click</Label>
+
+          {/* Editor Options */}
+          <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+            {/* Single Click Edit */}
+            <div className="flex items-center gap-2">
               <Switch 
                 id="single-click" 
-                className="ribbon-switch" 
                 checked={!singleClickEditValue.isMixed && singleClickEditValue.value === true}
                 onCheckedChange={(checked) => updateBulkProperty('singleClickEdit', checked)}
                 disabled={!editableValue.value}
+                className="h-4 w-7"
               />
+              <Label htmlFor="single-click" className="text-xs cursor-pointer">
+                Single Click Edit
+              </Label>
             </div>
-            <div className="ribbon-option-item">
-              <Label htmlFor="popup-editor">Popup</Label>
+
+            {/* Popup Editor */}
+            <div className="flex items-center gap-2">
               <Switch 
                 id="popup-editor" 
-                className="ribbon-switch" 
                 checked={!cellEditorPopupValue.isMixed && cellEditorPopupValue.value === true}
                 onCheckedChange={(checked) => updateBulkProperty('cellEditorPopup', checked)}
                 disabled={!editableValue.value}
+                className="h-4 w-7"
               />
-            </div>
-          </div>
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="ribbon-action-group">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="ribbon-action-button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            disabled={!editableValue.value || getCurrentEditorType() === 'none'}
-          >
-            <Settings className="ribbon-icon-xs" />
-            <span>CONFIGURE</span>
-            <ChevronDown className={`ribbon-icon-xs ribbon-chevron ${showAdvanced ? 'ribbon-chevron-expanded' : ''}`} />
-          </Button>
-        </div>
-      </div>
-      
-      {/* Editor Description & Quick Actions */}
-      {getCurrentEditorType() !== 'none' && getCurrentEditorType() !== '' && (
-        <div className="ribbon-editor-info">
-          <div className="ribbon-editor-description">
-            <div className="ribbon-editor-title">
-              {EDITOR_TYPES.find(e => e.value === getCurrentEditorType())?.label || 'Editor'}
-            </div>
-            <div className="ribbon-editor-subtitle">
-              {EDITOR_TYPES.find(e => e.value === getCurrentEditorType())?.description || 'Configure editor settings below'}
-            </div>
-          </div>
-          
-          {/* Quick Actions */}
-          <div className="ribbon-quick-actions">
-            {getCurrentEditorType() === 'agTextCellEditor' && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="ribbon-quick-action"
-                onClick={() => handleEditorParamChange('useFormatter', !currentEditorParams.useFormatter)}
-              >
-                <Check className={`ribbon-icon-xs ${currentEditorParams.useFormatter ? 'ribbon-check-active' : 'ribbon-check-inactive'}`} />
-                <span>Use Formatter</span>
-              </Button>
-            )}
-            
-            {(getCurrentEditorType() === 'agSelectCellEditor' || getCurrentEditorType() === 'agRichSelectCellEditor') && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="ribbon-quick-action"
-                onClick={() => setShowAdvanced(true)}
-              >
-                <List className="ribbon-icon-xs" />
-                <span>Edit Options</span>
-              </Button>
-            )}
-            
-            {getCurrentEditorType() === 'agNumberCellEditor' && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="ribbon-quick-action"
-                onClick={() => handleEditorParamChange('showStepperButtons', !currentEditorParams.showStepperButtons)}
-              >
-                <Check className={`ribbon-icon-xs ${currentEditorParams.showStepperButtons !== false ? 'ribbon-check-active' : 'ribbon-check-inactive'}`} />
-                <span>Stepper</span>
-              </Button>
-            )}
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="ribbon-quick-action ribbon-destructive-action"
-              onClick={() => handleEditorTypeChange('none')}
-            >
-              <X className="ribbon-icon-xs" />
-              <span>Disable</span>
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      {/* Advanced Configuration Panel */}
-      {showAdvanced && getCurrentEditorType() !== 'none' && getCurrentEditorType() !== '' && (
-        <div className="ribbon-config-panel">
-          <div className="ribbon-config-header">
-            <Label className="ribbon-config-title">EDITOR CONFIGURATION</Label>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="ribbon-config-close"
-              onClick={() => setShowAdvanced(false)}
-            >
-              <X className="ribbon-icon-xs" />
-            </Button>
-          </div>
-          
-          <div className="ribbon-config-content">
-            {/* Auto-detect Option */}
-            <div className="ribbon-config-section">
-              <Button
-                variant="outline"
-                size="sm"
-                className="ribbon-auto-detect-button"
-                onClick={() => {
-                  // Detect data type and apply recommended editor
-                  const dataTypes = new Set<string>();
-                  selectedColumns.forEach(colId => {
-                    const colDef = columnDefinitions.get(colId);
-                    const dataType = (colDef?.cellDataType || colDef?.type || 'text') as string;
-                    dataTypes.add(dataType);
-                  });
-                  
-                  if (dataTypes.size === 1) {
-                    const dataType = Array.from(dataTypes)[0];
-                    let recommendedEditor = 'agTextCellEditor';
-                    
-                    if (dataType === 'number' || dataType === 'numeric') {
-                      recommendedEditor = 'agNumberCellEditor';
-                    } else if (dataType === 'date' || dataType === 'dateString') {
-                      recommendedEditor = 'agDateCellEditor';
-                    } else if (dataType === 'boolean') {
-                      recommendedEditor = 'agCheckboxCellEditor';
-                    }
-                    
-                    handleEditorTypeChange(recommendedEditor);
-                  }
-                }}
-              >
-                <Sparkles className="ribbon-icon-xs" />
-                <span>Auto-detect Best Editor</span>
-              </Button>
-              <p className="ribbon-auto-detect-description">
-                Automatically selects the most appropriate editor based on your column data type
-              </p>
+              <Label htmlFor="popup-editor" className="text-xs cursor-pointer">
+                Popup Editor
+              </Label>
             </div>
 
-            {/* Text Editor Parameters */}
-            {getCurrentEditorType() === 'agTextCellEditor' && (
-              <div className="ribbon-config-section">
-                <div className="ribbon-field-group">
-                  <Label className="ribbon-field-label">Max Length</Label>
-                  <Input 
-                    type="number"
-                    className="ribbon-input"
-                    placeholder="No limit"
-                    value={currentEditorParams.maxLength || ''}
-                    onChange={(e) => handleEditorParamChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined)}
-                  />
-                </div>
+            {/* Configure Button */}
+            {getCurrentEditorType() !== 'none' && (
+              <div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 px-3 text-xs"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  disabled={!editableValue.value}
+                >
+                  <Settings className="h-3 w-3 mr-1" />
+                  Configure
+                  <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+                </Button>
               </div>
             )}
-            
-            {/* Large Text Editor Parameters */}
-            {getCurrentEditorType() === 'agLargeTextCellEditor' && (
-              <div className="ribbon-config-section">
-                <div className="ribbon-field-grid">
-                  <div className="ribbon-field-group">
-                    <Label className="ribbon-field-label">Rows</Label>
+          </div>
+
+          {/* Configuration Panel */}
+          {showAdvanced && getCurrentEditorType() !== 'none' && (
+            <div className="border rounded-md p-4 space-y-4 bg-muted/5">
+              {/* Text Editor Parameters */}
+              {getCurrentEditorType() === 'agTextCellEditor' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">MAX LENGTH</Label>
                     <Input 
                       type="number"
-                      className="ribbon-input"
+                      className="h-7 text-xs"
+                      placeholder="No limit"
+                      value={currentEditorParams.maxLength || ''}
+                      onChange={(e) => handleEditorParamChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      id="use-formatter"
+                      checked={currentEditorParams.useFormatter === true}
+                      onCheckedChange={(checked) => handleEditorParamChange('useFormatter', checked)}
+                      className="h-4 w-7"
+                    />
+                    <Label htmlFor="use-formatter" className="text-xs cursor-pointer">
+                      Use Formatter
+                    </Label>
+                  </div>
+                </div>
+              )}
+              
+              {/* Large Text Editor Parameters */}
+              {getCurrentEditorType() === 'agLargeTextCellEditor' && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">ROWS</Label>
+                    <Input 
+                      type="number"
+                      className="h-7 text-xs"
                       value={currentEditorParams.rows || 5}
                       onChange={(e) => handleEditorParamChange('rows', parseInt(e.target.value))}
                     />
                   </div>
-                  <div className="ribbon-field-group">
-                    <Label className="ribbon-field-label">Columns</Label>
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">COLUMNS</Label>
                     <Input 
                       type="number"
-                      className="ribbon-input"
+                      className="h-7 text-xs"
                       value={currentEditorParams.cols || 50}
                       onChange={(e) => handleEditorParamChange('cols', parseInt(e.target.value))}
                     />
                   </div>
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">MAX LENGTH</Label>
+                    <Input 
+                      type="number"
+                      className="h-7 text-xs"
+                      placeholder="No limit"
+                      value={currentEditorParams.maxLength || ''}
+                      onChange={(e) => handleEditorParamChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined)}
+                    />
+                  </div>
                 </div>
-                <div className="ribbon-field-group">
-                  <Label className="ribbon-field-label">Max Length</Label>
-                  <Input 
-                    type="number"
-                    className="ribbon-input"
-                    placeholder="No limit"
-                    value={currentEditorParams.maxLength || ''}
-                    onChange={(e) => handleEditorParamChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined)}
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Select Editor Parameters */}
-            {(getCurrentEditorType() === 'agSelectCellEditor' || getCurrentEditorType() === 'agRichSelectCellEditor') && (
-              <div className="ribbon-config-section">
-                <div className="ribbon-field-group">
-                  <div className="ribbon-field-header">
-                    <Label className="ribbon-field-label">Options (one per line)</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="ribbon-field-action"
-                      onClick={() => {
+              )}
+              
+              {/* Select Editor Parameters */}
+              {(getCurrentEditorType() === 'agSelectCellEditor' || getCurrentEditorType() === 'agRichSelectCellEditor') && (
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">OPTIONS (ONE PER LINE)</Label>
+                    <Textarea 
+                      className="min-h-[80px] text-xs font-mono"
+                      value={selectValuesText}
+                      onChange={(e) => setSelectValuesText(e.target.value)}
+                      onBlur={() => {
                         const values = selectValuesText.split('\n').filter(v => v.trim());
                         setSelectValues(values);
                         handleEditorParamChange('values', values);
                       }}
-                    >
-                      Apply
-                    </Button>
+                      placeholder="Enter options, one per line"
+                    />
                   </div>
-                  <Textarea 
-                    className="ribbon-textarea"
-                    value={selectValuesText}
-                    onChange={(e) => setSelectValuesText(e.target.value)}
-                    onBlur={() => {
-                      const values = selectValuesText.split('\n').filter(v => v.trim());
-                      setSelectValues(values);
-                      handleEditorParamChange('values', values);
-                    }}
-                    placeholder="Enter options, one per line"
-                  />
-                </div>
-                
-                {getCurrentEditorType() === 'agRichSelectCellEditor' && (
-                  <>
-                    <div className="ribbon-field-grid">
-                      <div className="ribbon-field-group">
-                        <Label className="ribbon-field-label">Search Type</Label>
+                  
+                  {getCurrentEditorType() === 'agRichSelectCellEditor' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="ribbon-section-header">SEARCH TYPE</Label>
                         <Select
                           value={currentEditorParams.searchType || 'fuzzy'}
                           onValueChange={(value) => handleEditorParamChange('searchType', value)}
                         >
-                          <SelectTrigger className="ribbon-select">
+                          <SelectTrigger className="h-7 text-xs">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-[100]">
+                          <SelectContent>
                             <SelectItem value="fuzzy">Fuzzy</SelectItem>
                             <SelectItem value="text">Text</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="ribbon-field-group">
-                        <Label className="ribbon-field-label">Cell Height</Label>
+                      <div className="space-y-1">
+                        <Label className="ribbon-section-header">CELL HEIGHT</Label>
                         <Input 
                           type="number"
-                          className="ribbon-input"
+                          className="h-7 text-xs"
                           value={currentEditorParams.cellHeight || 30}
                           onChange={(e) => handleEditorParamChange('cellHeight', parseInt(e.target.value))}
                         />
                       </div>
-                    </div>
-                    <div className="ribbon-switches-row">
-                      <div className="ribbon-switch-item">
+                      <div className="flex items-center gap-2">
                         <Switch 
-                          className="ribbon-switch" 
                           checked={currentEditorParams.allowTyping !== false}
                           onCheckedChange={(checked) => handleEditorParamChange('allowTyping', checked)}
+                          className="h-4 w-7"
                         />
-                        <Label className="ribbon-switch-label">Allow Typing</Label>
+                        <Label className="text-xs cursor-pointer">Allow Typing</Label>
                       </div>
-                      <div className="ribbon-switch-item">
+                      <div className="flex items-center gap-2">
                         <Switch 
-                          className="ribbon-switch" 
                           checked={currentEditorParams.filterList !== false}
                           onCheckedChange={(checked) => handleEditorParamChange('filterList', checked)}
+                          className="h-4 w-7"
                         />
-                        <Label className="ribbon-switch-label">Filter List</Label>
+                        <Label className="text-xs cursor-pointer">Filter List</Label>
                       </div>
                     </div>
-                  </>
-                )}
-              </div>
-            )}
-            
-            {/* Number Editor Parameters */}
-            {getCurrentEditorType() === 'agNumberCellEditor' && (
-              <div className="ribbon-config-section">
-                <div className="ribbon-field-grid">
-                  <div className="ribbon-field-group">
-                    <Label className="ribbon-field-label">Min Value</Label>
-                    <Input 
-                      type="number"
-                      className="ribbon-input"
-                      placeholder="No minimum"
-                      value={currentEditorParams.min ?? ''}
-                      onChange={(e) => handleEditorParamChange('min', e.target.value ? parseFloat(e.target.value) : undefined)}
-                    />
+                  )}
+                </div>
+              )}
+              
+              {/* Number Editor Parameters */}
+              {getCurrentEditorType() === 'agNumberCellEditor' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="ribbon-section-header">MIN VALUE</Label>
+                      <Input 
+                        type="number"
+                        className="h-7 text-xs"
+                        placeholder="No minimum"
+                        value={currentEditorParams.min ?? ''}
+                        onChange={(e) => handleEditorParamChange('min', e.target.value ? parseFloat(e.target.value) : undefined)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="ribbon-section-header">MAX VALUE</Label>
+                      <Input 
+                        type="number"
+                        className="h-7 text-xs"
+                        placeholder="No maximum"
+                        value={currentEditorParams.max ?? ''}
+                        onChange={(e) => handleEditorParamChange('max', e.target.value ? parseFloat(e.target.value) : undefined)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="ribbon-section-header">DECIMAL PLACES</Label>
+                      <Input 
+                        type="number"
+                        className="h-7 text-xs"
+                        placeholder="Any"
+                        value={currentEditorParams.precision ?? ''}
+                        onChange={(e) => handleEditorParamChange('precision', e.target.value ? parseInt(e.target.value) : undefined)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="ribbon-section-header">STEP</Label>
+                      <Input 
+                        type="number"
+                        className="h-7 text-xs"
+                        value={currentEditorParams.step || 1}
+                        step="any"
+                        onChange={(e) => handleEditorParamChange('step', parseFloat(e.target.value))}
+                      />
+                    </div>
                   </div>
-                  <div className="ribbon-field-group">
-                    <Label className="ribbon-field-label">Max Value</Label>
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      checked={currentEditorParams.showStepperButtons !== false}
+                      onCheckedChange={(checked) => handleEditorParamChange('showStepperButtons', checked)}
+                      className="h-4 w-7"
+                    />
+                    <Label className="text-xs cursor-pointer">Show Stepper Buttons</Label>
+                  </div>
+                </div>
+              )}
+              
+              {/* Date Editor Parameters */}
+              {getCurrentEditorType() === 'agDateCellEditor' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="ribbon-section-header">MIN DATE</Label>
+                      <Input 
+                        type="date"
+                        className="h-7 text-xs"
+                        value={currentEditorParams.min || ''}
+                        onChange={(e) => handleEditorParamChange('min', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="ribbon-section-header">MAX DATE</Label>
+                      <Input 
+                        type="date"
+                        className="h-7 text-xs"
+                        value={currentEditorParams.max || ''}
+                        onChange={(e) => handleEditorParamChange('max', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">DATE FORMAT</Label>
                     <Input 
-                      type="number"
-                      className="ribbon-input"
-                      placeholder="No maximum"
-                      value={currentEditorParams.max ?? ''}
-                      onChange={(e) => handleEditorParamChange('max', e.target.value ? parseFloat(e.target.value) : undefined)}
+                      className="h-7 text-xs"
+                      placeholder="e.g., YYYY-MM-DD"
+                      value={currentEditorParams.format || ''}
+                      onChange={(e) => handleEditorParamChange('format', e.target.value)}
                     />
                   </div>
                 </div>
-                <div className="ribbon-field-grid">
-                  <div className="ribbon-field-group">
-                    <Label className="ribbon-field-label">Decimal Places</Label>
+              )}
+              
+              {/* Checkbox Editor Parameters */}
+              {getCurrentEditorType() === 'agCheckboxCellEditor' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">CHECKED VALUE</Label>
                     <Input 
-                      type="number"
-                      className="ribbon-input"
-                      placeholder="Any"
-                      value={currentEditorParams.precision ?? ''}
-                      onChange={(e) => handleEditorParamChange('precision', e.target.value ? parseInt(e.target.value) : undefined)}
-                    />
-                  </div>
-                  <div className="ribbon-field-group">
-                    <Label className="ribbon-field-label">Step</Label>
-                    <Input 
-                      type="number"
-                      className="ribbon-input"
-                      value={currentEditorParams.step || 1}
-                      step="any"
-                      onChange={(e) => handleEditorParamChange('step', parseFloat(e.target.value))}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Date Editor Parameters */}
-            {getCurrentEditorType() === 'agDateCellEditor' && (
-              <div className="ribbon-config-section">
-                <div className="ribbon-field-group">
-                  <Label className="ribbon-field-label">Date Format</Label>
-                  <Input 
-                    className="ribbon-input"
-                    placeholder="e.g., YYYY-MM-DD"
-                    value={currentEditorParams.format || ''}
-                    onChange={(e) => handleEditorParamChange('format', e.target.value)}
-                  />
-                </div>
-                <div className="ribbon-field-grid">
-                  <div className="ribbon-field-group">
-                    <Label className="ribbon-field-label">Min Date</Label>
-                    <Input 
-                      type="date"
-                      className="ribbon-input"
-                      value={currentEditorParams.min || ''}
-                      onChange={(e) => handleEditorParamChange('min', e.target.value)}
-                    />
-                  </div>
-                  <div className="ribbon-field-group">
-                    <Label className="ribbon-field-label">Max Date</Label>
-                    <Input 
-                      type="date"
-                      className="ribbon-input"
-                      value={currentEditorParams.max || ''}
-                      onChange={(e) => handleEditorParamChange('max', e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Checkbox Editor Parameters */}
-            {getCurrentEditorType() === 'agCheckboxCellEditor' && (
-              <div className="ribbon-config-section">
-                <div className="ribbon-field-grid">
-                  <div className="ribbon-field-group">
-                    <Label className="ribbon-field-label">Checked Value</Label>
-                    <Input 
-                      className="ribbon-input"
+                      className="h-7 text-xs"
                       value={currentEditorParams.checkedValue?.toString() || 'true'}
                       onChange={(e) => handleEditorParamChange('checkedValue', e.target.value)}
                     />
                   </div>
-                  <div className="ribbon-field-group">
-                    <Label className="ribbon-field-label">Unchecked Value</Label>
+                  <div className="space-y-1">
+                    <Label className="ribbon-section-header">UNCHECKED VALUE</Label>
                     <Input 
-                      className="ribbon-input"
+                      className="h-7 text-xs"
                       value={currentEditorParams.uncheckedValue?.toString() || 'false'}
                       onChange={(e) => handleEditorParamChange('uncheckedValue', e.target.value)}
                     />
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* Preview section */}
+      <div className="w-48 border-l pl-3">
+        <Label className="ribbon-section-header mb-2 block">EDITOR INFO</Label>
+        <div className="space-y-3">
+          {/* Current Editor */}
+          <div>
+            <div className="text-[10px] text-muted-foreground mb-1">Current Editor</div>
+            <div className={`p-2 border rounded min-h-[32px] flex items-center ${
+              getCurrentEditorType() !== 'none' && getCurrentEditorType() !== '' 
+                ? 'bg-primary/10 border-primary/30' 
+                : 'bg-muted/20'
+            }`}>
+              {getCurrentEditorType() === 'none' ? (
+                <span className="text-xs text-muted-foreground">No editor configured</span>
+              ) : getCurrentEditorType() === '' ? (
+                <span className="text-xs text-muted-foreground">Mixed values</span>
+              ) : (
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const editor = EDITOR_TYPES.find(e => e.value === getCurrentEditorType());
+                    if (editor) {
+                      const Icon = editor.icon;
+                      return (
+                        <>
+                          <Icon className="h-3 w-3 text-primary" />
+                          <span className="text-xs font-semibold text-primary">{editor.label}</span>
+                        </>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Editor Description */}
+          {getCurrentEditorType() !== 'none' && getCurrentEditorType() !== '' && (
+            <div>
+              <div className="text-[10px] text-muted-foreground mb-1">Description</div>
+              <div className="text-xs text-muted-foreground">
+                {EDITOR_TYPES.find(e => e.value === getCurrentEditorType())?.description}
+              </div>
+            </div>
+          )}
+
+          {/* Editor Settings Summary */}
+          {getCurrentEditorType() !== 'none' && getCurrentEditorType() !== '' && (
+            <div>
+              <div className="text-[10px] text-muted-foreground mb-1">Settings</div>
+              <div className="space-y-1 text-[10px]">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Single Click:</span>
+                  <span className="font-medium">{singleClickEditValue.value ? 'Yes' : 'No'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Popup:</span>
+                  <span className="font-medium">{cellEditorPopupValue.value ? 'Yes' : 'No'}</span>
+                </div>
+                {currentEditorParams && Object.keys(currentEditorParams).length > 0 && (
+                  <div className="pt-1 border-t">
+                    <span className="text-muted-foreground">Configured</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
     </div>
   );
 };
