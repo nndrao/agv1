@@ -675,7 +675,7 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
   
   const parsedFormat = FormatCache.get(formatString);
   
-  return (params: { value: unknown }) => {
+  const styleFunction = (params: { value: unknown }) => {
     const value = params.value;
     const isDarkMode = document.documentElement.classList.contains('dark');
     
@@ -721,6 +721,27 @@ export function createCellStyleFunction(formatString: string, baseStyle?: React.
     // Return base styles only
     return baseStyle && Object.keys(baseStyle).length > 0 ? { ...baseStyle } : undefined;
   };
+  
+  // CRITICAL: Attach metadata to the function for serialization
+  if (formatString) {
+    Object.defineProperty(styleFunction, '__formatString', { 
+      value: formatString, 
+      writable: false,
+      enumerable: false,
+      configurable: true
+    });
+  }
+  
+  if (baseStyle) {
+    Object.defineProperty(styleFunction, '__baseStyle', { 
+      value: baseStyle, 
+      writable: false,
+      enumerable: false,
+      configurable: true
+    });
+  }
+  
+  return styleFunction;
 }
 
 // Utility functions

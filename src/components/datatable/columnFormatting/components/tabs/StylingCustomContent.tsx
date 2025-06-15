@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Type,
   Palette,
@@ -38,6 +39,7 @@ import {
   AlignVerticalJustifyEnd
 } from 'lucide-react';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
+import { createCellStyleFunction } from '../../../utils/formatters';
 import { cn } from '@/lib/utils';
 import '../../custom-styles.css';
 
@@ -155,7 +157,9 @@ interface StylingCustomContentProps {
 
 export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ selectedColumns }) => {
   const { 
-    updateBulkProperty
+    updateBulkProperty,
+    columnDefinitions,
+    pendingChanges
   } = useColumnFormattingStore();
 
   const [activeSubTab, setActiveSubTab] = useState<'cell' | 'header'>('cell');
@@ -172,6 +176,8 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
   // Colors state
   const [textColor, setTextColor] = useState('');
   const [backgroundColor, setBackgroundColor] = useState('');
+  const [applyTextColor, setApplyTextColor] = useState(true);
+  const [applyBackgroundColor, setApplyBackgroundColor] = useState(true);
   
   // Layout state
   const [wrapText, setWrapText] = useState(false);
@@ -182,6 +188,7 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
   const [borderStyle, setBorderStyle] = useState('solid');
   const [borderColor, setBorderColor] = useState('#CCCCCC');
   const [borderSides, setBorderSides] = useState('all');
+  const [applyBorder, setApplyBorder] = useState(true);
 
   // Font size options
   const fontSizeOptions = [
@@ -232,29 +239,97 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
       styleObject.textDecoration = textDecoration.join(' ');
     }
     
-    // Only add color properties if they're explicitly set
-    if (textColor) {
-      styleObject.color = textColor;
+    // Handle color properties based on checkbox state
+    if (applyTextColor) {
+      if (textColor) {
+        styleObject.color = textColor;
+      }
+    } else {
+      // Explicitly set to undefined to remove existing color
+      styleObject.color = undefined;
     }
-    if (backgroundColor) {
-      styleObject.backgroundColor = backgroundColor;
+    
+    if (applyBackgroundColor) {
+      if (backgroundColor) {
+        styleObject.backgroundColor = backgroundColor;
+      }
+    } else {
+      // Explicitly set to undefined to remove existing background
+      styleObject.backgroundColor = undefined;
     }
 
-    // Add borders
-    if (borderSides === 'none') {
-      styleObject.border = 'none';
-    } else if (borderSides === 'all') {
-      styleObject.border = `${borderWidth}px ${borderStyle} ${borderColor}`;
+    // Handle borders based on checkbox state
+    if (applyBorder) {
+      if (borderSides === 'none') {
+        styleObject.border = 'none';
+      } else if (borderSides === 'all') {
+        styleObject.border = `${borderWidth}px ${borderStyle} ${borderColor}`;
+      } else {
+        styleObject.borderTop = borderSides === 'top' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
+        styleObject.borderRight = borderSides === 'right' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
+        styleObject.borderBottom = borderSides === 'bottom' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
+        styleObject.borderLeft = borderSides === 'left' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
+      }
     } else {
-      styleObject.borderTop = borderSides === 'top' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
-      styleObject.borderRight = borderSides === 'right' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
-      styleObject.borderBottom = borderSides === 'bottom' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
-      styleObject.borderLeft = borderSides === 'left' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none';
+      // Explicitly set all border properties to undefined to remove existing borders
+      styleObject.border = undefined;
+      styleObject.borderTop = undefined;
+      styleObject.borderRight = undefined;
+      styleObject.borderBottom = undefined;
+      styleObject.borderLeft = undefined;
     }
 
     // Apply to cell or header based on active tab
     if (activeSubTab === 'cell') {
-      updateBulkProperty('cellStyle', styleObject);
+      // Check if any selected column has conditional formatting
+      let hasConditionalFormatting = false;
+      let existingFormatString: string | undefined;
+      
+      selectedColumns.forEach(colId => {
+        const colDef = columnDefinitions.get(colId);
+        const changes = pendingChanges.get(colId) || {};
+        const currentCellStyle = changes.cellStyle !== undefined ? changes.cellStyle : colDef?.cellStyle;
+        
+        if (currentCellStyle && typeof currentCellStyle === 'function') {
+          const formatString = (currentCellStyle as any).__formatString;
+          if (formatString) {
+            hasConditionalFormatting = true;
+            existingFormatString = formatString;
+          }
+        }
+      });
+      
+      if (hasConditionalFormatting && existingFormatString) {
+        // Create a merged style function that preserves conditional formatting
+        const cellStyleFn = (params: { value: unknown }) => {
+          // Create conditional style function with empty base (conditional styles only)
+          const conditionalStyleFn = createCellStyleFunction(existingFormatString, {});
+          const conditionalStyles = conditionalStyleFn(params) || {};
+          
+          // Merge base styles with conditional styles (conditional takes precedence)
+          const mergedStyles = { ...styleObject, ...conditionalStyles };
+          return Object.keys(mergedStyles).length > 0 ? mergedStyles : undefined;
+        };
+        
+        // Attach metadata for serialization
+        Object.defineProperty(cellStyleFn, '__formatString', {
+          value: existingFormatString,
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(cellStyleFn, '__baseStyle', {
+          value: styleObject,
+          writable: false,
+          enumerable: false,
+          configurable: true
+        });
+        
+        updateBulkProperty('cellStyle', cellStyleFn);
+      } else {
+        // No conditional formatting, apply static styles
+        updateBulkProperty('cellStyle', styleObject);
+      }
     } else {
       // Use callback function to apply styles only to header, not floating filter
       const headerStyleFunction = (params: any) => {
@@ -278,8 +353,8 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
     }
   }, [
     fontFamily, fontSize, fontWeight, fontStyle, textDecoration, textAlign, verticalAlign,
-    textColor, backgroundColor, wrapText, autoHeight,
-    borderWidth, borderStyle, borderColor, borderSides,
+    textColor, backgroundColor, applyTextColor, applyBackgroundColor, wrapText, autoHeight,
+    borderWidth, borderStyle, borderColor, borderSides, applyBorder,
     activeSubTab
   ]);
 
@@ -293,12 +368,15 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
     setVerticalAlign('middle');
     setTextColor('');
     setBackgroundColor('');
+    setApplyTextColor(true);
+    setApplyBackgroundColor(true);
     setWrapText(false);
     setAutoHeight(false);
     setBorderWidth('1');
     setBorderStyle('solid');
     setBorderColor('#CCCCCC');
     setBorderSides('all');
+    setApplyBorder(true);
   };
 
   return (
@@ -441,19 +519,35 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
 
             {/* Text Color */}
             <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Label className="ribbon-section-header flex-1">TEXT COLOR</Label>
+                <Checkbox 
+                  checked={applyTextColor}
+                  onCheckedChange={setApplyTextColor}
+                  className="h-4 w-4"
+                />
+              </div>
               <ColorPicker 
                 value={textColor}
                 onChange={setTextColor}
-                label="TEXT COLOR"
+                label=""
               />
             </div>
 
             {/* Background Color */}
             <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Label className="ribbon-section-header flex-1">BACKGROUND</Label>
+                <Checkbox 
+                  checked={applyBackgroundColor}
+                  onCheckedChange={setApplyBackgroundColor}
+                  className="h-4 w-4"
+                />
+              </div>
               <ColorPicker 
                 value={backgroundColor}
                 onChange={setBackgroundColor}
-                label="BACKGROUND"
+                label=""
               />
             </div>
 
@@ -479,7 +573,14 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
             {/* Row 3: Border controls */}
             {/* Border Sides */}
             <div>
-              <Label className="ribbon-section-header">BORDER</Label>
+              <div className="flex items-center gap-2 mb-1">
+                <Label className="ribbon-section-header flex-1">BORDER</Label>
+                <Checkbox 
+                  checked={applyBorder}
+                  onCheckedChange={setApplyBorder}
+                  className="h-4 w-4"
+                />
+              </div>
               <Select value={borderSides} onValueChange={setBorderSides}>
                 <SelectTrigger className="h-6 w-full text-xs">
                   <SelectValue />
@@ -500,6 +601,7 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
                   <SelectItem value="solid">Solid</SelectItem>
                   <SelectItem value="dashed">Dashed</SelectItem>
                   <SelectItem value="dotted">Dotted</SelectItem>
@@ -600,12 +702,12 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
                 fontWeight: activeSubTab === 'cell' ? fontWeight : 'normal',
                 fontStyle: activeSubTab === 'cell' ? fontStyle : 'normal',
                 textDecoration: activeSubTab === 'cell' && textDecoration.length > 0 ? textDecoration.join(' ') : 'none',
-                color: activeSubTab === 'cell' && textColor ? textColor : 'inherit',
-                backgroundColor: activeSubTab === 'cell' && backgroundColor ? backgroundColor : 'transparent',
+                color: activeSubTab === 'cell' && textColor && applyTextColor ? textColor : 'inherit',
+                backgroundColor: activeSubTab === 'cell' && backgroundColor && applyBackgroundColor ? backgroundColor : 'transparent',
                 textAlign: activeSubTab === 'cell' ? textAlign as any : 'left',
                 verticalAlign: activeSubTab === 'cell' ? verticalAlign as any : 'middle',
                 whiteSpace: activeSubTab === 'cell' && wrapText ? 'normal' : 'nowrap',
-                ...(activeSubTab === 'cell' ? 
+                ...(activeSubTab === 'cell' && applyBorder ? 
                   (borderSides === 'none' ? { border: 'none' } : 
                     borderSides === 'all' ? { border: `${borderWidth}px ${borderStyle} ${borderColor}` } : {
                       borderTop: borderSides === 'top' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
@@ -636,11 +738,11 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
                 fontWeight: activeSubTab === 'header' ? fontWeight : '600',
                 fontStyle: activeSubTab === 'header' ? fontStyle : 'normal',
                 textDecoration: activeSubTab === 'header' && textDecoration.length > 0 ? textDecoration.join(' ') : 'none',
-                color: activeSubTab === 'header' && textColor ? textColor : 'inherit',
-                backgroundColor: activeSubTab === 'header' && backgroundColor ? backgroundColor : 'transparent',
+                color: activeSubTab === 'header' && textColor && applyTextColor ? textColor : 'inherit',
+                backgroundColor: activeSubTab === 'header' && backgroundColor && applyBackgroundColor ? backgroundColor : 'transparent',
                 textAlign: activeSubTab === 'header' ? textAlign as any : 'left',
                 verticalAlign: activeSubTab === 'header' ? verticalAlign as any : 'middle',
-                ...(activeSubTab === 'header' ? 
+                ...(activeSubTab === 'header' && applyBorder ? 
                   (borderSides === 'none' ? { border: 'none' } : 
                     borderSides === 'all' ? { border: `${borderWidth}px ${borderStyle} ${borderColor}` } : {
                       borderTop: borderSides === 'top' ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
