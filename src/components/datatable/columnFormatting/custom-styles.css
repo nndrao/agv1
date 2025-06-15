@@ -101,11 +101,16 @@
 
 /* Alignment controls - Icon-only buttons */
 .alignment-toggle-item {
-  @apply h-[26px] w-[26px] p-0;
+  @apply h-6 w-8 p-0;
+  @apply transition-all duration-150;
+  @apply border border-border/40;
+  @apply hover:border-border/60 hover:bg-muted/50;
 }
 
 .alignment-toggle-item[data-state="on"] {
   @apply bg-primary text-primary-foreground;
+  @apply shadow-sm border-primary;
+  @apply hover:bg-primary/90;
 }
 
 /* Tab buttons - Clean tab design */
@@ -1113,11 +1118,6 @@ input[type="color"].ribbon-color {
   height: 16px !important;
 }
 
-/* Alignment toggles compact */
-.alignment-toggle-item {
-  height: 24px !important;
-  width: 24px !important;
-}
 
 /* Border style and other selects - consistent height */
 .floating-ribbon select,
@@ -1198,3 +1198,117 @@ input[type="color"].ribbon-color {
   height: 24px !important;
   padding: 0 8px !important;
 }
+
+/* AG-Grid Vertical Alignment Classes */
+.cell-vertical-align-middle {
+  display: flex !important;
+  align-items: center;
+}
+
+.cell-vertical-align-top {
+  display: flex !important;
+  align-items: flex-start;
+}
+
+.cell-vertical-align-bottom {
+  display: flex !important;
+  align-items: flex-end;
+}
+
+/* AG-Grid Horizontal Alignment Classes */
+.cell-horizontal-align-left {
+  display: flex !important;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.cell-horizontal-align-center {
+  display: flex !important;
+  justify-content: center;
+  text-align: center;
+}
+
+.cell-horizontal-align-right {
+  display: flex !important;
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.cell-horizontal-align-justify {
+  display: flex !important;
+  justify-content: space-between;
+  text-align: justify;
+}
+
+/* Combined alignment classes for both directions */
+.cell-align-top-left {
+  display: flex !important;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.cell-align-top-center {
+  display: flex !important;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.cell-align-top-right {
+  display: flex !important;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.cell-align-middle-left {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.cell-align-middle-center {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell-align-middle-right {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.cell-align-bottom-left {
+  display: flex !important;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.cell-align-bottom-center {
+  display: flex !important;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.cell-align-bottom-right {
+  display: flex !important;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+/* Base styles for all headers with alignment classes */
+.ag-header-cell-label {
+  display: flex !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Horizontal alignments */
+.header-h-left .ag-header-cell-label { justify-content: flex-start !important; }
+.header-h-center .ag-header-cell-label { justify-content: center !important; }
+.header-h-right .ag-header-cell-label { justify-content: flex-end !important; }
+.header-h-justify .ag-header-cell-label { justify-content: space-between !important; }
+
+/* Vertical alignments */
+.header-v-top .ag-header-cell-label { align-items: flex-start !important; }
+.header-v-middle .ag-header-cell-label { align-items: center !important; }
+.header-v-bottom .ag-header-cell-label { align-items: flex-end !important; }

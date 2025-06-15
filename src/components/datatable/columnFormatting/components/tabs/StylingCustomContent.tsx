@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Type,
   Palette,
@@ -229,8 +228,6 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
       fontSize: `${fontSize}px`,
       fontWeight,
       fontStyle,
-      textAlign,
-      verticalAlign,
       whiteSpace: wrapText ? 'normal' : 'nowrap',
     };
     
@@ -281,6 +278,21 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
 
     // Apply to cell or header based on active tab
     if (activeSubTab === 'cell') {
+      // Apply combined alignment using CSS class
+      let cellClass = '';
+      
+      // Create combined alignment class based on both vertical and horizontal alignment
+      if (verticalAlign && textAlign) {
+        cellClass = `cell-align-${verticalAlign}-${textAlign}`;
+      } else if (verticalAlign) {
+        cellClass = `cell-vertical-align-${verticalAlign}`;
+      } else if (textAlign) {
+        cellClass = `cell-horizontal-align-${textAlign}`;
+      }
+      
+      // Always update cellClass property (even if empty to clear previous alignment)
+      updateBulkProperty('cellClass', cellClass || undefined);
+      
       // Check if any selected column has conditional formatting
       let hasConditionalFormatting = false;
       let existingFormatString: string | undefined;
@@ -343,6 +355,35 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
       // Store the base style in the function for potential future reference
       (headerStyleFunction as any).__baseStyle = styleObject;
       updateBulkProperty('headerStyle', headerStyleFunction);
+      
+      // Apply separate horizontal and vertical alignment classes for header
+      const headerClasses = [];
+      
+      // Add horizontal alignment class
+      if (textAlign === 'left') {
+        headerClasses.push('header-h-left');
+      } else if (textAlign === 'center') {
+        headerClasses.push('header-h-center');
+      } else if (textAlign === 'right') {
+        headerClasses.push('header-h-right');
+      } else if (textAlign === 'justify') {
+        headerClasses.push('header-h-justify');
+      }
+      
+      // Add vertical alignment class
+      if (verticalAlign === 'top') {
+        headerClasses.push('header-v-top');
+      } else if (verticalAlign === 'middle') {
+        headerClasses.push('header-v-middle');
+      } else if (verticalAlign === 'bottom') {
+        headerClasses.push('header-v-bottom');
+      }
+      
+      // Join classes with space
+      const headerClass = headerClasses.join(' ');
+      
+      // Always update headerClass property (even if empty to clear previous alignment)
+      updateBulkProperty('headerClass', headerClass || undefined);
     }
   };
 
@@ -465,16 +506,16 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
             <div>
               <Label className="ribbon-section-header">ALIGN</Label>
               <ToggleGroup type="single" value={textAlign} onValueChange={setTextAlign} className="h-6 w-full">
-                <ToggleGroupItem value="left" className="h-6 flex-1" title="Align Left">
+                <ToggleGroupItem value="left" className="alignment-toggle-item" title="Align Left">
                   <AlignLeft className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="center" className="h-6 flex-1" title="Align Center">
+                <ToggleGroupItem value="center" className="alignment-toggle-item" title="Align Center">
                   <AlignCenter className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="right" className="h-6 flex-1" title="Align Right">
+                <ToggleGroupItem value="right" className="alignment-toggle-item" title="Align Right">
                   <AlignRight className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="justify" className="h-6 flex-1" title="Justify">
+                <ToggleGroupItem value="justify" className="alignment-toggle-item" title="Justify">
                   <AlignJustify className="h-4 w-4" />
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -502,16 +543,16 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
                 // Handle decorations
                 setTextDecoration(values.filter(v => ['underline', 'line-through'].includes(v)));
               }} className="h-6 w-full">
-                <ToggleGroupItem value="bold" className="h-6 flex-1">
+                <ToggleGroupItem value="bold" className="alignment-toggle-item" title="Bold">
                   <Bold className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="italic" className="h-6 flex-1">
+                <ToggleGroupItem value="italic" className="alignment-toggle-item" title="Italic">
                   <Italic className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="underline" className="h-6 flex-1">
+                <ToggleGroupItem value="underline" className="alignment-toggle-item" title="Underline">
                   <Underline className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="line-through" className="h-6 flex-1">
+                <ToggleGroupItem value="line-through" className="alignment-toggle-item" title="Strikethrough">
                   <Strikethrough className="h-4 w-4" />
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -521,10 +562,10 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Label className="ribbon-section-header flex-1">TEXT COLOR</Label>
-                <Checkbox 
+                <Switch 
                   checked={applyTextColor}
                   onCheckedChange={setApplyTextColor}
-                  className="h-4 w-4"
+                  className="h-4 w-7"
                 />
               </div>
               <ColorPicker 
@@ -538,10 +579,10 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Label className="ribbon-section-header flex-1">BACKGROUND</Label>
-                <Checkbox 
+                <Switch 
                   checked={applyBackgroundColor}
                   onCheckedChange={setApplyBackgroundColor}
-                  className="h-4 w-4"
+                  className="h-4 w-7"
                 />
               </div>
               <ColorPicker 
@@ -555,16 +596,16 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
             <div>
               <Label className="ribbon-section-header">V-ALIGN</Label>
               <ToggleGroup type="single" value={verticalAlign} onValueChange={setVerticalAlign} className="h-6 w-full">
-                <ToggleGroupItem value="top" className="h-6 flex-1" title="Align Top">
+                <ToggleGroupItem value="top" className="alignment-toggle-item" title="Align Top">
                   <AlignVerticalJustifyStart className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="middle" className="h-6 flex-1" title="Align Middle">
+                <ToggleGroupItem value="middle" className="alignment-toggle-item" title="Align Middle">
                   <AlignVerticalJustifyCenter className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="bottom" className="h-6 flex-1" title="Align Bottom">
+                <ToggleGroupItem value="bottom" className="alignment-toggle-item" title="Align Bottom">
                   <AlignVerticalJustifyEnd className="h-4 w-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="stretch" className="h-6 flex-1" title="Stretch">
+                <ToggleGroupItem value="stretch" className="alignment-toggle-item" title="Stretch">
                   <AlignVerticalSpaceAround className="h-4 w-4" />
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -575,10 +616,10 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Label className="ribbon-section-header flex-1">BORDER</Label>
-                <Checkbox 
+                <Switch 
                   checked={applyBorder}
                   onCheckedChange={setApplyBorder}
-                  className="h-4 w-4"
+                  className="h-4 w-7"
                 />
               </div>
               <Select value={borderSides} onValueChange={setBorderSides}>
@@ -697,6 +738,12 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
                   verticalAlign === 'bottom' ? 'flex-end' :
                   verticalAlign === 'stretch' ? 'stretch' : 'center'
                 ) : 'center',
+                justifyContent: activeSubTab === 'cell' ? (
+                  textAlign === 'left' ? 'flex-start' :
+                  textAlign === 'right' ? 'flex-end' :
+                  textAlign === 'center' ? 'center' :
+                  textAlign === 'justify' ? 'space-between' : 'flex-start'
+                ) : 'flex-start',
                 fontFamily,
                 fontSize: `${fontSize}px`,
                 fontWeight: activeSubTab === 'cell' ? fontWeight : 'normal',
@@ -704,8 +751,6 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
                 textDecoration: activeSubTab === 'cell' && textDecoration.length > 0 ? textDecoration.join(' ') : 'none',
                 color: activeSubTab === 'cell' && textColor && applyTextColor ? textColor : 'inherit',
                 backgroundColor: activeSubTab === 'cell' && backgroundColor && applyBackgroundColor ? backgroundColor : 'transparent',
-                textAlign: activeSubTab === 'cell' ? textAlign as any : 'left',
-                verticalAlign: activeSubTab === 'cell' ? verticalAlign as any : 'middle',
                 whiteSpace: activeSubTab === 'cell' && wrapText ? 'normal' : 'nowrap',
                 ...(activeSubTab === 'cell' && applyBorder ? 
                   (borderSides === 'none' ? { border: 'none' } : 
@@ -733,6 +778,12 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
                   verticalAlign === 'bottom' ? 'flex-end' :
                   verticalAlign === 'stretch' ? 'stretch' : 'center'
                 ) : 'center',
+                justifyContent: activeSubTab === 'header' ? (
+                  textAlign === 'left' ? 'flex-start' :
+                  textAlign === 'right' ? 'flex-end' :
+                  textAlign === 'center' ? 'center' :
+                  textAlign === 'justify' ? 'space-between' : 'flex-start'
+                ) : 'flex-start',
                 fontFamily,
                 fontSize: `${fontSize}px`,
                 fontWeight: activeSubTab === 'header' ? fontWeight : '600',
@@ -740,8 +791,6 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
                 textDecoration: activeSubTab === 'header' && textDecoration.length > 0 ? textDecoration.join(' ') : 'none',
                 color: activeSubTab === 'header' && textColor && applyTextColor ? textColor : 'inherit',
                 backgroundColor: activeSubTab === 'header' && backgroundColor && applyBackgroundColor ? backgroundColor : 'transparent',
-                textAlign: activeSubTab === 'header' ? textAlign as any : 'left',
-                verticalAlign: activeSubTab === 'header' ? verticalAlign as any : 'middle',
                 ...(activeSubTab === 'header' && applyBorder ? 
                   (borderSides === 'none' ? { border: 'none' } : 
                     borderSides === 'all' ? { border: `${borderWidth}px ${borderStyle} ${borderColor}` } : {
