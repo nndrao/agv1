@@ -2,17 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import {
   Type,
-  Palette,
   Square,
   AlignLeft,
   AlignCenter,
@@ -24,13 +20,7 @@ import {
   Strikethrough,
   WrapText,
   Maximize2,
-  Square as BorderAll,
-  Minus as BorderTop,
-  Minus as BorderRight,
-  Minus as BorderBottom,
-  Minus as BorderLeft,
   RotateCcw,
-  Sparkles,
   Pipette,
   AlignVerticalSpaceAround,
   AlignVerticalJustifyCenter,

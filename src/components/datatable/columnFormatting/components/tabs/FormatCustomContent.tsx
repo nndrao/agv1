@@ -5,10 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { InputNumber } from '@/components/ui/input-number';
 import { 
   Sparkles,
   X,
@@ -18,8 +16,8 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
-import { CustomSection, CustomSwitch, CustomSelect, CustomField } from '../common';
 import { createExcelFormatter, createCellStyleFunction } from '@/components/datatable/utils/formatters';
+import { cn } from '@/lib/utils';
 import { 
   standardFormats, 
   customFormats, 
@@ -643,15 +641,22 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
                     key={format.label}
                     variant="outline"
                     size="sm"
-                    className="h-auto px-2 py-1.5 text-xs justify-start"
+                    className={cn(
+                      "relative h-[72px] px-3 py-2 text-xs hover:bg-muted/50 hover:border-primary/50 transition-all duration-200 group",
+                      selectedCustomFormat === format.label && "border-primary bg-primary/10"
+                    )}
                     onClick={() => {
                       setSelectedCustomFormat(format.label);
                       setManualFormat(format.format);
                     }}
                   >
-                    <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-medium text-xs">{format.label}</span>
-                      <span className="text-[10px] text-muted-foreground">{format.example}</span>
+                    <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
+                      <span className="font-semibold text-xs text-foreground group-hover:text-primary transition-colors">
+                        {format.label}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground font-mono">
+                        {format.example}
+                      </span>
                     </div>
                   </Button>
                 ))}
@@ -696,17 +701,63 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
           <div>
             <Label className="text-[10px] text-muted-foreground mb-1 block">Formatted Output</Label>
             <div className="p-2 border rounded bg-muted/20 min-h-[32px] flex items-center">
-              <span className="text-sm font-mono">
+              <div className="text-sm font-mono">
                 {(() => {
                   try {
-                    const formatString = formatMode === 'custom' && manualFormat ? manualFormat : buildFormatString();
-                    const formatter = createExcelFormatter(formatString);
-                    return formatter({ value: previewValue } as any);
-                  } catch {
+                    let formatString = '';
+                    if (formatMode === 'custom') {
+                      // Use manual format if available, otherwise use selected template format
+                      if (manualFormat) {
+                        formatString = manualFormat;
+                      } else if (selectedCustomFormat) {
+                        const format = customFormats.find(f => f.label === selectedCustomFormat);
+                        formatString = format?.format || '';
+                      }
+                    } else {
+                      formatString = buildFormatString();
+                    }
+                    
+                    if (formatString) {
+                      // Parse the preview value as a number for numeric formats
+                      let valueToFormat = previewValue;
+                      const numericValue = parseFloat(previewValue);
+                      
+                      // If the format has numeric conditions, use the numeric value
+                      if (formatString.includes('<') || formatString.includes('>') || formatString.includes('=')) {
+                        if (!isNaN(numericValue)) {
+                          valueToFormat = numericValue;
+                        }
+                      }
+                      
+                      const formatter = createExcelFormatter(formatString);
+                      const result = formatter({ value: valueToFormat } as any);
+                      
+                      // Check if the result contains color directives that weren't processed
+                      if (result.includes('[Red]') || result.includes('[Green]') || result.includes('[Blue]') || result.includes('[Yellow]')) {
+                        // Extract color and value - case insensitive match
+                        const colorMatch = result.match(/\[(Red|Green|Blue|Yellow)\](.*)/i);
+                        if (colorMatch) {
+                          const color = colorMatch[1].toLowerCase();
+                          const text = colorMatch[2];
+                          const colorMap: Record<string, string> = {
+                            red: '#ef4444',
+                            green: '#10b981',
+                            blue: '#3b82f6',
+                            yellow: '#eab308'
+                          };
+                          return <span style={{ color: colorMap[color] }}>{text}</span>;
+                        }
+                      }
+                      
+                      return result;
+                    }
+                    return previewValue;
+                  } catch (error) {
+                    console.error('Format preview error:', error);
                     return previewValue;
                   }
                 })()}
-              </span>
+              </div>
             </div>
           </div>
 
@@ -715,7 +766,18 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
             <Label className="text-[10px] text-muted-foreground mb-1 block">Format String</Label>
             <div className="p-2 border rounded bg-muted/10">
               <code className="text-[10px] font-mono text-muted-foreground break-all">
-                {formatMode === 'custom' && manualFormat ? manualFormat : buildFormatString()}
+                {(() => {
+                  if (formatMode === 'custom') {
+                    if (manualFormat) {
+                      return manualFormat;
+                    } else if (selectedCustomFormat) {
+                      const format = customFormats.find(f => f.label === selectedCustomFormat);
+                      return format?.format || '';
+                    }
+                    return '';
+                  }
+                  return buildFormatString();
+                })()}
               </code>
             </div>
           </div>

@@ -1336,3 +1336,20 @@ input[type="color"].ribbon-color {
 .header-v-top .ag-header-cell-label { align-items: flex-start !important; }
 .header-v-middle .ag-header-cell-label { align-items: center !important; }
 .header-v-bottom .ag-header-cell-label { align-items: flex-end !important; }
+
+/* Format example box styling */
+.format-example-box {
+  @apply relative overflow-hidden;
+  @apply border-2 border-border/40;
+  @apply hover:border-primary/50;
+  @apply hover:shadow-sm;
+  @apply transition-all duration-200;
+}
+
+.format-example-box:hover {
+  @apply bg-primary/5;
+}
+
+.format-example-box.selected {
+  @apply border-primary bg-primary/10;
+}

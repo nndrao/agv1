@@ -263,6 +263,26 @@ function formatNumber(value: unknown, format: string, useAbsoluteValue: boolean 
     });
   }
   
+  // Handle format with literal text (e.g., "0°F", "0 units")
+  // Check if format contains non-numeric characters after the number format
+  const formatMatch = format.match(/^([0#,]+(?:\.[0#]+)?)(.*)/);
+  if (formatMatch && formatMatch[2]) {
+    const numberFormat = formatMatch[1];
+    const suffix = formatMatch[2];
+    
+    // Format the number part
+    let formattedNumber = numValue.toString();
+    if (numberFormat === '0') {
+      formattedNumber = Math.round(numValue).toString();
+    } else if (numberFormat.includes('.')) {
+      const decimalMatch = numberFormat.match(/\.([0#]+)/);
+      const decimals = decimalMatch ? decimalMatch[1].length : 0;
+      formattedNumber = numValue.toFixed(decimals);
+    }
+    
+    return formattedNumber + suffix;
+  }
+  
   return numValue.toString();
 }
 
@@ -341,6 +361,55 @@ function processPattern(pattern: string, value: unknown, useAbsoluteValue: boole
   // Handle quoted text and format codes
   if (pattern.includes('"')) {
     return parseQuotedPattern(pattern, value, useAbsoluteValue);
+  }
+  
+  // Handle patterns with mixed literal and numeric content (e.g., "😟 0", "↓ 0.0%")
+  // Check if pattern has both numeric format codes and non-numeric characters
+  if (pattern.match(/[0#%]/) && pattern.match(/[^\d\s.,#%$€£¥₹-]/)) {
+    // Split pattern to find numeric format and surrounding text
+    interface PatternPart {
+      type: 'literal' | 'numeric';
+      value: string;
+    }
+    const parts: PatternPart[] = [];
+    let currentPart = '';
+    let inNumericFormat = false;
+    
+    for (let i = 0; i < pattern.length; i++) {
+      const char = pattern[i];
+      const isNumericChar = /[0#.,%-]/.test(char);
+      
+      if (isNumericChar && !inNumericFormat) {
+        // Starting numeric format
+        if (currentPart) {
+          parts.push({ type: 'literal', value: currentPart });
+          currentPart = '';
+        }
+        inNumericFormat = true;
+      } else if (!isNumericChar && inNumericFormat && char !== ' ') {
+        // Ending numeric format
+        if (currentPart) {
+          parts.push({ type: 'numeric', value: currentPart });
+          currentPart = '';
+        }
+        inNumericFormat = false;
+      }
+      
+      currentPart += char;
+    }
+    
+    // Add remaining part
+    if (currentPart) {
+      parts.push({ type: inNumericFormat ? 'numeric' : 'literal', value: currentPart });
+    }
+    
+    // Process parts and combine
+    return parts.map((part) => {
+      if (part.type === 'numeric') {
+        return formatNumber(value, part.value.trim(), useAbsoluteValue);
+      }
+      return part.value;
+    }).join('');
   }
   
   // Handle pure number formats
@@ -625,7 +694,7 @@ function handleCurrencyFormat(value: unknown, formatString: string): string {
   const isNegative = num < 0;
   const absNum = Math.abs(num);
   
-  let formattedValue = hasThousands 
+  const formattedValue = hasThousands 
     ? absNum.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
     : absNum.toFixed(decimals);
   

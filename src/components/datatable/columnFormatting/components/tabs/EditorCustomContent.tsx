@@ -3,25 +3,20 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { 
-  Edit3,
+import {
   Type,
   Hash,
   Calendar,
   ChevronDown,
   Settings,
-  Sparkles,
   X,
   ToggleLeft,
   List,
   FileText,
-  Check,
-  RotateCcw,
-  Square
+  RotateCcw
 } from 'lucide-react';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
 import type { TabContentProps } from '../../types';
