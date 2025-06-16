@@ -81,6 +81,7 @@ export interface DialogActions {
   // Customization removal
   removeColumnCustomization: (columnId: string, type: string) => void;
   clearAllCustomizations: () => number;
+  clearSelectedColumnsCustomizations: () => number;
   
   // Template tracking
   setAppliedTemplate: (columnId: string, templateId: string, templateName: string) => void;
@@ -239,6 +240,32 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
         const { selectedColumns, pendingChanges } = get();
         if (selectedColumns.size === 0) return;
         
+        // CRITICAL: Check if valueFormatter is being set to a string
+        if (property === 'valueFormatter' && typeof value === 'string') {
+          console.error('[Store] CRITICAL ERROR in updateBulkProperty: valueFormatter is a string!', {
+            property,
+            value,
+            valueLength: value.length,
+            valuePreview: value.substring(0, 100) + '...',
+            callStack: new Error().stack
+          });
+          // This should never happen - prevent it
+          return;
+        }
+        
+        // Column state properties that should NEVER be updated via formatter
+        const columnStateProperties = [
+          'width', 'minWidth', 'maxWidth', 'flex',
+          'hide', 'pinned', 'lockPosition', 'lockVisible',
+          'sort', 'sortIndex', 'sortedAt'
+        ];
+        
+        // Prevent editing column state properties
+        if (columnStateProperties.includes(property)) {
+          console.warn('[Store] Column state property cannot be edited via formatter:', property);
+          return;
+        }
+        
         // Log wrap property updates
         if (['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight'].includes(property)) {
           console.log('[Store] Wrap property updated:', {
@@ -293,6 +320,20 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
       updateBulkProperties: (properties) => {
         const { selectedColumns, pendingChanges } = get();
         
+        // Log if valueFormatter is being set
+        if ('valueFormatter' in properties) {
+          console.log('[Store] updateBulkProperties setting valueFormatter:', {
+            valueFormatter: properties.valueFormatter,
+            valueFormatterType: typeof properties.valueFormatter,
+            isFunction: typeof properties.valueFormatter === 'function',
+            hasFormatString: properties.valueFormatter && typeof properties.valueFormatter === 'function' && 
+                           !!(properties.valueFormatter as any).__formatString,
+            formatString: properties.valueFormatter && typeof properties.valueFormatter === 'function' && 
+                         (properties.valueFormatter as any).__formatString,
+            selectedColumnsCount: selectedColumns.size
+          });
+        }
+        
         // Only log if wrap properties are involved
         const hasWrapProperties = ['wrapText', 'autoHeight', 'wrapHeaderText', 'autoHeaderHeight']
           .some(prop => prop in properties);
@@ -307,16 +348,30 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
           });
         }
         
-        // Filter out field and headerName for safety
+        // Filter out column-specific properties for safety
         const filteredProperties = { ...properties };
         
-        // Always remove field from bulk updates
-        delete filteredProperties.field;
+        // Define column-specific and state properties that should never be copied between columns
+        const excludedProps = [
+          // Column identity properties
+          'field', 'headerName', 'colId', 'columnGroupShow', 
+          'headerComponentFramework', 'headerComponentParams',
+          'floatingFilterComponent', 'floatingFilterComponentFramework',
+          'floatingFilterComponentParams', 'tooltipField',
+          'tooltipValueGetter', 'keyCreator', 'checkboxSelection',
+          'showRowGroup', 'dndSource', 'dndSourceOnRowDrag',
+          'rowDrag', 'rowDragText', 'aggFunc', 'initialAggFunc',
+          'defaultAggFunc', 'allowedAggFuncs',
+          // Column state properties (should be managed separately, not in formatter)
+          'width', 'minWidth', 'maxWidth', 'flex',
+          'hide', 'pinned', 'lockPosition', 'lockVisible',
+          'sort', 'sortIndex', 'sortedAt'
+        ];
         
-        // Remove headerName if multiple columns are selected
-        if (selectedColumns.size > 1) {
-          delete filteredProperties.headerName;
-        }
+        // Remove all excluded properties from bulk updates
+        excludedProps.forEach(prop => {
+          delete filteredProperties[prop];
+        });
         
         const newPendingChanges = new Map(pendingChanges);
 
@@ -328,6 +383,17 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
             if (value === undefined) {
               delete updated[property as keyof ColDef];
             } else {
+              // CRITICAL DEBUG: Check if we're setting a valueFormatter config object
+              if (property === 'valueFormatter' && value && typeof value === 'object' && 
+                  (value as any)._isFormatterConfig) {
+                console.error('[Store] ERROR: Setting valueFormatter to config object instead of function!', {
+                  colId,
+                  value,
+                  formatString: (value as any).formatString
+                });
+                // This should not happen - the formatter should already be a function
+              }
+              
               // For headerStyle, just save the style object directly
               // We'll convert it to a function when loading from storage
               (updated as Record<string, unknown>)[property] = value;
@@ -361,8 +427,25 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
           columnDefinitionsCount: columnDefinitions.size,
           pendingChangesCount: pendingChanges.size
         });
+        
+        // Check original column definitions for hide property
+        const originalColumnsWithHide = Array.from(columnDefinitions.values()).filter(col => 'hide' in col);
+        if (originalColumnsWithHide.length > 0) {
+          console.log('[ColumnFormattingStore] Original columns with hide property:', 
+            originalColumnsWithHide.map(col => ({ field: col.field, hide: col.hide }))
+          );
+        }
+
+        // Column state properties that should NEVER be applied to column definitions
+        // These are managed separately by AG-Grid's column state
+        const columnStateProperties = [
+          'width', 'minWidth', 'maxWidth', 'flex',
+          'hide', 'pinned', 'lockPosition', 'lockVisible',
+          'sort', 'sortIndex', 'sortedAt'
+        ];
 
         // List of properties that should be explicitly cleared (set to undefined)
+        // Excluding column state properties from this list
         const clearableProperties = [
           'cellStyle', 'headerStyle', 'cellClass', 'headerClass', 'cellClassRules',
           'valueFormatter', 'valueGetter', 'valueSetter', 'useValueFormatterForExport',
@@ -375,10 +458,9 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
           'wrapText', 'autoHeight', 'rowSpan', 'colSpan', 'textAlign', 'verticalAlign',
           'headerTooltip', 'headerComponent', 'headerComponentParams', 'headerTextAlign',
           'headerCheckboxSelection', 'headerCheckboxSelectionFilteredOnly',
-          'wrapHeaderText', 'autoHeaderHeight', 'sortable', 'sort', 'sortingOrder',
+          'wrapHeaderText', 'autoHeaderHeight', 'sortable', 'sortingOrder',
           'comparator', 'unSortIcon', 'aggFunc', 'allowedAggFuncs',
-          'pinned', 'lockPosition', 'lockPinned', 'lockVisible',
-          'width', 'minWidth', 'maxWidth', 'flex', 'resizable', 'suppressSizeToFit',
+          'lockPinned', 'resizable', 'suppressSizeToFit',
           'initialWidth', 'initialHide', 'initialPinned',
           'tooltip', 'tooltipField', 'tooltipValueGetter', 'tooltipComponent',
           'tooltipComponentParams', 'suppressKeyboardEvent', 'suppressNavigable',
@@ -396,12 +478,42 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
             // Start with the original column to preserve all properties
             const mergedColumn = { ...colDef };
             
-            // Apply changes
+            // Apply changes, filtering out column state properties
             Object.entries(changes).forEach(([key, value]) => {
+              // Skip column state properties entirely
+              if (columnStateProperties.includes(key)) {
+                console.log('[ColumnFormattingStore] Skipping column state property:', key, 'for column:', colId);
+                return;
+              }
+              
+              // Log valueFormatter changes
+              if (key === 'valueFormatter') {
+                console.log('[ColumnFormattingStore] Applying valueFormatter change:', {
+                  colId,
+                  value,
+                  valueType: typeof value,
+                  isFunction: typeof value === 'function',
+                  hasFormatString: value && typeof value === 'function' && !!(value as any).__formatString,
+                  formatString: value && typeof value === 'function' && (value as any).__formatString
+                });
+              }
+              
               if (value === undefined && clearableProperties.includes(key)) {
                 // Explicitly set clearable properties to undefined
                 delete (mergedColumn as Record<string, unknown>)[key];
               } else if (value !== undefined) {
+                // CRITICAL: Check if we're setting valueFormatter to a string
+                if (key === 'valueFormatter' && typeof value === 'string') {
+                  console.error('[ColumnFormattingStore] CRITICAL ERROR: Setting valueFormatter to a string!', {
+                    colId,
+                    key,
+                    value,
+                    valueLength: value.length,
+                    valuePreview: value.substring(0, 50) + '...'
+                  });
+                  // This is the bug - valueFormatter should never be a string
+                }
+                
                 // Set new values
                 (mergedColumn as Record<string, unknown>)[key] = value;
               }
@@ -409,6 +521,30 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
             
             // Check if we need to create cellStyle for conditional formatting
             ensureCellStyleForValueFormatter(mergedColumn);
+            
+            // CRITICAL DEBUG: Check what we're actually setting for valueFormatter
+            if (mergedColumn.valueFormatter) {
+              console.log('[ColumnFormattingStore] Final mergedColumn valueFormatter:', {
+                colId,
+                field: mergedColumn.field,
+                valueFormatter: mergedColumn.valueFormatter,
+                valueFormatterType: typeof mergedColumn.valueFormatter,
+                isFunction: typeof mergedColumn.valueFormatter === 'function',
+                stringValue: typeof mergedColumn.valueFormatter === 'string' ? mergedColumn.valueFormatter : undefined,
+                hasFormatString: typeof mergedColumn.valueFormatter === 'function' && 
+                               !!(mergedColumn.valueFormatter as any).__formatString,
+                formatString: typeof mergedColumn.valueFormatter === 'function' && 
+                            (mergedColumn.valueFormatter as any).__formatString
+              });
+              
+              // CRITICAL: Test the formatter with a sample value
+              if (typeof mergedColumn.valueFormatter === 'function' && 
+                  (mergedColumn.valueFormatter as any).__formatString?.includes('🔴')) {
+                console.log('[ColumnFormattingStore] TESTING Traffic Light formatter:');
+                const testResult = mergedColumn.valueFormatter({ value: 45, column: { getColId: () => colId } } as any);
+                console.log('[ColumnFormattingStore] Test result for value 45:', testResult);
+              }
+            }
             
             updatedColumns[index] = mergedColumn;
           } else {
@@ -428,11 +564,22 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
         set({ pendingChanges: new Map() });
 
         const endTime = performance.now();
+        
+        // Check if any columns have hide property
+        const columnsWithHide = updatedColumns.filter(col => 'hide' in col);
+        
         console.log('[ColumnFormattingStore] applyChanges completed:', {
           totalColumns: updatedColumns.length,
           columnsWithChanges: pendingChanges.size,
+          columnsWithHideProperty: columnsWithHide.length,
           executionTime: `${(endTime - startTime).toFixed(2)}ms`
         });
+        
+        if (columnsWithHide.length > 0) {
+          console.warn('[ColumnFormattingStore] WARNING: Some columns have hide property:', 
+            columnsWithHide.map(col => ({ field: col.field, hide: col.hide }))
+          );
+        }
 
         return updatedColumns;
       },
@@ -551,6 +698,56 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
         });
         
         console.log('[Store] Removed customization:', { columnId, type, updatedChanges: updated });
+      },
+      
+      clearSelectedColumnsCustomizations: () => {
+        const { selectedColumns, pendingChanges } = get();
+        
+        if (selectedColumns.size === 0) {
+          console.log('[Store] No columns selected for clearing customizations');
+          return 0;
+        }
+        
+        console.log('[Store] Clearing customizations from selected columns:', Array.from(selectedColumns));
+        
+        // Create new pending changes map based on existing
+        const newPendingChanges = new Map(pendingChanges);
+        
+        let clearedCount = 0;
+        
+        // Comprehensive list of all customization properties to clear
+        const customizationProperties = [
+          // Format configurations
+          'valueFormatter', 'useValueFormatterForExport',
+          'cellClass', 'cellClassRules', 'cellStyle',
+          
+          // Header configurations
+          'headerClass', 'headerStyle', 'headerTooltip',
+          'wrapHeaderText', 'autoHeaderHeight',
+          
+          // Layout and display
+          'wrapText', 'autoHeight', 'textAlign', 'verticalAlign',
+        ];
+        
+        // Process only selected columns
+        for (const columnId of selectedColumns) {
+          const pendingChanges: Partial<ColDef> = {};
+          
+          // Set all customization properties to undefined
+          customizationProperties.forEach(prop => {
+            (pendingChanges as any)[prop] = undefined;
+          });
+          
+          // Add to pending changes (will be applied when user clicks Apply)
+          newPendingChanges.set(columnId, pendingChanges);
+          clearedCount++;
+        }
+        
+        // Update store with pending changes (not applied yet)
+        set({ pendingChanges: newPendingChanges });
+        
+        console.log('[Store] Set pending clear for', clearedCount, 'selected columns');
+        return clearedCount;
       },
       
       clearAllCustomizations: () => {

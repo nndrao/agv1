@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { RibbonHeader } from './components/ribbon/RibbonHeader';
-import { RibbonTabs } from './components/ribbon/RibbonTabs';
-import { RibbonContent } from './components/ribbon/RibbonContent';
+import { CustomHeader } from './components/custom/CustomHeader';
+import { CustomTabs } from './components/custom/CustomTabs';
+import { CustomContent } from './components/custom/CustomContent';
 import { useRibbonState } from './hooks/useRibbonState';
 import type { FloatingRibbonUIProps } from './types';
-import './ribbon-styles.css';
+import './custom-styles.css';
 
 export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({ 
   targetColumn, 
@@ -136,7 +136,7 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
     >
       {/* Row 1: Header */}
       <div className="ribbon-header" data-header onMouseDown={handleMouseDown}>
-        <RibbonHeader
+        <CustomHeader
           selectedColumns={ribbonState.selectedColumns}
           columnDefinitions={ribbonState.columnDefinitions}
           hasChanges={ribbonState.pendingChanges.size > 0}
@@ -145,12 +145,13 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
           onReset={ribbonState.handleReset}
           onClose={handleClose}
           onDragStart={handleMouseDown}
+          onClearSelected={ribbonState.handleClearSelected}
         />
       </div>
       
       {/* Row 2: Tab Strip */}
       <div className="ribbon-tabs">
-        <RibbonTabs
+        <CustomTabs
           activeTab={ribbonState.activeTab}
           setActiveTab={ribbonState.setActiveTab}
           selectedColumns={ribbonState.selectedColumns}
@@ -159,7 +160,7 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
       
       {/* Row 3: Dynamic Content */}
       <div className="ribbon-content">
-        <RibbonContent
+        <CustomContent
           activeTab={ribbonState.activeTab}
           selectedColumns={ribbonState.selectedColumns}
           formatCategory={ribbonState.formatCategory}
