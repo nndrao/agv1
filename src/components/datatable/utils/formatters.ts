@@ -87,6 +87,42 @@ const NAMED_COLORS: Record<string, string> = {
   'brown': '#A52A2A'
 };
 
+// Dark mode optimized colors
+const DARK_MODE_COLORS: Record<string, string> = {
+  'red': '#FF6B6B',    // Brighter red for dark mode
+  'green': '#14B8A6',  // Bright teal for dark mode
+  'blue': '#339AF0',   // Brighter blue for dark mode
+  'yellow': '#FFD43B', // Adjusted yellow for dark mode
+  'orange': '#FF8787',
+  'purple': '#B197FC',
+  'pink': '#FFA8CC',
+  'gray': '#ADB5BD',
+  'grey': '#ADB5BD',
+  'black': '#FFFFFF',  // Inverted for dark mode
+  'white': '#000000',  // Inverted for dark mode
+  'magenta': '#FF6FDF',
+  'cyan': '#3BC9DB',
+  'brown': '#D9480F'
+};
+
+// Light mode optimized colors (darker for better contrast)
+const LIGHT_MODE_COLORS: Record<string, string> = {
+  'red': '#DC2626',    // Darker red for light mode
+  'green': '#0F766E',  // Dark teal for light mode
+  'blue': '#2563EB',   // Darker blue for light mode
+  'yellow': '#D97706', // Darker yellow for light mode
+  'orange': '#EA580C',
+  'purple': '#7C3AED',
+  'pink': '#DB2777',
+  'gray': '#6B7280',
+  'grey': '#6B7280',
+  'black': '#000000',
+  'white': '#FFFFFF',
+  'magenta': '#C026D3',
+  'cyan': '#0891B2',
+  'brown': '#92400E'
+};
+
 const STYLE_DIRECTIVE_PATTERNS = [
   /^(BG|Background):/i,
   /^(Border|B):/i,
@@ -104,7 +140,7 @@ function isColor(content: string): boolean {
   }
   
   // Named colors (case insensitive)
-  return NAMED_COLORS.hasOwnProperty(content.toLowerCase());
+  return Object.prototype.hasOwnProperty.call(NAMED_COLORS, content.toLowerCase());
 }
 
 function isStyleDirective(content: string): boolean {
@@ -128,14 +164,27 @@ function parseColorValue(color: string, isDarkMode: boolean = false): string {
     return color;
   }
   
-  // Handle named colors
-  const namedColor = NAMED_COLORS[color.toLowerCase()];
-  if (namedColor) {
-    // Adjust for dark mode if needed
-    if (isDarkMode && (color.toLowerCase() === 'black' || color.toLowerCase() === 'white')) {
-      return color.toLowerCase() === 'black' ? '#FFFFFF' : '#000000';
+  // Handle named colors with mode-specific optimization
+  const colorKey = color.toLowerCase();
+  
+  if (isDarkMode) {
+    // Use dark mode optimized colors
+    const darkModeColor = DARK_MODE_COLORS[colorKey];
+    if (darkModeColor) {
+      return darkModeColor;
     }
-    return namedColor;
+  } else {
+    // Use light mode optimized colors
+    const lightModeColor = LIGHT_MODE_COLORS[colorKey];
+    if (lightModeColor) {
+      return lightModeColor;
+    }
+  }
+  
+  // Fall back to default colors if not found in mode-specific maps
+  const defaultColor = NAMED_COLORS[colorKey];
+  if (defaultColor) {
+    return defaultColor;
   }
   
   return color; // Return as-is if not recognized

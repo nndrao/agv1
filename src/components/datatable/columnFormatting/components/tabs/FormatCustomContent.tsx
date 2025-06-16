@@ -739,12 +739,26 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
                         if (colorMatch) {
                           const color = colorMatch[1].toLowerCase();
                           const text = colorMatch[2];
-                          const colorMap: Record<string, string> = {
-                            red: '#ef4444',
-                            green: '#10b981',
-                            blue: '#3b82f6',
-                            yellow: '#eab308'
+                          
+                          // Check if we're in dark mode
+                          const isDarkMode = document.documentElement.classList.contains('dark');
+                          
+                          // Use same color values as formatters.ts for consistency
+                          const darkModeColors: Record<string, string> = {
+                            red: '#FF6B6B',    // Brighter red for dark mode
+                            green: '#14B8A6',  // Bright teal for dark mode
+                            blue: '#339AF0',   // Brighter blue for dark mode
+                            yellow: '#FFD43B'  // Adjusted yellow for dark mode
                           };
+                          
+                          const lightModeColors: Record<string, string> = {
+                            red: '#DC2626',    // Darker red for light mode
+                            green: '#0F766E',  // Dark teal for light mode
+                            blue: '#2563EB',   // Darker blue for light mode
+                            yellow: '#D97706'  // Darker yellow for light mode
+                          };
+                          
+                          const colorMap = isDarkMode ? darkModeColors : lightModeColors;
                           return <span style={{ color: colorMap[color] }}>{text}</span>;
                         }
                       }
