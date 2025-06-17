@@ -13,13 +13,11 @@ if ('requestIdleCallback' in window) {
   requestIdleCallback(() => {
     import('./components/datatable/stores/storageAnalyzer');
     import('./components/datatable/stores/migrateProfiles');
-    import('./components/datatable/lib/performanceTest');
   });
 } else {
   setTimeout(() => {
     import('./components/datatable/stores/storageAnalyzer');
     import('./components/datatable/stores/migrateProfiles');
-    import('./components/datatable/lib/performanceTest');
   }, 1000);
 }
 
