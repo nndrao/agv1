@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataTable Dockview Integration Demo</title>
+    <link rel="stylesheet" href="column-formatting-mocks/styles.css">
+    <style>
+        /* Dockview Demo Styles */
+        .demo-page {
+            min-height: 100vh;
+            background: var(--background);
+            color: var(--foreground);
+            padding: 2rem;
+        }
+        
+        .demo-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .demo-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        
+        .demo-section h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .feature-list li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: start;
+            gap: 0.5rem;
+        }
+        
+        .feature-list li::before {
+            content: "✓";
+            color: var(--primary);
+            font-weight: bold;
+            margin-top: 2px;
+        }
+        
+        .mockup-container {
+            margin: 2rem 0;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dockview-mockup {
+            background: var(--background);
+            min-height: 600px;
+            position: relative;
+        }
+        
+        .dv-toolbar {
+            height: 48px;
+            background: var(--muted);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 8px;
+        }
+        
+        .dv-container {
+            position: relative;
+            height: 552px;
+            display: flex;
+            background: var(--border);
+            gap: 1px;
+        }
+        
+        .dv-panel {
+            flex: 1;
+            background: var(--background);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .dv-tabs {
+            height: 35px;
+            background: var(--muted);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 4px;
+        }
+        
+        .dv-tab {
+            padding: 6px 12px;
+            background: var(--secondary);
+            border-radius: 4px 4px 0 0;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        
+        .dv-tab.active {
+            background: var(--background);
+        }
+        
+        .dv-content {
+            flex: 1;
+            padding: 16px;
+            overflow: auto;
+        }
+        
+        .mini-table {
+            width: 100%;
+            font-size: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .mini-table thead {
+            background: var(--muted);
+        }
+        
+        .mini-table th,
+        .mini-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+        
+        .mini-table tbody tr:hover {
+            background: var(--muted);
+        }
+        
+        .workflow-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .workflow-card {
+            background: var(--muted);
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        
+        .workflow-card h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .workflow-card p {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            line-height: 1.5;
+        }
+        
+        .code-block {
+            background: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-page">
+        <div class="demo-header">
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">
+                DataTable + Dockview Integration
+            </h1>
+            <p style="font-size: 1.125rem; color: var(--muted-foreground);">
+                Create and manage multiple DataTable instances in a flexible docking layout
+            </p>
+        </div>
+        
+        <!-- Live Mockup -->
+        <div class="mockup-container">
+            <div class="dockview-mockup">
+                <!-- Toolbar -->
+                <div class="dv-toolbar">
+                    <button class="btn btn-primary btn-sm">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        New DataTable
+                    </button>
+                    
+                    <div style="width: 1px; height: 24px; background: var(--border);"></div>
+                    
+                    <button class="btn btn-outline btn-sm">Mock Data</button>
+                    <button class="btn btn-outline btn-sm">CSV</button>
+                    <button class="btn btn-outline btn-sm">JSON</button>
+                    <button class="btn btn-outline btn-sm">API</button>
+                    
+                    <div style="margin-left: auto; font-size: 0.875rem; color: var(--muted-foreground);">
+                        3 tables open
+                    </div>
+                </div>
+                
+                <!-- Dockview Container -->
+                <div class="dv-container">
+                    <!-- Left Panel -->
+                    <div class="dv-panel">
+                        <div class="dv-tabs">
+                            <div class="dv-tab active">
+                                Customer Data
+                                <span style="opacity: 0.5;">×</span>
+                            </div>
+                            <div class="dv-tab">
+                                Orders 2024
+                                <span style="opacity: 0.5;">×</span>
+                            </div>
+                        </div>
+                        <div class="dv-content">
+                            <table class="mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Customer Name</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Total Orders</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>John Doe</td>
+                                        <td>john@example.com</td>
+                                        <td><span class="dt-badge dt-badge-success">Active</span></td>
+                                        <td>$12,345</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Jane Smith</td>
+                                        <td>jane@example.com</td>
+                                        <td><span class="dt-badge dt-badge-success">Active</span></td>
+                                        <td>$23,456</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Bob Johnson</td>
+                                        <td>bob@example.com</td>
+                                        <td><span class="dt-badge dt-badge-secondary">Inactive</span></td>
+                                        <td>$5,678</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Panel -->
+                    <div class="dv-panel">
+                        <div class="dv-tabs">
+                            <div class="dv-tab active">
+                                Sales Analysis
+                                <span style="opacity: 0.5;">×</span>
+                            </div>
+                        </div>
+                        <div class="dv-content">
+                            <table class="mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Category</th>
+                                        <th>Sales</th>
+                                        <th>Trend</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Product A</td>
+                                        <td>Electronics</td>
+                                        <td>$45,678</td>
+                                        <td style="color: #10B981;">↑ 12%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Product B</td>
+                                        <td>Clothing</td>
+                                        <td>$34,567</td>
+                                        <td style="color: #10B981;">↑ 8%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Product C</td>
+                                        <td>Home</td>
+                                        <td>$23,456</td>
+                                        <td style="color: #EF4444;">↓ 3%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Features Grid -->
+        <div class="demo-grid">
+            <div class="demo-section">
+                <h3>Key Features</h3>
+                <ul class="feature-list">
+                    <li>Create unlimited DataTable instances</li>
+                    <li>Drag and drop panels to rearrange layout</li>
+                    <li>Split panels horizontally or vertically</li>
+                    <li>Float panels as separate windows</li>
+                    <li>Each table maintains independent state</li>
+                    <li>Full DataTable functionality in each panel</li>
+                    <li>Theme-aware with light/dark mode support</li>
+                    <li>Save and restore workspace layouts</li>
+                </ul>
+            </div>
+            
+            <div class="demo-section">
+                <h3>Panel Management</h3>
+                <div class="btn-group">
+                    <button class="btn btn-outline btn-sm">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="12" y1="3" x2="12" y2="21"></line>
+                        </svg>
+                        Split Vertical
+                    </button>
+                    <button class="btn btn-outline btn-sm">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                        </svg>
+                        Split Horizontal
+                    </button>
+                    <button class="btn btn-outline btn-sm">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M7 13l5 5 5-5"></path>
+                            <path d="M7 6l5 5 5-5"></path>
+                        </svg>
+                        Float Panel
+                    </button>
+                    <button class="btn btn-outline btn-sm">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                        Maximize
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Workflows Section -->
+        <div class="demo-section">
+            <h3>Common Workflows</h3>
+            <div class="workflow-cards">
+                <div class="workflow-card">
+                    <h4>📊 Data Comparison</h4>
+                    <p>
+                        Load different datasets side-by-side to compare metrics, 
+                        identify patterns, and analyze differences.
+                    </p>
+                </div>
+                <div class="workflow-card">
+                    <h4>🔍 Master-Detail View</h4>
+                    <p>
+                        Show summary data in one panel and detailed records in another, 
+                        with synchronized selection.
+                    </p>
+                </div>
+                <div class="workflow-card">
+                    <h4>📈 Multi-Source Dashboard</h4>
+                    <p>
+                        Create a dashboard with data from CSV, JSON, and API sources 
+                        all visible simultaneously.
+                    </p>
+                </div>
+                <div class="workflow-card">
+                    <h4>🔄 Data Pipeline</h4>
+                    <p>
+                        Process data through multiple stages, viewing input, 
+                        transformation, and output in separate panels.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Code Example -->
+        <div class="demo-section">
+            <h3>Quick Start</h3>
+            <p style="margin-bottom: 1rem;">Add Dockview integration to your app:</p>
+            
+            <div class="code-block">
+// App.tsx
+import { DockviewDataTableApp } from '@/components/dockview/DockviewDataTableApp';
+
+function App() {
+  return &lt;DockviewDataTableApp /&gt;;
+}
+
+export default App;
+            </div>
+            
+            <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--muted-foreground);">
+                Or use the npm script:
+            </p>
+            
+            <div class="code-block">
+npm run dev:dockview
+            </div>
+        </div>
+        
+        <!-- Layout Examples -->
+        <div class="demo-section">
+            <h3>Layout Examples</h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem;">
+                <!-- Layout 1: Side by Side -->
+                <div style="text-align: center;">
+                    <div style="border: 1px solid var(--border); border-radius: 4px; padding: 1rem; aspect-ratio: 16/10;">
+                        <div style="display: flex; gap: 2px; height: 100%;">
+                            <div style="flex: 1; background: var(--muted); border-radius: 4px;"></div>
+                            <div style="flex: 1; background: var(--muted); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.75rem; margin-top: 0.5rem;">Side by Side</p>
+                </div>
+                
+                <!-- Layout 2: Grid -->
+                <div style="text-align: center;">
+                    <div style="border: 1px solid var(--border); border-radius: 4px; padding: 1rem; aspect-ratio: 16/10;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; height: 100%;">
+                            <div style="background: var(--muted); border-radius: 4px;"></div>
+                            <div style="background: var(--muted); border-radius: 4px;"></div>
+                            <div style="background: var(--muted); border-radius: 4px;"></div>
+                            <div style="background: var(--muted); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.75rem; margin-top: 0.5rem;">2x2 Grid</p>
+                </div>
+                
+                <!-- Layout 3: Master Detail -->
+                <div style="text-align: center;">
+                    <div style="border: 1px solid var(--border); border-radius: 4px; padding: 1rem; aspect-ratio: 16/10;">
+                        <div style="display: flex; gap: 2px; height: 100%;">
+                            <div style="flex: 2; background: var(--muted); border-radius: 4px;"></div>
+                            <div style="flex: 1; background: var(--muted); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.75rem; margin-top: 0.5rem;">Master-Detail</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Theme Toggle -->
+        <div style="text-align: center; margin-top: 3rem;">
+            <button class="btn btn-outline" onclick="document.documentElement.classList.toggle('dark')">
+                Toggle Dark Mode
+            </button>
+        </div>
+    </div>
+</body>
+</html>

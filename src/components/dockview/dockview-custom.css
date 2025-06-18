@@ -1,0 +1,245 @@
+/* Dockview Custom Styles */
+
+/* Container Layout */
+.dockview-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--background);
+}
+
+/* Toolbar */
+.dockview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 16px;
+  background: var(--muted);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 8px;
+}
+
+/* Dockview Container */
+.dockview-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* DataTable Panel Container */
+.dockview-datatable-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  overflow: hidden;
+}
+
+/* Watermark */
+.dockview-watermark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted-foreground);
+}
+
+/* Dockview Theme Overrides - Light */
+.dockview-theme-light {
+  --dv-background-color: hsl(0 0% 100%);
+  --dv-paneview-header-background-color: hsl(210 40% 98%);
+  --dv-tabs-container-background-color: hsl(210 40% 96.1%);
+  --dv-tabs-and-actions-container-background-color: hsl(210 40% 96.1%);
+  --dv-activegroup-visiblepanel-tab-background-color: hsl(0 0% 100%);
+  --dv-activegroup-hiddenpanel-tab-background-color: hsl(210 40% 98%);
+  --dv-inactivegroup-visiblepanel-tab-background-color: hsl(210 40% 98%);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: hsl(210 40% 96.1%);
+  --dv-tab-divider-color: hsl(214.3 31.8% 91.4%);
+  --dv-activegroup-visiblepanel-tab-color: hsl(222.2 84% 4.9%);
+  --dv-activegroup-hiddenpanel-tab-color: hsl(215.4 16.3% 46.9%);
+  --dv-inactivegroup-visiblepanel-tab-color: hsl(215.4 16.3% 46.9%);
+  --dv-inactivegroup-hiddenpanel-tab-color: hsl(215.4 16.3% 46.9%);
+  --dv-separator-border: hsl(214.3 31.8% 91.4%);
+  --dv-paneview-header-border-color: hsl(214.3 31.8% 91.4%);
+  
+  /* Custom additions */
+  --dv-tab-height: 35px;
+  --dv-header-height: 35px;
+  --dv-font-size: 13px;
+  --dv-tab-font-weight: 500;
+}
+
+/* Dockview Theme Overrides - Dark */
+.dockview-theme-dark {
+  --dv-background-color: hsl(222.2 84% 4.9%);
+  --dv-paneview-header-background-color: hsl(217.2 32.6% 12%);
+  --dv-tabs-container-background-color: hsl(217.2 32.6% 17.5%);
+  --dv-tabs-and-actions-container-background-color: hsl(217.2 32.6% 17.5%);
+  --dv-activegroup-visiblepanel-tab-background-color: hsl(222.2 84% 4.9%);
+  --dv-activegroup-hiddenpanel-tab-background-color: hsl(217.2 32.6% 15%);
+  --dv-inactivegroup-visiblepanel-tab-background-color: hsl(217.2 32.6% 15%);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: hsl(217.2 32.6% 17.5%);
+  --dv-tab-divider-color: hsl(217.2 32.6% 17.5%);
+  --dv-activegroup-visiblepanel-tab-color: hsl(210 40% 98%);
+  --dv-activegroup-hiddenpanel-tab-color: hsl(215 20.2% 65.1%);
+  --dv-inactivegroup-visiblepanel-tab-color: hsl(215 20.2% 65.1%);
+  --dv-inactivegroup-hiddenpanel-tab-color: hsl(215 20.2% 65.1%);
+  --dv-separator-border: hsl(217.2 32.6% 17.5%);
+  --dv-paneview-header-border-color: hsl(217.2 32.6% 17.5%);
+  
+  /* Custom additions */
+  --dv-tab-height: 35px;
+  --dv-header-height: 35px;
+  --dv-font-size: 13px;
+  --dv-tab-font-weight: 500;
+}
+
+/* Tab Styling */
+.dockview-theme-light .tab,
+.dockview-theme-dark .tab {
+  font-size: var(--dv-font-size) !important;
+  font-weight: var(--dv-tab-font-weight) !important;
+  padding: 0 12px !important;
+}
+
+.dockview-theme-light .tab-content,
+.dockview-theme-dark .tab-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Tab Close Button */
+.dockview-theme-light .tab-action,
+.dockview-theme-dark .tab-action {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.dockview-theme-light .tab:hover .tab-action,
+.dockview-theme-dark .tab:hover .tab-action {
+  opacity: 1;
+}
+
+/* Panel Headers */
+.dockview-theme-light .paneview-header,
+.dockview-theme-dark .paneview-header {
+  font-size: var(--dv-font-size) !important;
+  font-weight: 500 !important;
+}
+
+/* Splitters */
+.dockview-theme-light .split-view-container > .sash,
+.dockview-theme-dark .split-view-container > .sash {
+  background: transparent !important;
+}
+
+.dockview-theme-light .split-view-container > .sash:hover,
+.dockview-theme-dark .split-view-container > .sash:hover {
+  background: var(--primary) !important;
+  opacity: 0.3;
+}
+
+/* Empty State */
+.dockview-theme-light .dockview-watermark,
+.dockview-theme-dark .dockview-watermark {
+  background: var(--background);
+}
+
+/* Floating Groups */
+.dockview-theme-light .dockview-floating-group,
+.dockview-theme-dark .dockview-floating-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* Action Icons */
+.dockview-theme-light .action-container,
+.dockview-theme-dark .action-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.dockview-theme-light .action-container .action,
+.dockview-theme-dark .action-container .action {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.dockview-theme-light .action-container .action:hover,
+.dockview-theme-dark .action-container .action:hover {
+  background: var(--accent);
+}
+
+/* Grid Layout Adjustments */
+.dockview-theme-light .grid-view,
+.dockview-theme-dark .grid-view {
+  gap: 1px;
+  background: var(--border);
+}
+
+.dockview-theme-light .grid-view > .branch-node,
+.dockview-theme-dark .grid-view > .branch-node {
+  background: var(--background);
+}
+
+/* Ensure DataTable fills panel */
+.view-content {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Panel Content Scrollbar */
+.dockview-theme-light .content,
+.dockview-theme-dark .content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.dockview-theme-light .content::-webkit-scrollbar,
+.dockview-theme-dark .content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dockview-theme-light .content::-webkit-scrollbar-track,
+.dockview-theme-dark .content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dockview-theme-light .content::-webkit-scrollbar-thumb,
+.dockview-theme-dark .content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.dockview-theme-light .content::-webkit-scrollbar-thumb:hover,
+.dockview-theme-dark .content::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
