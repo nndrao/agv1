@@ -28,9 +28,9 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
 function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   if (!Array.isArray(data) || data.length === 0) return [];
 
-  // Use a fixed sample size for efficiency
-  const SAMPLE_SIZE = 10;
-  const sampleData = data.slice(0, SAMPLE_SIZE);
+  // Use a smaller sample size for better efficiency
+  const SAMPLE_SIZE = 5;
+  const sampleData = data.slice(0, Math.min(SAMPLE_SIZE, data.length));
 
   // Get all unique keys from the first row
   const keys = Object.keys(data[0]);
