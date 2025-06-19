@@ -116,24 +116,30 @@ function randomDate(minDaysOffset: number, maxDaysOffset: number): string {
   return date.toISOString().split('T')[0];
 }
 
-/**
- * Generates random numbers within a range with specified precision
- */
-function randomNumber(min: number, max: number, precision: number = 2): number {
-  const value = Math.random() * (max - min) + min;
+const BATCH_SIZE = 100;
+let randomBatch: number[] = [];
+let batchIndex = 0;
+
+function getRandomFromBatch(): number {
+  if (batchIndex >= randomBatch.length) {
+    randomBatch = new Array(BATCH_SIZE);
+    for (let i = 0; i < BATCH_SIZE; i++) {
+      randomBatch[i] = Math.random();
+    }
+    batchIndex = 0;
+  }
+  return randomBatch[batchIndex++];
+}
+
+function fastRandomNumber(min: number, max: number, precision: number = 2): number {
+  const value = getRandomFromBatch() * (max - min) + min;
   return parseFloat(value.toFixed(precision));
 }
 
-/**
- * Returns a random element from an array
- */
-function randomElement<T>(array: T[]): T {
-  return array[Math.floor(Math.random() * array.length)];
+function fastRandomElement<T>(array: T[]): T {
+  return array[Math.floor(getRandomFromBatch() * array.length)];
 }
 
-/**
- * Creates a single fixed income position with 320+ attributes
- */
 function createPosition(): FixedIncomePosition {
   // Generate basic identifiers
   const positionId = `POS-${randomString(8)}`;
@@ -145,74 +151,65 @@ function createPosition(): FixedIncomePosition {
   const securityId = `SID-${randomString(6)}`;
   const portfolioId = `PF-${randomString(5)}`;
   
-  // Generate security details
-  const securityType = randomElement(SECURITY_TYPES);
-  const issuer = randomElement(LARGE_ISSUERS);
-  const issuerCountry = randomElement(COUNTRIES);
-  const currency = randomElement(CURRENCIES);
-  const couponRate = randomNumber(0.1, 8.5, 3);
-  const couponFrequency = randomElement(COUPON_FREQUENCIES);
+  const securityType = fastRandomElement(SECURITY_TYPES);
+  const issuer = fastRandomElement(LARGE_ISSUERS);
+  const issuerCountry = fastRandomElement(COUNTRIES);
+  const currency = fastRandomElement(CURRENCIES);
+  const couponRate = fastRandomNumber(0.1, 8.5, 3);
+  const couponFrequency = fastRandomElement(COUPON_FREQUENCIES);
   
-  // Generate dates
   const tradeDate = randomDate(-365, -1);
   const settlementDate = randomDate(-360, 2);
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  const yearsToMaturity = Math.floor(Math.random() * 30) + 1;
-  const maturityDate = `${currentYear + yearsToMaturity}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`;
+  const yearsToMaturity = Math.floor(getRandomFromBatch() * 30) + 1;
+  const maturityDate = `${currentYear + yearsToMaturity}-${String(Math.floor(getRandomFromBatch() * 12) + 1).padStart(2, '0')}-${String(Math.floor(getRandomFromBatch() * 28) + 1).padStart(2, '0')}`;
   const daysToMaturity = Math.floor((new Date(maturityDate).getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
   
-  // Generate price and quantity metrics
-  const entryPrice = randomNumber(85, 115, 4);
-  const currentPrice = randomNumber(entryPrice * 0.9, entryPrice * 1.1, 4);
-  const quantity = Math.floor(randomNumber(10000, 10000000, 0));
-  const notionalAmount = quantity * 100; // Assuming par = 100
+  const entryPrice = fastRandomNumber(85, 115, 4);
+  const currentPrice = fastRandomNumber(entryPrice * 0.9, entryPrice * 1.1, 4);
+  const quantity = Math.floor(fastRandomNumber(10000, 10000000, 0));
+  const notionalAmount = quantity * 100;
   const marketValue = quantity * currentPrice;
   
-  // Generate pricing and risk metrics
-  const yieldToMaturity = randomNumber(0.5, 10, 4);
-  const duration = randomNumber(0.5, yearsToMaturity * 0.9, 3);
+  const yieldToMaturity = fastRandomNumber(0.5, 10, 4);
+  const duration = fastRandomNumber(0.5, yearsToMaturity * 0.9, 3);
   const modifiedDuration = duration / (1 + yieldToMaturity / 100);
-  const convexity = randomNumber(0.1, duration / 2, 4);
-  const oaSpread = randomNumber(1, 500, 2);
-  const zSpread = randomNumber(oaSpread * 0.9, oaSpread * 1.1, 2);
-  const effectiveDuration = randomNumber(duration * 0.95, duration * 1.05, 3);
-  const effectiveConvexity = randomNumber(convexity * 0.95, convexity * 1.05, 4);
-  const macaulayDuration = randomNumber(duration * 0.98, duration * 1.02, 3);
+  const convexity = fastRandomNumber(0.1, duration / 2, 4);
+  const oaSpread = fastRandomNumber(1, 500, 2);
+  const zSpread = fastRandomNumber(oaSpread * 0.9, oaSpread * 1.1, 2);
+  const effectiveDuration = fastRandomNumber(duration * 0.95, duration * 1.05, 3);
+  const effectiveConvexity = fastRandomNumber(convexity * 0.95, convexity * 1.05, 4);
+  const macaulayDuration = fastRandomNumber(duration * 0.98, duration * 1.02, 3);
   const dv01 = (marketValue * modifiedDuration) / 10000;
   const pv01 = dv01 * 100;
   
-  // Generate credit metrics
-  const creditRating = randomElement(CREDIT_RATINGS);
-  const creditRatingAgency = randomElement(RATING_AGENCIES);
-  const creditSpread = randomNumber(5, 500, 2);
-  const defaultProbability = randomNumber(0.01, 5, 4);
-  const recoveryRate = randomNumber(30, 70, 2);
+  const creditRating = fastRandomElement(CREDIT_RATINGS);
+  const creditRatingAgency = fastRandomElement(RATING_AGENCIES);
+  const creditSpread = fastRandomNumber(5, 500, 2);
+  const defaultProbability = fastRandomNumber(0.01, 5, 4);
+  const recoveryRate = fastRandomNumber(30, 70, 2);
   
-  // Generate performance metrics
-  const dailyPnL = randomNumber(-50000, 50000, 2);
-  const mtdPnL = randomNumber(-200000, 200000, 2);
-  const ytdPnL = randomNumber(-500000, 500000, 2);
-  const inceptionPnL = randomNumber(-1000000, 1000000, 2);
+  const dailyPnL = fastRandomNumber(-50000, 50000, 2);
+  const mtdPnL = fastRandomNumber(-200000, 200000, 2);
+  const ytdPnL = fastRandomNumber(-500000, 500000, 2);
+  const inceptionPnL = fastRandomNumber(-1000000, 1000000, 2);
   
-  // Generate liquidity metrics
-  const bidPrice = randomNumber(currentPrice * 0.99, currentPrice * 0.999, 4);
-  const askPrice = randomNumber(currentPrice * 1.001, currentPrice * 1.01, 4);
-  const bidSize = Math.floor(randomNumber(100000, 5000000, 0));
-  const askSize = Math.floor(randomNumber(100000, 5000000, 0));
+  const bidPrice = fastRandomNumber(currentPrice * 0.99, currentPrice * 0.999, 4);
+  const askPrice = fastRandomNumber(currentPrice * 1.001, currentPrice * 1.01, 4);
+  const bidSize = Math.floor(fastRandomNumber(100000, 5000000, 0));
+  const askSize = Math.floor(fastRandomNumber(100000, 5000000, 0));
   const bidAskSpread = askPrice - bidPrice;
-  const averageDailyVolume = Math.floor(randomNumber(1000000, 50000000, 0));
-  const marketDepth = Math.floor(randomNumber(1, 10, 0));
-  const liquidityScore = randomNumber(1, 10, 2);
+  const averageDailyVolume = Math.floor(fastRandomNumber(1000000, 50000000, 0));
+  const marketDepth = Math.floor(fastRandomNumber(1, 10, 0));
+  const liquidityScore = fastRandomNumber(1, 10, 2);
   
-  // Generate regulatory & compliance data
-  const regulatoryBook = randomElement(REGULATORY_BOOKS);
-  const riskWeighting = randomNumber(0, 150, 0);
-  const baselClassification = randomElement(BASEL_CLASSIFICATIONS);
-  const sftClassification = randomElement(SFT_CLASSIFICATIONS);
-  const hqlaClassification = randomElement(HQLA_CLASSIFICATIONS);
+  const regulatoryBook = fastRandomElement(REGULATORY_BOOKS);
+  const riskWeighting = fastRandomNumber(0, 150, 0);
+  const baselClassification = fastRandomElement(BASEL_CLASSIFICATIONS);
+  const sftClassification = fastRandomElement(SFT_CLASSIFICATIONS);
+  const hqlaClassification = fastRandomElement(HQLA_CLASSIFICATIONS);
 
-  // Create the initial position object with the fields we've defined
   const position: FixedIncomePosition = {
     positionId, traderId, accountId, bookId, cusip, isin, securityId, portfolioId,
     tradeDate, settlementDate, maturityDate, entryPrice, currentPrice, quantity, notionalAmount, marketValue,
@@ -222,176 +219,138 @@ function createPosition(): FixedIncomePosition {
     creditRating, creditRatingAgency, creditSpread, defaultProbability, recoveryRate,
     dailyPnL, mtdPnL, ytdPnL, inceptionPnL,
     bidPrice, askPrice, bidSize, askSize, bidAskSpread, averageDailyVolume, marketDepth, liquidityScore,
-    regulatoryBook, riskWeighting, baselClassification, sftClassification, hqlaClassification
+    regulatoryBook, riskWeighting, baselClassification, sftClassification, hqlaClassification,
+    'riskSensitivity_1y': fastRandomNumber(-0.05, 0.05, 6),
+    'riskSensitivity_2y': fastRandomNumber(-0.1, 0.1, 6),
+    'riskSensitivity_3y': fastRandomNumber(-0.15, 0.15, 6),
+    'riskSensitivity_5y': fastRandomNumber(-0.25, 0.25, 6),
+    'riskSensitivity_7y': fastRandomNumber(-0.35, 0.35, 6),
+    'riskSensitivity_10y': fastRandomNumber(-0.5, 0.5, 6),
+    'riskSensitivity_15y': fastRandomNumber(-0.7, 0.7, 6),
+    'riskSensitivity_20y': fastRandomNumber(-0.85, 0.85, 6),
+    'riskSensitivity_30y': fastRandomNumber(-1, 1, 6),
+    
+    // Historical volatility metrics
+    'volatility_1d': fastRandomNumber(0.01, 5, 4),
+    'volatility_1w': fastRandomNumber(0.05, 8, 4),
+    'volatility_1m': fastRandomNumber(0.1, 12, 4),
+    'volatility_3m': fastRandomNumber(0.2, 15, 4),
+    'volatility_6m': fastRandomNumber(0.3, 18, 4),
+    'volatility_1y': fastRandomNumber(0.5, 20, 4),
+    
+    // Historical performance
+    'performance_1d': fastRandomNumber(-2, 2, 4),
+    'performance_1w': fastRandomNumber(-5, 5, 4),
+    'performance_1m': fastRandomNumber(-8, 8, 4),
+    'performance_3m': fastRandomNumber(-12, 12, 4),
+    'performance_6m': fastRandomNumber(-15, 15, 4),
+    'performance_ytd': fastRandomNumber(-20, 20, 4),
+    'performance_1y': fastRandomNumber(-25, 25, 4),
+    'performance_3y': fastRandomNumber(-30, 30, 4),
+    'performance_5y': fastRandomNumber(-35, 35, 4),
+    
+    // Credit default swap data
+    'cds_1y': fastRandomNumber(1, 500, 2),
+    'cds_3y': fastRandomNumber(5, 550, 2),
+    'cds_5y': fastRandomNumber(10, 600, 2),
+    'cds_7y': fastRandomNumber(15, 650, 2),
+    'cds_10y': fastRandomNumber(20, 700, 2),
+    
+    // Stress test results
+    'stress_parallel_up_100bp': fastRandomNumber(-10, 0, 4),
+    'stress_parallel_down_100bp': fastRandomNumber(0, 10, 4),
+    'stress_steepener_100bp': fastRandomNumber(-5, 5, 4),
+    'stress_flattener_100bp': fastRandomNumber(-5, 5, 4),
+    'stress_short_up_100bp': fastRandomNumber(-8, 2, 4),
+    'stress_short_down_100bp': fastRandomNumber(-2, 8, 4),
+    'stress_long_up_100bp': fastRandomNumber(-8, 2, 4),
+    'stress_long_down_100bp': fastRandomNumber(-2, 8, 4),
+    'stress_credit_up_100bp': fastRandomNumber(-10, 0, 4),
+    'stress_credit_down_100bp': fastRandomNumber(0, 10, 4),
+    'stress_volatility_up_10pct': fastRandomNumber(-5, 5, 4),
+    'stress_volatility_down_10pct': fastRandomNumber(-5, 5, 4),
+    'stress_fx_up_10pct': fastRandomNumber(-5, 5, 4),
+    'stress_fx_down_10pct': fastRandomNumber(-5, 5, 4),
+    'stress_inflation_up_100bp': fastRandomNumber(-8, 2, 4),
+    'stress_inflation_down_100bp': fastRandomNumber(-2, 8, 4),
+    
+    // Historical spread metrics
+    'spread_vs_benchmark_1d': fastRandomNumber(-50, 50, 2),
+    'spread_vs_benchmark_1w': fastRandomNumber(-60, 60, 2),
+    'spread_vs_benchmark_1m': fastRandomNumber(-70, 70, 2),
+    'spread_vs_benchmark_3m': fastRandomNumber(-80, 80, 2),
+    'spread_vs_benchmark_6m': fastRandomNumber(-90, 90, 2),
+    'spread_vs_benchmark_1y': fastRandomNumber(-100, 100, 2),
+    
+    // Risk decomposition
+    'risk_ir': fastRandomNumber(0, 100, 2),
+    'risk_credit': fastRandomNumber(0, 100, 2),
+    'risk_fx': fastRandomNumber(0, 50, 2),
+    'risk_inflation': fastRandomNumber(0, 30, 2),
+    'risk_volatility': fastRandomNumber(0, 20, 2),
+    'risk_basis': fastRandomNumber(0, 15, 2),
+    'risk_other': fastRandomNumber(0, 10, 2),
+    
+    // Benchmark data
+    'benchmark_id': `BM-${randomString(6)}`,
+    'benchmark_name': `${currency} ${securityType} ${Math.floor(yearsToMaturity)}Y Index`,
+    'benchmark_yield': fastRandomNumber(0.1, 8, 4),
+    'benchmark_duration': fastRandomNumber(0.5, yearsToMaturity, 3),
+    'benchmark_spread': fastRandomNumber(-100, 100, 2),
+    'tracking_error': fastRandomNumber(0.1, 5, 4),
+    'active_risk': fastRandomNumber(0.5, 8, 4),
+    'information_ratio': fastRandomNumber(-2, 2, 4),
+    'sharpe_ratio': fastRandomNumber(-1, 3, 4),
+    'sortino_ratio': fastRandomNumber(-1, 4, 4),
+    'treynor_ratio': fastRandomNumber(-2, 5, 4),
+    'jensen_alpha': fastRandomNumber(-5, 5, 4),
+    'counterparty_id': `CP-${randomString(6)}`,
+    'counterparty_name': fastRandomElement(['JPMorgan', 'Goldman Sachs', 'Morgan Stanley', 'BAML', 'Citi', 'BNP Paribas', 'HSBC', 'Deutsche Bank', 'Barclays', 'UBS', 'Credit Suisse']),
+    'counterparty_rating': fastRandomElement(['A+', 'A', 'A-', 'BBB+', 'BBB', 'BBB-']),
+    'counterparty_country': fastRandomElement(COUNTRIES),
+    'counterparty_exposure': notionalAmount,
+    'counterparty_collateral': fastRandomNumber(0, notionalAmount, 0),
+    'counterparty_netting_agreement': getRandomFromBatch() > 0.2,
+    'counterparty_csa': getRandomFromBatch() > 0.3,
+    'pricing_model': fastRandomElement(['Bloomberg', 'MarkIt', 'Internal', 'Vendor A', 'Vendor B']),
+    'pricing_source': fastRandomElement(['Market', 'Model', 'Desk Quote', 'Trader Input', 'External Quote']),
+    'pricing_quality': fastRandomNumber(1, 5, 0),
+    'pricing_uncertainty': fastRandomNumber(0.01, 5, 4),
+    'liquidity_premium': fastRandomNumber(0, 50, 2),
+    'pricing_datetime': new Date(Date.now() - Math.floor(getRandomFromBatch() * 86400000)).toISOString(),
+    'fx_rate': fastRandomNumber(0.5, 2, 4),
+    'fx_exposure': getRandomFromBatch() > 0.5 ? notionalAmount : 0,
+    'fx_hedged': getRandomFromBatch() > 0.3,
+    'fx_hedge_ratio': getRandomFromBatch() > 0.3 ? fastRandomNumber(0, 100, 2) : 0,
+    'fx_hedge_cost': getRandomFromBatch() > 0.3 ? fastRandomNumber(0, 50, 2) : 0,
+    'settlement_type': fastRandomElement(['DVP', 'FOP', 'DFP']),
+    'clearing_house': fastRandomElement(['DTCC', 'Euroclear', 'Clearstream', 'OCC', 'LCH', 'None']),
+    'custodian': fastRandomElement(['BNY Mellon', 'State Street', 'Northern Trust', 'JPMorgan', 'Citi', 'Internal']),
+    'fails_count': getRandomFromBatch() > 0.9 ? Math.floor(fastRandomNumber(1, 5, 0)) : 0,
+    'pending_settlement': getRandomFromBatch() > 0.8,
+    'execution_venue': fastRandomElement(['Bloomberg', 'MarketAxess', 'Tradeweb', 'BondDesk', 'NASDAQ', 'NYSE', 'Direct', 'Voice']),
+    'execution_datetime': new Date(Date.now() - Math.floor(getRandomFromBatch() * 31536000000)).toISOString(),
+    'execution_cost': fastRandomNumber(0, 25, 2),
+    'commission': fastRandomNumber(0, 10, 2),
+    'transaction_cost_analysis': fastRandomNumber(0, 50, 2),
+    'internal_id': `INT-${randomString(8)}`,
+    'strategy_id': `STR-${randomString(4)}`,
+    'desk': fastRandomElement(['Treasury', 'Credit', 'Structured', 'Government', 'Municipal', 'High Yield', 'Emerging Markets']),
+    'group': fastRandomElement(['Fixed Income', 'Rates', 'Credit', 'Emerging Markets', 'Structured Products']),
+    'division': fastRandomElement(['Trading', 'Asset Management', 'Treasury', 'Risk', 'Proprietary'])
   };
 
-  // Add additional columns to reach 320 total
-  // Risk sensitivities
-  position['riskSensitivity_1y'] = randomNumber(-0.05, 0.05, 6);
-  position['riskSensitivity_2y'] = randomNumber(-0.1, 0.1, 6);
-  position['riskSensitivity_3y'] = randomNumber(-0.15, 0.15, 6);
-  position['riskSensitivity_5y'] = randomNumber(-0.25, 0.25, 6);
-  position['riskSensitivity_7y'] = randomNumber(-0.35, 0.35, 6);
-  position['riskSensitivity_10y'] = randomNumber(-0.5, 0.5, 6);
-  position['riskSensitivity_15y'] = randomNumber(-0.7, 0.7, 6);
-  position['riskSensitivity_20y'] = randomNumber(-0.85, 0.85, 6);
-  position['riskSensitivity_30y'] = randomNumber(-1, 1, 6);
-  
-  // Historical volatility metrics
-  position['volatility_1d'] = randomNumber(0.01, 5, 4);
-  position['volatility_1w'] = randomNumber(0.05, 8, 4);
-  position['volatility_1m'] = randomNumber(0.1, 12, 4);
-  position['volatility_3m'] = randomNumber(0.2, 15, 4);
-  position['volatility_6m'] = randomNumber(0.3, 18, 4);
-  position['volatility_1y'] = randomNumber(0.5, 20, 4);
-  
-  // Historical performance
-  position['performance_1d'] = randomNumber(-2, 2, 4);
-  position['performance_1w'] = randomNumber(-5, 5, 4);
-  position['performance_1m'] = randomNumber(-8, 8, 4);
-  position['performance_3m'] = randomNumber(-12, 12, 4);
-  position['performance_6m'] = randomNumber(-15, 15, 4);
-  position['performance_ytd'] = randomNumber(-20, 20, 4);
-  position['performance_1y'] = randomNumber(-25, 25, 4);
-  position['performance_3y'] = randomNumber(-30, 30, 4);
-  position['performance_5y'] = randomNumber(-35, 35, 4);
-  
-  // Credit default swap data
-  position['cds_1y'] = randomNumber(1, 500, 2);
-  position['cds_3y'] = randomNumber(5, 550, 2);
-  position['cds_5y'] = randomNumber(10, 600, 2);
-  position['cds_7y'] = randomNumber(15, 650, 2);
-  position['cds_10y'] = randomNumber(20, 700, 2);
-  
-  // Stress test results
-  position['stress_parallel_up_100bp'] = randomNumber(-10, 0, 4);
-  position['stress_parallel_down_100bp'] = randomNumber(0, 10, 4);
-  position['stress_steepener_100bp'] = randomNumber(-5, 5, 4);
-  position['stress_flattener_100bp'] = randomNumber(-5, 5, 4);
-  position['stress_short_up_100bp'] = randomNumber(-8, 2, 4);
-  position['stress_short_down_100bp'] = randomNumber(-2, 8, 4);
-  position['stress_long_up_100bp'] = randomNumber(-8, 2, 4);
-  position['stress_long_down_100bp'] = randomNumber(-2, 8, 4);
-  position['stress_credit_up_100bp'] = randomNumber(-10, 0, 4);
-  position['stress_credit_down_100bp'] = randomNumber(0, 10, 4);
-  position['stress_volatility_up_10pct'] = randomNumber(-5, 5, 4);
-  position['stress_volatility_down_10pct'] = randomNumber(-5, 5, 4);
-  position['stress_fx_up_10pct'] = randomNumber(-5, 5, 4);
-  position['stress_fx_down_10pct'] = randomNumber(-5, 5, 4);
-  position['stress_inflation_up_100bp'] = randomNumber(-8, 2, 4);
-  position['stress_inflation_down_100bp'] = randomNumber(-2, 8, 4);
-  
-  // Historical spread metrics
-  position['spread_vs_benchmark_1d'] = randomNumber(-50, 50, 2);
-  position['spread_vs_benchmark_1w'] = randomNumber(-60, 60, 2);
-  position['spread_vs_benchmark_1m'] = randomNumber(-70, 70, 2);
-  position['spread_vs_benchmark_3m'] = randomNumber(-80, 80, 2);
-  position['spread_vs_benchmark_6m'] = randomNumber(-90, 90, 2);
-  position['spread_vs_benchmark_1y'] = randomNumber(-100, 100, 2);
-  
-  // Risk decomposition
-  position['risk_ir'] = randomNumber(0, 100, 2);
-  position['risk_credit'] = randomNumber(0, 100, 2);
-  position['risk_fx'] = randomNumber(0, 50, 2);
-  position['risk_inflation'] = randomNumber(0, 30, 2);
-  position['risk_volatility'] = randomNumber(0, 20, 2);
-  position['risk_basis'] = randomNumber(0, 15, 2);
-  position['risk_other'] = randomNumber(0, 10, 2);
-  
-  // Benchmark data
-  position['benchmark_id'] = `BM-${randomString(6)}`;
-  position['benchmark_name'] = `${currency} ${securityType} ${Math.floor(yearsToMaturity)}Y Index`;
-  position['benchmark_yield'] = randomNumber(0.1, 8, 4);
-  position['benchmark_duration'] = randomNumber(0.5, yearsToMaturity, 3);
-  position['benchmark_spread'] = randomNumber(-100, 100, 2);
-  position['tracking_error'] = randomNumber(0.1, 5, 4);
-  position['active_risk'] = randomNumber(0.5, 8, 4);
-  position['information_ratio'] = randomNumber(-2, 2, 4);
-  position['sharpe_ratio'] = randomNumber(-1, 3, 4);
-  position['sortino_ratio'] = randomNumber(-1, 4, 4);
-  position['treynor_ratio'] = randomNumber(-2, 5, 4);
-  position['jensen_alpha'] = randomNumber(-5, 5, 4);
-  
-  // Counterparty information
-  position['counterparty_id'] = `CP-${randomString(6)}`;
-  position['counterparty_name'] = randomElement(['JPMorgan', 'Goldman Sachs', 'Morgan Stanley', 'BAML', 'Citi', 'BNP Paribas', 'HSBC', 'Deutsche Bank', 'Barclays', 'UBS', 'Credit Suisse']);
-  position['counterparty_rating'] = randomElement(['A+', 'A', 'A-', 'BBB+', 'BBB', 'BBB-']);
-  position['counterparty_country'] = randomElement(COUNTRIES);
-  position['counterparty_exposure'] = notionalAmount;
-  position['counterparty_collateral'] = randomNumber(0, notionalAmount, 0);
-  position['counterparty_netting_agreement'] = Math.random() > 0.2;
-  position['counterparty_csa'] = Math.random() > 0.3;
-  
-  // Pricing model data
-  position['pricing_model'] = randomElement(['Bloomberg', 'MarkIt', 'Internal', 'Vendor A', 'Vendor B']);
-  position['pricing_source'] = randomElement(['Market', 'Model', 'Desk Quote', 'Trader Input', 'External Quote']);
-  position['pricing_quality'] = randomNumber(1, 5, 0);
-  position['pricing_uncertainty'] = randomNumber(0.01, 5, 4);
-  position['liquidity_premium'] = randomNumber(0, 50, 2);
-  position['pricing_datetime'] = new Date(Date.now() - Math.floor(Math.random() * 86400000)).toISOString();
-  
-  // FX related data
-  position['fx_rate'] = randomNumber(0.5, 2, 4);
-  position['fx_exposure'] = Math.random() > 0.5 ? notionalAmount : 0;
-  position['fx_hedged'] = Math.random() > 0.3;
-  position['fx_hedge_ratio'] = Math.random() > 0.3 ? randomNumber(0, 100, 2) : 0;
-  position['fx_hedge_cost'] = Math.random() > 0.3 ? randomNumber(0, 50, 2) : 0;
-  
-  // Settlement & clearing data
-  position['settlement_type'] = randomElement(['DVP', 'FOP', 'DFP']);
-  position['clearing_house'] = randomElement(['DTCC', 'Euroclear', 'Clearstream', 'OCC', 'LCH', 'None']);
-  position['custodian'] = randomElement(['BNY Mellon', 'State Street', 'Northern Trust', 'JPMorgan', 'Citi', 'Internal']);
-  position['fails_count'] = Math.random() > 0.9 ? Math.floor(randomNumber(1, 5, 0)) : 0;
-  position['pending_settlement'] = Math.random() > 0.8;
-  
-  // Trading analytics
-  position['execution_venue'] = randomElement(['Bloomberg', 'MarketAxess', 'Tradeweb', 'BondDesk', 'NASDAQ', 'NYSE', 'Direct', 'Voice']);
-  position['execution_datetime'] = new Date(Date.now() - Math.floor(Math.random() * 31536000000)).toISOString();
-  position['execution_cost'] = randomNumber(0, 25, 2);
-  position['commission'] = randomNumber(0, 10, 2);
-  position['transaction_cost_analysis'] = randomNumber(0, 50, 2);
-  
-  // Internal identifiers
-  position['internal_id'] = `INT-${randomString(8)}`;
-  position['strategy_id'] = `STR-${randomString(4)}`;
-  position['desk'] = randomElement(['Treasury', 'Credit', 'Structured', 'Government', 'Municipal', 'High Yield', 'Emerging Markets']);
-  position['group'] = randomElement(['Fixed Income', 'Rates', 'Credit', 'Emerging Markets', 'Structured Products']);
-  position['division'] = randomElement(['Trading', 'Asset Management', 'Treasury', 'Risk', 'Proprietary']);
-  
-  // Generate additional columns to reach 320 total
-  // Add market data points
   for (let i = 1; i <= 20; i++) {
-    position[`market_data_point_${i}`] = randomNumber(0, 1000, 4);
+    position[`market_data_point_${i}`] = fastRandomNumber(0, 1000, 4);
+    position[`risk_factor_${i}`] = fastRandomNumber(-10, 10, 6);
+    position[`sensitivity_metric_${i}`] = fastRandomNumber(-5, 5, 6);
+    position[`custom_analytics_${i}`] = fastRandomNumber(0, 100, 4);
+    position[`compliance_check_${i}`] = getRandomFromBatch() > 0.9 ? false : true;
+    position[`scenario_${i}_impact`] = fastRandomNumber(-20, 20, 4);
   }
   
-  // Add risk factors
-  for (let i = 1; i <= 20; i++) {
-    position[`risk_factor_${i}`] = randomNumber(-10, 10, 6);
-  }
-  
-  // Add sensitivity metrics
-  for (let i = 1; i <= 20; i++) {
-    position[`sensitivity_metric_${i}`] = randomNumber(-5, 5, 6);
-  }
-  
-  // Add custom analytics
-  for (let i = 1; i <= 20; i++) {
-    position[`custom_analytics_${i}`] = randomNumber(0, 100, 4);
-  }
-  
-  // Add compliance flags
-  for (let i = 1; i <= 20; i++) {
-    position[`compliance_check_${i}`] = Math.random() > 0.9 ? false : true;
-  }
-  
-  // Add scenario analysis results
-  for (let i = 1; i <= 20; i++) {
-    position[`scenario_${i}_impact`] = randomNumber(-20, 20, 4);
-  }
-  
-  // Add portfolio attribution
   for (let i = 1; i <= 10; i++) {
-    position[`attribution_factor_${i}`] = randomNumber(-5, 5, 4);
+    position[`attribution_factor_${i}`] = fastRandomNumber(-5, 5, 4);
   }
   
   return position;
@@ -404,14 +363,19 @@ function createPosition(): FixedIncomePosition {
 export function generateFixedIncomeData(rowCount: number = 100): FixedIncomePosition[] {
   console.time('Data Generation');
   
+  // Pre-allocate result array for better performance
+  const result: FixedIncomePosition[] = new Array(rowCount);
+  
   // Use batch processing for better performance with large datasets
   const batchSize = 10000;
-  const result: FixedIncomePosition[] = [];
   
   for (let i = 0; i < rowCount; i += batchSize) {
     const currentBatchSize = Math.min(batchSize, rowCount - i);
-    const batch = Array.from({ length: currentBatchSize }, () => createPosition());
-    result.push(...batch);
+    
+    // Generate batch using optimized loop instead of Array.from
+    for (let j = 0; j < currentBatchSize; j++) {
+      result[i + j] = createPosition();
+    }
     
     // Log progress for large datasets
     if (rowCount > 50000 && i % 50000 === 0 && i > 0) {
