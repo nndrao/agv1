@@ -35,6 +35,7 @@ interface DatasourceContextType {
   unsubscribeFromUpdates: (datasourceId: string) => void;
   initializeWorkerForGrid: (datasourceId: string, gridData: any[]) => void;
   syncWorkerState: (datasourceId: string, currentData: any[]) => void;
+  getProvider: (datasourceId: string) => any | undefined;
   
   // UI Controls
   showDatasourceList: boolean;
@@ -77,6 +78,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   const updateEmitter = updateEmitterRef.current;
   
   // Initialize Web Worker
+  // NOTE: Worker is being phased out in favor of direct processing for better performance
   const workerRef = useRef<Worker | null>(null);
   const [isWorkerReady, setIsWorkerReady] = useState(false);
   
@@ -279,25 +281,36 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     console.log(`[DatasourceContext] Marked ${datasourceId} as ready for updates`);
     
     // Create update handler
-    const updateHandler = (updatedData: any) => {
+    const updateHandler = async (updatedData: any) => {
       // Process all updates - snapshot is considered complete
       if (!snapshotCompleteRef.current.get(datasourceId)) {
         console.warn(`[DatasourceContext] Processing update for ${datasourceId} even though snapshot flag is false`);
       }
       
-      if (workerRef.current) {
-        // Send update to worker for processing
-        workerRef.current.postMessage({
-          type: 'update',
-          datasourceId,
-          data: updatedData
-        });
-      }
+      // Bypass worker for now - send directly to update emitter
+      // This is a temporary solution while we phase out the worker
+      const transaction: any = {
+        update: Array.isArray(updatedData) ? updatedData : [updatedData]
+      };
       
-      // TODO: Debounce statistics update to prevent excessive re-renders
-      // Temporarily disabled to fix infinite update loop
-      // const stats = provider.getStatistics();
-      // setDatasourceStatistics(prev => new Map(prev).set(datasourceId, stats));
+      console.log(`[DatasourceContext] Bypassing worker, sending ${transaction.update.length} updates directly`);
+      
+      // Emit transaction event directly
+      await updateEmitter.enqueue({
+        type: 'transaction',
+        datasourceId,
+        transaction,
+        timestamp: Date.now()
+      });
+      
+      // Original worker code (kept for reference)
+      // if (workerRef.current) {
+      //   workerRef.current.postMessage({
+      //     type: 'update',
+      //     datasourceId,
+      //     data: updatedData
+      //   });
+      // }
     };
     
     // Subscribe to real-time updates
@@ -375,6 +388,11 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     updateSubscriptionsRef.current.delete(datasourceId);
   }, []);
   
+  // Get provider for a datasource
+  const getProvider = useCallback((datasourceId: string) => {
+    return providers.get(datasourceId);
+  }, [providers]);
+  
   // Set batching configuration
   const setBatchingConfig = useCallback((enabled: boolean, interval?: number) => {
     updateEmitter.setBatching(enabled, interval);
@@ -424,6 +442,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     unsubscribeFromUpdates,
     initializeWorkerForGrid,
     syncWorkerState,
+    getProvider,
     showDatasourceList,
     setShowDatasourceList,
     setBatchingConfig,

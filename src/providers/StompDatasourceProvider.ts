@@ -331,6 +331,13 @@ export class StompDatasourceProvider {
       }
     };
   }
+  
+  unsubscribeFromUpdates(callback: (data: any) => void): void {
+    const index = this.updateCallbacks.indexOf(callback);
+    if (index > -1) {
+      this.updateCallbacks.splice(index, 1);
+    }
+  }
 
   getStatistics(): StompStatistics {
     return { ...this.statistics };
