@@ -34,6 +34,7 @@ interface DatasourceContextType {
   subscribeToUpdates: (datasourceId: string) => void;
   unsubscribeFromUpdates: (datasourceId: string) => void;
   initializeWorkerForGrid: (datasourceId: string, gridData: any[]) => void;
+  syncWorkerState: (datasourceId: string, currentData: any[]) => void;
   
   // UI Controls
   showDatasourceList: boolean;
@@ -273,19 +274,15 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
 
     console.log(`[DatasourceContext] Subscribing to updates for ${datasourceId}`);
     
-    // Add a small delay to ensure snapshot is fully processed
-    setTimeout(() => {
-      // Mark as ready for updates
-      snapshotCompleteRef.current.set(datasourceId, true);
-      console.log(`[DatasourceContext] Marked ${datasourceId} as ready for updates`);
-    }, 500);
+    // Mark as ready for updates immediately to avoid dropping updates
+    snapshotCompleteRef.current.set(datasourceId, true);
+    console.log(`[DatasourceContext] Marked ${datasourceId} as ready for updates`);
     
     // Create update handler
     const updateHandler = (updatedData: any) => {
-      // Only process updates if snapshot is complete
+      // Process all updates - snapshot is considered complete
       if (!snapshotCompleteRef.current.get(datasourceId)) {
-        console.log(`[DatasourceContext] Ignoring update for ${datasourceId} - snapshot not complete`);
-        return;
+        console.warn(`[DatasourceContext] Processing update for ${datasourceId} even though snapshot flag is false`);
       }
       
       if (workerRef.current) {
@@ -343,6 +340,23 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
       currentData: gridData
     });
   }, [getDatasource]);
+  
+  // Sync worker state with grid state (e.g., after filtering, sorting)
+  const syncWorkerState = useCallback((datasourceId: string, currentData: any[]) => {
+    if (!workerRef.current) {
+      console.warn('[DatasourceContext] Worker not initialized');
+      return;
+    }
+    
+    console.log(`[DatasourceContext] Syncing worker state for ${datasourceId} with ${currentData.length} rows`);
+    
+    // Send current grid state to worker
+    workerRef.current.postMessage({
+      type: 'sync',
+      datasourceId,
+      currentData
+    });
+  }, []);
 
   // Unsubscribe from updates for a datasource
   const unsubscribeFromUpdates = useCallback((datasourceId: string) => {
@@ -409,6 +423,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     subscribeToUpdates,
     unsubscribeFromUpdates,
     initializeWorkerForGrid,
+    syncWorkerState,
     showDatasourceList,
     setShowDatasourceList,
     setBatchingConfig,

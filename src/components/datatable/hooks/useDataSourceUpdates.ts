@@ -10,6 +10,8 @@ export interface UseDataSourceUpdatesOptions {
   updatesEnabled?: boolean;
   onUpdateError?: (error: Error) => void;
   initialData?: any[];
+  enableConflation?: boolean; // Whether to merge updates for same row within batch window
+  onUpdateMetrics?: (metrics: UpdateMetrics) => void; // Callback for metrics updates
 }
 
 export interface UpdateMetrics {
@@ -17,6 +19,9 @@ export interface UpdateMetrics {
   successfulUpdates: number;
   failedUpdates: number;
   lastUpdateTime: number;
+  conflatedUpdates: number; // Number of updates merged due to conflation
+  droppedUpdates: number; // Number of updates dropped
+  updateLatency: number; // Average latency in ms
 }
 
 export function useDataSourceUpdates({
@@ -25,23 +30,29 @@ export function useDataSourceUpdates({
   keyColumn,
   asyncTransactionWaitMillis = 60,
   updatesEnabled = false,
-  onUpdateError
+  onUpdateError,
+  enableConflation = true,
+  onUpdateMetrics
 }: UseDataSourceUpdatesOptions) {
-  const { updateEmitter, subscribeToUpdates, initializeWorkerForGrid, unsubscribeFromUpdates } = useDatasourceContext();
+  const { updateEmitter, subscribeToUpdates, initializeWorkerForGrid, unsubscribeFromUpdates, syncWorkerState } = useDatasourceContext();
   const metricsRef = useRef<UpdateMetrics>({
     totalUpdates: 0,
     successfulUpdates: 0,
     failedUpdates: 0,
-    lastUpdateTime: 0
+    lastUpdateTime: 0,
+    conflatedUpdates: 0,
+    droppedUpdates: 0,
+    updateLatency: 0
   });
   const hasInitializedRef = useRef(false);
   
-  // Track pending changes for cell-level flashing
-  const pendingChangesRef = useRef<Map<string, Set<string>>>(new Map());
+  // REMOVED: Unused map that was causing memory leak
+  // const pendingChangesRef = useRef<Map<string, Set<string>>>(new Map());
   
   // Batch updates to prevent UI blocking
   const pendingUpdatesRef = useRef<any[]>([]);
   const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Configure AG-Grid and initialize datasource when ready
   useEffect(() => {
@@ -54,10 +65,7 @@ export function useDataSourceUpdates({
       gridApi.setGridOption('asyncTransactionWaitMillis', asyncTransactionWaitMillis);
     }
     
-    // Ensure cell change flash is enabled
-    gridApi.setGridOption('enableCellChangeFlash', true);
-    gridApi.setGridOption('cellFlashDelay', 500);
-    gridApi.setGridOption('cellFadeDelay', 1000);
+    // Cell flash is now configured at column level via DEFAULT_COL_DEF
     
     // Set getRowId if keyColumn is specified
     if (keyColumn) {
@@ -122,6 +130,38 @@ export function useDataSourceUpdates({
       unsubscribeFromUpdates(datasourceId);
     }
   }, [updatesEnabled, datasourceId, subscribeToUpdates, unsubscribeFromUpdates]);
+  
+  // Periodic sync of worker state with grid state
+  useEffect(() => {
+    if (!datasourceId || !gridApi || !updatesEnabled || !syncWorkerState) {
+      return;
+    }
+    
+    // Sync every 30 seconds to catch any drift
+    const syncInterval = setInterval(() => {
+      const rowCount = gridApi.getDisplayedRowCount();
+      if (rowCount > 0) {
+        const currentData: any[] = [];
+        gridApi.forEachNodeAfterFilterAndSort((node) => {
+          if (node.data) {
+            currentData.push(node.data);
+          }
+        });
+        
+        console.log('[useDataSourceUpdates] Periodic sync with worker:', currentData.length);
+        syncWorkerState(datasourceId, currentData);
+      }
+    }, 30000); // 30 seconds
+    
+    syncTimerRef.current = syncInterval;
+    
+    return () => {
+      if (syncTimerRef.current) {
+        clearInterval(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
+  }, [datasourceId, gridApi, updatesEnabled, syncWorkerState]);
 
 
 
@@ -137,13 +177,20 @@ export function useDataSourceUpdates({
         metricsRef.current.lastUpdateTime = Date.now();
 
         try {
-          // Check if grid has row data before applying updates
+          // Check if grid is initialized (not just row count)
+          const gridReady = gridApi.isDestroyed !== undefined && !gridApi.isDestroyed();
           const rowCount = gridApi.getDisplayedRowCount();
           
-          // Skip updates if grid is not ready
-          if (rowCount === 0 && transaction.update?.length > 0) {
-            console.warn('[useDataSourceUpdates] Skipping updates - grid has no data yet');
+          // Only skip updates if grid is not initialized at all
+          if (!gridReady) {
+            console.warn('[useDataSourceUpdates] Dropping updates - grid not initialized');
+            metricsRef.current.droppedUpdates += transaction.update?.length || 0;
             return;
+          }
+          
+          // If grid is ready but has 0 rows (e.g., due to filtering), still process updates
+          if (rowCount === 0 && transaction.update?.length > 0) {
+            console.log('[useDataSourceUpdates] Processing updates even though display count is 0 (might be filtered)');
           }
 
           // Add to pending updates
@@ -169,11 +216,32 @@ export function useDataSourceUpdates({
               remove: []
             };
 
-            // Use a map to deduplicate updates by row ID
+            // Track conflation metrics
+            const updateStartTime = Date.now();
+            const updateCountByRow = new Map<string, number>();
+            
+            // Use a map to deduplicate updates by row ID (if conflation is enabled)
             const updateMap = new Map<string, any>();
             // Track which columns changed per row
             const changedColumnsMap = new Map<string, Set<string>>();
             
+            // First pass: collect old values before any updates
+            const oldValuesMap = new Map<string, any>();
+            updates.forEach(transaction => {
+              if (transaction.update && keyColumn) {
+                transaction.update.forEach((item: any) => {
+                  const rowId = String(item[keyColumn]);
+                  if (!oldValuesMap.has(rowId)) {
+                    const rowNode = gridApi.getRowNode(rowId);
+                    if (rowNode && rowNode.data) {
+                      oldValuesMap.set(rowId, { ...rowNode.data });
+                    }
+                  }
+                });
+              }
+            });
+            
+            // Second pass: process updates and detect changes
             updates.forEach(transaction => {
               if (transaction.add) combinedTransaction.add.push(...transaction.add);
               if (transaction.remove) combinedTransaction.remove.push(...transaction.remove);
@@ -181,81 +249,97 @@ export function useDataSourceUpdates({
               // Merge updates for the same row
               if (transaction.update && keyColumn) {
                 transaction.update.forEach((item: any) => {
-                  const rowId = item[keyColumn];
+                  const rowId = String(item[keyColumn]);
                   
-                  // Get current row data to compare
-                  const rowNode = gridApi.getRowNode(String(rowId));
-                  if (rowNode && rowNode.data) {
+                  // Track update count for conflation metrics
+                  updateCountByRow.set(rowId, (updateCountByRow.get(rowId) || 0) + 1);
+                  
+                  // Compare with old values we stored
+                  const oldData = oldValuesMap.get(rowId);
+                  if (oldData) {
                     // Track changed columns
                     const changedCols = changedColumnsMap.get(rowId) || new Set<string>();
                     
+                    // Define important columns to flash (for performance and visibility)
+                    const importantColumns = [
+                      'marketValue', 'totalValue', 'currentPrice', 
+                      'pnl', 'unrealizedPnl', 'dailyPnl',
+                      'spread', 'rating', 'dv01'
+                    ];
+                    
                     Object.keys(item).forEach(colId => {
-                      if (colId !== keyColumn && rowNode.data[colId] !== item[colId]) {
+                      // Only track important columns for flashing
+                      if (colId !== keyColumn && 
+                          importantColumns.includes(colId) && 
+                          oldData[colId] !== item[colId]) {
                         changedCols.add(colId);
                       }
                     });
                     
-                    changedColumnsMap.set(rowId, changedCols);
+                    if (changedCols.size > 0) {
+                      changedColumnsMap.set(rowId, changedCols);
+                    }
                   }
                   
-                  if (updateMap.has(rowId)) {
-                    // Merge with existing update
-                    updateMap.set(rowId, { ...updateMap.get(rowId), ...item });
+                  if (enableConflation) {
+                    if (updateMap.has(rowId)) {
+                      // Merge with existing update (conflation)
+                      updateMap.set(rowId, { ...updateMap.get(rowId), ...item });
+                    } else {
+                      updateMap.set(rowId, item);
+                    }
                   } else {
-                    updateMap.set(rowId, item);
+                    // No conflation - add all updates
+                    combinedTransaction.update.push(item);
                   }
                 });
               }
             });
 
-            // Convert map back to array
-            combinedTransaction.update = Array.from(updateMap.values());
-
-            // Apply transaction with cell flashing
-            console.log('[useDataSourceUpdates] Applying transaction:', {
-              updates: combinedTransaction.update.length,
-              adds: combinedTransaction.add.length,
-              removes: combinedTransaction.remove.length
-            });
+            // Calculate conflation metrics
+            let conflatedCount = 0;
             
+            // Convert map back to array if using conflation
+            if (enableConflation) {
+              combinedTransaction.update = Array.from(updateMap.values());
+              
+              // Calculate how many updates were conflated
+              updateCountByRow.forEach((count) => {
+                if (count > 1) {
+                  conflatedCount += (count - 1); // Number of updates that were merged
+                }
+              });
+              metricsRef.current.conflatedUpdates += conflatedCount;
+            }
+
+            // Always use sync transaction for cell flashing to work
+            // AG-Grid will automatically flash cells that have enableCellChangeFlash: true
             const res = gridApi.applyTransaction(combinedTransaction);
             
             if (res) {
               metricsRef.current.successfulUpdates++;
               
-              console.log('[useDataSourceUpdates] Transaction result:', {
+              // Calculate latency
+              const latency = Date.now() - updateStartTime;
+              // Update rolling average latency
+              if (metricsRef.current.updateLatency === 0) {
+                metricsRef.current.updateLatency = latency;
+              } else {
+                // Exponential moving average
+                metricsRef.current.updateLatency = metricsRef.current.updateLatency * 0.9 + latency * 0.1;
+              }
+              
+              console.log('[useDataSourceUpdates] Transaction applied:', {
                 updated: res.update?.length || 0,
                 added: res.add?.length || 0,
-                removed: res.remove?.length || 0
+                removed: res.remove?.length || 0,
+                conflated: conflatedCount || 0,
+                latency: latency + 'ms'
               });
               
-              // Flash changed cells with a small delay
-              if (res.update && res.update.length > 0 && keyColumn) {
-                console.log('[useDataSourceUpdates] Flashing cells for', res.update.length, 'rows');
-                
-                // Use setTimeout to ensure DOM has updated
-                setTimeout(() => {
-                  res.update.forEach(rowNode => {
-                    const rowId = rowNode.data[keyColumn];
-                    const changedColumns = changedColumnsMap.get(rowId);
-                    
-                    if (changedColumns && changedColumns.size > 0) {
-                      const columnsArray = Array.from(changedColumns);
-                      console.log(`[useDataSourceUpdates] Flashing ${columnsArray.length} columns for row ${rowId}:`, columnsArray);
-                      
-                      gridApi.flashCells({
-                        rowNodes: [rowNode],
-                        columns: columnsArray
-                      });
-                    } else {
-                      // If we couldn't detect specific columns, flash the whole row
-                      console.log(`[useDataSourceUpdates] No specific columns detected, flashing whole row ${rowId}`);
-                      gridApi.flashCells({
-                        rowNodes: [rowNode]
-                      });
-                    }
-                  });
-                }, 0);
+              // Call metrics callback if provided
+              if (onUpdateMetrics) {
+                onUpdateMetrics({ ...metricsRef.current });
               }
             }
           }, asyncTransactionWaitMillis);
@@ -282,8 +366,11 @@ export function useDataSourceUpdates({
         clearTimeout(updateTimerRef.current);
         updateTimerRef.current = null;
       }
+      
+      // Clear pending updates to prevent memory leak
+      pendingUpdatesRef.current = [];
     };
-  }, [datasourceId, updateEmitter, gridApi, keyColumn, asyncTransactionWaitMillis, onUpdateError]);
+  }, [datasourceId, updateEmitter, gridApi, keyColumn, asyncTransactionWaitMillis, onUpdateError, enableConflation, onUpdateMetrics]);
 
   // Manual flush function
   const flushTransactions = useCallback(() => {

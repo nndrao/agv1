@@ -14,6 +14,8 @@ export const DEFAULT_COL_DEF: Partial<ColDef> = {
   sortable: true,
   // Enable value formatter for Excel export by default
   useValueFormatterForExport: true,
+  // Enable cell change flash by default for all columns
+  enableCellChangeFlash: true,
 };
 
 /**

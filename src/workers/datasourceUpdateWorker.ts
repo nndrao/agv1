@@ -2,7 +2,7 @@
 // This worker calculates row differences and batches updates efficiently
 
 interface UpdateMessage {
-  type: 'update' | 'config' | 'reset';
+  type: 'update' | 'config' | 'reset' | 'sync';
   datasourceId: string;
   data?: any;
   keyColumn?: string;
@@ -62,6 +62,14 @@ self.addEventListener('message', (event: MessageEvent<UpdateMessage>) => {
 
     case 'update':
       processUpdate(datasourceId, data);
+      break;
+      
+    case 'sync':
+      if (currentData) {
+        // Sync worker state with grid state without triggering updates
+        datasourceData.set(datasourceId, [...currentData]);
+        console.log(`[Worker] Synced datasource ${datasourceId} with ${currentData.length} rows from grid`);
+      }
       break;
   }
 });
