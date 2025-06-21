@@ -41,6 +41,7 @@ export const DataTableContainer = memo(({
   const { datasources } = useDatasourceStore();
   const { toast } = useToast();
   const [updatesEnabled, setUpdatesEnabled] = useState(false);
+  const [hasAutoEnabledUpdates, setHasAutoEnabledUpdates] = useState(false);
   
   // Initialize unified config if enabled
   const unifiedConfig = useUnifiedConfig({
@@ -225,6 +226,25 @@ export const DataTableContainer = memo(({
       }
     }
   }, [enableUnifiedConfig, unifiedConfig.config, unifiedConfig.configToProfile, handleProfileChange]);
+  
+  // Auto-enable updates when snapshot is complete
+  React.useEffect(() => {
+    if (isSnapshotComplete && !hasAutoEnabledUpdates && selectedDatasourceId) {
+      console.log('[DataTableContainer] Snapshot complete, auto-enabling updates');
+      setUpdatesEnabled(true);
+      setHasAutoEnabledUpdates(true);
+      toast({
+        title: 'Real-time updates enabled',
+        description: 'Live data updates are now active',
+        duration: 3000,
+      });
+    }
+  }, [isSnapshotComplete, hasAutoEnabledUpdates, selectedDatasourceId, toast]);
+  
+  // Reset auto-enable flag when datasource changes
+  React.useEffect(() => {
+    setHasAutoEnabledUpdates(false);
+  }, [selectedDatasourceId]);
   
   // Handle column operations - pass processedColumns which have the styles
   const { handleApplyColumnChanges, getColumnDefsWithStyles } = useColumnOperations(
