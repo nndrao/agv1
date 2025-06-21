@@ -1,0 +1,255 @@
+{
+  "appId": "my-react-app",
+  "users": {
+    "user123": {
+      "userId": "user123",
+      "username": "john.doe",
+      "email": "john@example.com",
+      "components": {
+        "comp_inst_001": {
+          "instanceId": "comp_inst_001",
+          "componentType": "DataGrid",
+          "subcomponentType": "AdvancedTable",
+          "displayName": "Sales Dashboard Table",
+          "createdAt": "2025-06-19T10:30:00Z",
+          "updatedAt": "2025-06-19T15:45:00Z",
+          "ownerId": "user123",
+          "permissions": {
+            "isPublic": true,
+            "canEdit": ["user456", "user789"],
+            "canView": ["user456", "user789", "user101"],
+            "allowSharing": true,
+            "editableByOthers": true
+          },
+          "settings": {
+            "activeVersionId": "v3",
+            "versions": {
+              "v1": {
+                "versionId": "v1",
+                "versionNumber": 1,
+                "name": "Initial Setup",
+                "description": "First configuration",
+                "isActive": false,
+                "createdAt": "2025-06-19T10:30:00Z",
+                "createdBy": "user123",
+                "config": {
+                  "columns": [
+                    {"id": "name", "width": 200, "visible": true},
+                    {"id": "sales", "width": 150, "visible": true}
+                  ],
+                  "theme": "light",
+                  "pagination": {"pageSize": 10, "enabled": true}
+                },
+                "audit": {
+                  "createdBy": "user123",
+                  "createdAt": "2025-06-19T10:30:00Z",
+                  "lastModifiedBy": "user123",
+                  "lastModifiedAt": "2025-06-19T10:30:00Z",
+                  "changeHistory": []
+                }
+              },
+              "v2": {
+                "versionId": "v2",
+                "versionNumber": 2,
+                "name": "Dark Theme Update",
+                "description": "Changed to dark theme and added filters",
+                "isActive": false,
+                "createdAt": "2025-06-19T12:15:00Z",
+                "createdBy": "user123",
+                "config": {
+                  "columns": [
+                    {"id": "name", "width": 200, "visible": true},
+                    {"id": "sales", "width": 150, "visible": true},
+                    {"id": "region", "width": 120, "visible": true}
+                  ],
+                  "theme": "dark",
+                  "pagination": {"pageSize": 20, "enabled": true},
+                  "filters": {"enabled": true, "quickFilters": ["region", "date"]}
+                },
+                "audit": {
+                  "createdBy": "user123",
+                  "createdAt": "2025-06-19T12:15:00Z",
+                  "lastModifiedBy": "user456",
+                  "lastModifiedAt": "2025-06-19T14:22:00Z",
+                  "changeHistory": [
+                    {
+                      "changeId": "ch_001",
+                      "timestamp": "2025-06-19T14:22:00Z",
+                      "userId": "user456",
+                      "action": "UPDATE",
+                      "field": "config.pagination.pageSize",
+                      "oldValue": 10,
+                      "newValue": 20,
+                      "reason": "Performance optimization"
+                    }
+                  ]
+                }
+              },
+              "v3": {
+                "versionId": "v3",
+                "versionNumber": 3,
+                "name": "Current Production",
+                "description": "Latest stable version with all features",
+                "isActive": true,
+                "createdAt": "2025-06-19T15:45:00Z",
+                "createdBy": "user123",
+                "config": {
+                  "columns": [
+                    {"id": "name", "width": 250, "visible": true, "sortable": true},
+                    {"id": "sales", "width": 150, "visible": true, "sortable": true},
+                    {"id": "region", "width": 120, "visible": true, "sortable": false},
+                    {"id": "date", "width": 180, "visible": true, "sortable": true}
+                  ],
+                  "theme": "dark",
+                  "pagination": {"pageSize": 25, "enabled": true},
+                  "filters": {"enabled": true, "quickFilters": ["region", "date"]},
+                  "sorting": {"enabled": true, "defaultSort": "sales", "direction": "desc"}
+                },
+                "audit": {
+                  "createdBy": "user123",
+                  "createdAt": "2025-06-19T15:45:00Z",
+                  "lastModifiedBy": "user123",
+                  "lastModifiedAt": "2025-06-19T15:45:00Z",
+                  "changeHistory": []
+                }
+              }
+            }
+          },
+          "sharing": {
+            "isShared": true,
+            "shareId": "share_comp_001",
+            "shareUrl": "https://app.example.com/shared/comp_inst_001",
+            "sharedWith": [
+              {
+                "userId": "user456",
+                "sharedAt": "2025-06-19T13:30:00Z",
+                "permissions": ["view", "edit"],
+                "sharedBy": "user123"
+              }
+            ],
+            "publicAccess": {
+              "enabled": true,
+              "accessLevel": "view",
+              "requiresAuth": true
+            }
+          },
+          "metadata": {
+            "tags": ["dashboard", "sales", "production"],
+            "category": "Analytics",
+            "lastAccessed": "2025-06-19T16:00:00Z",
+            "accessCount": 145,
+            "favorited": true,
+            "notes": "Main sales dashboard component used by the sales team"
+          }
+        }
+      }
+    },
+    "user456": {
+      "userId": "user456",
+      "username": "jane.smith",
+      "email": "jane@example.com",
+      "components": {
+        "comp_inst_002": {
+          "instanceId": "comp_inst_002",
+          "componentType": "Chart",
+          "subcomponentType": "LineChart",
+          "displayName": "Revenue Trends",
+          "createdAt": "2025-06-19T09:15:00Z",
+          "updatedAt": "2025-06-19T11:20:00Z",
+          "ownerId": "user456",
+          "permissions": {
+            "isPublic": false,
+            "canEdit": [],
+            "canView": ["user123"],
+            "allowSharing": false,
+            "editableByOthers": false
+          },
+          "settings": {
+            "activeVersionId": "v1",
+            "versions": {
+              "v1": {
+                "versionId": "v1",
+                "versionNumber": 1,
+                "name": "Initial Chart",
+                "description": "Basic line chart setup",
+                "isActive": true,
+                "createdAt": "2025-06-19T09:15:00Z",
+                "createdBy": "user456",
+                "config": {
+                  "chartType": "line",
+                  "xAxis": {"field": "date", "label": "Date"},
+                  "yAxis": {"field": "revenue", "label": "Revenue ($)"},
+                  "colors": ["#3b82f6", "#ef4444"],
+                  "animations": true,
+                  "legend": {"enabled": true, "position": "top"}
+                },
+                "audit": {
+                  "createdBy": "user456",
+                  "createdAt": "2025-06-19T09:15:00Z",
+                  "lastModifiedBy": "user456",
+                  "lastModifiedAt": "2025-06-19T11:20:00Z",
+                  "changeHistory": [
+                    {
+                      "changeId": "ch_002",
+                      "timestamp": "2025-06-19T11:20:00Z",
+                      "userId": "user456",
+                      "action": "UPDATE",
+                      "field": "config.animations",
+                      "oldValue": false,
+                      "newValue": true,
+                      "reason": "Enable smooth transitions"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "sharing": {
+            "isShared": false,
+            "shareId": null,
+            "shareUrl": null,
+            "sharedWith": [],
+            "publicAccess": {
+              "enabled": false,
+              "accessLevel": "none",
+              "requiresAuth": true
+            }
+          },
+          "metadata": {
+            "tags": ["chart", "revenue", "private"],
+            "category": "Visualization",
+            "lastAccessed": "2025-06-19T16:15:00Z",
+            "accessCount": 23,
+            "favorited": false,
+            "notes": "Personal revenue tracking chart"
+          }
+        }
+      }
+    }
+  },
+  "globalSettings": {
+    "storageConfig": {
+      "defaultStorage": "mongodb",
+      "localStorageEnabled": true,
+      "syncInterval": 300,
+      "maxVersionsPerComponent": 10,
+      "autoCleanupOldVersions": true
+    },
+    "auditConfig": {
+      "enabled": true,
+      "retentionDays": 365,
+      "trackAllChanges": true,
+      "anonymizeAfterDays": 90
+    },
+    "sharingConfig": {
+      "maxSharedUsers": 50,
+      "publicSharingEnabled": true,
+      "requireEmailVerification": true
+    }
+  },
+  "schema": {
+    "version": "1.0",
+    "lastUpdated": "2025-06-19T00:00:00Z",
+    "description": "UI Component Settings Schema for React Application"
+  }
+}

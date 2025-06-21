@@ -7,7 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Settings2, Sliders, Database, MoreVertical, User, Save, Plus, Copy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Settings2, Sliders, MoreVertical, User, Save, Plus, Copy, Database, RefreshCw, Power, PlayCircle, Pause } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +37,8 @@ import {
 } from "@/components/datatable/stores/profile.store";
 import { useToast } from "@/hooks/use-toast";
 import { profileOptimizer } from '@/components/datatable/lib/profileOptimizer';
+import { useDatasourceStore } from '@/stores/datasource.store';
+import { useDatasourceContext } from '@/contexts/DatasourceContext';
 
 const monospaceFonts = [
   { value: 'JetBrains Mono', label: 'JetBrains Mono' },
@@ -69,10 +72,14 @@ interface DataTableToolbarProps {
   onSpacingChange: (spacing: string) => void;
   onOpenColumnSettings?: () => void;
   onOpenGridOptions?: () => void;
-  onOpenDataSource?: () => void;
   gridApi?: GridApi | null;
   onProfileChange?: (profile: GridProfile) => void;
   getColumnDefsWithStyles?: () => AgColDef[];
+  instanceId: string;
+  selectedDatasourceId?: string;
+  onDatasourceChange?: (datasourceId: string | undefined) => void;
+  updatesEnabled?: boolean;
+  onToggleUpdates?: () => void;
 }
 
 export function DataTableToolbar({ 
@@ -82,10 +89,14 @@ export function DataTableToolbar({
   onFontSizeChange,
   onOpenColumnSettings,
   onOpenGridOptions,
-  onOpenDataSource,
   gridApi,
   onProfileChange,
-  getColumnDefsWithStyles 
+  getColumnDefsWithStyles,
+  instanceId,
+  selectedDatasourceId,
+  onDatasourceChange,
+  updatesEnabled = false,
+  onToggleUpdates
 }: DataTableToolbarProps) {
   const { toast } = useToast();
   const activeProfile = useActiveProfile();
@@ -95,8 +106,19 @@ export function DataTableToolbar({
     createProfile,
     duplicateProfile, 
     saveColumnCustomizations,
-    saveGridState
+    saveGridState,
+    updateProfile
   } = useProfileStore();
+  
+  // Datasource hooks
+  const { datasources } = useDatasourceStore();
+  const { 
+    activateDatasource, 
+    deactivateDatasource, 
+    refreshDatasource,
+    connectionStatus,
+    activeDatasources 
+  } = useDatasourceContext();
   
   // State for profile dialogs
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -316,6 +338,14 @@ export function DataTableToolbar({
         sortModel
       });
       
+      // Save datasource if selected
+      if (selectedDatasourceId !== activeProfile.datasourceId) {
+        const { updateProfile } = useProfileStore.getState();
+        updateProfile(activeProfile.id, {
+          datasourceId: selectedDatasourceId
+        });
+      }
+      
       // Clear optimizer cache for this profile so it gets reprocessed
       profileOptimizer.clearCache(activeProfile.id);
       
@@ -402,17 +432,17 @@ export function DataTableToolbar({
 
   return (
     <>
-      <div className="flex items-center justify-between p-4 border-b bg-muted/40">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between p-2 border-b bg-muted/30">
+      <div className="flex items-center gap-2">
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 size="sm"
-                className="h-8 gap-2"
+                className="h-8 gap-2 data-[state=open]:bg-accent"
               >
                 <User className="h-4 w-4" />
-                {activeProfile?.name || 'Settings'}
+                <span className="font-medium">{activeProfile?.name || 'Settings'}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
@@ -510,20 +540,143 @@ export function DataTableToolbar({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="sm"
-              className="h-8"
+              className="h-8 w-8 p-0"
             >
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            {onOpenDataSource && (
-              <DropdownMenuItem onClick={onOpenDataSource}>
-                <Database className="mr-2 h-4 w-4" />
-                Data Source
-              </DropdownMenuItem>
-            )}
+            {/* Datasource Selector */}
+            <DropdownMenuItem 
+              onClick={(e) => e.preventDefault()}
+              className="p-0"
+            >
+              <div className="w-full">
+                <div className="flex items-center px-2 py-1.5">
+                  <Database className="mr-2 h-4 w-4" />
+                  <span>Datasource</span>
+                </div>
+                <div className="px-2 pb-2">
+                  <Select 
+                    value={selectedDatasourceId || 'none'} 
+                    onValueChange={(value) => onDatasourceChange?.(value === 'none' ? undefined : value)}
+                  >
+                    <SelectTrigger className="w-full h-8">
+                      <SelectValue placeholder="Select datasource" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">
+                        <span className="text-muted-foreground">None</span>
+                      </SelectItem>
+                      {datasources.map((ds) => (
+                        <SelectItem key={ds.id} value={ds.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{ds.name}</span>
+                            {activeDatasources.has(ds.id) && (
+                              <Badge variant="secondary" className="text-xs">
+                                {connectionStatus.get(ds.id) === 'connected' ? 'Active' : 'Connecting'}
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedDatasourceId && activeDatasources.has(selectedDatasourceId) && (
+                  <>
+                    <div className="flex gap-1 px-2 pb-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-7 text-xs"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await refreshDatasource(selectedDatasourceId);
+                          toast({
+                            title: 'Datasource refreshed',
+                            description: 'The datasource has been restarted',
+                          });
+                        }}
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Restart
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deactivateDatasource(selectedDatasourceId);
+                          toast({
+                            title: 'Datasource deactivated',
+                            description: 'The datasource has been stopped',
+                          });
+                        }}
+                      >
+                        <Power className="h-3 w-3 mr-1" />
+                        Stop
+                      </Button>
+                    </div>
+                    <div className="px-2 pb-2">
+                      <Button
+                        size="sm"
+                        variant={updatesEnabled ? "secondary" : "outline"}
+                        className="w-full h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleUpdates?.();
+                          toast({
+                            title: updatesEnabled ? 'Updates disabled' : 'Updates enabled',
+                            description: updatesEnabled 
+                              ? 'Real-time updates have been paused'
+                              : 'Real-time updates are now active',
+                          });
+                        }}
+                      >
+                        {updatesEnabled ? (
+                          <>
+                            <Pause className="h-3 w-3 mr-1" />
+                            Disable Updates
+                          </>
+                        ) : (
+                          <>
+                            <PlayCircle className="h-3 w-3 mr-1" />
+                            Enable Updates
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+                {selectedDatasourceId && !activeDatasources.has(selectedDatasourceId) && (
+                  <div className="px-2 pb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-7 text-xs"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await activateDatasource(selectedDatasourceId);
+                        toast({
+                          title: 'Datasource activated',
+                          description: 'The datasource is now active',
+                        });
+                      }}
+                    >
+                      <PlayCircle className="h-3 w-3 mr-1" />
+                      Activate
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator />
+            
             {onOpenGridOptions && (
               <DropdownMenuItem onClick={onOpenGridOptions}>
                 <Sliders className="mr-2 h-4 w-4" />

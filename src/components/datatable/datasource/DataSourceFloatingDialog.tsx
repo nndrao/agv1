@@ -1,5 +1,6 @@
-import { FloatingDialog } from '../floatingDialog/FloatingDialog';
-import './datasource-floating-dialog.css';
+import React from 'react';
+import { DatasourceList } from '@/components/datasource/DatasourceList';
+import { DatasourceConfig } from '@/stores/datasource.store';
 
 interface DataSourceFloatingDialogProps {
   open: boolean;
@@ -10,35 +11,18 @@ interface DataSourceFloatingDialogProps {
 export function DataSourceFloatingDialog({
   open,
   onOpenChange,
-  onApply: _onApply
+  onApply
 }: DataSourceFloatingDialogProps) {
+  const handleSelectDatasource = (datasource: DatasourceConfig) => {
+    // When a datasource is selected, apply it
+    onApply([datasource]);
+  };
+
   return (
-    <FloatingDialog
-      title="Data Source Configuration"
-      isOpen={open}
-      onClose={() => onOpenChange(false)}
-      initialSize={{ width: 900, height: 700 }}
-      minWidth={600}
-      minHeight={400}
-      maxWidth={1200}
-      maxHeight={900}
-      resizable={true}
-      maximizable={true}
-      className="datasource-floating-dialog"
-      contentClassName="p-0"
-    >
-      <div className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Data Source Configuration</h2>
-        <p className="mb-4">Data source configuration is coming soon!</p>
-        <div className="flex justify-end">
-          <button 
-            onClick={() => onOpenChange(false)}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </FloatingDialog>
+    <DatasourceList
+      open={open}
+      onOpenChange={onOpenChange}
+      onSelectDatasource={handleSelectDatasource}
+    />
   );
 }

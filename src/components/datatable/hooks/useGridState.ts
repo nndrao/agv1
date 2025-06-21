@@ -27,13 +27,24 @@ export function useGridState(initialColumnDefs: ColumnDef[]) {
     // Try to get column definitions from profile (will use lightweight format if available)
     const savedColumnDefs = getColumnDefs();
     
+    console.log('[useGridState] Initialization check:', {
+      activeProfileId: activeProfile?.id,
+      activeProfileName: activeProfile?.name,
+      hasColumnSettings: !!activeProfile?.columnSettings,
+      baseColumnsCount: activeProfile?.columnSettings?.baseColumnDefs?.length || 0,
+      customizationsCount: activeProfile?.columnSettings?.columnCustomizations ? 
+        Object.keys(activeProfile.columnSettings.columnCustomizations).length : 0,
+      savedColumnDefsCount: savedColumnDefs?.length || 0,
+      initialColumnDefsCount: initialColumnDefs?.length || 0
+    });
+    
     if (savedColumnDefs && savedColumnDefs.length > 0) {
       console.log('[useGridState] Initializing with saved columnDefs from profile:', {
         profileName: activeProfile?.name,
         profileId: activeProfile?.id,
         columnCount: savedColumnDefs.length,
-        hasLightweightFormat: !!(activeProfile?.gridState?.columnCustomizations),
-        hasBaseColumnDefs: !!(activeProfile?.gridState?.baseColumnDefs),
+        hasLightweightFormat: !!(activeProfile?.columnSettings?.columnCustomizations),
+        hasBaseColumnDefs: !!(activeProfile?.columnSettings?.baseColumnDefs),
         sampleColumn: savedColumnDefs[0],
         columnsWithFormatters: savedColumnDefs.filter((col: any) => col.valueFormatter).length
       });
@@ -41,7 +52,7 @@ export function useGridState(initialColumnDefs: ColumnDef[]) {
       return savedColumnDefs as ColumnDef[];
     }
     
-    console.log('[useGridState] Initializing with default columnDefs');
+    console.log('[useGridState] Initializing with default columnDefs - no saved columns found');
     return initialColumnDefs;
   });
   

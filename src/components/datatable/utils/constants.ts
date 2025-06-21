@@ -12,8 +12,6 @@ export const DEFAULT_COL_DEF: Partial<ColDef> = {
   enablePivot: true,
   resizable: true,
   sortable: true,
-  display: 'flex',
-  alignItems: 'center',
   // Enable value formatter for Excel export by default
   useValueFormatterForExport: true,
 };

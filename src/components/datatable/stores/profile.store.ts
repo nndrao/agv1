@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ColDef, ColumnState, FilterModel, SortModelItem } from 'ag-grid-community';
 import { ColumnCustomization, serializeColumnCustomizations, deserializeColumnCustomizations } from './columnSerializer';
+import { storageAdapter } from '@/lib/storage/storageAdapter';
+import * as React from 'react';
 
 interface PersistedState {
   profiles?: GridProfile[];
@@ -65,6 +67,8 @@ export interface GridProfile {
       fontSize?: string;
     };
   };
+  // Datasource configuration
+  datasourceId?: string;
 
   // Grid options from editor (row height, header height, etc)
   gridOptions?: {
@@ -125,6 +129,10 @@ interface ProfileStore {
   migrationPending: boolean;
   migrationInProgress: boolean;
   
+  // Hydration state
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
+  
   // Actions
   createProfile: (name: string, description?: string) => GridProfile;
   updateProfile: (profileId: string, updates: Partial<GridProfile>) => void;
@@ -158,23 +166,34 @@ interface ProfileStore {
 const DEFAULT_PROFILE_ID = 'default-profile';
 
 // Create default profile
-const createDefaultProfile = (): GridProfile => ({
-  id: DEFAULT_PROFILE_ID,
-  name: 'Default',
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
-  isDefault: true,
-  columnSettings: {
-    columnCustomizations: {},
-    baseColumnDefs: []
-  },
-  gridState: {
-    columnState: [],
-    filterModel: {},
-    sortModel: []
-  },
-  gridOptions: {}
-});
+const createDefaultProfile = (): GridProfile => {
+  const profile = {
+    id: DEFAULT_PROFILE_ID,
+    name: 'Default',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    isDefault: true,
+    columnSettings: {
+      columnCustomizations: {},
+      baseColumnDefs: []
+    },
+    gridState: {
+      columnState: [],
+      filterModel: {},
+      sortModel: []
+    },
+    gridOptions: {}
+  };
+  
+  console.log('[ProfileStore] Creating default profile:', {
+    id: profile.id,
+    name: profile.name,
+    hasColumnSettings: true,
+    baseColumnsCount: 0
+  });
+  
+  return profile;
+};
 
 // Deferred migration function
 async function performMigration(state: PersistedState): Promise<PersistedState> {
@@ -304,15 +323,26 @@ async function performMigration(state: PersistedState): Promise<PersistedState> 
   return newState;
 }
 
+import { customProfileStorage } from '@/utils/customProfileStorage';
+
+// Use custom storage for better debugging
+const profileStorageAdapter = customProfileStorage;
+
 export const useProfileStore = create<ProfileStore>()(
   persist(
     (set, get) => ({
-      // Initial state
-      profiles: [createDefaultProfile()],
+      // Initial state - will be overridden by persisted state if it exists
+      profiles: [createDefaultProfile()],  // Start with default profile to prevent empty state
       activeProfileId: DEFAULT_PROFILE_ID,
       autoSave: true,
       migrationPending: false,
       migrationInProgress: false,
+      _hasHydrated: false,
+      
+      // Hydration state
+      setHasHydrated: (state) => {
+        set({ _hasHydrated: state }, false); // false = don't trigger middleware (no save)
+      },
       
       // Create new profile
       createProfile: (name, description) => {
@@ -354,6 +384,14 @@ export const useProfileStore = create<ProfileStore>()(
         set(state => ({
           profiles: [...state.profiles, newProfile]
         }));
+        
+        // Force immediate persistence
+        console.log('[ProfileStore] Forcing persistence after profile creation');
+        const store = useProfileStore.getState();
+        const persistApi = (useProfileStore as any).persist;
+        if (persistApi?.rehydrate) {
+          persistApi.rehydrate();
+        }
         
         return newProfile;
       },
@@ -444,6 +482,12 @@ export const useProfileStore = create<ProfileStore>()(
       deleteProfile: (profileId) => {
         const { activeProfileId, profiles } = get();
         
+        // Add protection against accidental mass deletion
+        if (profiles.length <= 1) {
+          console.warn('[ProfileStore] Cannot delete the last profile');
+          return;
+        }
+        
         // Cannot delete default profile
         if (profileId === DEFAULT_PROFILE_ID) {
           console.warn('Cannot delete default profile');
@@ -460,7 +504,8 @@ export const useProfileStore = create<ProfileStore>()(
           profileId,
           profileName: profileToDelete.name,
           isActiveProfile: profileId === activeProfileId,
-          willSwitchToDefault: profileId === activeProfileId
+          willSwitchToDefault: profileId === activeProfileId,
+          currentProfileCount: profiles.length
         });
         
         // If deleting active profile, switch to default
@@ -516,13 +561,10 @@ export const useProfileStore = create<ProfileStore>()(
         const { profiles, activeProfileId } = get();
         const activeProfile = profiles.find(p => p.id === activeProfileId);
         
-        console.log('[ProfileStore] getActiveProfile:', {
-          activeProfileId,
-          found: !!activeProfile,
-          profileName: activeProfile?.name,
-          hasGridState: !!activeProfile?.gridState,
-          columnDefsCount: activeProfile?.gridState_legacy?.columnDefs?.length
-        });
+        // Reduced logging - only log when profile is not found
+        if (!activeProfile) {
+          console.warn('[ProfileStore] Active profile not found:', activeProfileId);
+        }
         
         return activeProfile;
       },
@@ -807,16 +849,20 @@ export const useProfileStore = create<ProfileStore>()(
         const state = get();
         if (state.migrationInProgress) return;
         
+        console.log('[ProfileStore] Checking if migration is needed...');
+        
         set({ migrationInProgress: true });
         
         try {
           // Get the current persisted state
           const storageKey = 'grid-profile-storage';
-          const stored = localStorage.getItem(storageKey);
+          const stored = await storageAdapter.get(storageKey, null);
           
           if (stored) {
-            const parsedData = JSON.parse(stored);
+            const parsedData = stored;
             const currentVersion = parsedData.version || 1;
+            
+            console.log('[ProfileStore] Current storage version:', currentVersion);
             
             if (currentVersion < 4) {
               console.log('[ProfileStore] Performing deferred migration from version', currentVersion);
@@ -824,25 +870,39 @@ export const useProfileStore = create<ProfileStore>()(
               // Perform migration
               const migratedState = await performMigration(parsedData.state);
               
-              // Update the store
-              set({
-                profiles: migratedState.profiles || [createDefaultProfile()],
-                activeProfileId: migratedState.activeProfileId || DEFAULT_PROFILE_ID,
-                autoSave: migratedState.autoSave !== undefined ? migratedState.autoSave : true,
-                migrationPending: false,
-                migrationInProgress: false
-              });
-              
-              // Update localStorage with new version
-              const newData = {
-                ...parsedData,
-                version: 4,
-                state: migratedState
-              };
-              localStorage.setItem(storageKey, JSON.stringify(newData));
-              
-              console.log('[ProfileStore] Migration completed successfully');
+              // Only update if we actually have migrated data
+              if (migratedState && migratedState.profiles && migratedState.profiles.length > 0) {
+                console.log('[ProfileStore] Migration resulted in profiles:', migratedState.profiles.map(p => ({ id: p.id, name: p.name })));
+                
+                // Update the store
+                set({
+                  profiles: migratedState.profiles,
+                  activeProfileId: migratedState.activeProfileId || DEFAULT_PROFILE_ID,
+                  autoSave: migratedState.autoSave !== undefined ? migratedState.autoSave : true,
+                  migrationPending: false,
+                  migrationInProgress: false
+                });
+                
+                // Update storage with new version
+                const newData = {
+                  ...parsedData,
+                  version: 4,
+                  state: migratedState
+                };
+                await storageAdapter.set(storageKey, newData);
+                
+                console.log('[ProfileStore] Migration completed successfully');
+              } else {
+                console.log('[ProfileStore] Migration returned no profiles, keeping current state');
+                set({ migrationPending: false, migrationInProgress: false });
+              }
+            } else {
+              console.log('[ProfileStore] No migration needed, already at version', currentVersion);
+              set({ migrationPending: false, migrationInProgress: false });
             }
+          } else {
+            console.log('[ProfileStore] No stored data found, skipping migration');
+            set({ migrationPending: false, migrationInProgress: false });
           }
         } catch (error) {
           console.error('[ProfileStore] Migration failed:', error);
@@ -853,19 +913,63 @@ export const useProfileStore = create<ProfileStore>()(
     }),
     {
       name: 'grid-profile-storage',
+      storage: profileStorageAdapter,
       version: 4,
-      // Skip migration during initialization - will be done on demand
-      migrate: (persistedState: unknown, version: number) => {
-        const typedState = persistedState as PersistedState;
-        if (version < 4) {
-          // Mark that migration is needed but don't do it now
-          console.log('[ProfileStore] Migration needed, will defer until after initialization');
-          return {
-            ...typedState,
-            migrationPending: true
-          };
-        }
-        return typedState;
+      // DO NOT USE migrate - it's causing the profiles to be lost
+      // migrate: (persistedState: unknown, version: number) => {
+      //   // Migration is causing profiles to be lost
+      //   return persistedState;
+      // },
+      // Handle rehydration properly
+      onRehydrateStorage: () => {
+        return (state, error) => {
+          if (error) {
+            console.error('[ProfileStore] Rehydration error:', error);
+            return;
+          }
+          
+          if (!state) {
+            console.error('[ProfileStore] No state in rehydration callback');
+            return;
+          }
+          
+          // Check localStorage directly to ensure we have all profiles
+          const stored = localStorage.getItem('grid-profile-storage');
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              const storedProfiles = parsed.state?.profiles || [];
+              
+              // If localStorage has more profiles, use those
+              if (storedProfiles.length > state.profiles.length) {
+                state.profiles = storedProfiles;
+                state.activeProfileId = parsed.state?.activeProfileId || storedProfiles[0].id;
+              }
+            } catch (e) {
+              console.error('[ProfileStore] Error checking localStorage during rehydration:', e);
+            }
+          }
+          
+          // Mark as hydrated
+          state.setHasHydrated(true);
+          
+          // Only add default profile if we truly have no profiles
+          if (state.profiles.length === 0) {
+            const defaultProfile = createDefaultProfile();
+            state.profiles = [defaultProfile];
+            state.activeProfileId = DEFAULT_PROFILE_ID;
+          } else {
+            // Ensure the default profile exists
+            if (!state.profiles.find(p => p.id === DEFAULT_PROFILE_ID)) {
+              state.profiles.unshift(createDefaultProfile());
+            }
+            
+            // Ensure activeProfileId is valid
+            if (!state.profiles.find(p => p.id === state.activeProfileId)) {
+              state.activeProfileId = state.profiles[0].id;
+            }
+          }
+        };
       },
       // Only persist essential data
       partialize: (state) => ({
@@ -881,29 +985,51 @@ export const useProfileStore = create<ProfileStore>()(
 export const useProfiles = () => useProfileStore(state => state.profiles);
 export const useActiveProfile = () => {
   // perfMonitor.mark('profile-load-start');
+  const activeProfileId = useProfileStore(state => state.activeProfileId);
   const profile = useProfileStore(state => 
-    state.profiles.find(p => p.id === state.activeProfileId)
+    state.profiles.find(p => p.id === activeProfileId)
   );
   // perfMonitor.mark('profile-load-end');
   // perfMonitor.measure('profileLoadTime', 'profile-load-start', 'profile-load-end');
   return profile;
 };
 
-// Perform migration on idle
-if (typeof window !== 'undefined') {
-  const store = useProfileStore.getState();
+// Hook to check if store has hydrated
+export const useHasHydrated = () => {
+  const [hasHydrated, setHasHydrated] = React.useState(false);
   
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      if (store.migrationPending) {
-        store.performDeferredMigration();
-      }
-    }, { timeout: 5000 });
-  } else {
-    setTimeout(() => {
-      if (store.migrationPending) {
-        store.performDeferredMigration();
-      }
-    }, 2000);
-  }
+  React.useEffect(() => {
+    const unsubscribe = useProfileStore.persist.onFinishHydration(() => {
+      setHasHydrated(true);
+    });
+    
+    // Check if already hydrated
+    if (useProfileStore.getState()._hasHydrated) {
+      setHasHydrated(true);
+    }
+    
+    return unsubscribe;
+  }, []);
+  
+  return hasHydrated;
+};
+
+// Perform migration on idle - TEMPORARILY DISABLED FOR DEBUGGING
+if (typeof window !== 'undefined') {
+  console.log('[ProfileStore] Migration check disabled for debugging');
+  // const store = useProfileStore.getState();
+  // 
+  // if ('requestIdleCallback' in window) {
+  //   requestIdleCallback(() => {
+  //     if (store.migrationPending) {
+  //       store.performDeferredMigration();
+  //     }
+  //   }, { timeout: 5000 });
+  // } else {
+  //   setTimeout(() => {
+  //     if (store.migrationPending) {
+  //       store.performDeferredMigration();
+  //     }
+  //   }, 2000);
+  // }
 }

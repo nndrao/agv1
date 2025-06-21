@@ -18,6 +18,7 @@ interface DataTableGridProps {
   columnDefs: ColumnDef[];
   rowData: Record<string, unknown>[];
   gridApiRef: React.MutableRefObject<GridApi | null>;
+  keyColumn?: string;
 }
 
 /**
@@ -27,7 +28,8 @@ interface DataTableGridProps {
 export const DataTableGrid = memo(({ 
   columnDefs, 
   rowData,
-  gridApiRef 
+  gridApiRef,
+  keyColumn 
 }: DataTableGridProps) => {
   const { theme: currentTheme } = useTheme();
   const { selectedFont, selectedFontSize } = useDataTableContext();
@@ -117,6 +119,17 @@ export const DataTableGrid = memo(({
         suppressMenuHide={true}
         suppressHorizontalScroll={false}
         alwaysShowVerticalScroll={true}
+        enableCellChangeFlash={true}
+        cellFlashDelay={500}
+        cellFadeDelay={1000}
+        getRowId={keyColumn ? (params) => params.data[keyColumn] : undefined}
+        // Performance optimizations for high-frequency updates
+        animateRows={false} // Disable for better performance with frequent updates
+        asyncTransactionWaitMillis={60}
+        suppressScrollOnNewData={true}
+        debounceVerticalScrollbar={true}
+        suppressColumnMoveAnimation={true}
+        suppressPropertyNamesCheck={true}
         sideBar={{
           toolPanels: [
             {

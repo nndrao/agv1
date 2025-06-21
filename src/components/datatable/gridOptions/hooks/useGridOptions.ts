@@ -110,6 +110,21 @@ export const useGridOptions = (gridApi?: any): UseGridOptionsReturn => {
         case 'stopEditingWhenCellsLoseFocus':
           api.setGridOption('stopEditingWhenCellsLoseFocus', value);
           break;
+        case 'enterNavigatesVertically':
+          api.setGridOption('enterNavigatesVertically', value);
+          break;
+        case 'enterNavigatesVerticallyAfterEdit':
+          api.setGridOption('enterNavigatesVerticallyAfterEdit', value);
+          break;
+        case 'enableCellChangeFlash':
+          api.setGridOption('enableCellChangeFlash', value);
+          break;
+        case 'cellFlashDelay':
+          api.setGridOption('cellFlashDelay', value);
+          break;
+        case 'cellFadeDelay':
+          api.setGridOption('cellFadeDelay', value);
+          break;
         
         // Other options
         case 'enableRtl':
