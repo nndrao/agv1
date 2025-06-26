@@ -122,6 +122,8 @@ export interface SerializedDefaultFallback {
 export interface DataTableProps {
   columnDefs: ColumnDef[];
   dataRow: Record<string, unknown>[];
+  instanceId?: string;
+  useUnifiedConfig?: boolean;
 }
 
 /**

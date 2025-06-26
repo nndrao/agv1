@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Ribbon - Complete Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            padding: 20px;
+            color: #1e293b;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .mockup-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .mockup-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .mockup-description {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        /* Floating Ribbon Container */
+        .floating-ribbon {
+            position: relative;
+            width: 900px;
+            max-width: 90vw;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border: 2px solid #e2e8f0;
+            overflow: hidden;
+            margin: 20px auto;
+        }
+        
+        /* Header Row */
+        .ribbon-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-bottom: 1px solid #e2e8f0;
+            height: 60px;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .column-selector-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .column-selector-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+        
+        .selected-count {
+            padding: 2px 6px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .header-center {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .header-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .header-subtitle {
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .header-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .header-btn:hover {
+            background: #f9fafb;
+        }
+        
+        .header-btn.primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .header-btn.primary:hover {
+            background: #2563eb;
+        }
+        
+        .header-btn.danger {
+            color: #dc2626;
+            border-color: #fca5a5;
+        }
+        
+        .header-btn.danger:hover {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+        
+        .btn-icon {
+            width: 12px;
+            height: 12px;
+        }
+        
+        /* Tab Strip Row */
+        .ribbon-tabs {
+            display: flex;
+            background: #fafbfc;
+            border-bottom: 1px solid #e2e8f0;
+            height: 40px;
+        }
+        
+        .tab-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+            position: relative;
+        }
+        
+        .tab-item:hover {
+            background: #f1f5f9;
+        }
+        
+        .tab-item.active {
+            background: white;
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .tab-icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .tab-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .tab-badge {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            width: 16px;
+            height: 16px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Content Row */
+        .ribbon-content {
+            padding: 16px;
+            background: white;
+            min-height: 280px;
+        }
+        
+        /* Styling Tab Content */
+        .styling-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .subtab-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .subtab-toggle {
+            display: flex;
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 2px;
+        }
+        
+        .subtab-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .subtab-option.active {
+            background: white;
+            color: #3b82f6;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .subtab-option:not(.active) {
+            color: #64748b;
+        }
+        
+        .subtab-icon {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .reset-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            background: transparent;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .reset-btn:hover {
+            background: #f9fafb;
+        }
+        
+        /* Control Groups - 4-column grid as per actual implementation */
+        .control-groups {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .group-title {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        
+        .control-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 4px;
+            height: 20px;
+        }
+        
+        .control-switch {
+            width: 28px;
+            height: 16px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: none;
+            outline: none;
+        }
+        
+        .control-switch:checked {
+            background: #3b82f6;
+        }
+        
+        .control-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        
+        .control-switch:checked::after {
+            transform: translateX(12px);
+        }
+        
+        .border-color-control {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .border-color-swatch {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        .border-color-text {
+            height: 24px;
+            padding: 0 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: white;
+            flex: 1;
+        }
+        
+        .additional-options {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding-top: 8px;
+        }
+        
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .option-switch {
+            width: 28px;
+            height: 16px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: none;
+            outline: none;
+        }
+        
+        .option-switch:checked {
+            background: #3b82f6;
+        }
+        
+        .option-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        
+        .option-switch:checked::after {
+            transform: translateX(12px);
+        }
+        
+        .option-label {
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .option-icon {
+            width: 12px;
+            height: 12px;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .control-input {
+            height: 28px;
+            padding: 0 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 12px;
+            flex: 1;
+        }
+        
+        .control-select {
+            height: 28px;
+            padding: 0 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            font-size: 12px;
+            flex: 1;
+        }
+        
+        .color-picker-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .color-swatch {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #f59e0b, #eab308);
+        }
+        
+        .toggle-group-horizontal {
+            display: flex;
+            background: #f1f5f9;
+            border-radius: 4px;
+            padding: 2px;
+        }
+        
+        .toggle-btn {
+            padding: 4px 8px;
+            border-radius: 2px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .toggle-btn.active {
+            background: white;
+            color: #3b82f6;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .toggle-btn:not(.active) {
+            color: #64748b;
+        }
+        
+        /* Switch Control */
+        .switch-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .switch {
+            position: relative;
+            width: 28px;
+            height: 16px;
+            background: #d1d5db;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .switch.active {
+            background: #3b82f6;
+        }
+        
+        .switch .slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .switch.active .slider {
+            transform: translateX(12px);
+        }
+        
+        .switch-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+        }
+        
+        /* Live Preview */
+        .live-preview {
+            grid-column: span 3;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+        }
+        
+        .preview-header {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        
+        .preview-cell {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            text-align: center;
+            font-weight: 600;
+            color: #f59e0b;
+        }
+        
+        /* Drag Handle */
+        .drag-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            cursor: move;
+            background: linear-gradient(90deg, transparent, rgba(0,0,0,0.05), transparent);
+        }
+        
+        /* Demo positioning */
+        .demo-section {
+            margin-bottom: 40px;
+        }
+        
+        .demo-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1e293b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mockup-header">
+            <h1 class="mockup-title">Complete Floating Ribbon Interface</h1>
+            <p class="mockup-description">
+                Complete mockup of the floating ribbon interface showing all tabs, header controls, 
+                and the styling tab content with all interactive elements.
+            </p>
+        </div>
+        
+        <div class="demo-section">
+            <h2 class="demo-title">Floating Ribbon - Styling Tab Active</h2>
+            
+            <div class="floating-ribbon">
+                <!-- Drag Handle -->
+                <div class="drag-handle"></div>
+                
+                <!-- Header Row -->
+                <div class="ribbon-header">
+                    <div class="header-left">
+                        <button class="column-selector-btn">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="7" height="18" x="3" y="3" rx="1"/>
+                                <rect width="7" height="5" x="14" y="3" rx="1"/>
+                                <rect width="7" height="5" x="14" y="16" rx="1"/>
+                            </svg>
+                            <span>5 columns selected</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="selected-count">5</div>
+                    </div>
+                    
+                    <div class="header-center">
+                        <div class="header-title">Column Customization</div>
+                        <div class="header-subtitle">Configure column properties and formatting</div>
+                    </div>
+                    
+                    <div class="header-right">
+                        <button class="header-btn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                <path d="M21 3v5h-5"/>
+                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                <path d="M8 16H3v5"/>
+                            </svg>
+                            Reset
+                        </button>
+                        <button class="header-btn danger">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6 6 18"/>
+                                <path d="M6 6l12 12"/>
+                            </svg>
+                            Clear
+                        </button>
+                        <button class="header-btn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                <polyline points="17,21 17,13 7,13 7,21"/>
+                                <polyline points="7,3 7,8 15,8"/>
+                            </svg>
+                            Save
+                        </button>
+                        <button class="header-btn primary">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20,6 9,17 4,12"/>
+                            </svg>
+                            Apply
+                        </button>
+                        <button class="header-btn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6 6 18"/>
+                                <path d="M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Tab Strip -->
+                <div class="ribbon-tabs">
+                    <div class="tab-item">
+                        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span class="tab-label">General</span>
+                    </div>
+                    
+                    <div class="tab-item active">
+                        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="13.5" cy="6.5" r=".5"/>
+                            <circle cx="17.5" cy="10.5" r=".5"/>
+                            <circle cx="8.5" cy="7.5" r=".5"/>
+                            <circle cx="6.5" cy="12.5" r=".5"/>
+                            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                        </svg>
+                        <span class="tab-label">Styling</span>
+                        <div class="tab-badge">3</div>
+                    </div>
+                    
+                    <div class="tab-item">
+                        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect width="3" height="8" x="13" y="2" rx="1.5"/>
+                            <path d="M19 8.5V10h1.5A1.5 1.5 0 1 0 19 8.5"/>
+                            <rect width="3" height="8" x="8" y="14" rx="1.5"/>
+                            <path d="M5 15.5V14H3.5A1.5 1.5 0 1 0 5 15.5"/>
+                            <rect width="8" height="3" x="14" y="13" rx="1.5"/>
+                            <path d="M15.5 19H14v1.5a1.5 1.5 0 1 0 1.5-1.5"/>
+                            <rect width="8" height="3" x="2" y="8" rx="1.5"/>
+                            <path d="M8.5 5H10V3.5A1.5 1.5 0 1 0 8.5 5"/>
+                        </svg>
+                        <span class="tab-label">Format</span>
+                        <div class="tab-badge">2</div>
+                    </div>
+                    
+                    <div class="tab-item">
+                        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/>
+                        </svg>
+                        <span class="tab-label">Filter</span>
+                    </div>
+                    
+                    <div class="tab-item">
+                        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M7 7h.01"/>
+                            <path d="M17 7h.01"/>
+                            <rect width="18" height="18" x="3" y="3" rx="2"/>
+                            <path d="M9 9h6v6H9V9z"/>
+                        </svg>
+                        <span class="tab-label">Editor</span>
+                        <div class="tab-badge">1</div>
+                    </div>
+                </div>
+                
+                <!-- Content Area - Styling Tab -->
+                <div class="ribbon-content">
+                    <div class="styling-content">
+                        <!-- Sub-tab Header -->
+                        <div class="subtab-header">
+                            <div class="subtab-toggle">
+                                <div class="subtab-option active">
+                                    <svg class="subtab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect width="18" height="18" x="3" y="3" rx="2"/>
+                                    </svg>
+                                    <span>Cell</span>
+                                </div>
+                                <div class="subtab-option">
+                                    <svg class="subtab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                        <polyline points="22,6 12,13 2,6"/>
+                                    </svg>
+                                    <span>Header</span>
+                                </div>
+                            </div>
+                            
+                            <button class="reset-btn">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                    <path d="M21 3v5h-5"/>
+                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                    <path d="M8 16H3v5"/>
+                                </svg>
+                                Reset Styles
+                            </button>
+                        </div>
+                        
+                        <!-- Control Groups - Exact 4x4 grid as per implementation -->
+                        <div class="control-groups">
+                            <!-- Row 1: Font, Size, Weight, Alignment -->
+                            <div class="control-group">
+                                <div class="group-title">FONT</div>
+                                <select class="control-select">
+                                    <option>Inter</option>
+                                    <option>Arial</option>
+                                    <option>Helvetica</option>
+                                    <option>Times New Roman</option>
+                                    <option>Georgia</option>
+                                    <option>Courier New</option>
+                                </select>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="group-title">SIZE</div>
+                                <select class="control-select">
+                                    <option>10</option>
+                                    <option>11</option>
+                                    <option>12</option>
+                                    <option>14</option>
+                                    <option>16</option>
+                                    <option>18</option>
+                                    <option>20</option>
+                                </select>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="group-title">WEIGHT</div>
+                                <select class="control-select">
+                                    <option>Light</option>
+                                    <option>Regular</option>
+                                    <option>Medium</option>
+                                    <option>Semibold</option>
+                                    <option>Bold</option>
+                                </select>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="group-title">ALIGN</div>
+                                <div class="toggle-group-horizontal">
+                                    <div class="toggle-btn active">⬅</div>
+                                    <div class="toggle-btn">⬌</div>
+                                    <div class="toggle-btn">➡</div>
+                                    <div class="toggle-btn">⬌</div>
+                                </div>
+                            </div>
+
+                            <!-- Row 2: Style, Text Color, Background, V-Align -->
+                            <div class="control-group">
+                                <div class="group-title">STYLE</div>
+                                <div class="toggle-group-horizontal">
+                                    <div class="toggle-btn">B</div>
+                                    <div class="toggle-btn active">I</div>
+                                    <div class="toggle-btn">U</div>
+                                    <div class="toggle-btn">S</div>
+                                </div>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="control-header">
+                                    <div class="group-title">TEXT COLOR</div>
+                                    <input type="checkbox" class="control-switch" checked>
+                                </div>
+                                <input type="color" value="#f59e0b" class="color-picker-btn">
+                            </div>
+
+                            <div class="control-group">
+                                <div class="control-header">
+                                    <div class="group-title">BACKGROUND</div>
+                                    <input type="checkbox" class="control-switch">
+                                </div>
+                                <input type="color" value="#ffffff" class="color-picker-btn">
+                            </div>
+
+                            <div class="control-group">
+                                <div class="group-title">V-ALIGN</div>
+                                <div class="toggle-group-horizontal">
+                                    <div class="toggle-btn">⬆</div>
+                                    <div class="toggle-btn active">⬌</div>
+                                    <div class="toggle-btn">⬇</div>
+                                    <div class="toggle-btn">↕</div>
+                                </div>
+                            </div>
+
+                            <!-- Row 3: Border Controls - All 4 border properties -->
+                            <div class="control-group">
+                                <div class="control-header">
+                                    <div class="group-title">BORDER</div>
+                                    <input type="checkbox" class="control-switch" checked>
+                                </div>
+                                <select class="control-select">
+                                    <option>All Sides</option>
+                                    <option>Top</option>
+                                    <option>Right</option>
+                                    <option>Bottom</option>
+                                    <option>Left</option>
+                                    <option>None</option>
+                                </select>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="group-title">STYLE</div>
+                                <select class="control-select">
+                                    <option>None</option>
+                                    <option>Solid</option>
+                                    <option>Dashed</option>
+                                    <option>Dotted</option>
+                                    <option>Double</option>
+                                </select>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="group-title">WIDTH</div>
+                                <select class="control-select">
+                                    <option>1px</option>
+                                    <option>2px</option>
+                                    <option>3px</option>
+                                    <option>4px</option>
+                                </select>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="group-title">COLOR</div>
+                                <div class="border-color-control">
+                                    <input type="color" value="#cccccc" class="border-color-swatch">
+                                    <input type="text" value="#CCCCCC" class="border-color-text">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Options Row -->
+                        <div class="additional-options">
+                            <div class="option-item">
+                                <input type="checkbox" id="wrap-text" class="option-switch">
+                                <label for="wrap-text" class="option-label">
+                                    <span class="option-icon">📝</span>
+                                    Wrap Text
+                                </label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" id="auto-height" class="option-switch">
+                                <label for="auto-height" class="option-label">
+                                    <span class="option-icon">⤴</span>
+                                    Auto Height
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

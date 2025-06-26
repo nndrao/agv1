@@ -4,6 +4,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { ColDef as AgColDef, ColumnState } from 'ag-grid-community';
 import { createCellStyleFunction, hasConditionalStyling } from '@/components/datatable/utils/styleUtils';
 import { FormatterFunction, CellStyleFunction } from '@/components/datatable/types';
+import { storageAdapter } from '@/lib/storage/storageAdapter';
 
 // Use AG-Grid's ColDef directly
 export type ColDef = AgColDef;
@@ -152,6 +153,33 @@ function ensureCellStyleForValueFormatter(column: ColDef): boolean {
 export const useSelectedColumns = () => useColumnFormattingStore(state => state.selectedColumns);
 export const useColumnDefinitions = () => useColumnFormattingStore(state => state.columnDefinitions);
 export const usePendingChanges = () => useColumnFormattingStore(state => state.pendingChanges);
+
+// Custom storage adapter for Zustand
+const columnFormattingStorageAdapter = {
+  getItem: (name: string) => {
+    const item = localStorage.getItem(name);
+    return item;
+  },
+  setItem: (name: string, value: any) => {
+    // Handle both string and object values
+    let stringValue: string;
+    if (typeof value === 'string') {
+      stringValue = value;
+    } else {
+      // Zustand sometimes passes objects directly, so we need to stringify them
+      try {
+        stringValue = JSON.stringify(value);
+      } catch (error) {
+        console.error(`[ColumnFormattingStore] Failed to stringify value for ${name}:`, error);
+        return;
+      }
+    }
+    localStorage.setItem(name, stringValue);
+  },
+  removeItem: (name: string) => {
+    localStorage.removeItem(name);
+  }
+};
 
 export const useColumnFormattingStore = create<ColumnFormattingStore>()(
   subscribeWithSelector(
@@ -858,6 +886,7 @@ export const useColumnFormattingStore = create<ColumnFormattingStore>()(
       }),
       {
         name: 'column-formatting-store',
+        storage: columnFormattingStorageAdapter,
         partialize: (state) => ({
           // Only persist UI preferences, not data
           activeTab: state.activeTab,

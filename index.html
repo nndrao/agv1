@@ -86,6 +86,8 @@
         <div class="app-loading-spinner"></div>
       </div>
     </div>
+    <!-- Portal container for dialogs -->
+    <div id="portal-root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
     <!-- Preload AG-Grid modules after initial render -->
@@ -98,15 +100,7 @@
         }, 100);
         
         // Preload AG-Grid modules on idle
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(() => {
-            const link = document.createElement('link');
-            link.rel = 'modulepreload';
-            // AG-Grid is already bundled by Vite
-            // link.href = '/assets/ag-grid-vendor.js';
-            document.head.appendChild(link);
-          });
-        }
+        // Removed - AG-Grid is already bundled by Vite
       });
     </script>
   </body>

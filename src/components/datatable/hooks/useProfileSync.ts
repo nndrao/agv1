@@ -8,7 +8,8 @@ import { ColumnDef } from '../types';
 export function useProfileSync(
   setCurrentColumnDefs: (columns: ColumnDef[]) => void,
   setSelectedFont: (font: string) => void,
-  setSelectedFontSize?: (size: string) => void
+  setSelectedFontSize?: (size: string) => void,
+  onDatasourceChange?: (datasourceId: string | undefined) => void
 ) {
   const { getColumnDefs } = useProfileStore();
   
@@ -19,8 +20,16 @@ export function useProfileSync(
       hasFont: !!profile.gridOptions?.font,
       font: profile.gridOptions?.font,
       hasFontSize: !!profile.gridOptions?.fontSize,
-      fontSize: profile.gridOptions?.fontSize
+      fontSize: profile.gridOptions?.fontSize,
+      hasDatasource: !!profile.datasourceId,
+      datasourceId: profile.datasourceId
     });
+    
+    // Handle datasource change if callback provided
+    if (onDatasourceChange) {
+      console.log('[useProfileSync] Updating datasource from profile:', profile.datasourceId);
+      onDatasourceChange(profile.datasourceId);
+    }
     
     // Get column definitions from profile store (already processed)
     const profileColumnDefs = getColumnDefs(profile.id);
@@ -46,7 +55,7 @@ export function useProfileSync(
     }
     
     // The profile manager component handles applying the grid state to the grid API using the optimizer
-  }, [getColumnDefs, setCurrentColumnDefs, setSelectedFont, setSelectedFontSize]);
+  }, [getColumnDefs, setCurrentColumnDefs, setSelectedFont, setSelectedFontSize, onDatasourceChange]);
   
   return {
     handleProfileChange,
