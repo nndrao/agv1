@@ -2,59 +2,49 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { 
-  X, 
-  Loader2, 
-  AlertCircle, 
-  CheckCircle2, 
-  ChevronRight, 
-  ChevronDown,
-  GripVertical,
-  Maximize2,
-  Minimize2,
-  PlayCircle,
-  Trash2,
-  Plus,
-  Activity,
-  Clock,
-  Database,
-  BarChart3,
-  Search
-} from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { StompDatasourceProvider } from '@/providers/StompDatasourceProvider';
 import { useDatasourceStore, StompDatasourceConfig, ColumnDefinition, FieldInfo } from '@/stores/datasource.store';
 import { useToast } from '@/hooks/use-toast';
+import { useDatasourceContext } from '@/contexts/DatasourceContext';
+import { 
+  GripVertical, 
+  Maximize2, 
+  Minimize2, 
+  X, 
+  ChevronRight, 
+  ChevronDown, 
+  PlayCircle, 
+  CheckCircle2, 
+  AlertCircle, 
+  Plus, 
+  Trash2,
+  Loader2,
+  Database,
+  Search,
+  BarChart3,
+  Activity,
+  Clock
+} from 'lucide-react';
+
+// Import new components
+import { DraggableDialog } from './components/DraggableDialog';
+import { ConnectionForm } from './components/ConnectionForm';
+import { FieldSelector, FieldNode } from './components/FieldSelector';
+import { TestingPanel } from './components/TestingPanel';
+import { DataSourceStatistics } from './components/DataSourceStatistics';
 
 interface DatasourceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   datasourceId?: string;
 }
-
-interface FieldNode {
-  path: string;
-  name: string;
-  type: string;
-  nullable: boolean;
-  children?: FieldNode[];
-  sample?: any;
-}
-
-import { useDatasourceContext } from '@/contexts/DatasourceContext';
 
 export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({ 
   open, 

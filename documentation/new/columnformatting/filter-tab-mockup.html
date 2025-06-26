@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filter Tab - Column Formatting</title>
+    <style>
+        /* Base Styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #ffffff;
+            color: #000000;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .filter-tab {
+            display: flex;
+            height: 360px;
+            gap: 16px;
+            padding: 16px;
+            background: #ffffff;
+        }
+
+        /* Main Controls Section */
+        .main-controls {
+            flex: 1;
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .form-select {
+            height: 28px;
+            padding: 0 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 11px;
+            background: white;
+            cursor: pointer;
+            min-width: 160px;
+        }
+
+        .form-select-sm {
+            min-width: 128px;
+        }
+
+        .switch {
+            width: 28px;
+            height: 16px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .switch.checked {
+            background: #3b82f6;
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .switch.checked::after {
+            transform: translateX(12px);
+        }
+
+        .switch-label {
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .button-group {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .advanced-btn {
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            font-size: 11px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .advanced-btn:hover {
+            background: #f9fafb;
+        }
+
+        .reset-btn {
+            background: transparent;
+            border: none;
+            color: #6b7280;
+            font-size: 11px;
+            padding: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .reset-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .icon {
+            width: 12px;
+            height: 12px;
+        }
+
+        .icon-sm {
+            width: 10px;
+            height: 10px;
+        }
+
+        /* Default Options Row */
+        .default-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .form-input {
+            height: 28px;
+            padding: 0 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 11px;
+            background: white;
+            width: 80px;
+        }
+
+        /* Set Filter Options */
+        .set-options {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        /* Multi Filter Configuration */
+        .multi-filter-section {
+            margin-top: 12px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .ribbon-section-header {
+            font-size: 10px;
+            font-weight: 600;
+            color: #6b7280;
+            letter-spacing: 0.5px;
+        }
+
+        .add-btn {
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .add-btn:hover {
+            background: #f9fafb;
+        }
+
+        .add-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .filter-card {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+        }
+
+        .filter-icon {
+            width: 12px;
+            height: 12px;
+            color: #6b7280;
+        }
+
+        .filter-name {
+            font-size: 11px;
+            flex: 1;
+        }
+
+        .filter-display {
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .remove-btn {
+            background: transparent;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 2px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .remove-btn:hover {
+            background: #fef2f2;
+        }
+
+        /* Advanced Panel */
+        .advanced-panel {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 12px;
+            background: #f8f9fa;
+            margin-top: 12px;
+        }
+
+        .advanced-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .advanced-row:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Preview Section */
+        .preview-section {
+            width: 192px;
+            border-left: 1px solid #e5e7eb;
+            padding-left: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .preview-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .preview-label {
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .preview-box {
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+        }
+
+        .preview-box.active {
+            background: #eff6ff;
+            border-color: #3b82f6;
+        }
+
+        .preview-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-filter-icon {
+            width: 12px;
+            height: 12px;
+            color: #3b82f6;
+        }
+
+        .preview-filter-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+
+        .preview-description {
+            font-size: 11px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .preview-settings {
+            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .setting-label {
+            color: #6b7280;
+        }
+
+        .setting-value {
+            font-weight: 500;
+        }
+
+        .setting-divider {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 4px;
+            margin-top: 4px;
+        }
+
+        .setting-configured {
+            color: #10b981;
+            font-weight: 500;
+        }
+
+        .preview-footer {
+            margin-top: auto;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .preview-footer .editing {
+            font-weight: 500;
+            color: #000000;
+        }
+
+        .inactive-text {
+            font-size: 11px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="filter-tab">
+        <!-- Main Controls Section -->
+        <div class="main-controls">
+            <!-- Filter Type and Options Row -->
+            <div class="controls-row">
+                <div class="control-group">
+                    <label class="control-label">FILTER TYPE</label>
+                    <select class="form-select">
+                        <option value="none">🚫 No Filter</option>
+                        <option value="agTextColumnFilter" selected>📝 Text Filter</option>
+                        <option value="agNumberColumnFilter">🔢 Number Filter</option>
+                        <option value="agDateColumnFilter">📅 Date Filter</option>
+                        <option value="agSetColumnFilter">📋 Set Filter</option>
+                        <option value="agMultiColumnFilter">🔗 Multi Filter</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="switch-label">Floating</label>
+                    <div class="switch checked"></div>
+                </div>
+
+                <div class="control-group">
+                    <label class="switch-label">Hide Menu</label>
+                    <div class="switch"></div>
+                </div>
+
+                <div class="control-group">
+                    <label class="switch-label">Hide Panel</label>
+                    <div class="switch"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="advanced-btn">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Advanced
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <button class="reset-btn" title="Reset">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Default Option and Filter-specific controls -->
+            <div class="default-row">
+                <div class="control-group">
+                    <label class="control-label">Default</label>
+                    <select class="form-select form-select-sm">
+                        <option value="contains" selected>Contains</option>
+                        <option value="equals">Equals</option>
+                        <option value="startsWith">Starts With</option>
+                        <option value="endsWith">Ends With</option>
+                        <option value="notContains">Not Contains</option>
+                        <option value="notEqual">Not Equal</option>
+                        <option value="blank">Blank</option>
+                        <option value="notBlank">Not Blank</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="switch-label">Trim</label>
+                    <div class="switch checked"></div>
+                </div>
+
+                <div class="control-group">
+                    <label class="switch-label">Case Sensitive</label>
+                    <div class="switch"></div>
+                </div>
+            </div>
+
+            <!-- Advanced Settings Panel -->
+            <div class="advanced-panel">
+                <div class="advanced-row">
+                    <div class="control-group">
+                        <label class="control-label">Debounce</label>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <input type="number" class="form-input" value="200">
+                            <span style="font-size: 11px; color: #6b7280;">ms</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="switch-label">Clear Button</label>
+                        <div class="switch checked"></div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="switch-label">Close on Apply</label>
+                        <div class="switch"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="preview-section">
+            <div class="ribbon-section-header" style="margin-bottom: 8px;">FILTER INFO</div>
+            <div class="preview-content">
+                <!-- Current Filter -->
+                <div class="preview-item">
+                    <div class="preview-label">Current Filter</div>
+                    <div class="preview-box active">
+                        <div class="preview-filter">
+                            <svg class="preview-filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            <span class="preview-filter-name">Text Filter</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="preview-item">
+                    <div class="preview-label">Description</div>
+                    <div class="preview-description">
+                        Advanced text filtering with multiple comparison modes, case sensitivity options, and custom debouncing.
+                    </div>
+                </div>
+
+                <!-- Filter Settings Summary -->
+                <div class="preview-item">
+                    <div class="preview-label">Settings</div>
+                    <div class="preview-settings">
+                        <div class="setting-row">
+                            <span class="setting-label">Default Mode:</span>
+                            <span class="setting-value">Contains</span>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Floating Filter:</span>
+                            <span class="setting-value">Yes</span>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Case Sensitive:</span>
+                            <span class="setting-value">No</span>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Trim Input:</span>
+                            <span class="setting-value">Yes</span>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Debounce:</span>
+                            <span class="setting-value">200ms</span>
+                        </div>
+                        <div class="setting-row setting-divider">
+                            <span class="setting-configured">Advanced Configured</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Available Operations -->
+                <div class="preview-item">
+                    <div class="preview-label">Operations</div>
+                    <div class="preview-description">
+                        Contains, Equals, Starts With, Ends With, Not Contains, Not Equal, Blank, Not Blank
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-footer">
+                Editing: <span class="editing">Column Filter</span> configuration
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

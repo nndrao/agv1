@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Column Selector Table - Detailed Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            padding: 20px;
+            color: #1e293b;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .mockup-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .mockup-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .mockup-description {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        /* Column Selector Button */
+        .column-selector-trigger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 100px;
+            max-width: 160px;
+            height: 24px;
+            padding: 0 8px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 4px;
+            background: rgba(255,255,255,0.8);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .column-selector-trigger:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        
+        .column-selector-trigger .chevron {
+            margin-left: 4px;
+            opacity: 0.5;
+            transition: transform 0.2s;
+        }
+        
+        .column-selector-trigger.open .chevron {
+            transform: rotate(180deg);
+        }
+        
+        /* Popover Container */
+        .column-selector-popover {
+            position: relative;
+            width: 280px;
+            max-height: 650px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        
+        /* Header Section */
+        .popover-header {
+            padding: 12px;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            background: linear-gradient(to right, rgba(0,0,0,0.02), rgba(0,0,0,0.01));
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .header-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        .header-icon svg {
+            width: 14px;
+            height: 14px;
+            color: #3b82f6;
+        }
+        
+        .header-title {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+        
+        .header-badge {
+            margin-left: auto;
+            padding: 2px 6px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        /* Filter Section */
+        .filter-section {
+            padding: 12px;
+        }
+        
+        .search-bar {
+            position: relative;
+            margin-bottom: 8px;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            width: 14px;
+            height: 14px;
+        }
+        
+        .search-input {
+            width: 100%;
+            height: 32px;
+            padding-left: 32px;
+            padding-right: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.8);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .type-filter {
+            position: relative;
+        }
+        
+        .select-trigger {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            height: 32px;
+            padding: 0 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.8);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .select-trigger:hover {
+            background: rgba(0,0,0,0.02);
+        }
+        
+        .filter-icon {
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        
+        /* Visibility Toggle */
+        .visibility-toggle {
+            margin-top: 8px;
+            display: flex;
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 2px;
+        }
+        
+        .toggle-option {
+            flex: 1;
+            padding: 6px 8px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .toggle-option.active {
+            background: white;
+            color: #3b82f6;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .toggle-option:not(.active) {
+            color: #64748b;
+        }
+        
+        /* Column List */
+        .column-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border-top: 1px solid #f1f5f9;
+        }
+        
+        .list-header {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: #fafbfc;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 12px;
+            font-weight: 500;
+            color: #64748b;
+        }
+        
+        .bulk-checkbox {
+            width: 16px;
+            height: 16px;
+            margin-right: 12px;
+            accent-color: #3b82f6;
+        }
+        
+        .bulk-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .bulk-action-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .bulk-action-btn:hover {
+            background: #f8fafc;
+        }
+        
+        /* Column Items */
+        .column-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f8fafc;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .column-item:hover {
+            background: #f8fafc;
+        }
+        
+        .column-item.selected {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+        }
+        
+        .column-checkbox {
+            width: 16px;
+            height: 16px;
+            margin-right: 12px;
+            accent-color: #3b82f6;
+        }
+        
+        .column-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+        
+        .column-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .column-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #1e293b;
+            truncate: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .column-field {
+            font-size: 11px;
+            color: #64748b;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+        
+        .column-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 8px;
+        }
+        
+        .visibility-indicator {
+            width: 12px;
+            height: 12px;
+            opacity: 0.6;
+        }
+        
+        .customization-dots {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .customization-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        
+        .customization-dot.styling { background: #8b5cf6; }
+        .customization-dot.formatting { background: #06b6d4; }
+        .customization-dot.filtering { background: #10b981; }
+        .customization-dot.editing { background: #f59e0b; }
+        .customization-dot.general { background: #64748b; }
+        
+        .more-indicator {
+            padding: 1px 4px;
+            background: #f1f5f9;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 600;
+            color: #64748b;
+        }
+        
+        /* Footer Actions */
+        .footer-actions {
+            padding: 12px;
+            border-top: 1px solid #f1f5f9;
+            background: #fafbfc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .selection-summary {
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        .selection-count {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .footer-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .footer-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .footer-btn:hover {
+            background: #f8fafc;
+        }
+        
+        .footer-btn.primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .footer-btn.primary:hover {
+            background: #2563eb;
+        }
+        
+        /* Customization Details Popover */
+        .customization-details {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 200px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            z-index: 1000;
+            margin-top: 4px;
+        }
+        
+        .details-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 12px;
+        }
+        
+        .details-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .customization-item {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 0;
+            transition: all 0.2s;
+        }
+        
+        .customization-item:hover {
+            background: #f8fafc;
+            margin: 0 -8px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        .item-content {
+            flex: 1;
+        }
+        
+        .item-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        
+        .item-icon {
+            width: 14px;
+            height: 14px;
+            color: #3b82f6;
+        }
+        
+        .item-type {
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .item-details {
+            margin-left: 22px;
+        }
+        
+        .detail-item {
+            font-size: 11px;
+            color: #64748b;
+            margin-bottom: 2px;
+        }
+        
+        .remove-btn {
+            padding: 4px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .remove-btn:hover {
+            border-color: #e2e8f0;
+            background: #f8fafc;
+        }
+        
+        .remove-icon {
+            width: 14px;
+            height: 14px;
+            color: #64748b;
+        }
+        
+        .remove-btn:hover .remove-icon {
+            color: #1e293b;
+        }
+        
+        /* Demo styling */
+        .demo-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .demo-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1e293b;
+        }
+        
+        .demo-flex {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .scrollable {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,0,0,0.3) transparent;
+        }
+        
+        .scrollable::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollable::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .scrollable::-webkit-scrollbar-thumb {
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mockup-header">
+            <h1 class="mockup-title">Column Selector Table - Detailed UI Mockup</h1>
+            <p class="mockup-description">
+                Comprehensive mockup showing the Column Selector Table component with all features including search, filtering, 
+                bulk selection, customization indicators, and detailed popover interfaces.
+            </p>
+        </div>
+        
+        <div class="demo-section">
+            <h2 class="demo-title">Column Selector Button & Popover Interface</h2>
+            <div class="demo-flex">
+                <!-- Trigger Button -->
+                <div>
+                    <h3 style="margin-bottom: 8px; font-size: 14px; color: #64748b;">Trigger Button States</h3>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button class="column-selector-trigger">
+                            <span>Select columns...</span>
+                            <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </button>
+                        
+                        <button class="column-selector-trigger">
+                            <span>Product Name</span>
+                            <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </button>
+                        
+                        <button class="column-selector-trigger">
+                            <span>5 columns selected</span>
+                            <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Main Popover -->
+                <div class="column-selector-popover">
+                    <!-- Header -->
+                    <div class="popover-header">
+                        <div class="header-content">
+                            <div class="header-icon">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect width="7" height="18" x="3" y="3" rx="1"/>
+                                    <rect width="7" height="5" x="14" y="3" rx="1"/>
+                                    <rect width="7" height="5" x="14" y="16" rx="1"/>
+                                </svg>
+                            </div>
+                            <span class="header-title">Columns</span>
+                            <div class="header-badge">24</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Section -->
+                    <div class="filter-section">
+                        <div class="search-bar">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
+                            </svg>
+                            <input type="text" class="search-input" placeholder="Search columns..." value="product">
+                        </div>
+                        
+                        <div class="type-filter">
+                            <div class="select-trigger">
+                                <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/>
+                                </svg>
+                                <span>Filter by type</span>
+                                <svg style="margin-left: auto; width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6,9 12,15 18,9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="visibility-toggle">
+                            <div class="toggle-option">All</div>
+                            <div class="toggle-option active">Visible</div>
+                            <div class="toggle-option">Hidden</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Column List -->
+                    <div class="column-list scrollable">
+                        <div class="list-header">
+                            <input type="checkbox" class="bulk-checkbox" checked>
+                            <span>Column Name</span>
+                            <div class="bulk-actions">
+                                <button class="bulk-action-btn">All</button>
+                                <button class="bulk-action-btn">None</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Column Items -->
+                        <div class="column-item selected">
+                            <input type="checkbox" class="column-checkbox" checked>
+                            <svg class="column-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                            <div class="column-info">
+                                <div class="column-name">Product Name</div>
+                                <div class="column-field">productName</div>
+                            </div>
+                            <div class="column-status">
+                                <svg class="visibility-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <div class="customization-dots">
+                                    <div class="customization-dot styling"></div>
+                                    <div class="customization-dot formatting"></div>
+                                    <div class="more-indicator">+2</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="column-item">
+                            <input type="checkbox" class="column-checkbox">
+                            <svg class="column-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                            </svg>
+                            <div class="column-info">
+                                <div class="column-name">Product Code</div>
+                                <div class="column-field">productCode</div>
+                            </div>
+                            <div class="column-status">
+                                <svg class="visibility-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <div class="customization-dots">
+                                    <div class="customization-dot filtering"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="column-item selected">
+                            <input type="checkbox" class="column-checkbox" checked>
+                            <svg class="column-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="3" height="8" x="13" y="2" rx="1.5"/>
+                                <path d="M19 8.5V10h1.5A1.5 1.5 0 1 0 19 8.5"/>
+                                <rect width="3" height="8" x="8" y="14" rx="1.5"/>
+                                <path d="M5 15.5V14H3.5A1.5 1.5 0 1 0 5 15.5"/>
+                                <rect width="8" height="3" x="14" y="13" rx="1.5"/>
+                                <path d="M15.5 19H14v1.5a1.5 1.5 0 1 0 1.5-1.5"/>
+                                <rect width="8" height="3" x="2" y="8" rx="1.5"/>
+                                <path d="M8.5 5H10V3.5A1.5 1.5 0 1 0 8.5 5"/>
+                            </svg>
+                            <div class="column-info">
+                                <div class="column-name">Price</div>
+                                <div class="column-field">price</div>
+                            </div>
+                            <div class="column-status">
+                                <svg class="visibility-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <div class="customization-dots">
+                                    <div class="customization-dot styling"></div>
+                                    <div class="customization-dot formatting"></div>
+                                    <div class="customization-dot editing"></div>
+                                    <div class="more-indicator">+1</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="column-item">
+                            <input type="checkbox" class="column-checkbox">
+                            <svg class="column-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                                <line x1="16" x2="16" y1="2" y2="6"/>
+                                <line x1="8" x2="8" y1="2" y2="6"/>
+                                <line x1="3" x2="21" y1="10" y2="10"/>
+                            </svg>
+                            <div class="column-info">
+                                <div class="column-name">Created Date</div>
+                                <div class="column-field">createdDate</div>
+                            </div>
+                            <div class="column-status">
+                                <svg class="visibility-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 11 8 11 8a13.16 13.16 0 0 1-1.67 2.68"/>
+                                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s4 8 11 8a9.74 9.74 0 0 0 5.39-1.61"/>
+                                    <line x1="2" x2="22" y1="2" y2="22"/>
+                                </svg>
+                                <div class="customization-dots">
+                                    <div class="customization-dot formatting"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="column-item">
+                            <input type="checkbox" class="column-checkbox">
+                            <svg class="column-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="9" cy="9" r="2"/>
+                                <path d="M13 5.5a7.5 7.5 0 0 1 7.5 7.5"/>
+                                <path d="M13 2a10.5 10.5 0 0 1 10.5 10.5"/>
+                            </svg>
+                            <div class="column-info">
+                                <div class="column-name">Status</div>
+                                <div class="column-field">status</div>
+                            </div>
+                            <div class="column-status">
+                                <svg class="visibility-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="footer-actions">
+                        <div class="selection-summary">
+                            <span class="selection-count">3</span> of 24 selected
+                        </div>
+                        <div class="footer-buttons">
+                            <button class="footer-btn">Clear</button>
+                            <button class="footer-btn primary">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Customization Details Popover -->
+        <div class="demo-section">
+            <h2 class="demo-title">Customization Details Popover</h2>
+            <div style="position: relative; display: inline-block;">
+                <div class="customization-details">
+                    <div class="details-header">
+                        <svg style="width: 16px; height: 16px; color: #64748b;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span class="details-title">Column Customizations</span>
+                    </div>
+                    
+                    <div class="customization-item">
+                        <div class="item-content">
+                            <div class="item-header">
+                                <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="13.5" cy="6.5" r=".5"/>
+                                    <circle cx="17.5" cy="10.5" r=".5"/>
+                                    <circle cx="8.5" cy="7.5" r=".5"/>
+                                    <circle cx="6.5" cy="12.5" r=".5"/>
+                                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                                </svg>
+                                <span class="item-type">Styling</span>
+                            </div>
+                            <div class="item-details">
+                                <div class="detail-item">• Cell styles</div>
+                                <div class="detail-item">• Header styles</div>
+                                <div class="detail-item">• Cell alignment</div>
+                            </div>
+                        </div>
+                        <button class="remove-btn">
+                            <svg class="remove-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6 6 18"/>
+                                <path d="M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="customization-item">
+                        <div class="item-content">
+                            <div class="item-header">
+                                <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect width="3" height="8" x="13" y="2" rx="1.5"/>
+                                    <path d="M19 8.5V10h1.5A1.5 1.5 0 1 0 19 8.5"/>
+                                    <rect width="3" height="8" x="8" y="14" rx="1.5"/>
+                                    <path d="M5 15.5V14H3.5A1.5 1.5 0 1 0 5 15.5"/>
+                                    <rect width="8" height="3" x="14" y="13" rx="1.5"/>
+                                    <path d="M15.5 19H14v1.5a1.5 1.5 0 1 0 1.5-1.5"/>
+                                    <rect width="8" height="3" x="2" y="8" rx="1.5"/>
+                                    <path d="M8.5 5H10V3.5A1.5 1.5 0 1 0 8.5 5"/>
+                                </svg>
+                                <span class="item-type">Formatter</span>
+                            </div>
+                            <div class="item-details">
+                                <div class="detail-item">• Currency formatting</div>
+                            </div>
+                        </div>
+                        <button class="remove-btn">
+                            <svg class="remove-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6 6 18"/>
+                                <path d="M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="customization-item">
+                        <div class="item-content">
+                            <div class="item-header">
+                                <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/>
+                                </svg>
+                                <span class="item-type">Filter</span>
+                            </div>
+                            <div class="item-details">
+                                <div class="detail-item">• Text filter enabled</div>
+                                <div class="detail-item">• Floating filter</div>
+                            </div>
+                        </div>
+                        <button class="remove-btn">
+                            <svg class="remove-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6 6 18"/>
+                                <path d="M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

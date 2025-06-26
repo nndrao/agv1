@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>General Tab - Detailed Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            padding: 20px;
+            color: #1e293b;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .mockup-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .mockup-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .mockup-description {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        /* Tab Content Container */
+        .tab-content {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .tab-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tab-icon {
+            width: 20px;
+            height: 20px;
+            color: #3b82f6;
+        }
+        
+        /* General Tab Layout */
+        .general-content {
+            display: grid;
+            grid-template-columns: 5fr 3fr;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+        
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .field-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+        }
+        
+        .field-input {
+            height: 32px;
+            padding: 0 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .field-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .field-input:disabled {
+            background: #f9fafb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .field-input.mixed {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+            font-style: italic;
+        }
+        
+        /* Select Dropdown */
+        .select-field {
+            position: relative;
+        }
+        
+        .select-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 32px;
+            padding: 0 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .select-trigger:hover {
+            border-color: #9ca3af;
+        }
+        
+        .select-trigger.open {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .select-value {
+            font-size: 14px;
+            color: #1e293b;
+        }
+        
+        .select-value.placeholder {
+            color: #9ca3af;
+        }
+        
+        .select-icon {
+            width: 16px;
+            height: 16px;
+            color: #6b7280;
+            transition: transform 0.2s;
+        }
+        
+        .select-trigger.open .select-icon {
+            transform: rotate(180deg);
+        }
+        
+        /* Quick Toggles Strip */
+        .quick-toggles {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.02);
+            border-radius: 6px;
+            margin-top: 16px;
+        }
+        
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 28px;
+            height: 16px;
+            background: #d1d5db;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .toggle-switch.active {
+            background: #3b82f6;
+        }
+        
+        .toggle-switch .slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-switch.active .slider {
+            transform: translateX(12px);
+        }
+        
+        .toggle-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+        }
+        
+        .separator {
+            width: 1px;
+            height: 16px;
+            background: #d1d5db;
+        }
+        
+        .advanced-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .advanced-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+        
+        .advanced-btn-icon {
+            width: 14px;
+            height: 14px;
+        }
+        
+        /* Multi-column state indicators */
+        .multi-column-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .multi-column-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .info-icon {
+            width: 16px;
+            height: 16px;
+            color: #3b82f6;
+        }
+        
+        .info-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e40af;
+        }
+        
+        .info-text {
+            font-size: 13px;
+            color: #1e40af;
+            line-height: 1.4;
+        }
+        
+        .selected-columns {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .column-chip {
+            padding: 4px 8px;
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #1e40af;
+        }
+        
+        /* Demo variations */
+        .demo-variation {
+            margin-bottom: 32px;
+        }
+        
+        .variation-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #374151;
+        }
+        
+        .variation-description {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mockup-header">
+            <h1 class="mockup-title">General Tab - Detailed UI Mockup</h1>
+            <p class="mockup-description">
+                Comprehensive mockup showing the General Tab interface with single-column and multi-column editing states,
+                including all form controls, quick toggles, and advanced options.
+            </p>
+        </div>
+        
+        <!-- Single Column State -->
+        <div class="demo-variation">
+            <h2 class="variation-title">Single Column Selection State</h2>
+            <p class="variation-description">
+                When a single column is selected, all fields are editable and show the current column values.
+            </p>
+            
+            <div class="tab-content">
+                <div class="tab-title">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    General Properties
+                </div>
+                
+                <div class="general-content">
+                    <div class="form-section">
+                        <div class="form-field">
+                            <label class="field-label">HEADER NAME</label>
+                            <input type="text" class="field-input" value="Product Name" placeholder="Column Name">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-field">
+                            <label class="field-label">TYPE</label>
+                            <div class="select-field">
+                                <div class="select-trigger">
+                                    <span class="select-value">Text</span>
+                                    <svg class="select-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6,9 12,15 18,9"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="quick-toggles">
+                    <div class="toggle-item">
+                        <div class="toggle-switch active">
+                            <div class="slider"></div>
+                        </div>
+                        <label class="toggle-label">Floating Filter</label>
+                    </div>
+                    
+                    <div class="toggle-item">
+                        <div class="toggle-switch active">
+                            <div class="slider"></div>
+                        </div>
+                        <label class="toggle-label">Enable Filter</label>
+                    </div>
+                    
+                    <div class="toggle-item">
+                        <div class="toggle-switch">
+                            <div class="slider"></div>
+                        </div>
+                        <label class="toggle-label">Editable</label>
+                    </div>
+                    
+                    <div class="separator"></div>
+                    
+                    <button class="advanced-btn">
+                        <svg class="advanced-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        Advanced
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Multi-Column State -->
+        <div class="demo-variation">
+            <h2 class="variation-title">Multi-Column Selection State</h2>
+            <p class="variation-description">
+                When multiple columns are selected, the Header Name field is disabled and mixed values are indicated.
+            </p>
+            
+            <div class="tab-content">
+                <div class="tab-title">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    General Properties
+                </div>
+                
+                <div class="multi-column-info">
+                    <div class="multi-column-header">
+                        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 16v-4"/>
+                            <path d="M12 8h.01"/>
+                        </svg>
+                        <span class="info-title">Multi-Column Selection</span>
+                    </div>
+                    <p class="info-text">
+                        You have 5 columns selected. Changes will be applied to all selected columns. 
+                        Column-specific properties like Header Name are disabled.
+                    </p>
+                    <div class="selected-columns">
+                        <div class="column-chip">Product Name</div>
+                        <div class="column-chip">Price</div>
+                        <div class="column-chip">Category</div>
+                        <div class="column-chip">Status</div>
+                        <div class="column-chip">Created Date</div>
+                    </div>
+                </div>
+                
+                <div class="general-content">
+                    <div class="form-section">
+                        <div class="form-field">
+                            <label class="field-label">HEADER NAME</label>
+                            <input type="text" class="field-input" disabled placeholder="~Mixed~">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-field">
+                            <label class="field-label">TYPE</label>
+                            <div class="select-field">
+                                <div class="select-trigger">
+                                    <span class="select-value placeholder">~Mixed Values~</span>
+                                    <svg class="select-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6,9 12,15 18,9"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="quick-toggles">
+                    <div class="toggle-item">
+                        <div class="toggle-switch">
+                            <div class="slider"></div>
+                        </div>
+                        <label class="toggle-label">Floating Filter</label>
+                    </div>
+                    
+                    <div class="toggle-item">
+                        <div class="toggle-switch active">
+                            <div class="slider"></div>
+                        </div>
+                        <label class="toggle-label">Enable Filter</label>
+                    </div>
+                    
+                    <div class="toggle-item">
+                        <div class="toggle-switch">
+                            <div class="slider"></div>
+                        </div>
+                        <label class="toggle-label">Editable</label>
+                    </div>
+                    
+                    <div class="separator"></div>
+                    
+                    <button class="advanced-btn">
+                        <svg class="advanced-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        Advanced
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Disabled/No Selection State -->
+        <div class="demo-variation">
+            <h2 class="variation-title">No Selection State</h2>
+            <p class="variation-description">
+                When no columns are selected, all controls are disabled with appropriate messaging.
+            </p>
+            
+            <div class="tab-content">
+                <div class="tab-title">
+                    <svg class="tab-icon" style="color: #9ca3af;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span style="color: #9ca3af;">General Properties</span>
+                </div>
+                
+                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; text-align: center; color: #6b7280;">
+                    <svg style="width: 48px; height: 48px; margin: 0 auto 12px; color: #d1d5db;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12l2 2 4-4"/>
+                        <path d="M21 12c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z"/>
+                        <path d="M3 12c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z"/>
+                        <path d="M12 21c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z"/>
+                        <path d="M12 3c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z"/>
+                    </svg>
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">No Columns Selected</h3>
+                    <p style="font-size: 14px;">Select one or more columns to configure their general properties.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

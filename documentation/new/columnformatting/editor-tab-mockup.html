@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor Tab - Column Formatting</title>
+    <style>
+        /* Base Styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #ffffff;
+            color: #000000;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .editor-tab {
+            display: flex;
+            height: 320px;
+            gap: 16px;
+            padding: 16px;
+            background: #ffffff;
+        }
+
+        /* Main Controls Section */
+        .main-controls {
+            flex: 1;
+        }
+
+        .prerequisites-notice {
+            background: #fffbeb;
+            border: 1px solid #fed7aa;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 12px;
+        }
+
+        .prerequisites-notice .notice-text {
+            font-size: 11px;
+            color: #92400e;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .ribbon-section-header {
+            font-size: 10px;
+            font-weight: 600;
+            color: #6b7280;
+            letter-spacing: 0.5px;
+        }
+
+        .reset-btn {
+            background: transparent;
+            border: none;
+            color: #6b7280;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .reset-btn:hover {
+            background: #f3f4f6;
+        }
+
+        /* Toggle Group */
+        .toggle-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toggle-item.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .toggle-item:hover:not(.active) {
+            background: #f1f5f9;
+        }
+
+        .toggle-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .icon {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* Editor Options Grid */
+        .editor-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px 24px;
+            margin-bottom: 12px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .switch {
+            width: 28px;
+            height: 16px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .switch.checked {
+            background: #3b82f6;
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .switch.checked::after {
+            transform: translateX(12px);
+        }
+
+        .option-label {
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .configure-btn {
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            font-size: 11px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .configure-btn:hover {
+            background: #f9fafb;
+        }
+
+        /* Configuration Panel */
+        .config-panel {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 16px;
+            background: #f8f9fa;
+            margin-top: 12px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .config-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #6b7280;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            height: 28px;
+            padding: 0 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 11px;
+            background: white;
+        }
+
+        .form-select {
+            height: 28px;
+            padding: 0 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 11px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: white;
+            resize: vertical;
+        }
+
+        /* Preview Section */
+        .preview-section {
+            width: 192px;
+            border-left: 1px solid #e5e7eb;
+            padding-left: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .preview-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .preview-label {
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .preview-box {
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+        }
+
+        .preview-box.active {
+            background: #eff6ff;
+            border-color: #3b82f6;
+        }
+
+        .preview-editor {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-editor-icon {
+            width: 12px;
+            height: 12px;
+            color: #3b82f6;
+        }
+
+        .preview-editor-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+
+        .preview-description {
+            font-size: 11px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .preview-settings {
+            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .setting-label {
+            color: #6b7280;
+        }
+
+        .setting-value {
+            font-weight: 500;
+        }
+
+        .setting-divider {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 4px;
+            margin-top: 4px;
+        }
+
+        .setting-configured {
+            color: #6b7280;
+        }
+
+        .preview-footer {
+            margin-top: auto;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .preview-footer .editing {
+            font-weight: 500;
+            color: #000000;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-tab">
+        <!-- Main Controls Section -->
+        <div class="main-controls">
+            <!-- Prerequisites Notice -->
+            <div class="prerequisites-notice">
+                <div class="notice-text">
+                    Enable editing in the General tab to configure cell editors
+                </div>
+            </div>
+
+            <!-- Section Header -->
+            <div class="section-header">
+                <div class="ribbon-section-header">EDITOR TYPE</div>
+                <button class="reset-btn">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
+                    Reset
+                </button>
+            </div>
+
+            <!-- Editor Type Toggle Group -->
+            <div class="toggle-group">
+                <div class="toggle-item disabled">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    None
+                </div>
+                <div class="toggle-item active disabled">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Text
+                </div>
+                <div class="toggle-item disabled">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Large Text
+                </div>
+                <div class="toggle-item disabled">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    </svg>
+                    Number
+                </div>
+                <div class="toggle-item disabled">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Date
+                </div>
+                <div class="toggle-item disabled">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                    Select
+                </div>
+                <div class="toggle-item disabled">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    Rich Select
+                </div>
+                <div class="toggle-item disabled">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Checkbox
+                </div>
+            </div>
+
+            <!-- Editor Options -->
+            <div class="editor-options">
+                <div class="option-item">
+                    <div class="switch"></div>
+                    <label class="option-label">Single Click Edit</label>
+                </div>
+                <div class="option-item">
+                    <div class="switch"></div>
+                    <label class="option-label">Popup Editor</label>
+                </div>
+                <div>
+                    <button class="configure-btn">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Configure
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Configuration Panel -->
+            <div class="config-panel">
+                <div class="config-grid">
+                    <div class="form-group">
+                        <label class="form-label">MAX LENGTH</label>
+                        <input type="number" class="form-input" placeholder="No limit">
+                    </div>
+                    <div class="option-item">
+                        <div class="switch"></div>
+                        <label class="option-label">Use Formatter</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="preview-section">
+            <div class="ribbon-section-header" style="margin-bottom: 8px;">EDITOR INFO</div>
+            <div class="preview-content">
+                <!-- Current Editor -->
+                <div class="preview-item">
+                    <div class="preview-label">Current Editor</div>
+                    <div class="preview-box active">
+                        <div class="preview-editor">
+                            <svg class="preview-editor-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span class="preview-editor-name">Text</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="preview-item">
+                    <div class="preview-label">Description</div>
+                    <div class="preview-description">
+                        Simple text input editor for string values with optional validation and formatting.
+                    </div>
+                </div>
+
+                <!-- Settings Summary -->
+                <div class="preview-item">
+                    <div class="preview-label">Settings</div>
+                    <div class="preview-settings">
+                        <div class="setting-row">
+                            <span class="setting-label">Single Click:</span>
+                            <span class="setting-value">No</span>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Popup:</span>
+                            <span class="setting-value">No</span>
+                        </div>
+                        <div class="setting-row setting-divider">
+                            <span class="setting-configured">Configured</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-footer">
+                Editing: <span class="editing">Cell Editor</span> properties
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

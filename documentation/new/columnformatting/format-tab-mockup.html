@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Format Tab - Detailed Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            padding: 20px;
+            color: #1e293b;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .mockup-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .mockup-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .mockup-description {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .tab-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tab-icon {
+            width: 20px;
+            height: 20px;
+            color: #3b82f6;
+        }
+        
+        /* Format Mode Toggle */
+        .format-mode-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .toggle-group {
+            display: flex;
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 2px;
+        }
+        
+        .toggle-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .toggle-option.active {
+            background: white;
+            color: #3b82f6;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .toggle-option:not(.active) {
+            color: #64748b;
+        }
+        
+        .toggle-icon {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 8px;
+            font-size: 11px;
+            background: transparent;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #f9fafb;
+        }
+        
+        .action-btn-icon {
+            width: 12px;
+            height: 12px;
+        }
+        
+        /* Standard Format Controls */
+        .format-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px 20px;
+            margin-bottom: 16px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .control-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+        }
+        
+        .control-input {
+            height: 28px;
+            padding: 0 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .control-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        
+        .control-select {
+            height: 28px;
+            padding: 0 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        /* Switch controls */
+        .switch-controls {
+            grid-column: span 3;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        
+        .switch-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .switch {
+            position: relative;
+            width: 28px;
+            height: 16px;
+            background: #d1d5db;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .switch.active {
+            background: #3b82f6;
+        }
+        
+        .switch .slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .switch.active .slider {
+            transform: translateX(12px);
+        }
+        
+        .switch-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+        }
+        
+        /* Quick Test Values */
+        .test-values {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-top: 1px solid #f1f5f9;
+        }
+        
+        .test-label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .test-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .test-btn:hover {
+            background: #f8fafc;
+        }
+        
+        /* Custom Format Mode */
+        .custom-format-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .template-browser {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .template-header {
+            padding: 12px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .template-categories {
+            display: flex;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .category-tab {
+            flex: 1;
+            padding: 8px 4px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-right: 1px solid #e2e8f0;
+        }
+        
+        .category-tab:last-child {
+            border-right: none;
+        }
+        
+        .category-tab.active {
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+        
+        .category-tab:not(.active) {
+            color: #64748b;
+        }
+        
+        .template-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .template-item {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .template-item:hover {
+            background: #f8fafc;
+        }
+        
+        .template-item.selected {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+        }
+        
+        .template-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .template-example {
+            font-size: 11px;
+            color: #64748b;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+        
+        /* Manual Format Editor */
+        .manual-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .editor-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .format-textarea {
+            width: 100%;
+            height: 80px;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            resize: vertical;
+        }
+        
+        .emoji-toolbar {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        
+        .emoji-btn {
+            padding: 4px 6px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .emoji-btn:hover {
+            background: #f1f5f9;
+        }
+        
+        /* Preview Section */
+        .preview-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 16px;
+        }
+        
+        .preview-header {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #64748b;
+        }
+        
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        
+        .preview-cell {
+            padding: 6px 8px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 12px;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+        
+        .demo-variation {
+            margin-bottom: 32px;
+        }
+        
+        .variation-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #374151;
+        }
+        
+        .variation-description {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mockup-header">
+            <h1 class="mockup-title">Format Tab - Detailed UI Mockup</h1>
+            <p class="mockup-description">
+                Comprehensive mockup showing the Format Tab interface with both Standard and Custom formatting modes,
+                including all controls, templates, and preview functionality.
+            </p>
+        </div>
+        
+        <!-- Standard Format Mode -->
+        <div class="demo-variation">
+            <h2 class="variation-title">Standard Format Mode</h2>
+            <p class="variation-description">
+                Standard formatting mode with predefined format types and visual controls for common formatting options.
+            </p>
+            
+            <div class="tab-content">
+                <div class="tab-title">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect width="3" height="8" x="13" y="2" rx="1.5"/>
+                        <path d="M19 8.5V10h1.5A1.5 1.5 0 1 0 19 8.5"/>
+                        <rect width="3" height="8" x="8" y="14" rx="1.5"/>
+                        <path d="M5 15.5V14H3.5A1.5 1.5 0 1 0 5 15.5"/>
+                        <rect width="8" height="3" x="14" y="13" rx="1.5"/>
+                        <path d="M15.5 19H14v1.5a1.5 1.5 0 1 0 1.5-1.5"/>
+                        <rect width="8" height="3" x="2" y="8" rx="1.5"/>
+                        <path d="M8.5 5H10V3.5A1.5 1.5 0 1 0 8.5 5"/>
+                    </svg>
+                    Format Properties
+                </div>
+                
+                <div class="format-mode-header">
+                    <div class="toggle-group">
+                        <div class="toggle-option active">
+                            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="13.5" cy="6.5" r=".5"/>
+                                <circle cx="17.5" cy="10.5" r=".5"/>
+                                <circle cx="8.5" cy="7.5" r=".5"/>
+                                <circle cx="6.5" cy="12.5" r=".5"/>
+                                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                            </svg>
+                            Standard
+                        </div>
+                        <div class="toggle-option">
+                            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0L9.937 15.5z"/>
+                            </svg>
+                            Custom
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-btn">
+                            <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6 6 18"/>
+                                <path d="M6 6l12 12"/>
+                            </svg>
+                            Clear
+                        </button>
+                        <button class="action-btn">
+                            <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                <path d="M21 3v5h-5"/>
+                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                <path d="M8 16H3v5"/>
+                            </svg>
+                            Reset All
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="format-controls">
+                    <div class="control-group">
+                        <label class="control-label">FORMAT TYPE</label>
+                        <select class="control-select">
+                            <option>💰 Currency</option>
+                            <option>🔢 Number</option>
+                            <option>📊 Percentage</option>
+                            <option>📅 Date</option>
+                            <option>📝 Text</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">SYMBOL</label>
+                        <select class="control-select">
+                            <option>$ (USD)</option>
+                            <option>€ (EUR)</option>
+                            <option>£ (GBP)</option>
+                            <option>¥ (JPY)</option>
+                            <option>₹ (INR)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">DECIMALS</label>
+                        <select class="control-select">
+                            <option>0</option>
+                            <option selected>2</option>
+                            <option>3</option>
+                            <option>4</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">PREFIX</label>
+                        <input type="text" class="control-input" placeholder="e.g., $">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">SUFFIX</label>
+                        <input type="text" class="control-input" placeholder="e.g., USD">
+                    </div>
+                    
+                    <div class="switch-controls">
+                        <div class="switch-item">
+                            <div class="switch active">
+                                <div class="slider"></div>
+                            </div>
+                            <label class="switch-label">Thousands separator</label>
+                        </div>
+                        <div class="switch-item">
+                            <div class="switch">
+                                <div class="slider"></div>
+                            </div>
+                            <label class="switch-label">+/- colors</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="test-values">
+                    <span class="test-label">Quick test:</span>
+                    <button class="test-btn">1234567.89</button>
+                    <button class="test-btn">-5000</button>
+                    <button class="test-btn">0</button>
+                    <button class="test-btn">0.5</button>
+                </div>
+                
+                <div class="preview-section">
+                    <div class="preview-header">LIVE PREVIEW</div>
+                    <div class="preview-grid">
+                        <div class="preview-cell">$1,234,567.89</div>
+                        <div class="preview-cell" style="color: #dc2626;">-$5,000.00</div>
+                        <div class="preview-cell">$0.00</div>
+                        <div class="preview-cell">$0.50</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Custom Format Mode -->
+        <div class="demo-variation">
+            <h2 class="variation-title">Custom Format Mode</h2>
+            <p class="variation-description">
+                Advanced custom formatting with template browser and manual format string editor.
+            </p>
+            
+            <div class="tab-content">
+                <div class="tab-title">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect width="3" height="8" x="13" y="2" rx="1.5"/>
+                        <path d="M19 8.5V10h1.5A1.5 1.5 0 1 0 19 8.5"/>
+                        <rect width="3" height="8" x="8" y="14" rx="1.5"/>
+                        <path d="M5 15.5V14H3.5A1.5 1.5 0 1 0 5 15.5"/>
+                        <rect width="8" height="3" x="14" y="13" rx="1.5"/>
+                        <path d="M15.5 19H14v1.5a1.5 1.5 0 1 0 1.5-1.5"/>
+                        <rect width="8" height="3" x="2" y="8" rx="1.5"/>
+                        <path d="M8.5 5H10V3.5A1.5 1.5 0 1 0 8.5 5"/>
+                    </svg>
+                    Format Properties
+                </div>
+                
+                <div class="format-mode-header">
+                    <div class="toggle-group">
+                        <div class="toggle-option">
+                            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="13.5" cy="6.5" r=".5"/>
+                                <circle cx="17.5" cy="10.5" r=".5"/>
+                                <circle cx="8.5" cy="7.5" r=".5"/>
+                                <circle cx="6.5" cy="12.5" r=".5"/>
+                                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                            </svg>
+                            Standard
+                        </div>
+                        <div class="toggle-option active">
+                            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0L9.937 15.5z"/>
+                            </svg>
+                            Custom
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-btn">
+                            <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6 6 18"/>
+                                <path d="M6 6l12 12"/>
+                            </svg>
+                            Clear
+                        </button>
+                        <button class="action-btn">
+                            <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                <path d="M21 3v5h-5"/>
+                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                <path d="M8 16H3v5"/>
+                            </svg>
+                            Reset All
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="custom-format-section">
+                    <!-- Template Browser -->
+                    <div class="template-browser">
+                        <div class="template-header">FORMAT TEMPLATES</div>
+                        
+                        <div class="template-categories">
+                            <div class="category-tab active">Conditional</div>
+                            <div class="category-tab">Visual</div>
+                            <div class="category-tab">Rating</div>
+                            <div class="category-tab">Status</div>
+                        </div>
+                        
+                        <div class="template-list">
+                            <div class="template-item selected">
+                                <div class="template-name">Traffic Lights</div>
+                                <div class="template-example">🔴 45 → 🟡 75 → 🟢 95</div>
+                            </div>
+                            
+                            <div class="template-item">
+                                <div class="template-name">Pass/Fail</div>
+                                <div class="template-example">✓ PASS (75) or ✗ FAIL (45)</div>
+                            </div>
+                            
+                            <div class="template-item">
+                                <div class="template-name">Temperature</div>
+                                <div class="template-example">30°F ❄️, 85°F 🔥</div>
+                            </div>
+                            
+                            <div class="template-item">
+                                <div class="template-name">Performance</div>
+                                <div class="template-example">[Red]Poor [Green]Excellent</div>
+                            </div>
+                            
+                            <div class="template-item">
+                                <div class="template-name">Score Grade</div>
+                                <div class="template-example">95 A, 75 C, 55 F</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Manual Editor -->
+                    <div class="manual-editor">
+                        <div class="editor-section">
+                            <label class="control-label">CUSTOM FORMAT STRING</label>
+                            <textarea class="format-textarea" placeholder="Enter Excel-style format string">[<50]"🔴 "0;[<80]"🟡 "0;"🟢 "0</textarea>
+                        </div>
+                        
+                        <div class="editor-section">
+                            <label class="control-label">EMOJI PALETTE</label>
+                            <div class="emoji-toolbar">
+                                <button class="emoji-btn">✓</button>
+                                <button class="emoji-btn">✗</button>
+                                <button class="emoji-btn">★</button>
+                                <button class="emoji-btn">☆</button>
+                                <button class="emoji-btn">🔴</button>
+                                <button class="emoji-btn">🟡</button>
+                                <button class="emoji-btn">🟢</button>
+                                <button class="emoji-btn">⚠</button>
+                                <button class="emoji-btn">→</button>
+                                <button class="emoji-btn">↑</button>
+                                <button class="emoji-btn">↓</button>
+                                <button class="emoji-btn">💰</button>
+                            </div>
+                        </div>
+                        
+                        <div class="editor-section">
+                            <label class="control-label">FORMAT PREVIEW</label>
+                            <input type="text" class="control-input" value="1234.56" placeholder="Test value">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="preview-section">
+                    <div class="preview-header">LIVE PREVIEW - TRAFFIC LIGHTS</div>
+                    <div class="preview-grid">
+                        <div class="preview-cell">🔴 45</div>
+                        <div class="preview-cell">🟡 75</div>
+                        <div class="preview-cell">🟢 95</div>
+                        <div class="preview-cell">🟢 100</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
