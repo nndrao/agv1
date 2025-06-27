@@ -38,7 +38,7 @@ export class UpdateEventEmitter {
   private maxQueueSize: number;
   private processingPromise: Promise<void> | null = null;
   
-  // Batching configuration
+  // Batching configuration - DISABLED to avoid double batching with ConflatedDataStore
   private batchingEnabled: boolean = false;
   private batchInterval: number = 60; // milliseconds
   private batchTimer: NodeJS.Timeout | null = null;
@@ -83,8 +83,12 @@ export class UpdateEventEmitter {
     }
   }
   
-  removeAllListeners(): void {
-    this.listeners.clear();
+  removeAllListeners(event?: string): void {
+    if (event) {
+      this.listeners.delete(event);
+    } else {
+      this.listeners.clear();
+    }
   }
 
   // Enqueue update event
@@ -92,8 +96,17 @@ export class UpdateEventEmitter {
     if (this.batchingEnabled) {
       // Add to batch for this datasource
       const datasourceBatch = this.eventBatches.get(event.datasourceId) || [];
-      datasourceBatch.push(event);
-      this.eventBatches.set(event.datasourceId, datasourceBatch);
+      
+      // Check if batch size is exceeding limits
+      if (datasourceBatch.length >= this.maxQueueSize / 10) { // Use 1/10th of max queue size per datasource
+        console.warn(`[UpdateEventEmitter] Batch size limit reached for ${event.datasourceId}, processing immediately`);
+        // Process this batch immediately
+        await this.processSingleBatch(event.datasourceId, datasourceBatch);
+        this.eventBatches.set(event.datasourceId, [event]); // Start new batch with current event
+      } else {
+        datasourceBatch.push(event);
+        this.eventBatches.set(event.datasourceId, datasourceBatch);
+      }
       
       this.metrics.queueDepth = Array.from(this.eventBatches.values()).reduce((sum, batch) => sum + batch.length, 0);
       
@@ -120,11 +133,8 @@ export class UpdateEventEmitter {
 
     // Start processing if not already running
     if (!this.processing) {
-      this.processingPromise = this.processQueue();
+      this.processQueue(); // Don't await - let it process async
     }
-
-    // Wait for current processing cycle to complete
-    await this.processingPromise;
   }
 
   // Process batches of events
@@ -136,33 +146,47 @@ export class UpdateEventEmitter {
     for (const [datasourceId, events] of this.eventBatches.entries()) {
       if (events.length === 0) continue;
       
-      try {
-        // Combine all transactions in the batch
-        const batchedEvent = this.combineBatchedEvents(datasourceId, events);
-        
-        // Emit the batched event
-        await this.emitAsync(datasourceId, batchedEvent);
-        
-        // Update metrics
-        this.metrics.batchedCount += events.length;
-        this.metrics.lastBatchSize = events.length;
-        this.metrics.lastBatchTime = Date.now();
-        this.metrics.processedCount += events.length;
-        
-        console.log(`[UpdateEventEmitter] Processed batch for ${datasourceId}: ${events.length} events`);
-      } catch (error) {
-        console.error('[UpdateEventEmitter] Error processing batch:', error);
-        this.metrics.errorCount++;
-        // Emit individual errors for each event in the failed batch
-        events.forEach(event => {
-          this.emit('error', { ...event, error } as UpdateEvent);
-        });
-      }
+      await this.processSingleBatch(datasourceId, events);
     }
     
     // Clear batches
     this.eventBatches.clear();
     this.metrics.queueDepth = 0;
+    
+    // Update processing time metrics
+    const processingTime = performance.now() - startTime;
+    this.processingTimes.push(processingTime);
+    if (this.processingTimes.length > 100) {
+      this.processingTimes.shift();
+    }
+    this.metrics.averageProcessingTime = 
+      this.processingTimes.reduce((a, b) => a + b, 0) / this.processingTimes.length;
+  }
+  
+  // Process a single batch
+  private async processSingleBatch(datasourceId: string, events: UpdateEvent[]): Promise<void> {
+    try {
+      // Combine all transactions in the batch
+      const batchedEvent = this.combineBatchedEvents(datasourceId, events);
+      
+      // Emit the batched event
+      await this.emitAsync(datasourceId, batchedEvent);
+      
+      // Update metrics
+      this.metrics.batchedCount += events.length;
+      this.metrics.lastBatchSize = events.length;
+      this.metrics.lastBatchTime = Date.now();
+      this.metrics.processedCount += events.length;
+      
+      console.log(`[UpdateEventEmitter] Processed batch for ${datasourceId}: ${events.length} events`);
+    } catch (error) {
+      console.error('[UpdateEventEmitter] Error processing batch:', error);
+      this.metrics.errorCount++;
+      // Emit individual errors for each event in the failed batch
+      events.forEach(event => {
+        this.emit('error', { ...event, error } as UpdateEvent);
+      });
+    }
     
     // Update processing time metrics
     const processingTime = performance.now() - startTime;

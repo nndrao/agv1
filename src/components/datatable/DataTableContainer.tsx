@@ -98,42 +98,16 @@ export const DataTableContainer = memo(({
       // If grid is ready, apply the new column definitions
       // Using gridApiRef.current instead of gridApi state
       if (gridApiRef.current && typeof gridApiRef.current.setColumnDefs === 'function') {
-        // First, clear all existing data
-        gridApiRef.current.setRowData([]);
-        
-        // Set new column definitions
-        gridApiRef.current.setColumnDefs(datasourceColumns);
-        
-        // Reset ALL grid state
-        if (typeof gridApiRef.current.resetColumnState === 'function') {
-          gridApiRef.current.resetColumnState();
-        }
-        if (typeof gridApiRef.current.setFilterModel === 'function') {
-          gridApiRef.current.setFilterModel(null);
-        }
-        if (typeof gridApiRef.current.setSortModel === 'function') {
-          gridApiRef.current.setSortModel(null);
-        }
-        
-        // Clear any column grouping
-        if (typeof gridApiRef.current.setColumnGroupState === 'function') {
-          gridApiRef.current.setColumnGroupState([]);
-        }
-        
-        // Reset row grouping
-        if (typeof gridApiRef.current.setRowGroupColumns === 'function') {
-          gridApiRef.current.setRowGroupColumns([]);
-        }
-        
-        // Refresh the grid
-        setTimeout(() => {
-          if (gridApiRef.current && typeof gridApiRef.current.refreshHeader === 'function') {
-            gridApiRef.current.refreshHeader();
-          }
-          if (gridApiRef.current && typeof gridApiRef.current.redrawRows === 'function') {
-            gridApiRef.current.redrawRows();
-          }
-        }, 100);
+        // Batch all grid operations in a single frame
+        requestAnimationFrame(() => {
+          if (!gridApiRef.current) return;
+          
+          // Set new column definitions
+          gridApiRef.current.setColumnDefs(datasourceColumns);
+          
+          // Only reset state if explicitly needed
+          // Don't clear data here - let the datasource data flow handle it
+        });
       }
     }
   }, [selectedDatasourceId, datasourceColumns, setCurrentColumnDefs]); // Remove gridApi from dependencies
@@ -141,12 +115,15 @@ export const DataTableContainer = memo(({
   // Show toast when snapshot data is loaded
   React.useEffect(() => {
     if (selectedDatasourceId && isSnapshotComplete && datasourceData && datasourceData.length > 0) {
-      toast({
-        title: 'Snapshot loaded',
-        description: `${datasourceData.length} rows loaded from datasource`,
-      });
+      // Use a flag to ensure toast only shows once
+      if (!hasAutoEnabledUpdates) {
+        toast({
+          title: 'Snapshot loaded',
+          description: `${datasourceData.length} rows loaded from datasource`,
+        });
+      }
     }
-  }, [selectedDatasourceId, isSnapshotComplete, datasourceData?.length, toast]);
+  }, [selectedDatasourceId, isSnapshotComplete, datasourceData?.length, toast, hasAutoEnabledUpdates]);
   
   // State for dialogs
   const [showGridOptionsDialog, setShowGridOptionsDialog] = useState(false);
@@ -227,19 +204,19 @@ export const DataTableContainer = memo(({
     }
   }, [enableUnifiedConfig, unifiedConfig.config, unifiedConfig.configToProfile, handleProfileChange]);
   
-  // Auto-enable updates when snapshot is complete
-  React.useEffect(() => {
-    if (isSnapshotComplete && !hasAutoEnabledUpdates && selectedDatasourceId) {
-      console.log('[DataTableContainer] Snapshot complete, auto-enabling updates');
-      setUpdatesEnabled(true);
-      setHasAutoEnabledUpdates(true);
-      toast({
-        title: 'Real-time updates enabled',
-        description: 'Live data updates are now active',
-        duration: 3000,
-      });
-    }
-  }, [isSnapshotComplete, hasAutoEnabledUpdates, selectedDatasourceId, toast]);
+  // Auto-enable updates when snapshot is complete - DISABLED for performance
+  // React.useEffect(() => {
+  //   if (isSnapshotComplete && !hasAutoEnabledUpdates && selectedDatasourceId) {
+  //     console.log('[DataTableContainer] Snapshot complete, auto-enabling updates');
+  //     setUpdatesEnabled(true);
+  //     setHasAutoEnabledUpdates(true);
+  //     toast({
+  //       title: 'Real-time updates enabled',
+  //       description: 'Live data updates are now active',
+  //       duration: 3000,
+  //     });
+  //   }
+  // }, [isSnapshotComplete, hasAutoEnabledUpdates, selectedDatasourceId, toast]);
   
   // Reset auto-enable flag when datasource changes
   React.useEffect(() => {
@@ -367,13 +344,12 @@ export const DataTableContainer = memo(({
   // Refresh cells when theme changes to update conditional formatting colors
   React.useEffect(() => {
     if (gridApiRef.current || gridApi) {
-      // Small delay to ensure DOM classes are updated
-      setTimeout(() => {
+      // Use requestAnimationFrame for better performance
+      requestAnimationFrame(() => {
         gridApiRef.current?.refreshCells({ force: true });
-        gridApi?.refreshCells({ force: true });
-      }, 50);
+      });
     }
-  }, [theme, gridApi]);
+  }, [theme]);
   
   // Listen for format-column events from context menu
   React.useEffect(() => {

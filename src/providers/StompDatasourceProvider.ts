@@ -20,12 +20,14 @@ export interface StompStatistics {
   isConnected: boolean;
   snapshotStartTime?: number;
   snapshotEndTime?: number;
+  bytesReceived: number;
+  snapshotBytesReceived: number;
+  updateBytesReceived: number;
 }
 
 export class StompDatasourceProvider {
   private client: Client | null = null;
   private connectionPromise: Promise<void> | null = null;
-  private receivedData: any[] = [];
   private isConnected = false;
   private activeSubscriptions: any[] = [];
   private messageRate: string = '1000';
@@ -37,6 +39,9 @@ export class StompDatasourceProvider {
     connectionCount: 0,
     disconnectionCount: 0,
     isConnected: false,
+    bytesReceived: 0,
+    snapshotBytesReceived: 0,
+    updateBytesReceived: 0,
   };
   private isReceivingSnapshot = false;
   private updateCallbacks: ((data: any) => void)[] = [];
@@ -124,7 +129,7 @@ export class StompDatasourceProvider {
       }
 
       return new Promise((resolve) => {
-        this.receivedData = [];
+        const receivedData: any[] = [];
         this.statistics.snapshotRowsReceived = 0;
         this.statistics.snapshotStartTime = Date.now();
         this.isReceivingSnapshot = true;
@@ -148,11 +153,11 @@ export class StompDatasourceProvider {
         const timeoutMs = this.config.snapshotTimeoutMs || 60000;
         const timeout = setTimeout(() => {
           // Timeout reached, returning collected data
-          console.warn(`[StompDatasourceProvider] Snapshot timeout reached after ${timeoutMs}ms. Received ${this.receivedData.length} rows.`);
+          console.warn(`[StompDatasourceProvider] Snapshot timeout reached after ${timeoutMs}ms. Received ${receivedData.length} rows.`);
           resolveOnce({
             success: true,
-            data: this.receivedData,
-            rawData: this.receivedData,
+            data: receivedData,
+            rawData: receivedData,
           });
         }, timeoutMs);
 
@@ -162,6 +167,8 @@ export class StompDatasourceProvider {
           (message: IMessage) => {
             try {
               const messageBody = message.body;
+              const messageBytes = new TextEncoder().encode(messageBody).length;
+              this.statistics.bytesReceived += messageBytes;
               // Process received message
               
               // Check if this is a snapshot end token (string starting with 'Success' or matching the token)
@@ -175,8 +182,8 @@ export class StompDatasourceProvider {
                   console.log(`[StompDatasourceProvider] Snapshot completed: ${this.statistics.snapshotRowsReceived} rows in ${this.statistics.snapshotDuration}ms`);
                   resolveOnce({
                     success: true,
-                    data: this.receivedData,
-                    rawData: this.receivedData,
+                    data: receivedData,
+                    rawData: receivedData,
                     statistics: { ...this.statistics },
                   });
                   return;
@@ -199,8 +206,8 @@ export class StompDatasourceProvider {
                   if (!resolved) {
                     resolveOnce({
                       success: true,
-                      data: this.receivedData,
-                      rawData: this.receivedData,
+                      data: receivedData,
+                      rawData: receivedData,
                       statistics: { ...this.statistics },
                     });
                   }
@@ -215,11 +222,13 @@ export class StompDatasourceProvider {
               if (this.isReceivingSnapshot) {
                 // During snapshot, just append data
                 if (Array.isArray(data)) {
-                  this.receivedData.push(...data);
+                  receivedData.push(...data);
                   this.statistics.snapshotRowsReceived += data.length;
+                  this.statistics.snapshotBytesReceived += messageBytes;
                 } else if (typeof data === 'object' && data !== null) {
-                  this.receivedData.push(data);
+                  receivedData.push(data);
                   this.statistics.snapshotRowsReceived += 1;
+                  this.statistics.snapshotBytesReceived += messageBytes;
                 }
                 
                 // Log progress every 5000 rows
@@ -228,43 +237,22 @@ export class StompDatasourceProvider {
                   console.log(`[StompDatasourceProvider] Snapshot progress: ${this.statistics.snapshotRowsReceived} rows received in ${elapsed}ms`);
                 }
               } else {
-                // For real-time updates, send only the updates, not entire dataset
+                // For real-time updates, send only the updates
                 const updates = Array.isArray(data) ? data : [data];
-                const keyColumn = this.config.keyColumn;
-                
-                // Process updates locally for snapshot consistency
-                updates.forEach(update => {
-                  if (keyColumn && update[keyColumn]) {
-                    // Find existing row by key column
-                    const existingIndex = this.receivedData.findIndex(
-                      row => row[keyColumn] === update[keyColumn]
-                    );
-                    
-                    if (existingIndex >= 0) {
-                      // Update existing row
-                      this.receivedData[existingIndex] = { ...this.receivedData[existingIndex], ...update };
-                    } else {
-                      // Add as new row if not found
-                      this.receivedData.push(update);
-                    }
-                  } else {
-                    // No key column specified or value missing, just append
-                    this.receivedData.push(update);
-                  }
-                });
                 
                 this.statistics.updateRowsReceived += updates.length;
-                // Notify update callbacks with just the updates, not entire dataset
+                this.statistics.updateBytesReceived += messageBytes;
+                // Notify update callbacks with just the updates
                 this.updateCallbacks.forEach(callback => callback(updates));
               }
 
               // Check if we've reached max rows for initial snapshot (only if maxRows is specified)
-              if (maxRows && this.receivedData.length >= maxRows && !resolved) {
+              if (maxRows && receivedData.length >= maxRows && !resolved) {
                 // Resolve the promise for initial snapshot
                 resolveOnce({
                   success: true,
-                  data: this.receivedData.slice(0, maxRows),
-                  rawData: this.receivedData,
+                  data: receivedData.slice(0, maxRows),
+                  rawData: receivedData,
                 });
                 // Continue receiving updates for real-time data
               }

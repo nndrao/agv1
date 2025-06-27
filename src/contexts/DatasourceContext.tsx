@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { DatasourceConfig, useDatasourceStore } from '@/stores/datasource.store';
 import { StompDatasourceProvider, StompStatistics } from '@/providers/StompDatasourceProvider';
 import { UpdateEventEmitter } from '@/utils/UpdateEventEmitter';
+import { DataStoreManager } from '@/services/datasource/DataStoreManager';
+import { ConflatedDataStore } from '@/services/datasource/ConflatedDataStore';
+import { DatasourceStatistics } from '@/services/datasource/DatasourceStatistics';
 
 interface DatasourceContextType {
   // Currently active datasources
@@ -16,11 +19,14 @@ interface DatasourceContextType {
   // Snapshot status
   snapshotStatus: Map<string, 'loading' | 'complete' | 'error'>;
   
-  // Statistics for STOMP datasources
-  datasourceStatistics: Map<string, StompStatistics>;
+  // Statistics for datasources (new comprehensive stats)
+  datasourceStatistics: Map<string, DatasourceStatistics>;
   
   // Component usage tracking
   componentUsage: Map<string, Set<string>>; // datasourceId -> Set of componentIds
+  
+  // Data store manager
+  dataStoreManager: DataStoreManager;
   
   // Update event emitter
   updateEmitter: UpdateEventEmitter;
@@ -36,6 +42,7 @@ interface DatasourceContextType {
   initializeWorkerForGrid: (datasourceId: string, gridData: any[]) => void;
   syncWorkerState: (datasourceId: string, currentData: any[]) => void;
   getProvider: (datasourceId: string) => any | undefined;
+  getDataStore: (datasourceId: string) => ConflatedDataStore<any> | undefined;
   
   // UI Controls
   showDatasourceList: boolean;
@@ -68,13 +75,16 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   const [datasourceData, setDatasourceData] = useState<Map<string, any[]>>(new Map());
   const [connectionStatus, setConnectionStatus] = useState<Map<string, 'connecting' | 'connected' | 'error' | 'disconnected'>>(new Map());
   const [snapshotStatus, setSnapshotStatus] = useState<Map<string, 'loading' | 'complete' | 'error'>>(new Map());
-  const [datasourceStatistics, setDatasourceStatistics] = useState<Map<string, StompStatistics>>(new Map());
+  const [datasourceStatistics, setDatasourceStatistics] = useState<Map<string, DatasourceStatistics>>(new Map());
   const [componentUsage, setComponentUsage] = useState<Map<string, Set<string>>>(new Map());
   const [providers, setProviders] = useState<Map<string, StompDatasourceProvider>>(new Map());
   const [showDatasourceList, setShowDatasourceList] = useState(false);
   
-  // Initialize update event emitter with batching enabled
-  const updateEmitterRef = useRef<UpdateEventEmitter>(new UpdateEventEmitter(10000, { enabled: true, interval: 60 }));
+  // Initialize data store manager
+  const dataStoreManager = useRef(DataStoreManager.getInstance()).current;
+  
+  // Initialize update event emitter with batching DISABLED (conflation happens in ConflatedDataStore)
+  const updateEmitterRef = useRef<UpdateEventEmitter>(new UpdateEventEmitter(10000, { enabled: false }));
   const updateEmitter = updateEmitterRef.current;
   
   // Initialize Web Worker
@@ -88,38 +98,11 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   // Track update subscriptions
   const updateSubscriptionsRef = useRef<Map<string, ((data: any) => void) | null>>(new Map());
   
-  // Initialize Web Worker on mount
+  // Cleanup on unmount
   useEffect(() => {
-    const worker = new Worker(
-      new URL('../workers/datasourceUpdateWorker.ts', import.meta.url),
-      { type: 'module' }
-    );
-    
-    worker.onmessage = async (event) => {
-      const { type, datasourceId, transaction } = event.data;
-      
-      if (type === 'transaction') {
-        // Emit transaction event
-        await updateEmitter.enqueue({
-          type: 'transaction',
-          datasourceId,
-          transaction,
-          timestamp: Date.now()
-        });
-      }
-    };
-    
-    worker.onerror = (error) => {
-      console.error('[DatasourceContext] Worker error:', error);
-    };
-    
-    workerRef.current = worker;
-    setIsWorkerReady(true);
-    
-    // Cleanup on unmount
     return () => {
-      worker.terminate();
       updateEmitter.shutdown();
+      dataStoreManager.clear();
     };
   }, []);
   
@@ -152,24 +135,51 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
         // Store provider for later cleanup
         setProviders(prev => new Map(prev).set(datasourceId, provider));
         
+        // Create conflated data store for this datasource
+        const dataStore = dataStoreManager.createStore(datasource);
+        const statistics = dataStoreManager.getStatistics(datasourceId)!;
+        
+        // Start snapshot tracking
+        statistics.startSnapshot();
+        
         // Connect and fetch data
         const result = await provider.fetchSnapshot(); // Fetch all available data
         
         if (result.success && result.data) {
-          // Store the datasource and its data
+          // Set snapshot data in the conflated store
+          dataStore.setSnapshot(result.data || []);
+          
+          // Complete snapshot tracking
+          statistics.completeSnapshot(result.data?.length || 0, result.statistics?.bytesReceived || 0);
+          
+          // Store the datasource and its data (for backward compatibility)
           setActiveDatasources(prev => new Map(prev).set(datasourceId, datasource));
           setDatasourceData(prev => new Map(prev).set(datasourceId, result.data || []));
           setConnectionStatus(prev => new Map(prev).set(datasourceId, 'connected'));
           setSnapshotStatus(prev => new Map(prev).set(datasourceId, 'complete'));
           
-          // Mark snapshot as available (but don't mark as ready for updates yet)
+          // Store statistics reference
+          setDatasourceStatistics(prev => new Map(prev).set(datasourceId, statistics));
           
-          // Store statistics
-          if (result.statistics) {
-            setDatasourceStatistics(prev => new Map(prev).set(datasourceId, result.statistics!));
-          }
-          
-          // Don't subscribe to updates yet - let the component do it when ready
+          // Subscribe data store to updates from update emitter
+          updateEmitter.on(datasourceId, (event) => {
+            if (event.type === 'transaction' && event.transaction) {
+              const { transaction } = event;
+              // Apply updates to the conflated store
+              if (transaction.update) {
+                dataStore.addBulkUpdates(transaction.update, 'update');
+              }
+              if (transaction.add) {
+                dataStore.addBulkUpdates(transaction.add, 'add');
+              }
+              if (transaction.remove) {
+                dataStore.addBulkUpdates(transaction.remove, 'remove');
+              }
+              
+              // Don't update datasourceData map on every update - this causes re-renders
+              // Only update it when explicitly needed
+            }
+          });
           
           console.log(`[DatasourceContext] Datasource ${datasource.name} activated with ${result.data.length} rows`);
         } else {
@@ -198,6 +208,12 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
       });
     }
     
+    // Remove from update emitter
+    updateEmitter.removeAllListeners(datasourceId);
+    
+    // Remove from data store manager
+    dataStoreManager.removeStore(datasourceId);
+    
     // Remove from active datasources
     setActiveDatasources(prev => {
       const newMap = new Map(prev);
@@ -219,11 +235,16 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
       newMap.delete(datasourceId);
       return newMap;
     });
+    setDatasourceStatistics(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(datasourceId);
+      return newMap;
+    });
     snapshotCompleteRef.current.delete(datasourceId);
     updateSubscriptionsRef.current.delete(datasourceId);
     
     console.log(`[DatasourceContext] Datasource ${datasourceId} deactivated`);
-  }, [providers]);
+  }, [providers, updateEmitter, dataStoreManager]);
   
   // Refresh a datasource
   const refreshDatasource = useCallback(async (datasourceId: string) => {
@@ -287,13 +308,17 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
         console.warn(`[DatasourceContext] Processing update for ${datasourceId} even though snapshot flag is false`);
       }
       
-      // Bypass worker for now - send directly to update emitter
-      // This is a temporary solution while we phase out the worker
+      // Track update in statistics
+      const statistics = dataStoreManager.getStatistics(datasourceId);
+      if (statistics) {
+        statistics.recordUpdate(true);
+      }
+      
       const transaction: any = {
         update: Array.isArray(updatedData) ? updatedData : [updatedData]
       };
       
-      console.log(`[DatasourceContext] Bypassing worker, sending ${transaction.update.length} updates directly`);
+      console.log(`[DatasourceContext] Sending ${transaction.update.length} updates to event emitter`);
       
       // Emit transaction event directly
       await updateEmitter.enqueue({
@@ -302,15 +327,6 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
         transaction,
         timestamp: Date.now()
       });
-      
-      // Original worker code (kept for reference)
-      // if (workerRef.current) {
-      //   workerRef.current.postMessage({
-      //     type: 'update',
-      //     datasourceId,
-      //     data: updatedData
-      //   });
-      // }
     };
     
     // Subscribe to real-time updates
@@ -320,55 +336,16 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     updateSubscriptionsRef.current.set(datasourceId, updateHandler);
   }, [providers]);
 
-  // Initialize worker with grid data (called after grid loads snapshot)
+  // Initialize worker with grid data (kept for backward compatibility, but no-op)
   const initializeWorkerForGrid = useCallback((datasourceId: string, gridData: any[]) => {
-    if (!workerRef.current) {
-      console.warn('[DatasourceContext] Worker not initialized');
-      return;
-    }
-
-    const datasource = getDatasource(datasourceId);
-    if (!datasource) {
-      console.warn(`[DatasourceContext] Datasource ${datasourceId} not found`);
-      return;
-    }
-
-    console.log(`[DatasourceContext] Initializing worker for grid with ${gridData.length} rows`);
-
-    // Configure worker
-    workerRef.current.postMessage({
-      type: 'config',
-      datasourceId,
-      keyColumn: datasource.keyColumn,
-      config: {
-        batchWindowMs: 60,
-        maxBatchSize: 1000
-      }
-    });
-    
-    // Reset worker state with grid data
-    workerRef.current.postMessage({
-      type: 'reset',
-      datasourceId,
-      currentData: gridData
-    });
-  }, [getDatasource]);
+    // This is now a no-op as we're using ConflatedDataStore instead of workers
+    console.log(`[DatasourceContext] initializeWorkerForGrid called (no-op) for ${datasourceId} with ${gridData.length} rows`);
+  }, []);
   
-  // Sync worker state with grid state (e.g., after filtering, sorting)
+  // Sync worker state with grid state (kept for backward compatibility, but no-op)
   const syncWorkerState = useCallback((datasourceId: string, currentData: any[]) => {
-    if (!workerRef.current) {
-      console.warn('[DatasourceContext] Worker not initialized');
-      return;
-    }
-    
-    console.log(`[DatasourceContext] Syncing worker state for ${datasourceId} with ${currentData.length} rows`);
-    
-    // Send current grid state to worker
-    workerRef.current.postMessage({
-      type: 'sync',
-      datasourceId,
-      currentData
-    });
+    // This is now a no-op as we're using ConflatedDataStore instead of workers
+    console.log(`[DatasourceContext] syncWorkerState called (no-op) for ${datasourceId} with ${currentData.length} rows`);
   }, []);
 
   // Unsubscribe from updates for a datasource
@@ -392,6 +369,11 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   const getProvider = useCallback((datasourceId: string) => {
     return providers.get(datasourceId);
   }, [providers]);
+  
+  // Get data store for a datasource
+  const getDataStore = useCallback((datasourceId: string) => {
+    return dataStoreManager.getStore(datasourceId);
+  }, [dataStoreManager]);
   
   // Set batching configuration
   const setBatchingConfig = useCallback((enabled: boolean, interval?: number) => {
@@ -432,6 +414,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     snapshotStatus,
     datasourceStatistics,
     componentUsage,
+    dataStoreManager,
     updateEmitter,
     activateDatasource,
     deactivateDatasource,
@@ -443,6 +426,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     initializeWorkerForGrid,
     syncWorkerState,
     getProvider,
+    getDataStore,
     showDatasourceList,
     setShowDatasourceList,
     setBatchingConfig,
