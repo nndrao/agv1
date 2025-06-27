@@ -29,12 +29,16 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, CheckCircle2, ChevronRight, ChevronDown } from 'lucide-react';
 import { StompDatasourceProvider } from '@/providers/StompDatasourceProvider';
-import { useDatasourceStore, StompDatasourceConfig, ColumnDefinition } from '@/stores/datasource.store';
+import { useDatasourceStore, StompDatasourceConfig, ColumnDefinition, ConflationSettings } from '@/stores/datasource.store';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { DatasourceStatistics } from './DatasourceStatistics';
+import { useDatasourceContext } from '@/contexts/DatasourceContext';
 
 interface DatasourceEditorProps {
   open: boolean;
@@ -71,6 +75,12 @@ export const DatasourceEditor: React.FC<DatasourceEditorProps> = ({
   const [messageRate, setMessageRate] = useState('1000');
   const [snapshotTimeoutMs, setSnapshotTimeoutMs] = useState(60000);
   
+  // Conflation settings state
+  const [conflationEnabled, setConflationEnabled] = useState(true);
+  const [conflationWindowMs, setConflationWindowMs] = useState(100);
+  const [conflationMaxBatchSize, setConflationMaxBatchSize] = useState(1000);
+  const [conflationEnableMetrics, setConflationEnableMetrics] = useState(true);
+  
   // Test connection state
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
@@ -100,6 +110,14 @@ export const DatasourceEditor: React.FC<DatasourceEditorProps> = ({
         setKeyColumn(datasource.keyColumn);
         setManualColumns(datasource.columnDefinitions || []);
         setSnapshotTimeoutMs(datasource.snapshotTimeoutMs || 60000);
+        
+        // Load conflation settings
+        if (datasource.conflationSettings) {
+          setConflationEnabled(datasource.conflationSettings.enabled);
+          setConflationWindowMs(datasource.conflationSettings.windowMs);
+          setConflationMaxBatchSize(datasource.conflationSettings.maxBatchSize);
+          setConflationEnableMetrics(datasource.conflationSettings.enableMetrics);
+        }
       }
     }
   }, [datasourceId, getDatasource]);
@@ -312,6 +330,13 @@ export const DatasourceEditor: React.FC<DatasourceEditorProps> = ({
 
     const allColumns = [...columnsFromFields, ...manualColumns];
 
+    const conflationSettings: ConflationSettings = {
+      enabled: conflationEnabled,
+      windowMs: conflationWindowMs,
+      maxBatchSize: conflationMaxBatchSize,
+      enableMetrics: conflationEnableMetrics,
+    };
+
     const datasource: StompDatasourceConfig = {
       id: datasourceId || `stomp-${Date.now()}`,
       name,
@@ -325,6 +350,7 @@ export const DatasourceEditor: React.FC<DatasourceEditorProps> = ({
       createdAt: Date.now(),
       updatedAt: Date.now(),
       snapshotTimeoutMs,
+      conflationSettings,
     };
 
     if (datasourceId) {
@@ -384,10 +410,11 @@ export const DatasourceEditor: React.FC<DatasourceEditorProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="connection" className="flex-1 min-h-0 flex flex-col">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="connection">Connection</TabsTrigger>
             <TabsTrigger value="fields" disabled={!testResult}>Fields</TabsTrigger>
             <TabsTrigger value="columns">Column Definitions</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="connection" className="flex-1 mt-6">
@@ -699,6 +726,101 @@ export const DatasourceEditor: React.FC<DatasourceEditorProps> = ({
                   </ScrollArea>
                 </div>
               </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="performance" className="flex-1 overflow-hidden mt-6">
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Conflation Settings</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure update conflation to optimize performance for high-frequency data streams.
+                </p>
+                
+                <div className="space-y-4 p-4 border rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="conflation-enabled">Enable Conflation</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Merge multiple updates for the same row within the batch window
+                      </p>
+                    </div>
+                    <Switch
+                      id="conflation-enabled"
+                      checked={conflationEnabled}
+                      onCheckedChange={setConflationEnabled}
+                    />
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <Label htmlFor="conflation-window">Conflation Window</Label>
+                        <span className="text-sm text-muted-foreground">{conflationWindowMs}ms</span>
+                      </div>
+                      <Slider
+                        id="conflation-window"
+                        min={10}
+                        max={1000}
+                        step={10}
+                        value={[conflationWindowMs]}
+                        onValueChange={([value]) => setConflationWindowMs(value)}
+                        disabled={!conflationEnabled}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Time window for batching updates (10-1000ms)
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <Label htmlFor="max-batch-size">Max Batch Size</Label>
+                        <span className="text-sm text-muted-foreground">{conflationMaxBatchSize}</span>
+                      </div>
+                      <Slider
+                        id="max-batch-size"
+                        min={100}
+                        max={10000}
+                        step={100}
+                        value={[conflationMaxBatchSize]}
+                        onValueChange={([value]) => setConflationMaxBatchSize(value)}
+                        disabled={!conflationEnabled}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Maximum number of updates in a single batch
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="enable-metrics">Enable Metrics</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Track performance metrics for monitoring
+                      </p>
+                    </div>
+                    <Switch
+                      id="enable-metrics"
+                      checked={conflationEnableMetrics}
+                      onCheckedChange={setConflationEnableMetrics}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {datasourceId && (
+                <div className="space-y-4">
+                  <Separator />
+                  <h3 className="text-lg font-semibold">Live Statistics</h3>
+                  <DatasourceStatistics datasourceId={datasourceId} />
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

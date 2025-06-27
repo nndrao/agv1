@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDatasourceStore } from '@/stores/datasource.store';
 import { useDatasourceContext } from '@/contexts/DatasourceContext';
 import { useProfileStore, useActiveProfile } from '@/components/datatable/stores/profile.store';
@@ -13,7 +13,8 @@ export const useComponentDatasource = (instanceId: string) => {
     activeDatasources,
     registerComponent,
     unregisterComponent,
-    snapshotStatus
+    snapshotStatus,
+    getDataStore
   } = useDatasourceContext();
   
   const { updateProfile, saveColumnCustomizations } = useProfileStore();
@@ -96,10 +97,24 @@ export const useComponentDatasource = (instanceId: string) => {
     updateProfile
   ]);
   
-  // Get current datasource data
-  const currentData = selectedDatasourceId ? datasourceData.get(selectedDatasourceId) : undefined;
+  // Get current datasource data from the store snapshot
+  const [currentData, setCurrentData] = useState<any[] | undefined>(undefined);
   const currentStatus = selectedDatasourceId ? connectionStatus.get(selectedDatasourceId) : undefined;
   const isSnapshotComplete = selectedDatasourceId ? snapshotStatus?.get(selectedDatasourceId) === 'complete' : true;
+  
+  // Update data when snapshot is complete
+  useEffect(() => {
+    if (selectedDatasourceId && isSnapshotComplete) {
+      const dataStore = getDataStore(selectedDatasourceId);
+      if (dataStore) {
+        // Get initial snapshot
+        setCurrentData(dataStore.getSnapshot());
+      } else {
+        // Fallback to datasourceData map
+        setCurrentData(datasourceData.get(selectedDatasourceId));
+      }
+    }
+  }, [selectedDatasourceId, isSnapshotComplete, getDataStore, datasourceData]);
   
   // Register component and load datasource columns when profile changes
   useEffect(() => {

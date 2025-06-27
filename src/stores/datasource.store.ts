@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export interface ConflationSettings {
+  enabled: boolean;
+  windowMs: number;        // Default: 100ms
+  maxBatchSize: number;    // Default: 1000
+  enableMetrics: boolean;  // Default: true
+}
+
 export interface StompDatasourceConfig {
   id: string;
   name: string;
@@ -16,6 +23,7 @@ export interface StompDatasourceConfig {
   autoStart?: boolean;
   inferredFields?: FieldInfo[];
   snapshotTimeoutMs?: number; // Timeout for snapshot collection (default: 60000ms)
+  conflationSettings?: ConflationSettings;
 }
 
 export interface RestDatasourceConfig {
@@ -30,6 +38,7 @@ export interface RestDatasourceConfig {
   columnDefinitions: ColumnDefinition[];
   createdAt: number;
   updatedAt: number;
+  conflationSettings?: ConflationSettings;
 }
 
 export type DatasourceConfig = StompDatasourceConfig | RestDatasourceConfig;
