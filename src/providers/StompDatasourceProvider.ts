@@ -179,13 +179,18 @@ export class StompDatasourceProvider {
                   this.isReceivingSnapshot = false;
                   this.statistics.snapshotEndTime = Date.now();
                   this.statistics.snapshotDuration = this.statistics.snapshotEndTime - (this.statistics.snapshotStartTime || 0);
-                  console.log(`[StompDatasourceProvider] Snapshot completed: ${this.statistics.snapshotRowsReceived} rows in ${this.statistics.snapshotDuration}ms`);
-                  resolveOnce({
-                    success: true,
-                    data: receivedData,
-                    rawData: receivedData,
-                    statistics: { ...this.statistics },
-                  });
+                  console.log(`[StompDatasourceProvider] Snapshot end token received: ${this.statistics.snapshotRowsReceived} rows so far`);
+                  
+                  // On slow networks, wait a bit for any remaining messages in transit
+                  setTimeout(() => {
+                    console.log(`[StompDatasourceProvider] Snapshot completed: ${this.statistics.snapshotRowsReceived} rows in ${this.statistics.snapshotDuration}ms`);
+                    resolveOnce({
+                      success: true,
+                      data: receivedData,
+                      rawData: receivedData,
+                      statistics: { ...this.statistics },
+                    });
+                  }, 500); // 500ms grace period for slow networks
                   return;
                 }
               }
@@ -201,15 +206,19 @@ export class StompDatasourceProvider {
                   this.isReceivingSnapshot = false;
                   this.statistics.snapshotEndTime = Date.now();
                   this.statistics.snapshotDuration = this.statistics.snapshotEndTime - (this.statistics.snapshotStartTime || 0);
-                  console.log(`[StompDatasourceProvider] Snapshot completed (non-JSON token): ${this.statistics.snapshotRowsReceived} rows in ${this.statistics.snapshotDuration}ms`);
+                  console.log(`[StompDatasourceProvider] Snapshot end token received (non-JSON): ${this.statistics.snapshotRowsReceived} rows so far`);
                   
                   if (!resolved) {
-                    resolveOnce({
-                      success: true,
-                      data: receivedData,
-                      rawData: receivedData,
-                      statistics: { ...this.statistics },
-                    });
+                    // On slow networks, wait a bit for any remaining messages in transit
+                    setTimeout(() => {
+                      console.log(`[StompDatasourceProvider] Snapshot completed (non-JSON token): ${this.statistics.snapshotRowsReceived} rows in ${this.statistics.snapshotDuration}ms`);
+                      resolveOnce({
+                        success: true,
+                        data: receivedData,
+                        rawData: receivedData,
+                        statistics: { ...this.statistics },
+                      });
+                    }, 500); // 500ms grace period for slow networks
                   }
                   // Continue receiving updates for real-time data
                   return;
@@ -268,19 +277,17 @@ export class StompDatasourceProvider {
         // Send request message after a delay (like the test client does)
         setTimeout(() => {
           if (this.config.requestMessage || this.config.listenerTopic!.includes('/snapshot/')) {
-            // The server expects a trigger message to be sent to a specific endpoint
-            // Format: /snapshot/{dataType}/{rate}
-            let triggerDestination = this.config.listenerTopic!;
+            // Use requestMessage as the destination, or fall back to listenerTopic with rate
+            let triggerDestination = this.config.requestMessage || this.config.listenerTopic!;
             
-            // If the listener topic is like /snapshot/positions, and we want 1000 msg/s
-            // then trigger should go to /snapshot/positions/1000
-            if (this.config.listenerTopic!.includes('/snapshot/')) {
+            // If no explicit requestMessage and the listener topic is like /snapshot/positions
+            if (!this.config.requestMessage && this.config.listenerTopic!.includes('/snapshot/')) {
               triggerDestination = `${this.config.listenerTopic}/${this.messageRate}`;
             }
             
             this.client!.publish({
               destination: triggerDestination,
-              body: this.config.requestMessage || 'START',
+              body: (this.config as any).requestBody || 'START',
             });
           }
         }, 1000); // 1 second delay like in test client
@@ -331,9 +338,6 @@ export class StompDatasourceProvider {
     return { ...this.statistics };
   }
 
-  getData(): any[] {
-    return [...this.receivedData];
-  }
 
   disconnect(): void {
     // Stop stats logging
@@ -455,7 +459,7 @@ export class StompDatasourceProvider {
       console.log(`[STOMP Stats] ${this.config.name || 'Datasource'} - Last ${timeSinceLastLog.toFixed(0)}s:`, {
         snapshotRows: this.statistics.snapshotRowsReceived,
         updateRows: this.statistics.updateRowsReceived,
-        totalRows: this.receivedData.length,
+        totalBytes: this.statistics.bytesReceived,
         isConnected: this.statistics.isConnected,
         isSnapshot: this.isReceivingSnapshot
       });

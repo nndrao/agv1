@@ -15,6 +15,7 @@ export interface StompDatasourceConfig {
   websocketUrl: string;
   listenerTopic: string;
   requestMessage: string;
+  requestBody?: string;
   snapshotEndToken: string;
   keyColumn: string;
   columnDefinitions: ColumnDefinition[];

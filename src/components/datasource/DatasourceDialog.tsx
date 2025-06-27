@@ -1,18 +1,29 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { StompDatasourceProvider } from '@/providers/StompDatasourceProvider';
 import { useDatasourceStore, StompDatasourceConfig, ColumnDefinition, FieldInfo } from '@/stores/datasource.store';
 import { useToast } from '@/hooks/use-toast';
-import { useDatasourceContext } from '@/contexts/DatasourceContext';
+import { AgGridReact } from 'ag-grid-react';
+import { GridApi, ColDef, GridReadyEvent, CellValueChangedEvent, themeQuartz } from 'ag-grid-community';
+import { useTheme } from '@/components/datatable/ThemeProvider';
 import { 
   GripVertical, 
   Maximize2, 
@@ -27,18 +38,11 @@ import {
   Trash2,
   Loader2,
   Database,
-  Search,
-  BarChart3,
-  Activity,
-  Clock
+  Search
 } from 'lucide-react';
 
-// Import new components
-import { DraggableDialog } from './components/DraggableDialog';
-import { ConnectionForm } from './components/ConnectionForm';
-import { FieldSelector, FieldNode } from './components/FieldSelector';
-import { TestingPanel } from './components/TestingPanel';
-import { DataSourceStatistics } from './components/DataSourceStatistics';
+// Import FieldNode type
+import { FieldNode } from './components/FieldSelector';
 
 interface DatasourceDialogProps {
   open: boolean;
@@ -53,7 +57,6 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const { addDatasource, updateDatasource, getDatasource } = useDatasourceStore();
-  const { datasourceStatistics, componentUsage } = useDatasourceContext();
   const dialogRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   
@@ -62,13 +65,14 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [activeTab, setActiveTab] = useState<'connection' | 'fields' | 'columns' | 'statistics'>('connection');
+  const [activeTab, setActiveTab] = useState<'connection' | 'fields' | 'columns'>('connection');
   
   // Form state
   const [name, setName] = useState('');
   const [websocketUrl, setWebsocketUrl] = useState('');
   const [listenerTopic, setListenerTopic] = useState('');
   const [requestMessage, setRequestMessage] = useState('START');
+  const [requestBody, setRequestBody] = useState('TriggerTopic');
   const [snapshotEndToken, setSnapshotEndToken] = useState('Success');
   const [keyColumn, setKeyColumn] = useState('');
   const [messageRate, setMessageRate] = useState('1000');
@@ -91,6 +95,9 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
   // Column state
   const [manualColumns, setManualColumns] = useState<ColumnDefinition[]>([]);
   const [newColumn, setNewColumn] = useState({ field: '', header: '', type: 'text' as ColumnDefinition['cellDataType'] });
+  const [columnsGridApi, setColumnsGridApi] = useState<GridApi | null>(null);
+  const [showUpdateColumnsAlert, setShowUpdateColumnsAlert] = useState(false);
+  const { theme } = useTheme();
 
   // Load existing datasource
   useEffect(() => {
@@ -101,6 +108,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
         setWebsocketUrl(datasource.websocketUrl);
         setListenerTopic(datasource.listenerTopic);
         setRequestMessage(datasource.requestMessage || 'START');
+        setRequestBody(datasource.requestBody || 'TriggerTopic');
         setSnapshotEndToken(datasource.snapshotEndToken || 'Success');
         setKeyColumn(datasource.keyColumn);
         setAutoStart(datasource.autoStart || false);
@@ -228,6 +236,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
       websocketUrl,
       listenerTopic,
       requestMessage,
+      requestBody,
       snapshotEndToken,
       keyColumn,
       messageRate,
@@ -268,6 +277,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
       websocketUrl,
       listenerTopic,
       requestMessage,
+      requestBody,
       snapshotEndToken,
       keyColumn,
       messageRate,
@@ -353,15 +363,36 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
   };
 
   const toggleFieldSelection = (path: string) => {
-    setSelectedFields(prev => {
-      const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
+    // Find the field to check if it's an object
+    const findField = (fields: FieldNode[], targetPath: string): FieldNode | undefined => {
+      for (const field of fields) {
+        if (field.path === targetPath) return field;
+        if (field.children) {
+          const found = findField(field.children, targetPath);
+          if (found) return found;
+        }
       }
-      return next;
-    });
+      return undefined;
+    };
+    
+    const field = findField(inferredFields, path);
+    
+    if (field && field.type === 'object' && field.children) {
+      // For object fields, toggle all child fields instead
+      const isAnyChildSelected = field.children.some(child => selectedFields.has(child.path));
+      selectFieldWithChildren(field, !isAnyChildSelected);
+    } else {
+      // For non-object fields, toggle normally
+      setSelectedFields(prev => {
+        const next = new Set(prev);
+        if (next.has(path)) {
+          next.delete(path);
+        } else {
+          next.add(path);
+        }
+        return next;
+      });
+    }
   };
   
   // Filter fields based on search query
@@ -395,14 +426,18 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
   const selectFieldWithChildren = (field: FieldNode, select: boolean) => {
     const fieldsToUpdate = new Set<string>();
     
-    const collectFields = (f: FieldNode) => {
-      fieldsToUpdate.add(f.path);
+    const collectLeafFields = (f: FieldNode) => {
+      // Only add non-object fields (leaf nodes)
+      if (f.type !== 'object' || !f.children || f.children.length === 0) {
+        fieldsToUpdate.add(f.path);
+      }
+      // Recursively collect from children
       if (f.children) {
-        f.children.forEach(collectFields);
+        f.children.forEach(collectLeafFields);
       }
     };
     
-    collectFields(field);
+    collectLeafFields(field);
     
     setSelectedFields(prev => {
       const newSet = new Set(prev);
@@ -422,16 +457,19 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
     const filteredFields = filterFields(inferredFields, fieldSearchQuery);
     const allPaths = new Set<string>();
     
-    const collectAllPaths = (fields: FieldNode[]) => {
+    const collectAllLeafPaths = (fields: FieldNode[]) => {
       fields.forEach(field => {
-        allPaths.add(field.path);
+        // Only add non-object fields (leaf nodes)
+        if (field.type !== 'object' || !field.children || field.children.length === 0) {
+          allPaths.add(field.path);
+        }
         if (field.children) {
-          collectAllPaths(field.children);
+          collectAllLeafPaths(field.children);
         }
       });
     };
     
-    collectAllPaths(filteredFields);
+    collectAllLeafPaths(filteredFields);
     
     if (checked) {
       setSelectedFields(prev => new Set([...prev, ...allPaths]));
@@ -449,14 +487,36 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
 
   const renderFieldItem = (field: FieldNode, level = 0) => {
     const isExpanded = expandedFields.has(field.path);
-    const isSelected = selectedFields.has(field.path);
+    
+    // For object fields, check if any/all children are selected
+    let isChecked = false;
+    let isIndeterminate = false;
+    
+    if (field.type === 'object' && field.children) {
+      const leafChildren: string[] = [];
+      const collectLeafPaths = (f: FieldNode) => {
+        if (f.type !== 'object' || !f.children || f.children.length === 0) {
+          leafChildren.push(f.path);
+        }
+        if (f.children) {
+          f.children.forEach(collectLeafPaths);
+        }
+      };
+      field.children.forEach(collectLeafPaths);
+      
+      const selectedCount = leafChildren.filter(path => selectedFields.has(path)).length;
+      isChecked = selectedCount === leafChildren.length && leafChildren.length > 0;
+      isIndeterminate = selectedCount > 0 && selectedCount < leafChildren.length;
+    } else {
+      isChecked = selectedFields.has(field.path);
+    }
     
     return (
       <div key={field.path}>
         <div
           className={cn(
             "flex items-center gap-2 py-1.5 px-2 hover:bg-muted/50 rounded cursor-pointer",
-            isSelected && "bg-muted/30"
+            (isChecked || isIndeterminate) && "bg-muted/30"
           )}
           style={{ paddingLeft: `${level * 16 + 8}px` }}
         >
@@ -471,15 +531,8 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
           {!field.children && <div className="w-4" />}
           
           <Checkbox
-            checked={isSelected}
-            onCheckedChange={(checked) => {
-              if (field.children) {
-                // If it's an object field, select/deselect all children
-                selectFieldWithChildren(field, checked as boolean);
-              } else {
-                toggleFieldSelection(field.path);
-              }
-            }}
+            checked={isIndeterminate ? "indeterminate" : isChecked}
+            onCheckedChange={() => toggleFieldSelection(field.path)}
             className="h-4 w-4"
           />
           
@@ -508,6 +561,180 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
     
     setNewColumn({ field: '', header: '', type: 'text' });
   };
+  
+  // Helper function to get field type from inferred fields
+  const getFieldType = (fieldPath: string): ColumnDefinition['cellDataType'] => {
+    const findFieldType = (fields: FieldNode[], path: string): string | undefined => {
+      for (const field of fields) {
+        if (field.path === path) {
+          return field.type;
+        }
+        if (field.children) {
+          const childType = findFieldType(field.children, path);
+          if (childType) return childType;
+        }
+      }
+      return undefined;
+    };
+    
+    const fieldType = findFieldType(inferredFields, fieldPath);
+    
+    // Map field types to column data types
+    switch (fieldType) {
+      case 'string':
+        return 'text';
+      case 'number':
+        return 'number';
+      case 'boolean':
+        return 'boolean';
+      case 'date':
+        return 'date';
+      case 'object':
+      case 'array':
+        return 'object'; // Both object and array types map to 'object' column type
+      default:
+        return 'text'; // Default fallback
+    }
+  };
+  
+  // Get all columns for display
+  const getAllColumns = useMemo(() => {
+    const columnsFromFields = Array.from(selectedFields).map(path => ({
+      field: path,
+      headerName: path.split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' '),
+      cellDataType: getFieldType(path),
+      source: 'field' as const,
+    }));
+    
+    const columnsFromManual = manualColumns.map(col => ({
+      ...col,
+      source: 'manual' as const,
+    }));
+    
+    return [...columnsFromFields, ...columnsFromManual];
+  }, [selectedFields, manualColumns, inferredFields]);
+  
+  // AG-Grid column definitions
+  const columnDefs = useMemo<ColDef[]>(() => [
+    {
+      field: 'actions',
+      headerName: '',
+      width: 50,
+      sortable: false,
+      filter: false,
+      resizable: false,
+      pinned: 'left',
+      cellRenderer: (params: any) => {
+        return (
+          <button
+            className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => {
+              if (params.data.source === 'field') {
+                toggleFieldSelection(params.data.field);
+              } else {
+                setManualColumns(prev => prev.filter(col => col.field !== params.data.field));
+              }
+            }}
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        );
+      },
+    },
+    {
+      field: 'field',
+      headerName: 'Field Name',
+      flex: 1,
+      minWidth: 150,
+      sortable: true,
+      filter: true,
+      floatingFilter: true,
+      cellRenderer: (params: any) => {
+        return (
+          <div className="flex items-center gap-2">
+            <span>{params.value}</span>
+            {params.data.source === 'field' && (
+              <Badge variant="secondary" className="text-xs px-1 py-0.5">auto</Badge>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      field: 'cellDataType',
+      headerName: 'Type',
+      width: 120,
+      sortable: true,
+      filter: true,
+      floatingFilter: true,
+      cellEditor: 'agSelectCellEditor',
+      cellEditorParams: {
+        values: ['text', 'number', 'boolean', 'date', 'object'],
+      },
+      editable: (params: any) => params.data.source === 'manual',
+    },
+    {
+      field: 'headerName',
+      headerName: 'Header Name',
+      flex: 1,
+      minWidth: 200,
+      sortable: true,
+      filter: true,
+      floatingFilter: true,
+      editable: (params: any) => params.data.source === 'manual',
+    },
+  ], [toggleFieldSelection, setManualColumns]);
+  
+  // Grid theme configuration
+  const gridTheme = useMemo(() => {
+    const isDark = theme === 'dark';
+    return themeQuartz.withParams({
+      accentColor: isDark ? '#8AAAA7' : '#6B7280',
+      backgroundColor: isDark ? '#161b22' : '#ffffff',
+      borderColor: isDark ? '#30363d' : '#e5e7eb',
+      foregroundColor: isDark ? '#FFF' : '#000',
+      headerBackgroundColor: isDark ? '#21262d' : '#f9fafb',
+      headerFontSize: 12,
+      fontSize: 12,
+      rowHeight: 32,
+      headerHeight: 32,
+      cellHorizontalPadding: 8,
+    });
+  }, [theme]);
+  
+  // Handle grid ready
+  const onColumnsGridReady = useCallback((event: GridReadyEvent) => {
+    setColumnsGridApi(event.api);
+  }, []);
+  
+  // Handle cell value changed
+  const onCellValueChanged = useCallback((event: CellValueChangedEvent) => {
+    const { data, colDef, newValue } = event;
+    
+    if (data.source === 'manual') {
+      const index = manualColumns.findIndex(col => col.field === data.field);
+      if (index !== -1) {
+        const updated = [...manualColumns];
+        if (colDef?.field === 'cellDataType') {
+          updated[index] = { ...updated[index], cellDataType: newValue };
+        } else if (colDef?.field === 'headerName') {
+          updated[index] = { ...updated[index], headerName: newValue };
+        }
+        setManualColumns(updated);
+      }
+    }
+  }, [manualColumns]);
+
+  const handleUpdateColumns = () => {
+    // Clear all manual columns and reset to only selected fields
+    setManualColumns([]);
+    setShowUpdateColumnsAlert(false);
+    setActiveTab('columns');
+    toast({
+      title: 'Columns updated',
+      description: `${selectedFields.size} columns created from selected fields`,
+    });
+  };
 
   const handleSave = () => {
     if (!name || !websocketUrl || !listenerTopic) {
@@ -532,6 +759,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
       websocketUrl,
       listenerTopic,
       requestMessage,
+      requestBody,
       snapshotEndToken,
       keyColumn,
       columnDefinitions: [...columnsFromFields, ...manualColumns],
@@ -568,8 +796,8 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
       <div
         ref={dialogRef}
         className={cn(
-          "absolute bg-background border rounded-lg shadow-lg",
-          isMaximized ? "inset-4" : "w-[800px] h-[600px]",
+          "absolute bg-background border rounded-lg shadow-lg flex flex-col",
+          isMaximized ? "inset-4" : "w-[700px] h-[700px]",
           isDragging && "cursor-move"
         )}
         style={!isMaximized ? {
@@ -649,22 +877,10 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
               </Badge>
             )}
           </button>
-          <button
-            className={cn(
-              "px-4 py-2 text-sm font-medium transition-colors",
-              activeTab === 'statistics' 
-                ? "border-b-2 border-primary text-foreground" 
-                : "text-muted-foreground hover:text-foreground"
-            )}
-            onClick={() => setActiveTab('statistics')}
-            disabled={!datasourceId}
-          >
-            Statistics
-          </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden" style={{ height: 'calc(100% - 120px)' }}>
+        <div className="flex-1 overflow-hidden">
           {/* Connection Tab */}
           {activeTab === 'connection' && (
             <div className="h-full flex flex-col">
@@ -702,15 +918,27 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="request-message">Request Message</Label>
+                      <Label htmlFor="request-destination">Destination</Label>
                       <Input
-                        id="request-message"
+                        id="request-destination"
                         value={requestMessage}
                         onChange={(e) => setRequestMessage(e.target.value)}
-                        placeholder="START"
+                        placeholder="/app/trigger"
                       />
                     </div>
 
+                    <div>
+                      <Label htmlFor="request-body">Body</Label>
+                      <Input
+                        id="request-body"
+                        value={requestBody}
+                        onChange={(e) => setRequestBody(e.target.value)}
+                        placeholder="TriggerTopic"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="snapshot-token">Snapshot End Token</Label>
                       <Input
@@ -720,9 +948,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                         placeholder="Success"
                       />
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="key-column">Key Column</Label>
                       <Input
@@ -732,8 +958,10 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                         placeholder="id"
                       />
                     </div>
+                  </div>
 
-                    {listenerTopic.includes('/snapshot/') && (
+                  {listenerTopic.includes('/snapshot/') && (
+                    <div>
                       <div>
                         <Label htmlFor="message-rate">Message Rate (msg/s)</Label>
                         <Input
@@ -744,8 +972,8 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                           placeholder="1000"
                         />
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -761,50 +989,18 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                     </label>
                   </div>
 
-                  <Separator />
-
-                  <div className="flex items-center gap-4">
-                    <Button
-                      onClick={handleTestConnection}
-                      disabled={testing || !websocketUrl || !listenerTopic}
-                    >
-                      {testing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Testing...
-                        </>
-                      ) : (
-                        <>
-                          <PlayCircle className="mr-2 h-4 w-4" />
-                          Test Connection
-                        </>
-                      )}
-                    </Button>
-
-                    {testResult && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <span>Connected successfully</span>
-                      </div>
-                    )}
-
-                    {testError && (
-                      <div className="flex items-center gap-2 text-sm text-destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>{testError}</span>
-                      </div>
-                    )}
-                  </div>
-
                   {previewData.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">Preview (First 10 rows)</h4>
-                      <div className="border rounded-lg overflow-auto max-h-48">
-                        <pre className="text-xs p-2">
-                          {JSON.stringify(previewData, null, 2)}
-                        </pre>
+                    <>
+                      <Separator />
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Preview (First 10 rows)</h4>
+                        <div className="border rounded-lg overflow-auto max-h-48">
+                          <pre className="text-xs p-2">
+                            {JSON.stringify(previewData, null, 2)}
+                          </pre>
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               </ScrollArea>
@@ -819,8 +1015,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Checkbox
-                        checked={selectAllChecked}
-                        indeterminate={selectAllIndeterminate}
+                        checked={selectAllIndeterminate ? "indeterminate" : selectAllChecked}
                         onCheckedChange={handleSelectAll}
                         className="h-4 w-4"
                       />
@@ -903,136 +1098,11 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
             </div>
           )}
 
-          {/* Statistics Tab */}
-          {activeTab === 'statistics' && datasourceId && (
-            <div className="h-full flex flex-col p-6">
-              {(() => {
-                const stats = datasourceStatistics.get(datasourceId);
-                const components = componentUsage.get(datasourceId);
-                
-                if (!stats) {
-                  return (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      <div className="text-center">
-                        <BarChart3 className="h-12 w-12 mx-auto mb-4" />
-                        <p>No statistics available yet.</p>
-                        <p className="text-sm mt-2">Activate the datasource to see statistics.</p>
-                      </div>
-                    </div>
-                  );
-                }
-                
-                return (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Connection Statistics</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Activity className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Connection Status</span>
-                          </div>
-                          <p className="text-2xl font-semibold">
-                            {stats.isConnected ? (
-                              <span className="text-green-500">Connected</span>
-                            ) : (
-                              <span className="text-red-500">Disconnected</span>
-                            )}
-                          </p>
-                        </div>
-                        
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Database className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Total Connections</span>
-                          </div>
-                          <p className="text-2xl font-semibold">{stats.connectionCount}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Disconnections: {stats.disconnectionCount}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Data Statistics</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Database className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Snapshot Rows</span>
-                          </div>
-                          <p className="text-2xl font-semibold">{stats.snapshotRowsReceived}</p>
-                          {stats.snapshotDuration && (
-                            <p className="text-xs text-muted-foreground">
-                              Duration: {(stats.snapshotDuration / 1000).toFixed(2)}s
-                            </p>
-                          )}
-                        </div>
-                        
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Activity className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Update Rows</span>
-                          </div>
-                          <p className="text-2xl font-semibold">{stats.updateRowsReceived}</p>
-                          <p className="text-xs text-muted-foreground">Real-time updates</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Component Usage</h3>
-                      <div className="bg-muted/50 rounded-lg p-4">
-                        <p className="text-lg">
-                          <span className="text-2xl font-semibold">{components?.size || 0}</span>
-                          <span className="text-muted-foreground ml-2">components connected</span>
-                        </p>
-                        {components && components.size > 0 && (
-                          <div className="mt-3 space-y-1">
-                            {Array.from(components).map(componentId => (
-                              <div key={componentId} className="text-xs text-muted-foreground">
-                                • {componentId}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {stats.lastConnectedAt && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-4">Timeline</h3>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>Last Connected:</span>
-                            <span className="text-muted-foreground">
-                              {new Date(stats.lastConnectedAt).toLocaleString()}
-                            </span>
-                          </div>
-                          {stats.lastDisconnectedAt && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                              <span>Last Disconnected:</span>
-                              <span className="text-muted-foreground">
-                                {new Date(stats.lastDisconnectedAt).toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-          )}
 
           {/* Columns Tab */}
           {activeTab === 'columns' && (
             <div className="h-full flex flex-col">
-              <div className="p-4 border-b">
+              <div className="p-4 border-b space-y-3">
                 <div className="flex gap-2">
                   <Input
                     placeholder="Field name"
@@ -1056,68 +1126,128 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                       <SelectItem value="number">Number</SelectItem>
                       <SelectItem value="boolean">Boolean</SelectItem>
                       <SelectItem value="date">Date</SelectItem>
+                      <SelectItem value="object">Object</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button onClick={handleAddColumn} size="icon">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
+                
               </div>
               
-              <ScrollArea className="flex-1">
-                <div className="p-4 space-y-2">
-                  {[...Array.from(selectedFields).map(path => ({
-                    field: path,
-                    headerName: path.split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' '),
-                    cellDataType: 'text' as const,
-                  })), ...manualColumns].map((col, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                    >
-                      <div>
-                        <div className="font-medium text-sm">{col.headerName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {col.field} • {col.cellDataType}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          if (selectedFields.has(col.field)) {
-                            toggleFieldSelection(col.field);
-                          } else {
-                            setManualColumns(manualColumns.filter(c => c !== col));
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+              <div className="flex-1 overflow-hidden">
+                {getAllColumns.length > 0 ? (
+                  <div className="h-full">
+                    <AgGridReact
+                      rowData={getAllColumns}
+                      columnDefs={columnDefs}
+                      onGridReady={onColumnsGridReady}
+                      onCellValueChanged={onCellValueChanged}
+                      theme={gridTheme}
+                      defaultColDef={{
+                        sortable: true,
+                        resizable: true,
+                        filter: true,
+                      }}
+                      floatingFiltersHeight={30}
+                      rowHeight={32}
+                      headerHeight={32}
+                      suppressMenuHide={true}
+                      animateRows={true}
+                      stopEditingWhenCellsLoseFocus={true}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="text-center">
+                      <p>No columns defined.</p>
+                      <p className="text-sm mt-2">Select fields from the Fields tab or add columns manually above.</p>
                     </div>
-                  ))}
-                  
-                  {selectedFields.size === 0 && manualColumns.length === 0 && (
-                    <div className="text-center text-muted-foreground py-8">
-                      No columns defined. Select fields or add columns manually.
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>
-            {datasourceId ? 'Update' : 'Create'} Datasource
-          </Button>
+        <div className="flex items-center justify-between p-4 border-t">
+          <div className="flex items-center gap-3">
+            {activeTab === 'connection' && (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={handleTestConnection}
+                  disabled={testing || !websocketUrl || !listenerTopic}
+                >
+                  {testing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <PlayCircle className="mr-2 h-4 w-4" />
+                      Test Connection
+                    </>
+                  )}
+                </Button>
+                
+                {testResult && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <span>Connected successfully</span>
+                  </div>
+                )}
+
+                {testError && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{testError}</span>
+                  </div>
+                )}
+              </>
+            )}
+            
+            {activeTab === 'fields' && selectedFields.size > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setShowUpdateColumnsAlert(true)}
+              >
+                Update Columns ({selectedFields.size})
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave}>
+              {datasourceId ? 'Update' : 'Create'} Datasource
+            </Button>
+          </div>
         </div>
       </div>
+      
+      {/* Update Columns Confirmation Dialog */}
+      <AlertDialog open={showUpdateColumnsAlert} onOpenChange={setShowUpdateColumnsAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update Columns</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replace all existing columns in the Columns tab with the currently selected fields. 
+              Any manually added columns will be removed. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUpdateColumns}>
+              Update Columns
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

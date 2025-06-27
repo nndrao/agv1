@@ -39,8 +39,8 @@ export class DataStoreManager {
     
     // Create conflation config from datasource settings
     const conflationConfig: ConflationConfig = config.conflationSettings || {
-      windowMs: 50,  // Reduced from 100ms for better responsiveness
-      maxBatchSize: 500,  // Reduced batch size
+      windowMs: 100,  // 100ms window for conflation
+      maxBatchSize: 1000,  // Process up to 1000 updates per batch
       enableMetrics: true,
     };
     

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Settings2, Sliders, MoreVertical, User, Save, Plus, Copy, Database, RefreshCw, Power, PlayCircle, Pause } from "lucide-react";
+import { Settings2, Sliders, MoreVertical, User, Save, Plus, Copy, Database, RefreshCw, Power, PlayCircle, Pause, BarChart3, Columns } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +39,8 @@ import { useToast } from "@/hooks/use-toast";
 import { profileOptimizer } from '@/components/datatable/lib/profileOptimizer';
 import { useDatasourceStore } from '@/stores/datasource.store';
 import { useDatasourceContext } from '@/contexts/DatasourceContext';
+import { DatasourceStatistics } from '@/components/datasource/DatasourceStatistics';
+import { DraggableStatisticsDialog } from './DraggableStatisticsDialog';
 
 const monospaceFonts = [
   { value: 'JetBrains Mono', label: 'JetBrains Mono' },
@@ -111,7 +113,7 @@ export function DataTableToolbar({
   } = useProfileStore();
   
   // Datasource hooks
-  const { datasources } = useDatasourceStore();
+  const { datasources, getDatasource } = useDatasourceStore();
   const { 
     activateDatasource, 
     deactivateDatasource, 
@@ -126,6 +128,9 @@ export function DataTableToolbar({
   const [profileName, setProfileName] = useState('');
   const [profileDescription, setProfileDescription] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  
+  // State for statistics dialog
+  const [showStatisticsDialog, setShowStatisticsDialog] = useState(false);
 
   const handleProfileChange = async (profileId: string) => {
     const profile = profiles.find(p => p.id === profileId);
@@ -242,6 +247,53 @@ export function DataTableToolbar({
         title: 'Error',
         description: 'Failed to switch profile. Please try again.',
         variant: 'destructive',
+      });
+    }
+  };
+
+  const handleFetchColumnDefs = async () => {
+    if (!selectedDatasourceId || !gridApi || !activeProfile) {
+      toast({
+        title: "Cannot fetch column definitions",
+        description: "No datasource selected or grid is not ready",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const datasource = getDatasource(selectedDatasourceId);
+    if (!datasource || !datasource.columnDefinitions) {
+      toast({
+        title: "No column definitions found",
+        description: "The selected datasource has no column definitions",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Apply column definitions to grid
+      gridApi.setGridOption('columnDefs', datasource.columnDefinitions);
+      
+      // Save to profile
+      const baseColumns = datasource.columnDefinitions.map(col => ({
+        field: col.field,
+        headerName: col.headerName,
+        cellDataType: col.cellDataType
+      }));
+      
+      saveColumnCustomizations(datasource.columnDefinitions, baseColumns);
+      
+      toast({
+        title: "Column definitions fetched",
+        description: `Applied ${datasource.columnDefinitions.length} columns from ${datasource.name}`,
+      });
+    } catch (error) {
+      console.error('[DataTableToolbar] Error fetching column definitions:', error);
+      toast({
+        title: "Error fetching columns",
+        description: "Failed to apply column definitions from datasource",
+        variant: "destructive"
       });
     }
   };
@@ -650,6 +702,34 @@ export function DataTableToolbar({
                         )}
                       </Button>
                     </div>
+                    <div className="px-2 pb-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowStatisticsDialog(true);
+                        }}
+                      >
+                        <BarChart3 className="h-3 w-3 mr-1" />
+                        View Statistics
+                      </Button>
+                    </div>
+                    <div className="px-2 pb-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFetchColumnDefs();
+                        }}
+                      >
+                        <Columns className="h-3 w-3 mr-1" />
+                        Fetch Column Defs
+                      </Button>
+                    </div>
                   </>
                 )}
                 {selectedDatasourceId && !activeDatasources.has(selectedDatasourceId) && (
@@ -805,6 +885,15 @@ export function DataTableToolbar({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    
+    {/* Statistics Dialog - Draggable with transparent overlay */}
+    {selectedDatasourceId && showStatisticsDialog && (
+      <DraggableStatisticsDialog
+        datasourceId={selectedDatasourceId}
+        datasourceName={datasources.find(ds => ds.id === selectedDatasourceId)?.name || ''}
+        onClose={() => setShowStatisticsDialog(false)}
+      />
+    )}
     </>
   );
 }
