@@ -161,25 +161,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
           // Store statistics reference
           setDatasourceStatistics(prev => new Map(prev).set(datasourceId, statistics));
           
-          // Subscribe data store to updates from update emitter
-          updateEmitter.on(datasourceId, (event) => {
-            if (event.type === 'transaction' && event.transaction) {
-              const { transaction } = event;
-              // Apply updates to the conflated store
-              if (transaction.update) {
-                dataStore.addBulkUpdates(transaction.update, 'update');
-              }
-              if (transaction.add) {
-                dataStore.addBulkUpdates(transaction.add, 'add');
-              }
-              if (transaction.remove) {
-                dataStore.addBulkUpdates(transaction.remove, 'remove');
-              }
-              
-              // Don't update datasourceData map on every update - this causes re-renders
-              // Only update it when explicitly needed
-            }
-          });
+          // No need to subscribe to UpdateEventEmitter - updates go directly to ConflatedDataStore
           
           console.log(`[DatasourceContext] Datasource ${datasource.name} activated with ${result.data.length} rows`);
         } else {
@@ -208,8 +190,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
       });
     }
     
-    // Remove from update emitter
-    updateEmitter.removeAllListeners(datasourceId);
+    // No need to remove from update emitter - we're not using it
     
     // Remove from data store manager
     dataStoreManager.removeStore(datasourceId);
@@ -301,11 +282,13 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     snapshotCompleteRef.current.set(datasourceId, true);
     console.log(`[DatasourceContext] Marked ${datasourceId} as ready for updates`);
     
-    // Create update handler
-    const updateHandler = async (updatedData: any) => {
-      // Process all updates - snapshot is considered complete
-      if (!snapshotCompleteRef.current.get(datasourceId)) {
-        console.warn(`[DatasourceContext] Processing update for ${datasourceId} even though snapshot flag is false`);
+    // Create update handler that sends updates directly to ConflatedDataStore
+    const updateHandler = (updatedData: any) => {
+      // Get the data store for direct updates
+      const dataStore = dataStoreManager.getStore(datasourceId);
+      if (!dataStore) {
+        console.warn(`[DatasourceContext] No data store for ${datasourceId}`);
+        return;
       }
       
       // Track update in statistics
@@ -314,19 +297,13 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
         statistics.recordUpdate(true);
       }
       
-      const transaction: any = {
-        update: Array.isArray(updatedData) ? updatedData : [updatedData]
-      };
+      // Send updates directly to the ConflatedDataStore
+      const updates = Array.isArray(updatedData) ? updatedData : [updatedData];
       
-      console.log(`[DatasourceContext] Sending ${transaction.update.length} updates to event emitter`);
+      // The ConflatedDataStore will handle conflation and emit updates to subscribers
+      dataStore.addBulkUpdates(updates, 'update');
       
-      // Emit transaction event directly
-      await updateEmitter.enqueue({
-        type: 'transaction',
-        datasourceId,
-        transaction,
-        timestamp: Date.now()
-      });
+      console.log(`[DatasourceContext] Sent ${updates.length} updates directly to ConflatedDataStore`);
     };
     
     // Subscribe to real-time updates

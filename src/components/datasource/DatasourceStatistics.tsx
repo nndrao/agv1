@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -14,9 +13,10 @@ interface DatasourceStatisticsProps {
 }
 
 export function DatasourceStatistics({ datasourceId, compact = false }: DatasourceStatisticsProps) {
-  const { dataStoreManager } = useDatasourceContext();
+  const { dataStoreManager, getProvider } = useDatasourceContext();
   const [stats, setStats] = useState<DatasourceStats | null>(null);
   const [conflationMetrics, setConflationMetrics] = useState<ConflationMetrics | null>(null);
+  const [providerStats, setProviderStats] = useState<any>(null);
   
   useEffect(() => {
     // Get statistics instance
@@ -40,12 +40,21 @@ export function DatasourceStatistics({ datasourceId, compact = false }: Datasour
       statistics.updateConnectionUptime();
     }, 1000);
     
+    // Get provider statistics
+    const provider = getProvider(datasourceId);
+    const providerStatsInterval = setInterval(() => {
+      if (provider && typeof provider.getStatistics === 'function') {
+        setProviderStats(provider.getStatistics());
+      }
+    }, 1000);
+    
     return () => {
       statsSubscription.unsubscribe();
       metricsSubscription.unsubscribe();
       clearInterval(uptimeInterval);
+      clearInterval(providerStatsInterval);
     };
-  }, [datasourceId, dataStoreManager]);
+  }, [datasourceId, dataStoreManager, getProvider]);
   
   if (!stats || !conflationMetrics) {
     return null;
@@ -64,8 +73,8 @@ export function DatasourceStatistics({ datasourceId, compact = false }: Datasour
     return `${(bytes / 1048576).toFixed(1)} MB`;
   };
   
-  const successRate = stats.totalUpdatesReceived > 0 
-    ? ((stats.updatesApplied / stats.totalUpdatesReceived) * 100).toFixed(1)
+  const successRate = conflationMetrics.totalUpdatesReceived > 0 
+    ? ((conflationMetrics.updatesApplied / conflationMetrics.totalUpdatesReceived) * 100).toFixed(1)
     : '100';
   
   if (compact) {
@@ -78,7 +87,7 @@ export function DatasourceStatistics({ datasourceId, compact = false }: Datasour
         <Separator orientation="vertical" className="h-4" />
         <div className="flex items-center gap-1">
           <Activity className="h-4 w-4 text-muted-foreground" />
-          <span>{conflationMetrics.currentUpdateRate}/s</span>
+          <span>{conflationMetrics.currentUpdateRate} msg/s</span>
         </div>
         <Separator orientation="vertical" className="h-4" />
         <div className="flex items-center gap-1">
@@ -94,11 +103,7 @@ export function DatasourceStatistics({ datasourceId, compact = false }: Datasour
   }
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Datasource Statistics</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-3">
         {/* Snapshot Statistics */}
         <div>
           <h4 className="text-sm font-medium mb-2">Snapshot</h4>
@@ -109,7 +114,7 @@ export function DatasourceStatistics({ datasourceId, compact = false }: Datasour
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Size:</span>
-              <span className="font-mono">{formatBytes(stats.snapshotBytesReceived)}</span>
+              <span className="font-mono">{formatBytes(providerStats?.snapshotBytesReceived || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Duration:</span>
@@ -129,16 +134,16 @@ export function DatasourceStatistics({ datasourceId, compact = false }: Datasour
           <h4 className="text-sm font-medium mb-2">Real-time Updates</h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Received:</span>
-              <span className="font-mono">{stats.totalUpdatesReceived.toLocaleString()}</span>
+              <span className="text-muted-foreground">Total Messages:</span>
+              <span className="font-mono">{conflationMetrics.totalUpdatesReceived.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Applied:</span>
-              <span className="font-mono">{stats.updatesApplied.toLocaleString()}</span>
+              <span className="font-mono">{conflationMetrics.updatesApplied.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Conflated:</span>
-              <span className="font-mono">{stats.updatesConflated.toLocaleString()}</span>
+              <span className="font-mono">{conflationMetrics.updatesConflated.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Failed:</span>
@@ -162,11 +167,16 @@ export function DatasourceStatistics({ datasourceId, compact = false }: Datasour
           <h4 className="text-sm font-medium mb-2">Performance</h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Current Rate:</span>
-              <span className="font-mono">{conflationMetrics.currentUpdateRate}/s</span>
+              <span className="text-muted-foreground">Messages/sec:</span>
+              <span className="font-mono flex items-center gap-1">
+                {conflationMetrics.currentUpdateRate}/s
+                {conflationMetrics.currentUpdateRate > 0 && (
+                  <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                )}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Average Rate:</span>
+              <span className="text-muted-foreground">Avg Messages/sec:</span>
               <span className="font-mono">{conflationMetrics.averageUpdateRate}/s</span>
             </div>
             <div className="flex justify-between">
@@ -204,7 +214,7 @@ export function DatasourceStatistics({ datasourceId, compact = false }: Datasour
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Bytes:</span>
-              <span className="font-mono">{formatBytes(stats.bytesReceived)}</span>
+              <span className="font-mono">{formatBytes(providerStats?.bytesReceived || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Errors:</span>
@@ -224,7 +234,6 @@ export function DatasourceStatistics({ datasourceId, compact = false }: Datasour
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
