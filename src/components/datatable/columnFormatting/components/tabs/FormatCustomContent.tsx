@@ -35,7 +35,11 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
   selectedColumns,
   setCurrentFormat
 }) => {
-  const { updateBulkProperty } = useColumnFormattingStore();
+  const { 
+    updateBulkProperty,
+    columnDefinitions,
+    pendingChanges
+  } = useColumnFormattingStore();
   const [formatMode, setFormatMode] = useState<FormatMode>('standard');
   const [selectedStandardFormat, setSelectedStandardFormat] = useState<string>('number');
   const [selectedCustomFormat, setSelectedCustomFormat] = useState<string>('');
@@ -57,6 +61,9 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
 
   // Track if component is mounted
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Track if we're hydrating to prevent auto-apply
+  const [isHydrating, setIsHydrating] = useState(false);
 
   const selectedFormat = standardFormats.find(f => f.key === selectedStandardFormat);
 
@@ -121,9 +128,9 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
     return () => setIsInitialized(false);
   }, []);
 
-  // Apply format when settings change (but not on initial mount)
+  // Apply format when settings change (but not on initial mount or during hydration)
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized || isHydrating) return;
     
     const formatString = buildFormatString();
     
@@ -182,6 +189,106 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
     updateBulkProperty,
     setCurrentFormat
   ]);
+
+  // Parse format string and apply settings
+  const parseAndApplyFormatString = useCallback((formatString: string) => {
+    // Check if it's a custom format
+    const customFormat = customFormats.find(f => f.format === formatString);
+    if (customFormat) {
+      setFormatMode('custom');
+      setSelectedCustomFormat(customFormat.label);
+      setManualFormat('');
+      return;
+    }
+    
+    // Try to parse standard formats
+    // Number format with color: [Green][>0]#,##0.00;[Red][<0]#,##0.00;#,##0.00
+    if (formatString.includes('[Green]') || formatString.includes('[Red]')) {
+      setUseColorForSign(true);
+    }
+    
+    // Currency format: "$ "#,##0.00
+    if (formatString.includes('"$') || formatString.includes('"€') || formatString.includes('"£')) {
+      setSelectedStandardFormat('currency');
+      const currencyMatch = formatString.match(/"([^"]+)"/);
+      if (currencyMatch) {
+        setCurrencySymbol(currencyMatch[1].trim());
+      }
+    }
+    // Percentage format
+    else if (formatString.endsWith('%')) {
+      setSelectedStandardFormat('percentage');
+    }
+    // Date format
+    else if (formatString.includes('MM') || formatString.includes('DD') || formatString.includes('YYYY')) {
+      setSelectedStandardFormat('date');
+      setDateFormat(formatString);
+    }
+    // Default to number
+    else {
+      setSelectedStandardFormat('number');
+    }
+    
+    // Extract decimal places
+    const decimalMatch = formatString.match(/\.(\d+)/);
+    if (decimalMatch) {
+      setDecimalPlaces(decimalMatch[1].length);
+    }
+    
+    // Check for thousands separator
+    setUseThousandsSeparator(formatString.includes('#,##'));
+    
+    // Extract prefix/suffix
+    const prefixMatch = formatString.match(/^"([^"]+)"/);
+    const suffixMatch = formatString.match(/"([^"]+)"$/);
+    if (prefixMatch && !formatString.includes('"$')) {
+      setPrefix(prefixMatch[1]);
+    }
+    if (suffixMatch && !formatString.includes('%')) {
+      setSuffix(suffixMatch[1]);
+    }
+    
+    // If we can't parse it, treat it as a custom manual format
+    if (!customFormat && selectedStandardFormat === 'number' && !formatString.includes('#')) {
+      setFormatMode('custom');
+      setManualFormat(formatString);
+    }
+    
+    // For percentage, check if it multiplies by 100
+    if (formatString.includes('%')) {
+      // If format has *100, then multiplyBy100 should be false
+      setMultiplyBy100(!formatString.includes('*100'));
+    }
+  }, []);
+
+  // Hydrate format settings from selected columns
+  useEffect(() => {
+    if (selectedColumns.size === 0 || columnDefinitions.size === 0) return;
+    
+    setIsHydrating(true);
+    
+    // Get format string from the first selected column
+    const firstColId = Array.from(selectedColumns)[0];
+    const colDef = columnDefinitions.get(firstColId);
+    const changes = pendingChanges.get(firstColId) || {};
+    
+    const existingFormatter = changes.valueFormatter !== undefined 
+      ? changes.valueFormatter 
+      : colDef?.valueFormatter;
+    
+    if (existingFormatter && typeof existingFormatter === 'function') {
+      const formatString = (existingFormatter as any).__formatString;
+      
+      if (formatString) {
+        // Parse the format string to determine settings
+        parseAndApplyFormatString(formatString);
+      }
+    }
+    
+    setTimeout(() => {
+      setIsHydrating(false);
+    }, 0);
+  }, [selectedColumns, columnDefinitions, pendingChanges, parseAndApplyFormatString]);
 
   // Clear format
   const clearFormat = () => {
@@ -285,7 +392,7 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
                       return (
                         <SelectItem key={opt.value} value={opt.value}>
                           <div className="flex items-center gap-2">
-                            <Icon className="h-3 w-3" />
+                            {Icon && <Icon className="h-3 w-3" />}
                             {opt.label}
                           </div>
                         </SelectItem>
@@ -725,7 +832,7 @@ export const FormatCustomContent: React.FC<FormatTabProps> = ({
                       // If the format has numeric conditions, use the numeric value
                       if (formatString.includes('<') || formatString.includes('>') || formatString.includes('=')) {
                         if (!isNaN(numericValue)) {
-                          valueToFormat = numericValue;
+                          valueToFormat = numericValue.toString();
                         }
                       }
                       
