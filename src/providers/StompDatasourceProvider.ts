@@ -32,7 +32,7 @@ export class StompDatasourceProvider {
   private activeSubscriptions: any[] = [];
   private messageRate: string = '1000';
   private updateStatsInterval: NodeJS.Timeout | null = null;
-  private lastLogTime = Date.now();
+  // private lastLogTime = Date.now();
   private statistics: StompStatistics = {
     snapshotRowsReceived: 0,
     updateRowsReceived: 0,
@@ -300,19 +300,19 @@ export class StompDatasourceProvider {
     }
   }
 
-  private containsToken(data: any, _token: string): boolean {
-    if (typeof data === 'string') {
-      return data.includes(_token) || data.startsWith('Success');
-    }
-    if (typeof data === 'object' && data !== null) {
-      for (const key in data) {
-        if (this.containsToken(data[key], _token)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
+  // private containsToken(data: any, token: string): boolean {
+  //   if (typeof data === 'string') {
+  //     return data.includes(token) || data.startsWith('Success');
+  //   }
+  //   if (typeof data === 'object' && data !== null) {
+  //     for (const key in data) {
+  //       if (this.containsToken(data[key], token)) {
+  //         return true;
+  //       }
+  //     }
+  //   }
+  //   return false;
+  // }
 
   // Subscribe to real-time updates
   subscribeToUpdates(callback: (data: any) => void): () => void {
@@ -453,7 +453,7 @@ export class StompDatasourceProvider {
     
     // Log stats every 30 seconds
     this.updateStatsInterval = setInterval(() => {
-      const now = Date.now();
+      // const now = Date.now();
       // const timeSinceLastLog = (now - this.lastLogTime) / 1000;
       
       // console.log(`[STOMP Stats] ${this.config.name || 'Datasource'} - Last ${timeSinceLastLog.toFixed(0)}s:`, {
@@ -464,7 +464,7 @@ export class StompDatasourceProvider {
       //   isSnapshot: this.isReceivingSnapshot
       // });
       
-      this.lastLogTime = now;
+      // this.lastLogTime = now;
     }, 30000); // 30 seconds
   }
   

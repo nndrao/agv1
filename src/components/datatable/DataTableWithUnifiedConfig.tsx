@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Settings, Save, Download, Upload } from 'lucide-react';
+import { Save, Download, Upload } from 'lucide-react';
 
 interface DataTableWithUnifiedConfigProps {
   instanceId?: string;
@@ -36,7 +36,7 @@ export const DataTableWithUnifiedConfig: React.FC<DataTableWithUnifiedConfigProp
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
   
   // Use existing profile store for backward compatibility
-  const { getActiveProfile, profiles } = useProfileStore();
+  const { getActiveProfile } = useProfileStore();
   const activeProfile = getActiveProfile();
   
   // Use new unified config system
@@ -47,7 +47,7 @@ export const DataTableWithUnifiedConfig: React.FC<DataTableWithUnifiedConfigProp
     activateVersion,
     updateConfig,
     profileToConfig,
-    configToProfile
+    // configToProfile
   } = useUnifiedConfig({
     instanceId,
     autoLoad: true

@@ -112,12 +112,12 @@ export const DatasourceList: React.FC<DatasourceListProps> = ({
     });
   };
 
-  // const handleSelect = (datasource: DatasourceConfig) => {
-  //   if (onSelectDatasource) {
-  //     onSelectDatasource(datasource);
-  //     onOpenChange(false);
-  //   }
-  // };
+  const handleSelect = (datasource: DatasourceConfig) => {
+    if (onSelectDatasource) {
+      onSelectDatasource(datasource);
+      onOpenChange(false);
+    }
+  };
 
   const toggleRowExpansion = (datasourceId: string) => {
     setExpandedRows(prev => {
@@ -304,6 +304,17 @@ export const DatasourceList: React.FC<DatasourceListProps> = ({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="z-[60]">
+                              {onSelectDatasource && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelect(datasource);
+                                  }}
+                                >
+                                  <Database className="mr-2 h-4 w-4" />
+                                  Select
+                                </DropdownMenuItem>
+                              )}
                               {!isActive ? (
                                 <DropdownMenuItem
                                   onClick={async (e) => {

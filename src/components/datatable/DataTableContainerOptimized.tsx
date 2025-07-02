@@ -21,7 +21,7 @@ import { useTheme } from '@/components/datatable/ThemeProvider';
 import { useColumnFormattingStore } from './columnFormatting/store/columnFormatting.store';
 import { useComponentDatasource } from './hooks/useComponentDatasource';
 import { useDatasourceStore } from '@/stores/datasource.store';
-import { useToast } from '@/hooks/use-toast';
+// import { useToast } from '@/hooks/use-toast';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 import './datatable.css';
 
@@ -334,6 +334,6 @@ export const DataTableContainerOptimized = memo(({
 DataTableContainerOptimized.displayName = 'DataTableContainerOptimized';
 
 // Helper function for className
-function cn(...classes: (string | undefined | false)[]) {
-  return classes.filter(Boolean).join(' ');
-}
+// function cn(...classes: (string | undefined | false)[]) {
+//   return classes.filter(Boolean).join(' ');
+// }

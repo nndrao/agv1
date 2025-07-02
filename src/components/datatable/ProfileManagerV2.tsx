@@ -74,7 +74,7 @@ export const ProfileManagerV2: React.FC<ProfileManagerV2Props> = ({
     createVersion,
     activateVersion,
     updateConfig,
-    profileToConfig,
+    // profileToConfig,
     // configToProfile
   } = useUnifiedConfig({
     instanceId,
@@ -83,7 +83,7 @@ export const ProfileManagerV2: React.FC<ProfileManagerV2Props> = ({
   
   // Also use existing profile store for compatibility
   const { 
-    profiles, 
+    // profiles, 
     // activeProfileId, 
     // setActiveProfile,
     // saveCurrentState 

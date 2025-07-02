@@ -854,7 +854,7 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
   };
 
   // Track if we should apply to all selected columns or just the last one
-  const [applyToAll] = useState(true);
+  const [] = useState(true);
   
   // Get the last selected column for individual editing
   // const lastSelectedColumn = selectedColumns.size > 0 

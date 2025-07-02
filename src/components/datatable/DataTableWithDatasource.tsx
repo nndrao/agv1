@@ -5,7 +5,7 @@ import { inferColumnDefinitions } from '@/utils/columnUtils';
 import { ColumnDef } from './types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Database } from 'lucide-react';
-import { useComponentDatasource } from './hooks/useComponentDatasource';
+// import { useComponentDatasource } from './hooks/useComponentDatasource';
 
 interface DataTableWithDatasourceProps {
   datasourceId?: string;

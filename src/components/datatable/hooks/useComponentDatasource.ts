@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDatasourceStore } from '@/stores/datasource.store';
 import { useDatasourceContext } from '@/contexts/DatasourceContext';
 import { useProfileStore, useActiveProfile } from '@/components/datatable/stores/profile.store';
@@ -7,7 +7,7 @@ export const useComponentDatasource = (instanceId: string) => {
   const { datasources } = useDatasourceStore();
   const { 
     activateDatasource, 
-    deactivateDatasource,
+    // deactivateDatasource,
     datasourceData,
     connectionStatus,
     activeDatasources,
@@ -17,7 +17,7 @@ export const useComponentDatasource = (instanceId: string) => {
     getDataStore
   } = useDatasourceContext();
   
-  const { updateProfile, saveColumnCustomizations } = useProfileStore();
+  const { updateProfile } = useProfileStore();
   const activeProfile = useActiveProfile();
   
   // Get datasource from active profile

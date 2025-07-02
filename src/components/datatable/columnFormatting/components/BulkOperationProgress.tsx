@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOperationProgressStore } from '../store/domains/operationProgress.store';
 import { Progress } from '@/components/ui/progress';
-import { X, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 

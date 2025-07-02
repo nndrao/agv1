@@ -39,7 +39,7 @@ import { useToast } from "@/hooks/use-toast";
 import { profileOptimizer } from '@/components/datatable/lib/profileOptimizer';
 import { useDatasourceStore } from '@/stores/datasource.store';
 import { useDatasourceContext } from '@/contexts/DatasourceContext';
-import { DatasourceStatistics } from '@/components/datasource/DatasourceStatistics';
+// import { DatasourceStatistics } from '@/components/datasource/DatasourceStatistics';
 import { DraggableStatisticsDialog } from './DraggableStatisticsDialog';
 
 const monospaceFonts = [
@@ -92,11 +92,11 @@ export function DataTableToolbar({
   onFontSizeChange,
   onOpenColumnSettings,
   onOpenGridOptions,
-  onOpenDataSourceDialog,
+  // onOpenDataSourceDialog,
   gridApi,
   onProfileChange,
   getColumnDefsWithStyles,
-  instanceId,
+  instanceId: _instanceId,
   selectedDatasourceId,
   onDatasourceChange,
   updatesEnabled = false,
@@ -110,8 +110,8 @@ export function DataTableToolbar({
     createProfile,
     duplicateProfile, 
     saveColumnCustomizations,
-    saveGridState,
-    updateProfile
+    saveGridState
+    // updateProfile
   } = useProfileStore();
   
   // Datasource hooks
