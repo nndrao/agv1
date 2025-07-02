@@ -7,7 +7,7 @@ import { ProfileManagerV2 } from './ProfileManagerV2';
 import { UnifiedConfigProvider } from './UnifiedConfigContext';
 import { ColumnFormattingDialog } from './columnFormatting/ColumnFormattingDialog';
 import { GridOptionsPropertyEditor } from './gridOptions/GridOptionsPropertyEditor';
-import { DataSourceFloatingDialog } from './datasource/DataSourceFloatingDialog';
+// import { DataSourceFloatingDialog } from './datasource/DataSourceFloatingDialog';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
 import { useGridState } from './hooks/useGridState';
 import { useProfileSync } from './hooks/useProfileSync';
@@ -56,7 +56,7 @@ export const DataTableContainer = memo(({
     selectedDatasourceId, 
     columnDefinitions: datasourceColumns,
     currentData: datasourceData,
-    currentStatus: datasourceStatus,
+    // currentStatus: datasourceStatus,
     isSnapshotComplete,
     handleDatasourceChange 
   } = useComponentDatasource(instanceId);
@@ -84,26 +84,26 @@ export const DataTableContainer = memo(({
   // Update column definitions when datasource changes
   React.useEffect(() => {
     if (selectedDatasourceId && datasourceColumns && datasourceColumns.length > 0) {
-      console.log('[DataTableContainer] Datasource changed, updating columns:', {
-        datasourceId: selectedDatasourceId,
-        columnCount: datasourceColumns.length,
-        hasGridApi: !!gridApi,
-        hasSetColumnDefs: !!(gridApi && typeof gridApi.setColumnDefs === 'function'),
-        isSnapshotComplete
-      });
+      // console.log('[DataTableContainer] Datasource changed, updating columns:', {
+      //   datasourceId: selectedDatasourceId,
+      //   columnCount: datasourceColumns.length,
+      //   hasGridApi: !!gridApi,
+      //   hasSetColumnDefs: !!(gridApi && typeof gridApi.setColumnDefs === 'function'),
+      //   isSnapshotComplete
+      // });
       
       // Update current column definitions
       setCurrentColumnDefs(datasourceColumns);
       
       // If grid is ready, apply the new column definitions
       // Using gridApiRef.current instead of gridApi state
-      if (gridApiRef.current && typeof gridApiRef.current.setColumnDefs === 'function') {
+      if (gridApiRef.current && typeof gridApiRef.current.setGridOption === 'function') {
         // Batch all grid operations in a single frame
         requestAnimationFrame(() => {
           if (!gridApiRef.current) return;
           
           // Set new column definitions
-          gridApiRef.current.setColumnDefs(datasourceColumns);
+          gridApiRef.current.setGridOption('columnDefs', datasourceColumns);
           
           // Only reset state if explicitly needed
           // Don't clear data here - let the datasource data flow handle it
@@ -136,7 +136,7 @@ export const DataTableContainer = memo(({
   } = useGridOptions(gridApi);
   
   // Initialize datasource updates hook for real-time updates
-  const { flushTransactions, getMetrics } = useDataSourceUpdates({
+  useDataSourceUpdates({
     datasourceId: selectedDatasourceId,
     gridApi: gridApi, // Use state version that updates when grid is ready
     keyColumn: datasources?.find(ds => ds.id === selectedDatasourceId)?.keyColumn,
@@ -169,21 +169,21 @@ export const DataTableContainer = memo(({
     
     const activeProfile = useProfileStore.getState().getActiveProfile();
     if (activeProfile && columnDefs && columnDefs.length > 0) {
-      console.log('[DataTableContainer] Active profile on mount (after hydration):', {
-        profileId: activeProfile.id,
-        profileName: activeProfile.name,
-        hasColumnSettings: !!activeProfile.columnSettings,
-        baseColumnsCount: activeProfile.columnSettings?.baseColumnDefs?.length || 0,
-        customizationsCount: activeProfile.columnSettings?.columnCustomizations ? 
-          Object.keys(activeProfile.columnSettings.columnCustomizations).length : 0
-      });
+      // console.log('[DataTableContainer] Active profile on mount (after hydration):', {
+      //   profileId: activeProfile.id,
+      //   profileName: activeProfile.name,
+      //   hasColumnSettings: !!activeProfile.columnSettings,
+      //   baseColumnsCount: activeProfile.columnSettings?.baseColumnDefs?.length || 0,
+      //   customizationsCount: activeProfile.columnSettings?.columnCustomizations ? 
+      //     Object.keys(activeProfile.columnSettings.columnCustomizations).length : 0
+      // });
       
       // If profile has no base columns but we have columnDefs, initialize them
       if (!activeProfile.columnSettings?.baseColumnDefs || 
           activeProfile.columnSettings.baseColumnDefs.length === 0) {
-        console.log('[DataTableContainer] Profile missing base columns, initializing with:', {
-          columnCount: columnDefs.length
-        });
+        // console.log('[DataTableContainer] Profile missing base columns, initializing with:', {
+        //   columnCount: columnDefs.length
+        // });
         saveColumnCustomizations(columnDefs, columnDefs);
       }
       
@@ -207,7 +207,7 @@ export const DataTableContainer = memo(({
   // Auto-enable updates when snapshot is complete - DISABLED for performance
   // React.useEffect(() => {
   //   if (isSnapshotComplete && !hasAutoEnabledUpdates && selectedDatasourceId) {
-  //     console.log('[DataTableContainer] Snapshot complete, auto-enabling updates');
+  //     // console.log('[DataTableContainer] Snapshot complete, auto-enabling updates');
   //     setUpdatesEnabled(true);
   //     setHasAutoEnabledUpdates(true);
   //     toast({
@@ -305,28 +305,28 @@ export const DataTableContainer = memo(({
   }, [setSelectedFontSize, saveGridOptions, enableUnifiedConfig, unifiedConfig]);
   
   // Handle data source changes
-  const handleApplyDataSources = React.useCallback((dataSources: any[]) => {
-    console.log('[DataTableContainer] Applying data sources:', dataSources);
-    
-    // TODO: Implement data source loading logic
-    // This would typically:
-    // 1. Connect to active data sources
-    // 2. Fetch data from each source
-    // 3. Merge/combine data as needed
-    // 4. Update the grid with new data
-    
-    // For now, just log the data sources
-    dataSources.forEach(ds => {
-      console.log(`Loading data from ${ds.name} (${ds.type})`);
-    });
-  }, []);
+  // const handleApplyDataSources = React.useCallback((dataSources: any[]) => {
+  //   // console.log('[DataTableContainer] Applying data sources:', dataSources);
+  //   
+  //   // TODO: Implement data source loading logic
+  //   // This would typically:
+  //   // 1. Connect to active data sources
+  //   // 2. Fetch data from each source
+  //   // 3. Merge/combine data as needed
+  //   // 4. Update the grid with new data
+  //   
+  //   // For now, just log the data sources
+  //   dataSources.forEach(ds => {
+  //     // console.log(`Loading data from ${ds.name} (${ds.type})`);
+  //   });
+  // }, []);
   
   // Handle grid options apply
   const handleApplyGridOptions = React.useCallback((options: any) => {
-    console.log('[DataTableContainer] handleApplyGridOptions called:', {
-      options,
-      hasGridApi: !!gridApi
-    });
+    // console.log('[DataTableContainer] handleApplyGridOptions called:', {
+    //   options,
+    //   hasGridApi: !!gridApi
+    // });
     
     // Update local state in the hook
     updateGridOptions(options);
@@ -391,12 +391,12 @@ export const DataTableContainer = memo(({
     const columnState = gridApiRef.current.getColumnState();
     const allColumns = gridApiRef.current.getColumns();
     
-    console.log('[DataTableContainer] Getting column state for dialog:', {
-      columnStateLength: columnState?.length,
-      allColumnsLength: allColumns?.length,
-      visibleColumns: allColumns?.filter(col => col.isVisible()).length,
-      hiddenColumns: allColumns?.filter(col => !col.isVisible()).length
-    });
+    // console.log('[DataTableContainer] Getting column state for dialog:', {
+    //   columnStateLength: columnState?.length,
+    //   allColumnsLength: allColumns?.length,
+    //   visibleColumns: allColumns?.filter(col => col.isVisible()).length,
+    //   hiddenColumns: allColumns?.filter(col => !col.isVisible()).length
+    // });
     
     // Create a complete state by merging column state with actual column visibility
     if (allColumns) {
@@ -444,7 +444,9 @@ export const DataTableContainer = memo(({
   const unifiedConfigContextValue = useMemo(() => ({
     ...unifiedConfig,
     instanceId,
-    enabled: enableUnifiedConfig
+    enabled: enableUnifiedConfig,
+    createVersion: unifiedConfig.createVersion || (async () => {}),
+    activateVersion: unifiedConfig.activateVersion || (async () => {})
   }), [unifiedConfig, instanceId, enableUnifiedConfig]);
 
   return (

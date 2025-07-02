@@ -32,7 +32,7 @@ export function useDataSourceUpdates({
   asyncTransactionWaitMillis = 60,
   updatesEnabled = false,
   onUpdateError,
-  enableConflation = true,
+  // enableConflation = true,
   onUpdateMetrics
 }: UseDataSourceUpdatesOptions) {
   const { getDataStore, subscribeToUpdates, unsubscribeFromUpdates, dataStoreManager } = useDatasourceContext();
@@ -53,7 +53,7 @@ export function useDataSourceUpdates({
     
     // Log key column configuration
     if (keyColumn) {
-      console.log('[useDataSourceUpdates] Using keyColumn:', keyColumn);
+      // console.log('[useDataSourceUpdates] Using keyColumn:', keyColumn);
     } else {
       console.warn('[useDataSourceUpdates] No keyColumn specified - updates may not work correctly');
     }
@@ -68,7 +68,7 @@ export function useDataSourceUpdates({
     }
 
     if (updatesEnabled) {
-      console.log('[useDataSourceUpdates] Enabling updates for:', datasourceId);
+      // console.log('[useDataSourceUpdates] Enabling updates for:', datasourceId);
       subscribeToUpdates(datasourceId);
       
       // Get the data store for this datasource
@@ -112,12 +112,12 @@ export function useDataSourceUpdates({
           
           if (result) {
             const latency = Date.now() - startTime;
-            console.log('[useDataSourceUpdates] Transaction applied:', {
-              added: result.add?.length || 0,
-              updated: result.update?.length || 0,
-              removed: result.remove?.length || 0,
-              latency: latency + 'ms'
-            });
+            // console.log('[useDataSourceUpdates] Transaction applied:', {
+            //   added: result.add?.length || 0,
+            //   updated: result.update?.length || 0,
+            //   removed: result.remove?.length || 0,
+            //   latency: latency + 'ms'
+            // });
             
             // Record latency in statistics
             const statistics = dataStoreManager.getStatistics(datasourceId);
@@ -153,7 +153,7 @@ export function useDataSourceUpdates({
         metricsSubscriptionRef.current = () => subscription.unsubscribe();
       }
     } else {
-      console.log('[useDataSourceUpdates] Disabling updates for:', datasourceId);
+      // console.log('[useDataSourceUpdates] Disabling updates for:', datasourceId);
       unsubscribeFromUpdates(datasourceId);
       
       // Cleanup subscriptions

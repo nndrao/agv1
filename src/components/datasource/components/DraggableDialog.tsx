@@ -23,16 +23,16 @@ export const DraggableDialog: React.FC<DraggableDialogProps> = ({
   className,
   initialWidth = 800,
   initialHeight = 600,
-  minWidth = 400,
-  minHeight = 300,
-  resizable = false,
+  // minWidth = 400,
+  // minHeight = 300,
+  // resizable = false,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   
   const [isMaximized, setIsMaximized] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [size, setSize] = useState({ width: initialWidth, height: initialHeight });
+  const [size] = useState({ width: initialWidth, height: initialHeight });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 

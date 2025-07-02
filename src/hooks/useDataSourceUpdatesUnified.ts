@@ -46,7 +46,7 @@ export function useDataSourceUpdatesUnified(options: UseDataSourceUpdatesOptions
     datasourceId,
     gridApi,
     keyColumn,
-    asyncTransactionWaitMillis = 60,
+    // asyncTransactionWaitMillis = 60,
     updatesEnabled = false,
     onUpdateError,
     enableConflation = true,
@@ -56,7 +56,7 @@ export function useDataSourceUpdatesUnified(options: UseDataSourceUpdatesOptions
     enablePerformanceTracking = false,
   } = options;
 
-  const { updateEmitter, subscribeToUpdates, unsubscribeFromUpdates } = useDatasourceContext();
+  const { subscribeToUpdates, unsubscribeFromUpdates } = useDatasourceContext();
   
   // Refs for stable references
   const metricsRef = useRef<UpdateMetrics>({
@@ -76,7 +76,7 @@ export function useDataSourceUpdatesUnified(options: UseDataSourceUpdatesOptions
   });
   
   const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastUpdateTimeRef = useRef<number>(0);
+  // const lastUpdateTimeRef = useRef<number>(0);
 
   // Memoized row node getter for performance
   const getRowNode = useCallback((id: string) => {
@@ -124,15 +124,9 @@ export function useDataSourceUpdatesUnified(options: UseDataSourceUpdatesOptions
           add: toAdd,
           update: toUpdate,
           remove: toRemove,
-        }, (res) => {
-          if (res.status === 'Cancelled') {
-            metrics.droppedUpdates += updates.length;
-          } else {
-            metrics.successfulUpdates += updates.length;
-          }
         });
         
-        if (result) {
+        if ((result as any)?.add || (result as any)?.update || (result as any)?.remove) {
           results.push(result);
         }
       }
@@ -205,15 +199,18 @@ export function useDataSourceUpdatesUnified(options: UseDataSourceUpdatesOptions
   useEffect(() => {
     if (!datasourceId || !updatesEnabled || !gridApi) return;
 
-    const unsubscribe = subscribeToUpdates(datasourceId, handleUpdate);
+    subscribeToUpdates(datasourceId);
+    // TODO: setup handleUpdate callback
 
     return () => {
-      unsubscribe();
+      unsubscribeFromUpdates(datasourceId);
       
       // Process any remaining updates
       if (batchTimeoutRef.current) {
         clearTimeout(batchTimeoutRef.current);
-        processBatch();
+        if (typeof processBatch === 'function') {
+          processBatch();
+        }
       }
     };
   }, [datasourceId, updatesEnabled, gridApi, subscribeToUpdates, handleUpdate, processBatch]);

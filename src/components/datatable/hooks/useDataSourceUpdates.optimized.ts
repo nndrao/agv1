@@ -56,9 +56,9 @@ export function useDataSourceUpdates({
     }
     
     // Ensure cell change flash is enabled
-    gridApi.setGridOption('enableCellChangeFlash', true);
-    gridApi.setGridOption('cellFlashDelay', 500);
-    gridApi.setGridOption('cellFadeDelay', 1000);
+    // gridApi.setGridOption('enableCellChangeFlash', true);
+    // gridApi.setGridOption('cellFlashDelay', 500);
+    // gridApi.setGridOption('cellFadeDelay', 1000);
     
     // Set getRowId if keyColumn is specified
     if (keyColumn) {
@@ -275,8 +275,8 @@ export function useDataSourceUpdates({
     cleanupTimerRef.current = setInterval(() => {
       // Clear old entries from changedColumnsMap
       if (changedColumnsMapRef.current.size > 0) {
-        const now = Date.now();
-        const ageLimit = 60000; // 1 minute
+        // const now = Date.now();
+        // const ageLimit = 60000; // 1 minute
         
         // Since we can't track age directly, just clear if too large
         if (changedColumnsMapRef.current.size > 500) {

@@ -6,7 +6,6 @@
  * it in the new ComponentConfig format defined in the architecture document.
  */
 
-import { ColDef, ColumnState, FilterModel, SortModelItem } from 'ag-grid-community';
 // Storage keys
 const STORAGE_KEYS = {
   PROFILES: 'grid-profile-storage',
@@ -16,11 +15,11 @@ const STORAGE_KEYS = {
   SOUND_ENABLED: 'column-dialog-sound-enabled',
 } as const;
 
-interface StorageAdapter {
-  get(key: string, defaultValue?: any): Promise<any>;
-  set(key: string, value: any): Promise<void>;
-  remove(key: string): Promise<void>;
-}
+// interface StorageAdapter {
+//   get(key: string, defaultValue?: any): Promise<any>;
+//   set(key: string, value: any): Promise<void>;
+//   remove(key: string): Promise<void>;
+// }
 import { GridProfile } from '../../components/datatable/stores/profile.store';
 import { ColumnTemplate } from '../../components/datatable/stores/columnTemplate.store';
 import { DataSource } from '../../components/datatable/datasource/types';
@@ -162,7 +161,7 @@ interface LegacyUIPreferencesStorage {
 // ===== Main UnifiedConfigStore Class =====
 
 export class UnifiedConfigStore {
-  private storageAdapter: StorageAdapter | null = null;
+  // private storageAdapter: StorageAdapter | null = null;
   private userId: string;
   private appId: string;
 
@@ -778,14 +777,4 @@ export class UnifiedConfigStore {
 
 // ===== Export Types =====
 
-export type {
-  ComponentConfig,
-  Version,
-  AuditInfo,
-  ChangeHistoryEntry,
-  SharedUser,
-  PublicAccessConfig,
-  GridProfile,
-  ColumnTemplate,
-  DataSource
-};
+// Types are already exported above, no need to re-export

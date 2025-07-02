@@ -38,7 +38,7 @@ import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { DatasourceStatistics } from './DatasourceStatistics';
-import { useDatasourceContext } from '@/contexts/DatasourceContext';
+// import { useDatasourceContext } from '@/contexts/DatasourceContext';
 
 interface DatasourceEditorProps {
   open: boolean;
@@ -153,7 +153,7 @@ export const DatasourceEditor: React.FC<DatasourceEditorProps> = ({
         snapshotEndToken: snapshotEndToken || 'Success'
       });
       
-      const result = await provider.testConnection(100);
+      const result = await provider.fetchSnapshot(100);
       
       if (result.success && result.data && result.data.length > 0) {
         setTestResult(result);
@@ -201,7 +201,7 @@ export const DatasourceEditor: React.FC<DatasourceEditorProps> = ({
     });
   };
 
-  const convertToFieldNodes = (fields: Record<string, any>, parentPath = ''): FieldNode[] => {
+  const convertToFieldNodes = (fields: Record<string, any>): FieldNode[] => {
     return Object.entries(fields).map(([key, field]) => {
       const node: FieldNode = {
         path: field.path,
@@ -214,7 +214,7 @@ export const DatasourceEditor: React.FC<DatasourceEditorProps> = ({
       };
 
       if (field.children) {
-        node.children = convertToFieldNodes(field.children, field.path);
+        node.children = convertToFieldNodes(field.children);
       }
 
       return node;

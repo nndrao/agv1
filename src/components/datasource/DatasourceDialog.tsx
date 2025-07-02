@@ -95,7 +95,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
   // Column state
   const [manualColumns, setManualColumns] = useState<ColumnDefinition[]>([]);
   const [newColumn, setNewColumn] = useState({ field: '', header: '', type: 'text' as ColumnDefinition['cellDataType'] });
-  const [columnsGridApi, setColumnsGridApi] = useState<GridApi | null>(null);
+  const [, setColumnsGridApi] = useState<GridApi | null>(null);
   const [showUpdateColumnsAlert, setShowUpdateColumnsAlert] = useState(false);
   const { theme } = useTheme();
 
@@ -309,14 +309,14 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
     }
   };
 
-  const convertToFieldNodes = (fields: Record<string, any>, parentPath = ''): FieldNode[] => {
+  const convertToFieldNodes = (fields: Record<string, any>): FieldNode[] => {
     return Object.entries(fields).map(([key, field]) => ({
       path: field.path,
       name: key.split('.').pop() || key,
       type: field.type,
       nullable: field.nullable,
       sample: field.sample,
-      children: field.children ? convertToFieldNodes(field.children, field.path) : undefined,
+      children: field.children ? convertToFieldNodes(field.children) : undefined,
     }));
   };
   
@@ -327,7 +327,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
       type: fieldInfo.type,
       nullable: fieldInfo.nullable,
       sample: fieldInfo.sample,
-      children: fieldInfo.children ? Object.entries(fieldInfo.children).map(([key, child]) => convertFieldInfoToNode(child)) : undefined,
+      children: fieldInfo.children ? Object.entries(fieldInfo.children).map(([, child]) => convertFieldInfoToNode(child)) : undefined,
     };
   };
   

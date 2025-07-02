@@ -42,7 +42,7 @@ export class ConflatedDataStore<T extends Record<string, any>> extends BrowserEv
   private subscription: Subscription | null = null;
   private updateRateWindow: number[] = [];
   private updateRateWindowSize = 10; // Track last 10 seconds
-  private lastRateCalculation = Date.now();
+  // private lastRateCalculation = Date.now();
   
   constructor(
     private keyColumn: string,
@@ -62,7 +62,7 @@ export class ConflatedDataStore<T extends Record<string, any>> extends BrowserEv
       bufferTime(this.config.windowMs),
       filter(updates => updates.length > 0),
       map(updates => this.conflateUpdates(updates)),
-      tap(conflated => this.updateMetrics(conflated))
+      tap(() => this.updateMetrics())
     ).subscribe({
       next: (conflatedUpdates) => {
         this.applyToSnapshot(conflatedUpdates);
@@ -201,7 +201,7 @@ export class ConflatedDataStore<T extends Record<string, any>> extends BrowserEv
     }
   }
   
-  private updateMetrics(conflated: Map<string, DataUpdate<T>>): void {
+  private updateMetrics(): void {
     const currentMetrics = this.metrics$.value;
     const conflationRate = currentMetrics.totalUpdatesReceived > 0
       ? (currentMetrics.updatesConflated / currentMetrics.totalUpdatesReceived) * 100

@@ -7,7 +7,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { GridProfile } from '../stores/profile.store';
 import { UnifiedConfigStore } from '@/services/config/UnifiedConfigStore';
 import { ComponentConfig } from '@/services/config/UnifiedConfigStore';
-import { storageAdapter } from '@/lib/storage/storageAdapter';
+// import { storageAdapter } from '@/lib/storage/storageAdapter';
 
 interface UseUnifiedConfigOptions {
   instanceId?: string;
@@ -27,7 +27,7 @@ export function useUnifiedConfig(options: UseUnifiedConfigOptions = {}) {
   const [config, setConfig] = useState<ComponentConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [store] = useState(() => new UnifiedConfigStore(userId, appId, storageAdapter));
+  const [store] = useState(() => new UnifiedConfigStore());
 
   // Load config on mount if autoLoad is true
   useEffect(() => {
@@ -240,7 +240,7 @@ export function useUnifiedConfig(options: UseUnifiedConfigOptions = {}) {
 
   // Convert between GridProfile and ComponentConfig formats
   const profileToConfig = useCallback((profile: GridProfile): Partial<ComponentConfig> => {
-    const now = new Date().toISOString();
+    // const now = new Date().toISOString();
     
     return {
       settings: {

@@ -8,7 +8,7 @@
 import { UnifiedConfigStore } from './UnifiedConfigStore';
 
 // Example 1: Basic Usage
-async function basicUsageExample() {
+// async function basicUsageExample() {
   // Create a store instance
   const store = new UnifiedConfigStore('user123', 'my-app');
   
@@ -34,7 +34,7 @@ async function basicUsageExample() {
 }
 
 // Example 2: Creating and Updating Configurations
-async function createAndUpdateExample() {
+// async function createAndUpdateExample() {
   const store = new UnifiedConfigStore('user123', 'my-app');
   
   // Create a new configuration
@@ -80,7 +80,7 @@ async function createAndUpdateExample() {
 }
 
 // Example 3: Working with Versions
-async function versioningExample() {
+// async function versioningExample() {
   const store = new UnifiedConfigStore('user123', 'my-app');
   
   // Get an existing configuration
@@ -113,7 +113,7 @@ async function versioningExample() {
 }
 
 // Example 4: Migration Check and Execution
-async function migrationExample() {
+// async function migrationExample() {
   const store = new UnifiedConfigStore('user123', 'my-app');
   
   // Check if migration is needed
@@ -134,7 +134,7 @@ async function migrationExample() {
 }
 
 // Example 5: Sharing and Permissions
-async function sharingExample() {
+// async function sharingExample() {
   const store = new UnifiedConfigStore('user123', 'my-app');
   
   // Get a configuration
@@ -175,7 +175,7 @@ async function sharingExample() {
 }
 
 // Example 6: Working with Component-Specific Features
-async function componentSpecificExample() {
+// async function componentSpecificExample() {
   const store = new UnifiedConfigStore('user123', 'my-app');
   
   // Example: DataGrid specific configuration
@@ -204,7 +204,7 @@ async function componentSpecificExample() {
 }
 
 // Example 7: Audit Trail and History
-async function auditTrailExample() {
+// async function auditTrailExample() {
   const store = new UnifiedConfigStore('user123', 'my-app');
   
   // Get a configuration

@@ -26,7 +26,6 @@ interface DataSourceStatisticsProps {
 }
 
 export const DataSourceStatistics: React.FC<DataSourceStatisticsProps> = ({
-  datasourceId,
   statistics,
   componentUsage = [],
 }) => {

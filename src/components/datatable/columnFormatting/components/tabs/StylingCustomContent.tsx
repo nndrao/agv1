@@ -7,6 +7,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 import {
   Type,
   Square,
@@ -184,8 +186,8 @@ const defaultStyles: StylesState = {
   fontWeight: 'normal',
   fontStyle: 'normal',
   textDecoration: [],
-  textAlign: 'left',
-  verticalAlign: 'middle',
+  textAlign: '',  // Empty by default - should be set from column
+  verticalAlign: '',  // Empty by default - should be set from column
   textColor: '',
   backgroundColor: '',
   applyTextColor: false,
@@ -251,6 +253,46 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
   const [userSetColorToggle, setUserSetColorToggle] = useState(false);
   const [userSetBgColorToggle, setUserSetBgColorToggle] = useState(false);
   
+  // Track column switching to force UI updates
+  const [columnSwitchKey, setColumnSwitchKey] = useState(0);
+  
+  // Helper function to extract alignment from CSS classes
+  const extractAlignmentFromClass = (classString: string, isHeader: boolean = false) => {
+    if (!classString) return { textAlign: '', verticalAlign: '' };
+    
+    let textAlign = '';
+    let verticalAlign = '';
+    
+    if (isHeader) {
+      // Header alignment classes: header-h-left, header-v-middle
+      if (classString.includes('header-h-left')) textAlign = 'left';
+      else if (classString.includes('header-h-center')) textAlign = 'center';
+      else if (classString.includes('header-h-right')) textAlign = 'right';
+      else if (classString.includes('header-h-justify')) textAlign = 'justify';
+      
+      if (classString.includes('header-v-top')) verticalAlign = 'top';
+      else if (classString.includes('header-v-middle')) verticalAlign = 'middle';
+      else if (classString.includes('header-v-bottom')) verticalAlign = 'bottom';
+    } else {
+      // Cell alignment classes: cell-align-middle-center, cell-horizontal-align-right, etc.
+      // Combined alignment
+      const combinedMatch = classString.match(/cell-align-(\w+)-(\w+)/);
+      if (combinedMatch) {
+        verticalAlign = combinedMatch[1];
+        textAlign = combinedMatch[2];
+      } else {
+        // Individual alignment classes
+        const verticalMatch = classString.match(/cell-vertical-align-(\w+)/);
+        const horizontalMatch = classString.match(/cell-horizontal-align-(\w+)/);
+        
+        if (verticalMatch) verticalAlign = verticalMatch[1];
+        if (horizontalMatch) textAlign = horizontalMatch[1];
+      }
+    }
+    
+    return { textAlign, verticalAlign };
+  };
+  
   // Load existing styles when columns or mode changes
   useEffect(() => {
     if (selectedColumns.size === 0 || columnDefinitions.size === 0) return;
@@ -269,43 +311,6 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
     
     // Reset to defaults first
     const resetStyles = { ...defaultStyles };
-    
-    // Helper function to extract alignment from CSS classes
-    const extractAlignmentFromClass = (classString: string, isHeader: boolean = false) => {
-      if (!classString) return { textAlign: '', verticalAlign: '' };
-      
-      let textAlign = '';
-      let verticalAlign = '';
-      
-      if (isHeader) {
-        // Header alignment classes: header-h-left, header-v-middle
-        if (classString.includes('header-h-left')) textAlign = 'left';
-        else if (classString.includes('header-h-center')) textAlign = 'center';
-        else if (classString.includes('header-h-right')) textAlign = 'right';
-        else if (classString.includes('header-h-justify')) textAlign = 'justify';
-        
-        if (classString.includes('header-v-top')) verticalAlign = 'top';
-        else if (classString.includes('header-v-middle')) verticalAlign = 'middle';
-        else if (classString.includes('header-v-bottom')) verticalAlign = 'bottom';
-      } else {
-        // Cell alignment classes: cell-align-middle-center, cell-horizontal-align-right, etc.
-        // Combined alignment
-        const combinedMatch = classString.match(/cell-align-(\w+)-(\w+)/);
-        if (combinedMatch) {
-          verticalAlign = combinedMatch[1];
-          textAlign = combinedMatch[2];
-        } else {
-          // Individual alignment classes
-          const verticalMatch = classString.match(/cell-vertical-align-(\w+)/);
-          const horizontalMatch = classString.match(/cell-horizontal-align-(\w+)/);
-          
-          if (verticalMatch) verticalAlign = verticalMatch[1];
-          if (horizontalMatch) textAlign = horizontalMatch[1];
-        }
-      }
-      
-      return { textAlign, verticalAlign };
-    };
     
     // Helper function to extract border properties from style object
     const extractBorderProperties = (styleObj: any) => {
@@ -522,6 +527,147 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
     }, 0);
   }, [selectedColumns, activeSubTab, columnDefinitions, pendingChanges]);
 
+  // Separate effect to hydrate BOTH cell and header styles when column selection changes
+  useEffect(() => {
+    if (selectedColumns.size === 0 || columnDefinitions.size === 0) return;
+    if (isApplyingStyles) return;
+
+    // Set hydrating flag to prevent auto-apply
+    setIsHydrating(true);
+
+    // Helper to hydrate styles for a specific mode
+    const hydrateStylesForMode = (mode: 'cell' | 'header') => {
+      const resetStyles = { ...defaultStyles };
+      const collectedValues: Record<string, Set<any>> = {};
+      
+      // Collect values from ALL selected columns (not just the first)
+      selectedColumns.forEach(colId => {
+        const colDef = columnDefinitions.get(colId);
+        const changes = pendingChanges.get(colId) || {};
+        
+        const styleToCheck = mode === 'cell' 
+          ? (changes.cellStyle !== undefined ? changes.cellStyle : colDef?.cellStyle)
+          : (changes.headerStyle !== undefined ? changes.headerStyle : colDef?.headerStyle);
+        
+        const classToCheck = mode === 'cell'
+          ? (changes.cellClass !== undefined ? changes.cellClass : colDef?.cellClass)
+          : (changes.headerClass !== undefined ? changes.headerClass : colDef?.headerClass);
+        
+        if (styleToCheck) {
+          let styleObj: any = {};
+          
+          if (typeof styleToCheck === 'function') {
+            styleObj = (styleToCheck as any).__baseStyle || {};
+          } else if (typeof styleToCheck === 'object') {
+            styleObj = styleToCheck;
+          }
+          
+          // Collect style properties
+          if (styleObj.fontFamily) {
+            if (!collectedValues.fontFamily) collectedValues.fontFamily = new Set();
+            collectedValues.fontFamily.add(styleObj.fontFamily);
+          }
+          if (styleObj.fontSize) {
+            if (!collectedValues.fontSize) collectedValues.fontSize = new Set();
+            collectedValues.fontSize.add(styleObj.fontSize);
+          }
+          if (styleObj.fontWeight) {
+            if (!collectedValues.fontWeight) collectedValues.fontWeight = new Set();
+            collectedValues.fontWeight.add(styleObj.fontWeight);
+          }
+          if (styleObj.fontStyle) {
+            if (!collectedValues.fontStyle) collectedValues.fontStyle = new Set();
+            collectedValues.fontStyle.add(styleObj.fontStyle);
+          }
+          if (styleObj.textDecoration) {
+            if (!collectedValues.textDecoration) collectedValues.textDecoration = new Set();
+            collectedValues.textDecoration.add(styleObj.textDecoration);
+          }
+          if (styleObj.color) {
+            if (!collectedValues.color) collectedValues.color = new Set();
+            collectedValues.color.add(styleObj.color);
+          }
+          if (styleObj.backgroundColor) {
+            if (!collectedValues.backgroundColor) collectedValues.backgroundColor = new Set();
+            collectedValues.backgroundColor.add(styleObj.backgroundColor);
+          }
+          if (styleObj.whiteSpace) {
+            if (!collectedValues.whiteSpace) collectedValues.whiteSpace = new Set();
+            collectedValues.whiteSpace.add(styleObj.whiteSpace);
+          }
+        }
+        
+        // Extract alignment from CSS classes
+        if (classToCheck) {
+          const classString = typeof classToCheck === 'string' ? classToCheck : '';
+          const alignment = extractAlignmentFromClass(classString, mode === 'header');
+          
+          if (alignment.textAlign) {
+            if (!collectedValues.textAlign) collectedValues.textAlign = new Set();
+            collectedValues.textAlign.add(alignment.textAlign);
+          }
+          if (alignment.verticalAlign) {
+            if (!collectedValues.verticalAlign) collectedValues.verticalAlign = new Set();
+            collectedValues.verticalAlign.add(alignment.verticalAlign);
+          }
+        }
+      });
+      
+      // Apply collected values (use first value if multiple)
+      if (collectedValues.fontFamily?.size) {
+        resetStyles.fontFamily = Array.from(collectedValues.fontFamily)[0] as string;
+      }
+      if (collectedValues.fontSize?.size) {
+        const fontSize = Array.from(collectedValues.fontSize)[0] as string;
+        resetStyles.fontSize = fontSize.replace('px', '');
+      }
+      if (collectedValues.fontWeight?.size) {
+        resetStyles.fontWeight = Array.from(collectedValues.fontWeight)[0] as string;
+      }
+      if (collectedValues.fontStyle?.size) {
+        resetStyles.fontStyle = Array.from(collectedValues.fontStyle)[0] as string;
+      }
+      if (collectedValues.textDecoration?.size) {
+        const textDecoration = Array.from(collectedValues.textDecoration)[0] as string;
+        resetStyles.textDecoration = textDecoration.split(' ').filter(Boolean);
+      }
+      if (collectedValues.textAlign?.size) {
+        resetStyles.textAlign = Array.from(collectedValues.textAlign)[0] as string;
+      }
+      if (collectedValues.verticalAlign?.size) {
+        resetStyles.verticalAlign = Array.from(collectedValues.verticalAlign)[0] as string;
+      }
+      if (collectedValues.color?.size) {
+        resetStyles.textColor = Array.from(collectedValues.color)[0] as string;
+        resetStyles.applyTextColor = true;
+      }
+      if (collectedValues.backgroundColor?.size) {
+        resetStyles.backgroundColor = Array.from(collectedValues.backgroundColor)[0] as string;
+        resetStyles.applyBackgroundColor = true;
+      }
+      if (collectedValues.whiteSpace?.size) {
+        const whiteSpace = Array.from(collectedValues.whiteSpace)[0] as string;
+        resetStyles.wrapText = whiteSpace === 'normal';
+      }
+      
+      return resetStyles;
+    };
+
+    // Hydrate both cell and header styles when columns change
+    const cellResetStyles = hydrateStylesForMode('cell');
+    const headerResetStyles = hydrateStylesForMode('header');
+    
+    setCellStyles(cellResetStyles);
+    setHeaderStyles(headerResetStyles);
+    
+    // Clear hydrating flag after state update
+    setTimeout(() => {
+      setIsHydrating(false);
+      // Force UI update by incrementing key
+      setColumnSwitchKey(prev => prev + 1);
+    }, 50);
+  }, [selectedColumns, columnDefinitions, pendingChanges]);
+
   // Border side options
   const borderSideOptions = [
     { value: 'all', label: 'All Sides' },
@@ -707,6 +853,14 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
     }, 100);
   };
 
+  // Track if we should apply to all selected columns or just the last one
+  const [applyToAll] = useState(true);
+  
+  // Get the last selected column for individual editing
+  // const lastSelectedColumn = selectedColumns.size > 0 
+  //   ? Array.from(selectedColumns)[selectedColumns.size - 1] 
+  //   : null;
+  
   // Auto-apply on changes (but not during hydration)
   useEffect(() => {
     if (selectedColumns.size > 0 && !isHydrating) {
@@ -731,6 +885,16 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
     <div className="flex h-full gap-3">
       {/* Main controls section */}
       <div className="flex-1">
+        {/* Show prominent alert when multiple columns are selected */}
+        {selectedColumns.size > 1 && (
+          <Alert className="mb-3 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              <strong>Bulk Edit Mode:</strong> You have {selectedColumns.size} columns selected. All styling changes will be applied to ALL selected columns simultaneously.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Cell/Header Toggle */}
         <div className="flex items-center justify-between mb-3">
           <ToggleGroup type="single" value={activeSubTab} onValueChange={(v) => v && setActiveSubTab(v as 'cell' | 'header')}>
@@ -812,7 +976,13 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
             {/* Text Alignment */}
             <div>
               <Label className="ribbon-section-header">ALIGN</Label>
-              <ToggleGroup type="single" value={currentStyles.textAlign} onValueChange={(value) => value && updateStyleProperty('textAlign', value)} className="h-6 w-full">
+              <ToggleGroup 
+                key={`text-align-${columnSwitchKey}-${activeSubTab}`}
+                type="single" 
+                value={currentStyles.textAlign === '' ? undefined : currentStyles.textAlign} 
+                onValueChange={(value) => updateStyleProperty('textAlign', value || '')} 
+                className="h-6 w-full"
+              >
                 <ToggleGroupItem value="left" className="alignment-toggle-item" title="Align Left">
                   <AlignLeft className="h-4 w-4" />
                 </ToggleGroupItem>
@@ -910,7 +1080,13 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
             {/* Vertical Alignment */}
             <div>
               <Label className="ribbon-section-header">V-ALIGN</Label>
-              <ToggleGroup type="single" value={currentStyles.verticalAlign} onValueChange={(value) => value && updateStyleProperty('verticalAlign', value)} className="h-6 w-full">
+              <ToggleGroup 
+                key={`vertical-align-${columnSwitchKey}-${activeSubTab}`}
+                type="single" 
+                value={currentStyles.verticalAlign === '' ? undefined : currentStyles.verticalAlign} 
+                onValueChange={(value) => updateStyleProperty('verticalAlign', value || '')} 
+                className="h-6 w-full"
+              >
                 <ToggleGroupItem value="top" className="alignment-toggle-item" title="Align Top">
                   <AlignVerticalJustifyStart className="h-4 w-4" />
                 </ToggleGroupItem>

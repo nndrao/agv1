@@ -9,7 +9,7 @@ import { LocalStorageAdapter } from '../storage/LocalStorageAdapter';
 import { STORAGE_KEYS } from '../storage/StorageAdapter';
 
 // Example: Basic usage
-async function basicUsageExample() {
+// async function basicUsageExample() {
   // Create service instance
   const service = new ProfileManagementService({
     storageAdapter: new LocalStorageAdapter(),
@@ -69,7 +69,7 @@ async function basicUsageExample() {
 }
 
 // Example: Working with existing profile.store.ts data
-async function workWithExistingData() {
+// async function workWithExistingData() {
   const adapter = new LocalStorageAdapter();
   const service = new ProfileManagementService({ storageAdapter: adapter });
 
@@ -99,7 +99,7 @@ async function workWithExistingData() {
 }
 
 // Example: Import/Export workflow
-async function importExportExample() {
+// async function importExportExample() {
   const service = new ProfileManagementService();
   await service.initialize();
 
@@ -148,7 +148,7 @@ async function importExportExample() {
 }
 
 // Example: Event handling
-async function eventHandlingExample() {
+// async function eventHandlingExample() {
   const service = new ProfileManagementService();
   await service.initialize();
 
@@ -183,7 +183,7 @@ async function eventHandlingExample() {
 }
 
 // Example: Migration handling
-async function migrationExample() {
+// async function migrationExample() {
   const service = new ProfileManagementService({
     autoMigrate: true // Will automatically migrate on initialize
   });
@@ -206,7 +206,7 @@ async function migrationExample() {
 }
 
 // Example: Using with React hooks
-function ReactComponentExample() {
+// function ReactComponentExample() {
   // This would be in a React component
   /*
   import { useProfileManagement } from './useProfileManagement';

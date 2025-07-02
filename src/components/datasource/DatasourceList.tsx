@@ -42,7 +42,8 @@ import {
   Clock,
   Users
 } from 'lucide-react';
-import { useDatasourceStore, DatasourceConfig } from '@/stores/datasource.store';
+import { useDatasourceStore } from '@/stores/datasource.store';
+import type { DatasourceConfig } from '@/stores/datasource.store';
 import { DatasourceDialog } from './DatasourceDialog';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -111,12 +112,12 @@ export const DatasourceList: React.FC<DatasourceListProps> = ({
     });
   };
 
-  const handleSelect = (datasource: DatasourceConfig) => {
-    if (onSelectDatasource) {
-      onSelectDatasource(datasource);
-      onOpenChange(false);
-    }
-  };
+  // const handleSelect = (datasource: DatasourceConfig) => {
+  //   if (onSelectDatasource) {
+  //     onSelectDatasource(datasource);
+  //     onOpenChange(false);
+  //   }
+  // };
 
   const toggleRowExpansion = (datasourceId: string) => {
     setExpandedRows(prev => {
@@ -269,7 +270,7 @@ export const DatasourceList: React.FC<DatasourceListProps> = ({
                               </Button>
                               {getIcon(datasource.type)}
                               {datasource.name}
-                              {datasource.autoStart && (
+                              {'autoStart' in datasource && datasource.autoStart && (
                                 <Badge variant="secondary" className="text-xs">
                                   Auto-start
                                 </Badge>
@@ -390,10 +391,10 @@ export const DatasourceList: React.FC<DatasourceListProps> = ({
                                       <Database className="h-3 w-3" />
                                       <span>Snapshot Rows</span>
                                     </div>
-                                    <p className="text-lg font-semibold">{stats.snapshotRowsReceived}</p>
-                                    {stats.snapshotDuration && (
+                                    <p className="text-lg font-semibold">{(stats as any).snapshotRowCount || 0}</p>
+                                    {(stats as any).snapshotDuration && (
                                       <p className="text-xs text-muted-foreground">
-                                        {(stats.snapshotDuration / 1000).toFixed(2)}s
+                                        {((stats as any).snapshotDuration / 1000).toFixed(2)}s
                                       </p>
                                     )}
                                   </div>
@@ -403,7 +404,7 @@ export const DatasourceList: React.FC<DatasourceListProps> = ({
                                       <Activity className="h-3 w-3" />
                                       <span>Update Rows</span>
                                     </div>
-                                    <p className="text-lg font-semibold">{stats.updateRowsReceived}</p>
+                                    <p className="text-lg font-semibold">{(stats as any).updateRowsReceived || 0}</p>
                                     <p className="text-xs text-muted-foreground">Real-time</p>
                                   </div>
                                   
@@ -412,9 +413,9 @@ export const DatasourceList: React.FC<DatasourceListProps> = ({
                                       <Activity className="h-3 w-3" />
                                       <span>Connections</span>
                                     </div>
-                                    <p className="text-lg font-semibold">{stats.connectionCount}</p>
+                                    <p className="text-lg font-semibold">{(stats as any).connectionCount || 0}</p>
                                     <p className="text-xs text-muted-foreground">
-                                      {stats.disconnectionCount} disconnects
+                                      {(stats as any).disconnectionCount || 0} disconnects
                                     </p>
                                   </div>
                                   
@@ -427,17 +428,17 @@ export const DatasourceList: React.FC<DatasourceListProps> = ({
                                     <p className="text-xs text-muted-foreground">Using this datasource</p>
                                   </div>
                                   
-                                  {stats.lastConnectedAt && (
+                                  {(stats as any).lastConnectedAt && (
                                     <div className="col-span-2 lg:col-span-4 pt-2 border-t">
                                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                         <div className="flex items-center gap-1">
                                           <Clock className="h-3 w-3" />
-                                          <span>Last connected: {new Date(stats.lastConnectedAt).toLocaleString()}</span>
+                                          <span>Last connected: {new Date((stats as any).lastConnectedAt).toLocaleString()}</span>
                                         </div>
-                                        {stats.lastDisconnectedAt && (
+                                        {(stats as any).lastDisconnectedAt && (
                                           <div className="flex items-center gap-1">
                                             <Clock className="h-3 w-3" />
-                                            <span>Last disconnected: {new Date(stats.lastDisconnectedAt).toLocaleString()}</span>
+                                            <span>Last disconnected: {new Date((stats as any).lastDisconnectedAt).toLocaleString()}</span>
                                           </div>
                                         )}
                                       </div>

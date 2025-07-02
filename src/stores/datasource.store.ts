@@ -86,7 +86,7 @@ export const useDatasourceStore = create<DatasourceStore>()(
         set((state) => ({
           datasources: state.datasources.map((ds) =>
             ds.id === id
-              ? { ...ds, ...updates, updatedAt: Date.now() }
+              ? { ...ds, ...updates, updatedAt: Date.now() } as DatasourceConfig
               : ds
           ),
         }));

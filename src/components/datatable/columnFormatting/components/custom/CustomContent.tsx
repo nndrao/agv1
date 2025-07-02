@@ -1,5 +1,5 @@
 import React from 'react';
-import { StylingCustomContent } from '../tabs/StylingCustomContent';
+import { StylingCustomContentV2 as StylingCustomContent } from '../tabs/StylingCustomContentV2';
 import { GeneralCustomContent } from '../tabs/GeneralCustomContent';
 import { FormatCustomContent } from '../tabs/FormatCustomContent';
 import { FilterCustomContent } from '../tabs/FilterCustomContent';

@@ -5,6 +5,7 @@ import { CustomHeader } from './components/custom/CustomHeader';
 import { CustomTabs } from './components/custom/CustomTabs';
 import { CustomContent } from './components/custom/CustomContent';
 import { useRibbonState } from './hooks/useRibbonState';
+import { ErrorBoundary, IsolatedErrorBoundary } from './components/ErrorBoundary';
 import type { FloatingRibbonUIProps } from './types';
 import './custom-styles.css';
 
@@ -50,6 +51,9 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
 
   // Listen for custom header mouse down events
   useEffect(() => {
+    const headerElement = dragRef.current?.querySelector('[data-header]');
+    if (!headerElement) return;
+
     const handleHeaderMouseDown = (e: CustomEvent) => {
       setIsDragging(true);
       dragStartPos.current = {
@@ -58,19 +62,17 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
       };
     };
 
-    const headerElement = dragRef.current?.querySelector('[data-header]');
-    if (headerElement) {
-      headerElement.addEventListener('headerMouseDown', handleHeaderMouseDown as EventListener);
-      return () => {
-        headerElement.removeEventListener('headerMouseDown', handleHeaderMouseDown as EventListener);
-      };
-    }
+    headerElement.addEventListener('headerMouseDown', handleHeaderMouseDown as EventListener);
+    
+    return () => {
+      headerElement.removeEventListener('headerMouseDown', handleHeaderMouseDown as EventListener);
+    };
   }, [position]);
 
   useEffect(() => {
+    if (!isDragging) return;
+
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      
       const newX = e.clientX - dragStartPos.current.x;
       const newY = e.clientY - dragStartPos.current.y;
       
@@ -85,27 +87,33 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
     };
 
     const handleMouseUp = () => {
-      if (isDragging) {
-        setIsDragging(false);
-        // Save position to localStorage
-        localStorage.setItem('floating-ribbon-position', JSON.stringify(position));
-      }
+      setIsDragging(false);
+      // Save position to localStorage after drag ends
+      const currentPosition = { 
+        x: dragRef.current?.offsetLeft || 0, 
+        y: dragRef.current?.offsetTop || 0 
+      };
+      localStorage.setItem('floating-ribbon-position', JSON.stringify(currentPosition));
     };
 
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'grabbing';
-      document.body.style.userSelect = 'none';
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-      };
-    }
-  }, [isDragging, position]);
+    // Add event listeners
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    // Set cursor styles
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+    
+    // Cleanup function
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+    };
+  }, [isDragging]); // Remove position from dependencies to prevent cleanup issues
 
   // Enhanced close handler with logging
   const handleClose = () => {
@@ -136,42 +144,54 @@ export const FloatingRibbonUI: React.FC<FloatingRibbonUIProps> = ({
     >
       {/* Row 1: Header */}
       <div className="ribbon-header" data-header onMouseDown={handleMouseDown}>
-        <CustomHeader
-          selectedColumns={ribbonState.selectedColumns}
-          columnDefinitions={ribbonState.columnDefinitions}
-          hasChanges={ribbonState.pendingChanges.size > 0}
-          onSelectionChange={ribbonState.setSelectedColumns}
-          onApply={ribbonState.handleApply}
-          onReset={ribbonState.handleReset}
-          onClose={handleClose}
-          onDragStart={handleMouseDown}
-          onClearSelected={ribbonState.handleClearSelected}
-        />
+        <IsolatedErrorBoundary componentName="Header">
+          <CustomHeader
+            selectedColumns={ribbonState.selectedColumns}
+            columnDefinitions={ribbonState.columnDefinitions}
+            hasChanges={ribbonState.pendingChanges.size > 0}
+            onSelectionChange={ribbonState.setSelectedColumns}
+            onApply={ribbonState.handleApply}
+            onReset={ribbonState.handleReset}
+            onClose={handleClose}
+            onDragStart={handleMouseDown}
+            onClearSelected={ribbonState.handleClearSelected}
+          />
+        </IsolatedErrorBoundary>
       </div>
       
       {/* Row 2: Tab Strip */}
       <div className="ribbon-tabs">
-        <CustomTabs
-          activeTab={ribbonState.activeTab}
-          setActiveTab={ribbonState.setActiveTab}
-          selectedColumns={ribbonState.selectedColumns}
-        />
+        <IsolatedErrorBoundary componentName="Tabs">
+          <CustomTabs
+            activeTab={ribbonState.activeTab}
+            setActiveTab={ribbonState.setActiveTab}
+            selectedColumns={ribbonState.selectedColumns}
+          />
+        </IsolatedErrorBoundary>
       </div>
       
       {/* Row 3: Dynamic Content */}
       <div className="ribbon-content">
-        <CustomContent
-          activeTab={ribbonState.activeTab}
-          selectedColumns={ribbonState.selectedColumns}
-          formatCategory={ribbonState.formatCategory}
-          setFormatCategory={ribbonState.setFormatCategory}
-          currentFormat={ribbonState.currentFormat}
-          setCurrentFormat={ribbonState.setCurrentFormat}
-          showConditionalDialog={ribbonState.showConditionalDialog}
-          setShowConditionalDialog={ribbonState.setShowConditionalDialog}
-          advancedFilterTab={ribbonState.advancedFilterTab}
-          setAdvancedFilterTab={ribbonState.setAdvancedFilterTab}
-        />
+        <ErrorBoundary 
+          resetKeys={[ribbonState.activeTab]}
+          resetOnPropsChange
+          onError={(error, errorInfo) => {
+            console.error('[FloatingRibbonUI] Content error:', error, errorInfo);
+          }}
+        >
+          <CustomContent
+            activeTab={ribbonState.activeTab}
+            selectedColumns={ribbonState.selectedColumns}
+            formatCategory={ribbonState.formatCategory}
+            setFormatCategory={ribbonState.setFormatCategory}
+            currentFormat={ribbonState.currentFormat}
+            setCurrentFormat={ribbonState.setCurrentFormat}
+            showConditionalDialog={ribbonState.showConditionalDialog}
+            setShowConditionalDialog={ribbonState.setShowConditionalDialog}
+            advancedFilterTab={ribbonState.advancedFilterTab}
+            setAdvancedFilterTab={ribbonState.setAdvancedFilterTab}
+          />
+        </ErrorBoundary>
       </div>
     </Card>
   );

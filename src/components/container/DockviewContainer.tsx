@@ -14,7 +14,7 @@ import '@/styles/dockview.css';
 
 // Panel component for DataTable
 const DataTablePanel: React.FC<IDockviewPanelProps> = ({ params }) => {
-  const { tableId, title, datasourceId } = params as { tableId: string; title: string; datasourceId?: string };
+  const { tableId } = params as { tableId: string; title: string; datasourceId?: string };
   
   // Always use sample data and let the DataTable handle datasource selection
   const [data] = React.useState(() => generateFixedIncomeData(10000));
@@ -65,7 +65,7 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
     // Restore layout if exists
     if (activeWorkspace?.layout?.panels) {
       try {
-        event.api.fromJSON(activeWorkspace.layout);
+        event.api.fromJSON(activeWorkspace.layout as any);
       } catch (e) {
         console.error('Failed to restore layout:', e);
         // Add default panel if restore fails
@@ -123,7 +123,7 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
         components={panels}
         onReady={onReady}
         className="dockview-theme-light dark:dockview-theme-dark"
-        singleTabMode="hideTab"
+        singleTabMode="fullwidth"
       />
     </div>
   );

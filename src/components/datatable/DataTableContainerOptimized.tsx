@@ -3,20 +3,20 @@ import { GridApi } from 'ag-grid-community';
 import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
 import { DataTableToolbar } from './DataTableToolbar';
-import { ProfileManagerV2 } from './ProfileManagerV2';
+// import { ProfileManagerV2 } from './ProfileManagerV2';
 import { UnifiedConfigProvider } from './UnifiedConfigContext';
 import { ColumnFormattingDialog } from './columnFormatting/ColumnFormattingDialog';
 import { GridOptionsPropertyEditor } from './gridOptions/GridOptionsPropertyEditor';
 import { DataSourceFloatingDialog } from './datasource/DataSourceFloatingDialog';
-import { useColumnProcessor } from './hooks/useColumnProcessor';
+// import { useColumnProcessor } from './hooks/useColumnProcessor';
 import { useGridState } from './hooks/useGridState';
-import { useProfileSync } from './hooks/useProfileSync';
+// import { useProfileSync } from './hooks/useProfileSync';
 import { useColumnOperations } from './hooks/useColumnOperations';
 import { useGridOptions } from './gridOptions/hooks/useGridOptions';
 import { useUnifiedConfig } from './hooks/useUnifiedConfig';
 import { useDataSourceUpdates } from './hooks/useDataSourceUpdates';
-import { DataTableProps } from './types';
-import { useProfileStore, useHasHydrated } from '@/components/datatable/stores/profile.store';
+import { DataTableProps, ColumnDef } from './types';
+import { useProfileStore } from '@/components/datatable/stores/profile.store';
 import { useTheme } from '@/components/datatable/ThemeProvider';
 import { useColumnFormattingStore } from './columnFormatting/store/columnFormatting.store';
 import { useComponentDatasource } from './hooks/useComponentDatasource';
@@ -35,7 +35,7 @@ export const DataTableContainerOptimized = memo(({
   useUnifiedConfig: enableUnifiedConfig = false 
 }: DataTableProps) => {
   // Performance monitoring
-  const { logMetrics } = usePerformanceMonitor({
+  const { } = usePerformanceMonitor({
     componentName: 'DataTableContainer',
     slowRenderThreshold: 20,
     enableMemoryTracking: true,
@@ -49,11 +49,13 @@ export const DataTableContainerOptimized = memo(({
   const { saveColumnCustomizations, saveGridOptions } = useProfileStore();
   const { theme } = useTheme();
   const { datasources } = useDatasourceStore();
-  const { toast } = useToast();
+  // const { toast } = useToast();
   
   // State management
   const [updatesEnabled, setUpdatesEnabled] = useState(false);
-  const [hasAutoEnabledUpdates, setHasAutoEnabledUpdates] = useState(false);
+  // const [hasAutoEnabledUpdates, setHasAutoEnabledUpdates] = useState(false);
+  const [showGridOptionsDialog, setShowGridOptionsDialog] = useState(false);
+  const [showDataSourceDialog, setShowDataSourceDialog] = useState(false);
   
   // Memoized unified config
   const unifiedConfig = useUnifiedConfig({
@@ -69,8 +71,8 @@ export const DataTableContainerOptimized = memo(({
     selectedDatasourceId, 
     columnDefinitions: datasourceColumns,
     currentData: datasourceData,
-    currentStatus: datasourceStatus,
-    isSnapshotComplete,
+    // currentStatus: datasourceStatus,
+    // isSnapshotComplete,
     handleDatasourceChange 
   } = datasourceHook;
   
@@ -100,22 +102,24 @@ export const DataTableContainerOptimized = memo(({
   const { updateGridOptions, applyGridOptions } = gridOptions;
   
   // Memoized column operations
-  const columnOperations = useColumnOperations(gridApi);
+  const columnOperations = useColumnOperations(gridApiRef, setCurrentColumnDefs, columnDefs);
   
   // Memoized data source updates configuration
-  const dataSourceUpdatesConfig = useMemo(() => ({
-    instanceId,
-    enabled: updatesEnabled,
-    onDataUpdate: undefined,
-    onStatusChange: undefined,
-  }), [instanceId, updatesEnabled]);
-  
-  const dataSourceUpdates = useDataSourceUpdates(dataSourceUpdatesConfig);
+  useDataSourceUpdates({
+    datasourceId: selectedDatasourceId,
+    gridApi: gridApi,
+    keyColumn: undefined,
+    asyncTransactionWaitMillis: 60,
+    updatesEnabled: updatesEnabled,
+    onUpdateError: (error) => {
+      console.error('[DataTableContainer] Update error:', error);
+    }
+  });
   
   // Memoized callbacks
   const handleFontChange = useCallback((font: string) => {
     setSelectedFont(font);
-    saveGridOptions({ fontFamily: font });
+    saveGridOptions({ font });
     
     if (enableUnifiedConfig && unifiedConfig.config) {
       // Update unified config logic here
@@ -169,8 +173,8 @@ export const DataTableContainerOptimized = memo(({
     if (selectedDatasourceId && datasourceColumns && datasourceColumns.length > 0) {
       setCurrentColumnDefs(datasourceColumns);
       
-      if (gridApiRef.current && typeof gridApiRef.current.setColumnDefs === 'function') {
-        gridApiRef.current.setColumnDefs(datasourceColumns);
+      if (gridApiRef.current && typeof gridApiRef.current.setGridOption === 'function') {
+        gridApiRef.current.setGridOption('columnDefs', datasourceColumns);
       }
     }
   }, [selectedDatasourceId, datasourceColumns, setCurrentColumnDefs]);
@@ -200,89 +204,79 @@ export const DataTableContainerOptimized = memo(({
   
   // Memoized context value
   const contextValue = useMemo(() => ({
-    gridApi,
+    // Required DataTableContextValue properties
+    processedColumns: currentColumnDefs,
+    selectedFont,
+    selectedFontSize,
+    handleFontChange,
+    handleFontSizeChange,
+    showColumnDialog,
+    setShowColumnDialog,
     gridApiRef,
+    getColumnDefsWithStyles: columnOperations.getColumnDefsWithStyles || (() => currentColumnDefs),
     setGridApi,
-    currentColumnDefs,
-    selectedFont,
-    selectedFontSize,
-    showColumnDialog,
-    handleFontChange,
-    handleFontSizeChange,
-    handleApplyGridOptions,
-    instanceId,
-    enableUnifiedConfig,
-    unifiedConfig,
-    datasourceHook,
-    dataSourceUpdates,
-    columnOperations,
-    gridOptions,
-    gridState,
-  }), [
     gridApi,
+  }), [
     currentColumnDefs,
     selectedFont,
     selectedFontSize,
     showColumnDialog,
+    setShowColumnDialog,
+    gridApiRef,
     handleFontChange,
     handleFontSizeChange,
-    handleApplyGridOptions,
-    instanceId,
-    enableUnifiedConfig,
-    unifiedConfig,
-    datasourceHook,
-    dataSourceUpdates,
-    columnOperations,
-    gridOptions,
-    gridState,
+    setGridApi,
+    columnOperations.getColumnDefsWithStyles,
+    gridApi,
   ]);
   
   return (
     <DataTableProvider value={contextValue}>
-      <UnifiedConfigProvider 
-        config={enableUnifiedConfig ? unifiedConfig : undefined}
-      >
+      <UnifiedConfigProvider value={enableUnifiedConfig ? {
+        ...unifiedConfig,
+        instanceId,
+        enabled: true,
+        createVersion: unifiedConfig.createVersion || (async () => {}),
+        activateVersion: unifiedConfig.activateVersion || (async () => {})
+      } : { 
+        instanceId, 
+        enabled: false,
+        config: null,
+        loading: false,
+        error: null,
+        loadConfig: async () => {},
+        updateConfig: async () => {},
+        createVersion: async () => {},
+        activateVersion: async () => {},
+        configToProfile: () => null,
+        profileToConfig: () => ({})
+      }}>
         <div className="datatable-container h-full flex flex-col">
           <DataTableToolbar 
-            enableProfile={true}
-            enableDatasource={true}
-            enableAutoUpdate={true}
-            enableThemeToggle={true}
-            enableFontSelector={true}
-            enableGridOptions={true}
             selectedFont={selectedFont}
             selectedFontSize={selectedFontSize}
             onFontChange={handleFontChange}
             onFontSizeChange={handleFontSizeChange}
-            profileElement={<ProfileManagerV2 instanceId={instanceId} />}
+            onSpacingChange={() => {}}
+            onOpenColumnSettings={() => setShowColumnDialog(true)}
+            onOpenGridOptions={() => setShowGridOptionsDialog(true)}
+            onOpenDataSourceDialog={() => setShowDataSourceDialog(true)}
+            gridApi={gridApi}
+            onProfileChange={() => {}}
+            getColumnDefsWithStyles={columnOperations.getColumnDefsWithStyles || (() => currentColumnDefs)}
+            instanceId={instanceId}
+            selectedDatasourceId={selectedDatasourceId}
+            onDatasourceChange={() => {}}
             updatesEnabled={updatesEnabled}
-            onUpdatesEnabledChange={setUpdatesEnabled}
+            onToggleUpdates={() => setUpdatesEnabled(!updatesEnabled)}
           />
           
           <div className="flex-1 relative">
             <DataTableGrid 
               columnDefs={currentColumnDefs}
               rowData={datasourceData || dataRow}
-              defaultColDef={{
-                sortable: true,
-                filter: true,
-                resizable: true,
-                minWidth: 100,
-                flex: 0,
-              }}
-              sideBar={{
-                toolPanels: ['columns', 'filters'],
-                defaultToolPanel: 'columns',
-              }}
-              enableRangeSelection={true}
-              enableCharts={true}
-              animateRows={false}
-              rowSelection="multiple"
-              suppressRowClickSelection={true}
-              className={cn(
-                selectedFont && `font-${selectedFont}`,
-                selectedFontSize && `text-${selectedFontSize}`
-              )}
+              gridApiRef={gridApiRef}
+              keyColumn={datasourceHook.selectedDatasourceId ? datasources.find(ds => ds.id === datasourceHook.selectedDatasourceId)?.keyColumn : undefined}
             />
           </div>
           
@@ -290,21 +284,39 @@ export const DataTableContainerOptimized = memo(({
             <ColumnFormattingDialog
               open={showColumnDialog}
               onOpenChange={setShowColumnDialog}
-              instanceId={instanceId}
+              columnDefs={currentColumnDefs}
+              columnState={gridApi?.getColumnState?.()}
+              onApply={(updatedColumns) => {
+                setCurrentColumnDefs(updatedColumns as ColumnDef[]);
+                if (gridApi) {
+                  gridApi.setGridOption('columnDefs', updatedColumns);
+                }
+                saveColumnCustomizations(updatedColumns);
+              }}
             />
           )}
           
-          <GridOptionsPropertyEditor
-            instanceId={instanceId}
-            onApply={handleApplyGridOptions}
-          />
+          {showGridOptionsDialog && (
+            <GridOptionsPropertyEditor
+              isOpen={showGridOptionsDialog}
+              onClose={() => setShowGridOptionsDialog(false)}
+              onApply={handleApplyGridOptions}
+              currentOptions={gridOptions.gridOptions}
+            />
+          )}
           
-          <DataSourceFloatingDialog
-            instanceId={instanceId}
-            onApply={datasources => {
-              console.log('[DataTableContainer] Applying data sources:', datasources);
-            }}
-          />
+          {showDataSourceDialog && (
+            <DataSourceFloatingDialog
+              open={showDataSourceDialog}
+              onOpenChange={setShowDataSourceDialog}
+              onApply={datasources => {
+                console.log('[DataTableContainer] Applying data sources:', datasources);
+                if (datasources.length > 0) {
+                  handleDatasourceChange(datasources[0].id);
+                }
+              }}
+            />
+          )}
         </div>
       </UnifiedConfigProvider>
     </DataTableProvider>

@@ -36,7 +36,7 @@ export class UpdateEventEmitter {
   };
   private processingTimes: number[] = [];
   private maxQueueSize: number;
-  private processingPromise: Promise<void> | null = null;
+  // private processingPromise: Promise<void> | null = null;
   
   // Batching configuration - DISABLED to avoid double batching with ConflatedDataStore
   private batchingEnabled: boolean = false;
@@ -165,6 +165,7 @@ export class UpdateEventEmitter {
   
   // Process a single batch
   private async processSingleBatch(datasourceId: string, events: UpdateEvent[]): Promise<void> {
+    const startTime = performance.now();
     try {
       // Combine all transactions in the batch
       const batchedEvent = this.combineBatchedEvents(datasourceId, events);
@@ -264,12 +265,12 @@ export class UpdateEventEmitter {
 
       // Yield to event loop to prevent blocking
       if (this.queue.length > 0) {
-        await new Promise(resolve => setImmediate(resolve));
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
     }
 
     this.processing = false;
-    this.processingPromise = null;
+    // this.processingPromise = null;
   }
 
   // Emit event asynchronously to all listeners

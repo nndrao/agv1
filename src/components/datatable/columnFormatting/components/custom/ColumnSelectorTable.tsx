@@ -338,13 +338,23 @@ export const ColumnSelectorTable: React.FC<{
   }, [allColumns, searchTerm, cellDataTypeFilter, visibilityFilter, columnState]);
 
   // Handle column toggle
-  const handleToggleColumn = useCallback((columnId: string) => {
+  const handleToggleColumn = useCallback((columnId: string, event?: React.MouseEvent) => {
     const newSelection = new Set(selectedColumns);
-    if (newSelection.has(columnId)) {
-      newSelection.delete(columnId);
-    } else {
+    
+    // If shift key is NOT held, clear previous selection for single selection mode
+    if (event && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
+      // Single selection mode - clear others
+      newSelection.clear();
       newSelection.add(columnId);
+    } else {
+      // Multi-selection mode (shift/ctrl/cmd held or checkbox clicked)
+      if (newSelection.has(columnId)) {
+        newSelection.delete(columnId);
+      } else {
+        newSelection.add(columnId);
+      }
     }
+    
     onSelectionChange(newSelection);
   }, [selectedColumns, onSelectionChange]);
 
@@ -401,7 +411,15 @@ export const ColumnSelectorTable: React.FC<{
       const column = columnDefinitions.get(columnId);
       return column?.headerName || column?.field || columnId;
     }
-    return `${selectedColumns.size} columns selected`;
+    // Show first two column names for multiple selection
+    const columnNames = Array.from(selectedColumns).slice(0, 2).map(id => {
+      const column = columnDefinitions.get(id);
+      return column?.headerName || column?.field || id;
+    });
+    if (selectedColumns.size > 2) {
+      return `${columnNames.join(', ')} +${selectedColumns.size - 2}`;
+    }
+    return columnNames.join(', ');
   };
 
   // Get customization count for a column
@@ -433,7 +451,7 @@ export const ColumnSelectorTable: React.FC<{
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="h-6 px-2 text-[11px] justify-between min-w-[100px] max-w-[160px] border border-border/60 bg-background/80 hover:bg-muted/50 transition-all duration-200"
+          className="h-6 px-2 text-[11px] justify-between min-w-[100px] max-w-[200px] border border-border/60 bg-background/80 hover:bg-muted/50 transition-all duration-200"
         >
           <span className="truncate font-medium">{getDisplayText()}</span>
           <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
@@ -459,6 +477,9 @@ export const ColumnSelectorTable: React.FC<{
               <Badge variant="outline" className="text-xs px-1.5 py-0.5 ml-auto font-medium rounded-md border-border/60">
                 {filteredColumns.length}
               </Badge>
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-1">
+              Click to select single column • Shift/Ctrl+Click for multiple
             </div>
           </div>
 
@@ -575,9 +596,9 @@ export const ColumnSelectorTable: React.FC<{
                           key={columnId}
                           className={cn(
                             "border-b cursor-pointer hover:bg-muted/50 transition-colors",
-                            selected && "bg-muted/30"
+                            selected && "bg-primary/10 hover:bg-primary/15 border-l-2 border-l-primary"
                           )}
-                          onClick={() => handleToggleColumn(columnId)}
+                          onClick={(e) => handleToggleColumn(columnId, e)}
                         >
                           <td className="w-10 h-8">
                             <div className="flex items-center justify-center h-full">

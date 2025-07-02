@@ -133,7 +133,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="ml-2">
-              {item.items.map((child) => renderSidebarItem(child, level + 1))}
+              {item.items?.map((child) => renderSidebarItem(child, level + 1))}
             </div>
           </CollapsibleContent>
         </Collapsible>

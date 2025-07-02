@@ -326,7 +326,18 @@ async function performMigration(state: PersistedState): Promise<PersistedState> 
 import { customProfileStorage } from '@/utils/customProfileStorage';
 
 // Use custom storage for better debugging
-const profileStorageAdapter = customProfileStorage;
+const profileStorageAdapter = {
+  getItem: (name: string) => {
+    const value = customProfileStorage.getItem(name);
+    return value;
+  },
+  setItem: (name: string, value: any) => {
+    customProfileStorage.setItem(name, value);
+  },
+  removeItem: (name: string) => {
+    customProfileStorage.removeItem(name);
+  },
+} as any;
 
 export const useProfileStore = create<ProfileStore>()(
   persist(
@@ -387,7 +398,7 @@ export const useProfileStore = create<ProfileStore>()(
         
         // Force immediate persistence
         console.log('[ProfileStore] Forcing persistence after profile creation');
-        const store = useProfileStore.getState();
+        // const store = useProfileStore.getState();
         const persistApi = (useProfileStore as any).persist;
         if (persistApi?.rehydrate) {
           persistApi.rehydrate();

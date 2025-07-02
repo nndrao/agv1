@@ -183,7 +183,7 @@ export class DataStoreManager {
   
   clear(): void {
     // Clean up all stores
-    this.stores.forEach((entry, id) => {
+    this.stores.forEach((_, id) => {
       this.removeStore(id);
     });
     this.stores.clear();

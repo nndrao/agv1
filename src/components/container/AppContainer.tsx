@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { AppSidebar } from './AppSidebar';
 import { WorkspaceProvider } from './WorkspaceContext';
-import { useWorkspaceStore } from './stores/workspace.store';
+// import { useWorkspaceStore } from './stores/workspace.store';
 import { DatasourceProvider } from '@/contexts/DatasourceContext';
 import { DatasourceList } from '@/components/datasource/DatasourceList';
 
@@ -21,7 +21,7 @@ export const AppContainer: React.FC<AppContainerProps> = ({ children }) => {
   const [sidebarVisible, setSidebarVisible] = useState(sidebarPinned);
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar state
   const [showDatasourceList, setShowDatasourceList] = useState(false);
-  const { activeWorkspace } = useWorkspaceStore();
+  // const { activeWorkspace } = useWorkspaceStore();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout>();

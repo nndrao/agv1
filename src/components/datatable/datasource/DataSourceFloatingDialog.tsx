@@ -1,4 +1,3 @@
-import React from 'react';
 import { DatasourceList } from '@/components/datasource/DatasourceList';
 import { DatasourceConfig } from '@/stores/datasource.store';
 

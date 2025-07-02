@@ -74,6 +74,7 @@ interface DataTableToolbarProps {
   onSpacingChange: (spacing: string) => void;
   onOpenColumnSettings?: () => void;
   onOpenGridOptions?: () => void;
+  onOpenDataSourceDialog?: () => void;
   gridApi?: GridApi | null;
   onProfileChange?: (profile: GridProfile) => void;
   getColumnDefsWithStyles?: () => AgColDef[];
@@ -91,6 +92,7 @@ export function DataTableToolbar({
   onFontSizeChange,
   onOpenColumnSettings,
   onOpenGridOptions,
+  onOpenDataSourceDialog,
   gridApi,
   onProfileChange,
   getColumnDefsWithStyles,

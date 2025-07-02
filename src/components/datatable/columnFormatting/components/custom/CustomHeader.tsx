@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { SimpleTemplateControls } from './SimpleTemplateControls';
 import { ColumnSelectorTable } from './ColumnSelectorTable';
+import { BulkOperationProgress } from '../BulkOperationProgress';
+import { useOperationProgressStore } from '../../store/domains/operationProgress.store';
 import type { RibbonHeaderProps } from '../../types';
 
 export const CustomHeader: React.FC<RibbonHeaderProps> = ({
@@ -25,11 +27,14 @@ export const CustomHeader: React.FC<RibbonHeaderProps> = ({
   onDragStart,
   onClearSelected
 }) => {
+  const hasActiveOperations = useOperationProgressStore(state => state.hasActiveOperations());
+  
   return (
     <TooltipProvider>
-      <div 
-        className="flex items-center px-3 py-2 h-full bg-muted/20 backdrop-blur-sm border-b border-border/50 shadow-sm"
-      >
+      <div className="flex flex-col h-full">
+        <div 
+          className="flex items-center px-3 py-2 bg-muted/20 backdrop-blur-sm border-b border-border/50 shadow-sm"
+        >
         {/* Left: Drag handle and title */}
         <div onMouseDown={onDragStart} className="flex items-center gap-2 cursor-move group">
           <GripHorizontal className="ribbon-drag-handle h-3.5 w-3.5 group-hover:text-muted-foreground transition-colors" />
@@ -120,6 +125,12 @@ export const CustomHeader: React.FC<RibbonHeaderProps> = ({
             <TooltipContent className="ribbon-tooltip">Close ribbon</TooltipContent>
           </Tooltip>
         </div>
+      </div>
+      {hasActiveOperations && (
+        <div className="px-3 py-1 bg-muted/10 border-b border-border/30">
+          <BulkOperationProgress className="max-w-full" />
+        </div>
+      )}
       </div>
     </TooltipProvider>
   );

@@ -49,8 +49,8 @@ export const DatasourceDialogRefactored: React.FC<DatasourceDialogProps> = ({
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
   const [fieldSearchQuery, setFieldSearchQuery] = useState('');
-  const [selectAllChecked, setSelectAllChecked] = useState(false);
-  const [selectAllIndeterminate, setSelectAllIndeterminate] = useState(false);
+  const [selectAllChecked] = useState(false);
+  const [selectAllIndeterminate] = useState(false);
 
   // Load existing datasource
   useEffect(() => {
@@ -169,7 +169,7 @@ export const DatasourceDialogRefactored: React.FC<DatasourceDialogProps> = ({
         
         // Infer fields
         const fields = StompDatasourceProvider.inferFields(result.data);
-        const fieldNodes = convertToFieldNodes(fields);
+        const fieldNodes = convertToFieldNodes(Object.values(fields));
         setInferredFields(fieldNodes);
         
         // Auto-select all fields
@@ -264,12 +264,14 @@ export const DatasourceDialogRefactored: React.FC<DatasourceDialogProps> = ({
       id: datasourceId || `datasource-${Date.now()}`,
       name,
       type: 'stomp',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
       websocketUrl,
       listenerTopic,
       requestMessage,
       snapshotEndToken,
       keyColumn,
-      messageRate,
+      // messageRate,
       autoStart,
       columnDefinitions,
       inferredFields: inferredFields.length > 0 ? convertFieldNodesToFieldInfo(inferredFields) : undefined,
@@ -365,8 +367,8 @@ export const DatasourceDialogRefactored: React.FC<DatasourceDialogProps> = ({
               <TabsContent value="statistics" className="mt-0">
                 <DataSourceStatistics
                   datasourceId={datasourceId}
-                  statistics={datasourceStatistics?.[datasourceId]}
-                  componentUsage={componentUsage?.[datasourceId]}
+                  statistics={datasourceStatistics?.get(datasourceId) as any}
+                  componentUsage={componentUsage?.get(datasourceId) ? Array.from(componentUsage.get(datasourceId)!).map(id => ({ componentId: id, componentType: 'datatable', lastAccessed: Date.now() })) : []}
                 />
               </TabsContent>
             )}

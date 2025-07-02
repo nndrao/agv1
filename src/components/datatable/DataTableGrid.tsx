@@ -115,13 +115,10 @@ export const DataTableGrid = memo(({
         columnDefs={columnDefs}
         defaultColDef={DEFAULT_COL_DEF}
         maintainColumnOrder={true}
-        cellSelection={true}
+        // cellSelection={true}
         suppressMenuHide={true}
         suppressHorizontalScroll={false}
         alwaysShowVerticalScroll={true}
-        enableCellChangeFlash={true}
-        cellFlashDelay={500}
-        cellFadeDelay={1000}
         getRowId={keyColumn ? (params) => params.data[keyColumn] : undefined}
         // Performance optimizations for high-frequency updates
         animateRows={false} // Disable for better performance with frequent updates

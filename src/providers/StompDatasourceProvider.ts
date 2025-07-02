@@ -300,13 +300,13 @@ export class StompDatasourceProvider {
     }
   }
 
-  private containsToken(data: any, token: string): boolean {
+  private containsToken(data: any, _token: string): boolean {
     if (typeof data === 'string') {
-      return data.includes(token) || data.startsWith('Success');
+      return data.includes(_token) || data.startsWith('Success');
     }
     if (typeof data === 'object' && data !== null) {
       for (const key in data) {
-        if (this.containsToken(data[key], token)) {
+        if (this.containsToken(data[key], _token)) {
           return true;
         }
       }
@@ -454,15 +454,15 @@ export class StompDatasourceProvider {
     // Log stats every 30 seconds
     this.updateStatsInterval = setInterval(() => {
       const now = Date.now();
-      const timeSinceLastLog = (now - this.lastLogTime) / 1000;
+      // const timeSinceLastLog = (now - this.lastLogTime) / 1000;
       
-      console.log(`[STOMP Stats] ${this.config.name || 'Datasource'} - Last ${timeSinceLastLog.toFixed(0)}s:`, {
-        snapshotRows: this.statistics.snapshotRowsReceived,
-        updateRows: this.statistics.updateRowsReceived,
-        totalBytes: this.statistics.bytesReceived,
-        isConnected: this.statistics.isConnected,
-        isSnapshot: this.isReceivingSnapshot
-      });
+      // console.log(`[STOMP Stats] ${this.config.name || 'Datasource'} - Last ${timeSinceLastLog.toFixed(0)}s:`, {
+      //   snapshotRows: this.statistics.snapshotRowsReceived,
+      //   updateRows: this.statistics.updateRowsReceived,
+      //   totalBytes: this.statistics.bytesReceived,
+      //   isConnected: this.statistics.isConnected,
+      //   isSnapshot: this.isReceivingSnapshot
+      // });
       
       this.lastLogTime = now;
     }, 30000); // 30 seconds

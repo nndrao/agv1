@@ -36,7 +36,8 @@ export const DataTableWithUnifiedConfig: React.FC<DataTableWithUnifiedConfigProp
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
   
   // Use existing profile store for backward compatibility
-  const { activeProfile, profiles } = useProfileStore();
+  const { getActiveProfile, profiles } = useProfileStore();
+  const activeProfile = getActiveProfile();
   
   // Use new unified config system
   const {
@@ -74,7 +75,13 @@ export const DataTableWithUnifiedConfig: React.FC<DataTableWithUnifiedConfigProp
 
       // Apply sorts
       if (versionConfig.sortModel) {
-        gridApi.setSortModel(versionConfig.sortModel);
+        gridApi.applyColumnState({ 
+          state: versionConfig.sortModel?.map((sort: any) => ({
+            colId: sort.colId,
+            sort: sort.sort,
+            sortIndex: sort.sortIndex
+          })) || []
+        });
       }
     }
   }, [gridApi, versionConfig]);
@@ -90,7 +97,11 @@ export const DataTableWithUnifiedConfig: React.FC<DataTableWithUnifiedConfigProp
     const currentState = {
       columnState: gridApi.getColumnState(),
       filterModel: gridApi.getFilterModel(),
-      sortModel: gridApi.getSortModel()
+      sortModel: gridApi.getColumnState()?.filter((col: any) => col.sort)?.map((col: any) => ({
+        colId: col.colId,
+        sort: col.sort,
+        sortIndex: col.sortIndex
+      })) || []
     };
 
     // Update active version config

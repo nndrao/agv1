@@ -70,7 +70,7 @@ export function useProfileManagement(options: UseProfileManagementOptions = {}):
   // State
   const [profiles, setProfiles] = useState<GridProfile[]>([]);
   const [activeProfileId, setActiveProfileId] = useState<string>('');
-  const [activeProfile, setActiveProfile] = useState<GridProfile | null>(null);
+  const [activeProfile, setActiveProfileState] = useState<GridProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [unsavedChanges, setUnsavedChanges] = useState<Set<string>>(new Set());
@@ -95,7 +95,7 @@ export function useProfileManagement(options: UseProfileManagementOptions = {}):
       
       // Find and set active profile
       const active = loadedProfiles.find(p => p.id === loadedActiveId) || null;
-      setActiveProfile(active);
+      setActiveProfileState(active);
       
       // Notify callback
       options.onProfileChange?.(active);
@@ -128,7 +128,7 @@ export function useProfileManagement(options: UseProfileManagementOptions = {}):
             p.id === event.profile.id ? event.profile : p
           ));
           if (event.profile.id === activeProfileId) {
-            setActiveProfile(event.profile);
+            setActiveProfileState(event.profile);
             options.onProfileChange?.(event.profile);
           }
           // Clear unsaved changes for this profile
@@ -146,7 +146,7 @@ export function useProfileManagement(options: UseProfileManagementOptions = {}):
             service.getActiveProfileId().then(newActiveId => {
               setActiveProfileId(newActiveId);
               const newActive = profiles.find(p => p.id === newActiveId) || null;
-              setActiveProfile(newActive);
+              setActiveProfileState(newActive);
               options.onProfileChange?.(newActive);
             });
           }
@@ -161,7 +161,7 @@ export function useProfileManagement(options: UseProfileManagementOptions = {}):
         case 'active-profile-changed':
           setActiveProfileId(event.profileId);
           const newActive = profiles.find(p => p.id === event.profileId) || null;
-          setActiveProfile(newActive);
+          setActiveProfileState(newActive);
           options.onProfileChange?.(newActive);
           break;
           

@@ -142,8 +142,7 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
       {/* Select All */}
       <div className="flex items-center space-x-2 px-2">
         <Checkbox
-          checked={selectAllChecked}
-          indeterminate={selectAllIndeterminate}
+          checked={selectAllIndeterminate ? "indeterminate" : selectAllChecked}
           onCheckedChange={onSelectAllChange}
         />
         <Label className="cursor-pointer">Select all fields</Label>

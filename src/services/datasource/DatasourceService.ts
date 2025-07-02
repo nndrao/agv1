@@ -85,7 +85,7 @@ export class DatasourceService {
       
       return {
         success: true,
-        fields,
+        fields: Object.values(fields),
         sampleData: result.data.slice(0, 10),
       };
     } catch (error) {
@@ -143,7 +143,7 @@ export class DatasourceService {
    */
   isConnected(datasourceId: string): boolean {
     const provider = this.providers.get(datasourceId);
-    return provider ? provider.isConnected() : false;
+    return provider ? (provider as any).isConnected : false;
   }
 
   /**
@@ -153,16 +153,16 @@ export class DatasourceService {
     const columns: ColumnDefinition[] = [];
     
     const processField = (field: FieldInfo, parentPath = '') => {
-      const fullPath = parentPath ? `${parentPath}.${field.name}` : field.name;
+      const fullPath = parentPath ? `${parentPath}.${(field as any).name || field.path}` : (field as any).name || field.path;
       
-      if (field.children && field.children.length > 0) {
+      if ((field as any).children && (field as any).children.length > 0) {
         // Process nested fields
-        field.children.forEach(child => processField(child, fullPath));
+        (field as any).children.forEach((child: any) => processField(child, fullPath));
       } else {
         // Leaf node - create column
         columns.push({
           field: fullPath,
-          headerName: field.name,
+          headerName: (field as any).name || field.path,
           cellDataType: this.mapFieldTypeToAgGridType(field.type),
         });
       }
@@ -186,7 +186,7 @@ export class DatasourceService {
       requestMessage: config.requestMessage,
       snapshotEndToken: config.snapshotEndToken,
       keyColumn: config.keyColumn,
-      messageRate: config.messageRate,
+      messageRate: (config as any).messageRate || '1000',
     });
   }
 

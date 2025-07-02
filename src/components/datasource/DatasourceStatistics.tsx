@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Activity, Database, Download, Upload, Clock, Zap } from 'lucide-react';
+import { Activity, Database, Zap } from 'lucide-react';
 import { useDatasourceContext } from '@/contexts/DatasourceContext';
 import { DatasourceStats } from '@/services/datasource/DatasourceStatistics';
 import { ConflationMetrics } from '@/services/datasource/ConflatedDataStore';

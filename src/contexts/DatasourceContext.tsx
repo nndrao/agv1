@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { DatasourceConfig, useDatasourceStore } from '@/stores/datasource.store';
-import { StompDatasourceProvider, StompStatistics } from '@/providers/StompDatasourceProvider';
+import { StompDatasourceProvider } from '@/providers/StompDatasourceProvider';
 import { UpdateEventEmitter } from '@/utils/UpdateEventEmitter';
 import { DataStoreManager } from '@/services/datasource/DataStoreManager';
 import { ConflatedDataStore } from '@/services/datasource/ConflatedDataStore';
@@ -84,13 +84,13 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   const dataStoreManager = useRef(DataStoreManager.getInstance()).current;
   
   // Initialize update event emitter with batching DISABLED (conflation happens in ConflatedDataStore)
-  const updateEmitterRef = useRef<UpdateEventEmitter>(new UpdateEventEmitter(10000, { enabled: false }));
+  const updateEmitterRef = useRef<UpdateEventEmitter>(new UpdateEventEmitter(10000, { enabled: false, interval: 100 }));
   const updateEmitter = updateEmitterRef.current;
   
   // Initialize Web Worker
   // NOTE: Worker is being phased out in favor of direct processing for better performance
-  const workerRef = useRef<Worker | null>(null);
-  const [isWorkerReady, setIsWorkerReady] = useState(false);
+  // const workerRef = useRef<Worker | null>(null);
+  // const [isWorkerReady, setIsWorkerReady] = useState(false);
   
   // Track snapshot completion status with ref for access in callbacks
   const snapshotCompleteRef = useRef<Map<string, boolean>>(new Map());
@@ -110,13 +110,13 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   const activateDatasource = useCallback(async (datasourceId: string) => {
     // Check if already active
     if (activeDatasources.has(datasourceId)) {
-      console.log(`[DatasourceContext] Datasource ${datasourceId} is already active`);
+      // console.log(`[DatasourceContext] Datasource ${datasourceId} is already active`);
       return;
     }
     
     const datasource = getDatasource(datasourceId);
     if (!datasource) {
-      console.error(`[DatasourceContext] Datasource ${datasourceId} not found`);
+      // console.error(`[DatasourceContext] Datasource ${datasourceId} not found`);
       return;
     }
     
@@ -163,14 +163,14 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
           
           // No need to subscribe to UpdateEventEmitter - updates go directly to ConflatedDataStore
           
-          console.log(`[DatasourceContext] Datasource ${datasource.name} activated with ${result.data.length} rows`);
+          // console.log(`[DatasourceContext] Datasource ${datasource.name} activated with ${result.data.length} rows`);
         } else {
           throw new Error(result.error || 'Failed to connect');
         }
       }
       // TODO: Handle REST datasources
     } catch (error) {
-      console.error(`[DatasourceContext] Error activating datasource ${datasourceId}:`, error);
+      // console.error(`[DatasourceContext] Error activating datasource ${datasourceId}:`, error);
       setConnectionStatus(prev => new Map(prev).set(datasourceId, 'error'));
       setSnapshotStatus(prev => new Map(prev).set(datasourceId, 'error'));
       snapshotCompleteRef.current.delete(datasourceId);
@@ -224,7 +224,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     snapshotCompleteRef.current.delete(datasourceId);
     updateSubscriptionsRef.current.delete(datasourceId);
     
-    console.log(`[DatasourceContext] Datasource ${datasourceId} deactivated`);
+    // console.log(`[DatasourceContext] Datasource ${datasourceId} deactivated`);
   }, [providers, updateEmitter, dataStoreManager]);
   
   // Refresh a datasource
@@ -272,15 +272,15 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
 
     // Check if already subscribed
     if (updateSubscriptionsRef.current.has(datasourceId)) {
-      console.log(`[DatasourceContext] Already subscribed to updates for ${datasourceId}`);
+      // console.log(`[DatasourceContext] Already subscribed to updates for ${datasourceId}`);
       return;
     }
 
-    console.log(`[DatasourceContext] Subscribing to updates for ${datasourceId}`);
+    // console.log(`[DatasourceContext] Subscribing to updates for ${datasourceId}`);
     
     // Mark as ready for updates immediately to avoid dropping updates
     snapshotCompleteRef.current.set(datasourceId, true);
-    console.log(`[DatasourceContext] Marked ${datasourceId} as ready for updates`);
+    // console.log(`[DatasourceContext] Marked ${datasourceId} as ready for updates`);
     
     // Create update handler that sends updates directly to ConflatedDataStore
     const updateHandler = (updatedData: any) => {
@@ -303,7 +303,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
       // The ConflatedDataStore will handle conflation and emit updates to subscribers
       dataStore.addBulkUpdates(updates, 'update');
       
-      console.log(`[DatasourceContext] Sent ${updates.length} updates directly to ConflatedDataStore`);
+      // console.log(`[DatasourceContext] Sent ${updates.length} updates directly to ConflatedDataStore`);
     };
     
     // Subscribe to real-time updates
@@ -314,26 +314,26 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   }, [providers]);
 
   // Initialize worker with grid data (kept for backward compatibility, but no-op)
-  const initializeWorkerForGrid = useCallback((datasourceId: string, gridData: any[]) => {
+  const initializeWorkerForGrid = useCallback(() => {
     // This is now a no-op as we're using ConflatedDataStore instead of workers
-    console.log(`[DatasourceContext] initializeWorkerForGrid called (no-op) for ${datasourceId} with ${gridData.length} rows`);
+    // console.log(`[DatasourceContext] initializeWorkerForGrid called (no-op) for ${datasourceId} with ${gridData.length} rows`);
   }, []);
   
   // Sync worker state with grid state (kept for backward compatibility, but no-op)
-  const syncWorkerState = useCallback((datasourceId: string, currentData: any[]) => {
+  const syncWorkerState = useCallback(() => {
     // This is now a no-op as we're using ConflatedDataStore instead of workers
-    console.log(`[DatasourceContext] syncWorkerState called (no-op) for ${datasourceId} with ${currentData.length} rows`);
+    // console.log(`[DatasourceContext] syncWorkerState called (no-op) for ${datasourceId} with ${currentData.length} rows`);
   }, []);
 
   // Unsubscribe from updates for a datasource
   const unsubscribeFromUpdates = useCallback((datasourceId: string) => {
     // Check if subscribed
     if (!updateSubscriptionsRef.current.has(datasourceId)) {
-      console.log(`[DatasourceContext] Not subscribed to updates for ${datasourceId}`);
+      // console.log(`[DatasourceContext] Not subscribed to updates for ${datasourceId}`);
       return;
     }
 
-    console.log(`[DatasourceContext] Unsubscribing from updates for ${datasourceId}`);
+    // console.log(`[DatasourceContext] Unsubscribing from updates for ${datasourceId}`);
     
     // Mark as not ready for updates
     snapshotCompleteRef.current.set(datasourceId, false);
@@ -369,7 +369,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     );
     
     autoStartDatasources.forEach(ds => {
-      console.log(`[DatasourceContext] Auto-starting datasource: ${ds.name}`);
+      // console.log(`[DatasourceContext] Auto-starting datasource: ${ds.name}`);
       activateDatasource(ds.id);
     });
   }, [datasources]); // Only run once when datasources change

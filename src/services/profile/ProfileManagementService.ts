@@ -19,7 +19,7 @@ interface StorageAdapter {
   remove(key: string): Promise<void>;
 }
 import { GridProfile } from '../../components/datatable/types';
-import { ColumnCustomization } from '../../components/datatable/stores/columnSerializer';
+// import { ColumnCustomization } from '../../components/datatable/stores/columnSerializer';
 
 /**
  * Profile export format with metadata
@@ -110,10 +110,10 @@ export class ProfileManagementService {
    * Get all profiles
    */
   async getProfiles(): Promise<GridProfile[]> {
-    const storage = await this.storageAdapter.get<{
+    const storage = await this.storageAdapter.get(STORAGE_KEYS.PROFILES) as {
       state: { profiles: GridProfile[]; activeProfileId: string; autoSave?: boolean };
       version: number;
-    }>(STORAGE_KEYS.PROFILES);
+    } | null;
 
     if (!storage || !storage.state || !storage.state.profiles) {
       return [];
@@ -676,10 +676,10 @@ export class ProfileManagementService {
    * Get storage data
    */
   private async getStorageData() {
-    return this.storageAdapter.get<{
+    return this.storageAdapter.get(STORAGE_KEYS.PROFILES) as Promise<{
       state: { profiles: GridProfile[]; activeProfileId: string; autoSave?: boolean };
       version: number;
-    }>(STORAGE_KEYS.PROFILES);
+    } | null>;
   }
 
   /**

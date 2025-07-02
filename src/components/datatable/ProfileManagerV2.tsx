@@ -4,7 +4,7 @@
  * while maintaining compatibility with the existing profile store
  */
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Select,
   SelectContent,
@@ -75,7 +75,7 @@ export const ProfileManagerV2: React.FC<ProfileManagerV2Props> = ({
     activateVersion,
     updateConfig,
     profileToConfig,
-    configToProfile
+    // configToProfile
   } = useUnifiedConfig({
     instanceId,
     autoLoad: true
@@ -84,9 +84,9 @@ export const ProfileManagerV2: React.FC<ProfileManagerV2Props> = ({
   // Also use existing profile store for compatibility
   const { 
     profiles, 
-    activeProfileId, 
-    setActiveProfile,
-    saveCurrentState 
+    // activeProfileId, 
+    // setActiveProfile,
+    // saveCurrentState 
   } = useProfileStore();
 
   // Get versions from config
@@ -94,7 +94,7 @@ export const ProfileManagerV2: React.FC<ProfileManagerV2Props> = ({
     (a, b) => b.versionNumber - a.versionNumber
   ) : [];
   
-  const activeVersion = config ? config.settings.versions[config.settings.activeVersionId] : null;
+  // const activeVersion = config ? config.settings.versions[config.settings.activeVersionId] : null;
 
   // Handle version creation
   const handleCreateVersion = useCallback(async () => {
@@ -116,14 +116,14 @@ export const ProfileManagerV2: React.FC<ProfileManagerV2Props> = ({
   }, [activateVersion, config, onConfigChange]);
 
   // Handle import from existing profile
-  const handleImportProfile = useCallback(async (profileId: string) => {
-    const profile = profiles.find(p => p.id === profileId);
-    if (!profile || !config) return;
-    
-    const configUpdate = profileToConfig(profile);
-    await updateConfig(configUpdate);
-    onConfigChange?.(config);
-  }, [profiles, config, profileToConfig, updateConfig, onConfigChange]);
+  // const handleImportProfile = useCallback(async (profileId: string) => {
+  //   const profile = profiles.find(p => p.id === profileId);
+  //   if (!profile || !config) return;
+  //   
+  //   const configUpdate = profileToConfig(profile);
+  //   await updateConfig(configUpdate);
+  //   onConfigChange?.(config);
+  // }, [profiles, config, profileToConfig, updateConfig, onConfigChange]);
 
   // Handle export to file
   const handleExportConfig = useCallback(() => {

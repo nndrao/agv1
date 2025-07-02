@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext } from 'react';
 import { ComponentConfig } from '@/services/config/UnifiedConfigStore';
-import { GridProfile } from './types';
+import { GridProfile } from './stores/profile.store';
 
 interface UnifiedConfigContextValue {
   // Config data

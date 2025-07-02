@@ -52,7 +52,7 @@ export const ColumnFormattingDialog: React.FC<ColumnFormattingDialogProps> = mem
             ];
             stateProperties.forEach(prop => {
               if (prop in cleanCol) {
-                console.log(`[ColumnFormattingDialog] Removing state property '${prop}' from column:`, colId);
+                // console.log(`[ColumnFormattingDialog] Removing state property '${prop}' from column:`, colId);
                 delete (cleanCol as any)[prop];
               }
             });
@@ -64,17 +64,17 @@ export const ColumnFormattingDialog: React.FC<ColumnFormattingDialogProps> = mem
       
       // Also set column state if provided
       if (columnState) {
-        console.log('[ColumnFormattingDialog] Setting column state:', {
-          columnStateLength: columnState.length,
-          sampleState: columnState.slice(0, 3).map(cs => ({
-            colId: cs.colId,
-            hide: cs.hide,
-            width: cs.width
-          }))
-        });
+        // console.log('[ColumnFormattingDialog] Setting column state:', {
+        //   columnStateLength: columnState.length,
+        //   sampleState: columnState.slice(0, 3).map(cs => ({
+        //     colId: cs.colId,
+        //     hide: cs.hide,
+        //     width: cs.width
+        //   }))
+        // });
         setColumnState(columnState);
       } else {
-        console.log('[ColumnFormattingDialog] No column state provided');
+        // console.log('[ColumnFormattingDialog] No column state provided');
       }
     }
     

@@ -56,11 +56,11 @@ export const useRibbonState = ({
   // Initialize store with provided column definitions and hydrate from active profile
   useEffect(() => {
     if (columnDefs && columnDefs.length > 0) {
-      console.log('[RibbonState] Initializing with columnDefs:', {
-        columnDefsCount: columnDefs.length,
-        targetColumn,
-        hasActiveProfile: !!getActiveProfile()
-      });
+      // console.log('[RibbonState] Initializing with columnDefs:', {
+      //   columnDefsCount: columnDefs.length,
+      //   targetColumn,
+      //   hasActiveProfile: !!getActiveProfile()
+      // });
 
       // Only reset visibility filter on initial mount, not on column selection changes
       // This preserves user's filter choices when selecting/deselecting columns
@@ -103,10 +103,10 @@ export const useRibbonState = ({
   // Set column state when provided
   useEffect(() => {
     if (columnState) {
-      console.log('[RibbonState] Setting column state:', {
-        columnStateCount: columnState.length,
-        hasVisibilityInfo: columnState.some(cs => cs.hide !== undefined)
-      });
+      // console.log('[RibbonState] Setting column state:', {
+      //   columnStateCount: columnState.length,
+      //   hasVisibilityInfo: columnState.some(cs => cs.hide !== undefined)
+      // });
       setColumnState(columnState);
     }
   }, [columnState, setColumnState]);
@@ -173,21 +173,21 @@ export const useRibbonState = ({
   // Enhanced apply changes - only updates grid, doesn't save to profile
   const handleApply = useCallback(() => {
     try {
-      console.log('[RibbonState] Applying changes:', {
-        selectedColumnsCount: selectedColumns.size,
-        pendingChangesCount: pendingChanges.size,
-        hasOnApply: !!onApply
-      });
+      // console.log('[RibbonState] Applying changes:', {
+      //   selectedColumnsCount: selectedColumns.size,
+      //   pendingChangesCount: pendingChanges.size,
+      //   hasOnApply: !!onApply
+      // });
 
       // Apply changes to get updated column definitions
       const updatedColumnDefs = applyChanges();
       
-      console.log('[RibbonState] Updated column definitions:', {
-        totalColumns: updatedColumnDefs.length,
-        columnsWithStyles: updatedColumnDefs.filter(col => col.cellStyle).length,
-        columnsWithFormatters: updatedColumnDefs.filter(col => col.valueFormatter).length,
-        sampleColumn: updatedColumnDefs.find(col => col.cellStyle || col.valueFormatter)
-      });
+      // console.log('[RibbonState] Updated column definitions:', {
+      //   totalColumns: updatedColumnDefs.length,
+      //   columnsWithStyles: updatedColumnDefs.filter(col => col.cellStyle).length,
+      //   columnsWithFormatters: updatedColumnDefs.filter(col => col.valueFormatter).length,
+      //   sampleColumn: updatedColumnDefs.find(col => col.cellStyle || col.valueFormatter)
+      // });
       
       // Call the onApply callback to update the grid
       // This updates the grid but doesn't save to the profile/localStorage
@@ -226,11 +226,11 @@ export const useRibbonState = ({
   // The StylingRibbonContent component now handles all the cellStyle/headerStyle logic
   // exactly matching the column settings dialog patterns
   const handleUpdateBulkProperty = useCallback((property: string, value: unknown) => {
-    console.log('[RibbonState] Updating bulk property:', {
-      property,
-      value: typeof value === 'function' ? 'function' : value,
-      selectedColumnsCount: selectedColumns.size
-    });
+    // console.log('[RibbonState] Updating bulk property:', {
+    //   property,
+    //   value: typeof value === 'function' ? 'function' : value,
+    //   selectedColumnsCount: selectedColumns.size
+    // });
 
     // Direct pass-through - let the components handle the logic
     updateBulkProperty(property, value);

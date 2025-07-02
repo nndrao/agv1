@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ColDef, ColumnState, FilterModel, SortModelItem } from 'ag-grid-community';
+import { ColumnState, FilterModel, SortModelItem } from 'ag-grid-community';
 import { storageAdapter } from '@/lib/storage/storageAdapter';
 
 // Simplified profile structure
@@ -175,7 +175,18 @@ export const useProfileStore = create<ProfileStore>()(
     }),
     {
       name: 'agv1-profiles-optimized',
-      storage: storageAdapter,
+      storage: {
+        getItem: async (name: string) => {
+          const value = await storageAdapter.get(name);
+          return value;
+        },
+        setItem: async (name: string, value: any) => {
+          await storageAdapter.set(name, value);
+        },
+        removeItem: async (name: string) => {
+          await storageAdapter.remove(name);
+        },
+      } as any,
       partialize: (state) => ({
         profiles: state.profiles,
         activeProfileId: state.activeProfileId,
