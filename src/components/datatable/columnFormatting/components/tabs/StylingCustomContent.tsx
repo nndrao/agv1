@@ -430,6 +430,32 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
           collectedValues.verticalAlign.add(alignment.verticalAlign);
         }
       }
+      
+      // Collect autoHeight property directly from column definition
+      if (activeSubTab === 'cell') {
+        const autoHeightValue = changes.autoHeight !== undefined ? changes.autoHeight : colDef?.autoHeight;
+        if (autoHeightValue !== undefined) {
+          foundAnyValues = true;
+          if (!collectedValues.autoHeight) collectedValues.autoHeight = new Set();
+          collectedValues.autoHeight.add(autoHeightValue);
+        }
+      } else {
+        // For header tab, check autoHeaderHeight
+        const autoHeaderHeightValue = changes.autoHeaderHeight !== undefined ? changes.autoHeaderHeight : colDef?.autoHeaderHeight;
+        if (autoHeaderHeightValue !== undefined) {
+          foundAnyValues = true;
+          if (!collectedValues.autoHeaderHeight) collectedValues.autoHeaderHeight = new Set();
+          collectedValues.autoHeaderHeight.add(autoHeaderHeightValue);
+        }
+        
+        // Also check wrapHeaderText for header tab
+        const wrapHeaderTextValue = changes.wrapHeaderText !== undefined ? changes.wrapHeaderText : colDef?.wrapHeaderText;
+        if (wrapHeaderTextValue !== undefined) {
+          foundAnyValues = true;
+          if (!collectedValues.wrapHeaderText) collectedValues.wrapHeaderText = new Set();
+          collectedValues.wrapHeaderText.add(wrapHeaderTextValue);
+        }
+      }
     });
     
     // Apply collected values to resetStyles (use first value if multiple)
@@ -485,6 +511,17 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
       if (collectedValues.whiteSpace?.size) {
         const whiteSpace = Array.from(collectedValues.whiteSpace)[0] as string;
         resetStyles.wrapText = whiteSpace === 'normal';
+      }
+      
+      // Auto height
+      if (collectedValues.autoHeight?.size) {
+        resetStyles.autoHeight = Array.from(collectedValues.autoHeight)[0] as boolean;
+      }
+      if (collectedValues.autoHeaderHeight?.size) {
+        resetStyles.autoHeight = Array.from(collectedValues.autoHeaderHeight)[0] as boolean;
+      }
+      if (collectedValues.wrapHeaderText?.size) {
+        resetStyles.wrapText = Array.from(collectedValues.wrapHeaderText)[0] as boolean;
       }
       
       // Applied styles from existing column definitions
@@ -611,6 +648,29 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
             collectedValues.verticalAlign.add(alignment.verticalAlign);
           }
         }
+        
+        // Collect autoHeight property directly from column definition
+        if (mode === 'cell') {
+          const autoHeightValue = changes.autoHeight !== undefined ? changes.autoHeight : colDef?.autoHeight;
+          if (autoHeightValue !== undefined) {
+            if (!collectedValues.autoHeight) collectedValues.autoHeight = new Set();
+            collectedValues.autoHeight.add(autoHeightValue);
+          }
+        } else {
+          // For header mode, check autoHeaderHeight
+          const autoHeaderHeightValue = changes.autoHeaderHeight !== undefined ? changes.autoHeaderHeight : colDef?.autoHeaderHeight;
+          if (autoHeaderHeightValue !== undefined) {
+            if (!collectedValues.autoHeaderHeight) collectedValues.autoHeaderHeight = new Set();
+            collectedValues.autoHeaderHeight.add(autoHeaderHeightValue);
+          }
+          
+          // Also check wrapHeaderText for header mode
+          const wrapHeaderTextValue = changes.wrapHeaderText !== undefined ? changes.wrapHeaderText : colDef?.wrapHeaderText;
+          if (wrapHeaderTextValue !== undefined) {
+            if (!collectedValues.wrapHeaderText) collectedValues.wrapHeaderText = new Set();
+            collectedValues.wrapHeaderText.add(wrapHeaderTextValue);
+          }
+        }
       });
       
       // Apply collected values (use first value if multiple)
@@ -648,6 +708,15 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
       if (collectedValues.whiteSpace?.size) {
         const whiteSpace = Array.from(collectedValues.whiteSpace)[0] as string;
         resetStyles.wrapText = whiteSpace === 'normal';
+      }
+      if (collectedValues.autoHeight?.size) {
+        resetStyles.autoHeight = Array.from(collectedValues.autoHeight)[0] as boolean;
+      }
+      if (collectedValues.autoHeaderHeight?.size) {
+        resetStyles.autoHeight = Array.from(collectedValues.autoHeaderHeight)[0] as boolean;
+      }
+      if (collectedValues.wrapHeaderText?.size) {
+        resetStyles.wrapText = Array.from(collectedValues.wrapHeaderText)[0] as boolean;
       }
       
       return resetStyles;
@@ -754,6 +823,9 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
       // Always update cellClass property (even if empty to clear previous alignment)
       updateBulkProperty('cellClass', cellClass || undefined);
       
+      // Apply autoHeight property for cells
+      updateBulkProperty('autoHeight', currentStyles.autoHeight);
+      
       // Check if any selected column has conditional formatting
       let hasConditionalFormatting = false;
       let existingFormatString: string | undefined;
@@ -845,6 +917,12 @@ export const StylingCustomContent: React.FC<StylingCustomContentProps> = ({ sele
       
       // Always update headerClass property (even if empty to clear previous alignment)
       updateBulkProperty('headerClass', headerClass || undefined);
+      
+      // Apply autoHeaderHeight property for headers
+      updateBulkProperty('autoHeaderHeight', currentStyles.autoHeight);
+      
+      // Apply wrapHeaderText property for headers
+      updateBulkProperty('wrapHeaderText', currentStyles.wrapText);
     }
     
     // Reset flag after a brief delay to allow state updates to propagate
