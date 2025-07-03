@@ -1,42 +1,31 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import {
-  Type,
-  Square,
+  Bold,
+  Italic,
+  Underline,
   AlignLeft,
   AlignCenter,
   AlignRight,
   AlignJustify,
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
+  Minus,
+  Plus,
+  Square,
+  Grid3x3,
+  Palette,
+  Type,
+  Percent,
+  DollarSign,
   WrapText,
-  Maximize2,
-  RotateCcw,
-  Pipette,
-  AlignVerticalSpaceAround,
-  AlignVerticalJustifyCenter,
-  AlignVerticalJustifyStart,
-  AlignVerticalJustifyEnd
+  TableProperties,
+  ChevronDown
 } from 'lucide-react';
 import { useColumnFormattingStore } from '../../store/columnFormatting.store';
-import { cn } from '@/lib/utils';
-import '../../custom-styles.css';
+import { createCellStyleFunction } from '@/components/datatable/utils/formatters';
 
-interface StylingCustomContentProps {
-  selectedColumns: Set<string>;
-}
-
-interface StyleState {
+interface StylesState {
   // Typography
   fontFamily: string;
   fontSize: string;
@@ -51,10 +40,8 @@ interface StyleState {
   // Colors
   textColor: string;
   backgroundColor: string;
-  applyTextColor: boolean;
-  applyBackgroundColor: boolean;
   
-  // Layout
+  // Text wrapping
   wrapText: boolean;
   autoHeight: boolean;
   
@@ -62,111 +49,42 @@ interface StyleState {
   borderWidth: string;
   borderStyle: string;
   borderColor: string;
-  borderSides: string;
-  applyBorder: boolean;
+  borderTop: boolean;
+  borderRight: boolean;
+  borderBottom: boolean;
+  borderLeft: boolean;
 }
 
-const defaultStyleState: StyleState = {
-  fontFamily: 'Inter',
-  fontSize: '14',
-  fontWeight: 'normal',
-  fontStyle: 'normal',
-  textDecoration: [],
-  textAlign: '',
-  verticalAlign: '',
-  textColor: '',
-  backgroundColor: '',
-  applyTextColor: false,
-  applyBackgroundColor: false,
-  wrapText: false,
-  autoHeight: false,
-  borderWidth: '1',
-  borderStyle: 'solid',
-  borderColor: '#CCCCCC',
-  borderSides: 'all',
-  applyBorder: false,
+const getDefaultStyles = (): StylesState => {
+  // Check if dark mode is active
+  const isDarkMode = document.documentElement.classList.contains('dark');
+  
+  return {
+    fontFamily: 'monospace', // Default font family from profile store
+    fontSize: '13', // Default cell font size
+    fontWeight: 'normal',
+    fontStyle: 'normal',
+    textDecoration: [],
+    textAlign: '',
+    verticalAlign: '',
+    // Use theme-aware colors
+    textColor: isDarkMode ? '#FFFFFF' : '#2C3E50', // Dark mode: white, Light mode: dark blue-gray
+    backgroundColor: isDarkMode ? '#161b22' : '#ECECEC', // Dark mode: very dark, Light mode: light gray
+    wrapText: false,
+    autoHeight: false,
+    borderWidth: '1',
+    borderStyle: 'solid',
+    borderColor: isDarkMode ? '#505866' : '#C5CAD1', // Theme border colors
+    borderTop: false,
+    borderRight: false,
+    borderBottom: false,
+    borderLeft: false,
+  };
 };
 
-// Color picker component
-const ColorPicker: React.FC<{
-  value: string;
-  onChange: (color: string) => void;
-  label: string;
-}> = ({ value, onChange, label }) => {
-  const presetColors = [
-    'transparent',
-    '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF',
-    '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080',
-    '#FFC0CB', '#808080', '#A52A2A', '#000080', '#008000'
-  ];
-
-  return (
-    <div className="space-y-1">
-      {label && <Label className="ribbon-section-header">{label}</Label>}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full h-6 justify-between px-2 text-xs"
-          >
-            <div className="flex items-center gap-2">
-              <div 
-                className={cn(
-                  "w-4 h-4 rounded border",
-                  value === 'transparent' || !value ? "bg-checkered" : ""
-                )}
-                style={{ 
-                  backgroundColor: value === 'transparent' || !value ? undefined : value,
-                  borderColor: value === '#FFFFFF' || !value ? '#E2E8F0' : 'transparent'
-                }}
-              />
-              <span className="text-xs">{!value ? 'Default' : value === 'transparent' ? 'Transparent' : value}</span>
-            </div>
-            <Pipette className="h-3 w-3 text-muted-foreground" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-72 p-3">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Label className="text-xs">Color:</Label>
-              <Input
-                type="color"
-                value={value === 'transparent' || !value ? '#FFFFFF' : value}
-                onChange={(e) => onChange(e.target.value)}
-                className="h-8 w-16 p-1 cursor-pointer"
-              />
-              <Input
-                type="text"
-                value={value || ''}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder="#FFFFFF"
-                className="h-8 flex-1 text-xs"
-              />
-            </div>
-            <div className="grid grid-cols-8 gap-1">
-              {presetColors.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => onChange(color)}
-                  className={cn(
-                    "w-8 h-8 rounded border transition-all hover:scale-110",
-                    color === 'transparent' ? "bg-checkered" : "",
-                    value === color && "ring-2 ring-primary ring-offset-1"
-                  )}
-                  style={{
-                    backgroundColor: color === 'transparent' ? undefined : color,
-                    borderColor: color === '#FFFFFF' ? '#E2E8F0' : 'transparent'
-                  }}
-                  title={color}
-                />
-              ))}
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-};
+interface StylingCustomContentProps {
+  selectedColumns: Set<string>;
+}
 
 export const StylingCustomContentV2: React.FC<StylingCustomContentProps> = ({ selectedColumns }) => {
   const { 
@@ -175,590 +93,653 @@ export const StylingCustomContentV2: React.FC<StylingCustomContentProps> = ({ se
     pendingChanges
   } = useColumnFormattingStore();
 
-  const [activeMode, setActiveMode] = useState<'cell' | 'header'>('cell');
-  const [styleState, setStyleState] = useState<StyleState>(defaultStyleState);
-  
-  // Create a stable column selection key for tracking changes
-  const selectionKey = useMemo(() => 
-    Array.from(selectedColumns).sort().join(','), 
-    [selectedColumns]
-  );
+  const [styles, setStyles] = useState<StylesState>(() => getDefaultStyles());
+  const [showColorPicker, setShowColorPicker] = useState<'text' | 'background' | 'border' | null>(null);
 
-  // Extract alignment from CSS class
-  const extractAlignmentFromClass = useCallback((classString: string, isHeader: boolean = false) => {
-    if (!classString) return { textAlign: '', verticalAlign: '' };
-    
-    let textAlign = '';
-    let verticalAlign = '';
-    
-    if (isHeader) {
-      if (classString.includes('header-h-left')) textAlign = 'left';
-      else if (classString.includes('header-h-center')) textAlign = 'center';
-      else if (classString.includes('header-h-right')) textAlign = 'right';
-      else if (classString.includes('header-h-justify')) textAlign = 'justify';
-      
-      if (classString.includes('header-v-top')) verticalAlign = 'top';
-      else if (classString.includes('header-v-middle')) verticalAlign = 'middle';
-      else if (classString.includes('header-v-bottom')) verticalAlign = 'bottom';
-    } else {
-      const combinedMatch = classString.match(/cell-align-(\w+)-(\w+)/);
-      if (combinedMatch) {
-        verticalAlign = combinedMatch[1];
-        textAlign = combinedMatch[2];
-      } else {
-        const verticalMatch = classString.match(/cell-vertical-align-(\w+)/);
-        const horizontalMatch = classString.match(/cell-horizontal-align-(\w+)/);
-        
-        if (verticalMatch) verticalAlign = verticalMatch[1];
-        if (horizontalMatch) textAlign = horizontalMatch[1];
-      }
-    }
-    
-    return { textAlign, verticalAlign };
-  }, []);
-
-  // Load styles from selected columns
-  const loadStylesFromColumns = useCallback((mode: 'cell' | 'header') => {
-    if (selectedColumns.size === 0) return defaultStyleState;
-    
-    // Get first selected column's styles
-    const firstColId = Array.from(selectedColumns)[0];
-    const colDef = columnDefinitions.get(firstColId);
-    if (!colDef) return defaultStyleState;
-    
-    const changes = pendingChanges.get(firstColId) || {};
-    const newState = { ...defaultStyleState };
-    
-    // Get style and class based on mode
-    const styleToCheck = mode === 'cell' 
-      ? (changes.cellStyle !== undefined ? changes.cellStyle : colDef.cellStyle)
-      : (changes.headerStyle !== undefined ? changes.headerStyle : colDef.headerStyle);
-    
-    const classToCheck = mode === 'cell'
-      ? (changes.cellClass !== undefined ? changes.cellClass : colDef.cellClass)
-      : (changes.headerClass !== undefined ? changes.headerClass : colDef.headerClass);
-    
-    // Extract styles
-    if (styleToCheck) {
-      let styleObj: any = {};
-      
-      if (typeof styleToCheck === 'function') {
-        styleObj = (styleToCheck as any).__baseStyle || {};
-      } else if (typeof styleToCheck === 'object') {
-        styleObj = styleToCheck;
-      }
-      
-      // Typography
-      if (styleObj.fontFamily) newState.fontFamily = styleObj.fontFamily;
-      if (styleObj.fontSize) newState.fontSize = styleObj.fontSize.replace('px', '');
-      if (styleObj.fontWeight) newState.fontWeight = styleObj.fontWeight;
-      if (styleObj.fontStyle) newState.fontStyle = styleObj.fontStyle;
-      if (styleObj.textDecoration) {
-        newState.textDecoration = styleObj.textDecoration.split(' ').filter(Boolean);
-      }
-      
-      // Colors
-      if (styleObj.color) {
-        newState.textColor = styleObj.color;
-        newState.applyTextColor = true;
-      }
-      if (styleObj.backgroundColor) {
-        newState.backgroundColor = styleObj.backgroundColor;
-        newState.applyBackgroundColor = true;
-      }
-      
-      // Layout
-      if (styleObj.whiteSpace) {
-        newState.wrapText = styleObj.whiteSpace === 'normal';
-      }
-      
-      // Borders
-      if (styleObj.border && styleObj.border !== 'none') {
-        const borderParts = styleObj.border.split(' ');
-        if (borderParts.length >= 3) {
-          newState.borderWidth = borderParts[0].replace('px', '');
-          newState.borderStyle = borderParts[1];
-          newState.borderColor = borderParts[2];
-          newState.borderSides = 'all';
-          newState.applyBorder = true;
-        }
-      }
-    }
-    
-    // Extract alignment from classes
-    if (classToCheck) {
-      const classString = typeof classToCheck === 'string' ? classToCheck : '';
-      const alignment = extractAlignmentFromClass(classString, mode === 'header');
-      
-      if (alignment.textAlign) newState.textAlign = alignment.textAlign;
-      if (alignment.verticalAlign) newState.verticalAlign = alignment.verticalAlign;
-    }
-    
-    // Check auto height for cells
-    if (mode === 'cell' && colDef.autoHeight) {
-      newState.autoHeight = true;
-    }
-    
-    return newState;
-  }, [selectedColumns, columnDefinitions, pendingChanges, extractAlignmentFromClass]);
-
-  // Load styles when selection or mode changes
-  useEffect(() => {
-    const newStyles = loadStylesFromColumns(activeMode);
-    setStyleState(newStyles);
-  }, [selectionKey, activeMode, loadStylesFromColumns]);
-
-  // Update single style property
-  const updateStyle = useCallback((key: keyof StyleState, value: any) => {
-    setStyleState(prev => ({ ...prev, [key]: value }));
-  }, []);
-
-  // Apply current styles
-  const applyStyles = useCallback(() => {
-    const styleObject: any = {
-      fontFamily: styleState.fontFamily,
-      fontSize: `${styleState.fontSize}px`,
-      fontWeight: styleState.fontWeight,
-      fontStyle: styleState.fontStyle,
-      whiteSpace: styleState.wrapText ? 'normal' : 'nowrap',
-    };
-    
-    // Text decoration
-    if (styleState.textDecoration.length > 0) {
-      styleObject.textDecoration = styleState.textDecoration.join(' ');
-    }
-    
-    // Colors
-    if (styleState.applyTextColor && styleState.textColor) {
-      styleObject.color = styleState.textColor;
-    }
-    if (styleState.applyBackgroundColor && styleState.backgroundColor) {
-      styleObject.backgroundColor = styleState.backgroundColor;
-    }
-    
-    // Borders
-    if (styleState.applyBorder) {
-      if (styleState.borderSides === 'all') {
-        styleObject.border = `${styleState.borderWidth}px ${styleState.borderStyle} ${styleState.borderColor}`;
-      } else if (styleState.borderSides !== 'none') {
-        styleObject[`border${styleState.borderSides.charAt(0).toUpperCase() + styleState.borderSides.slice(1)}`] = 
-          `${styleState.borderWidth}px ${styleState.borderStyle} ${styleState.borderColor}`;
-      }
-    }
-    
-    // Apply styles and alignment
-    if (activeMode === 'cell') {
-      // Create alignment class
-      let cellClass = '';
-      if (styleState.verticalAlign && styleState.textAlign) {
-        cellClass = `cell-align-${styleState.verticalAlign}-${styleState.textAlign}`;
-      } else if (styleState.verticalAlign) {
-        cellClass = `cell-vertical-align-${styleState.verticalAlign}`;
-      } else if (styleState.textAlign) {
-        cellClass = `cell-horizontal-align-${styleState.textAlign}`;
-      }
-      
-      updateBulkProperty('cellClass', cellClass || undefined);
-      updateBulkProperty('cellStyle', styleObject);
-      
-      if (styleState.autoHeight) {
-        updateBulkProperty('autoHeight', true);
-      }
-    } else {
-      // Header styles
-      const headerClasses = [];
-      if (styleState.textAlign) {
-        headerClasses.push(`header-h-${styleState.textAlign}`);
-      }
-      if (styleState.verticalAlign) {
-        headerClasses.push(`header-v-${styleState.verticalAlign}`);
-      }
-      
-      updateBulkProperty('headerClass', headerClasses.join(' ') || undefined);
-      updateBulkProperty('headerStyle', styleObject);
-    }
-  }, [styleState, activeMode, updateBulkProperty]);
-
-  // Auto-apply on changes with debounce to prevent infinite loops
+  // Load existing styles when columns change
   useEffect(() => {
     if (selectedColumns.size === 0) return;
-    
-    const timeoutId = setTimeout(() => {
-      applyStyles();
-    }, 100);
-    
-    return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [styleState, selectedColumns.size]); // Intentionally exclude applyStyles to prevent loops
 
-  // Reset styles
-  const resetStyles = useCallback(() => {
-    setStyleState(defaultStyleState);
-  }, []);
+    const newStyles = getDefaultStyles();
+    const firstColumnId = Array.from(selectedColumns)[0];
+    const colDef = columnDefinitions.get(firstColumnId);
+    const changes = pendingChanges.get(firstColumnId) || {};
 
-  // Font size options
-  const fontSizeOptions = [
-    { value: '10', label: '10px' },
-    { value: '12', label: '12px' },
-    { value: '14', label: '14px' },
-    { value: '16', label: '16px' },
-    { value: '18', label: '18px' },
-    { value: '20', label: '20px' },
-    { value: '24', label: '24px' },
+    if (colDef || Object.keys(changes).length > 0) {
+      const cellStyleToCheck = changes.cellStyle !== undefined ? changes.cellStyle : colDef?.cellStyle;
+      if (cellStyleToCheck) {
+        let styleObj: any = {};
+        if (typeof cellStyleToCheck === 'function') {
+          styleObj = (cellStyleToCheck as any).__baseStyle || {};
+        } else if (typeof cellStyleToCheck === 'object') {
+          styleObj = cellStyleToCheck;
+        }
+
+        if (styleObj.fontFamily) newStyles.fontFamily = styleObj.fontFamily;
+        if (styleObj.fontSize) newStyles.fontSize = styleObj.fontSize.replace('px', '');
+        if (styleObj.fontWeight) newStyles.fontWeight = styleObj.fontWeight;
+        if (styleObj.fontStyle) newStyles.fontStyle = styleObj.fontStyle;
+        if (styleObj.color) newStyles.textColor = styleObj.color;
+        if (styleObj.backgroundColor) newStyles.backgroundColor = styleObj.backgroundColor;
+        if (styleObj.whiteSpace === 'normal') newStyles.wrapText = true;
+        
+        // Load border settings
+        if (styleObj.border) {
+          newStyles.borderTop = true;
+          newStyles.borderRight = true;
+          newStyles.borderBottom = true;
+          newStyles.borderLeft = true;
+          // Parse border shorthand (e.g., "1px solid #d1d5db")
+          const borderParts = styleObj.border.split(' ');
+          if (borderParts.length >= 3) {
+            newStyles.borderWidth = borderParts[0].replace('px', '');
+            newStyles.borderStyle = borderParts[1];
+            newStyles.borderColor = borderParts[2];
+          }
+        } else {
+          // Check individual borders
+          if (styleObj.borderTop && styleObj.borderTop !== 'none') {
+            newStyles.borderTop = true;
+            // Parse individual border style if not already set
+            const borderParts = styleObj.borderTop.split(' ');
+            if (borderParts.length >= 3 && !newStyles.borderWidth) {
+              newStyles.borderWidth = borderParts[0].replace('px', '');
+              newStyles.borderStyle = borderParts[1];
+              newStyles.borderColor = borderParts[2];
+            }
+          }
+          if (styleObj.borderRight && styleObj.borderRight !== 'none') {
+            newStyles.borderRight = true;
+            const borderParts = styleObj.borderRight.split(' ');
+            if (borderParts.length >= 3 && !newStyles.borderWidth) {
+              newStyles.borderWidth = borderParts[0].replace('px', '');
+              newStyles.borderStyle = borderParts[1];
+              newStyles.borderColor = borderParts[2];
+            }
+          }
+          if (styleObj.borderBottom && styleObj.borderBottom !== 'none') {
+            newStyles.borderBottom = true;
+            const borderParts = styleObj.borderBottom.split(' ');
+            if (borderParts.length >= 3 && !newStyles.borderWidth) {
+              newStyles.borderWidth = borderParts[0].replace('px', '');
+              newStyles.borderStyle = borderParts[1];
+              newStyles.borderColor = borderParts[2];
+            }
+          }
+          if (styleObj.borderLeft && styleObj.borderLeft !== 'none') {
+            newStyles.borderLeft = true;
+            const borderParts = styleObj.borderLeft.split(' ');
+            if (borderParts.length >= 3 && !newStyles.borderWidth) {
+              newStyles.borderWidth = borderParts[0].replace('px', '');
+              newStyles.borderStyle = borderParts[1];
+              newStyles.borderColor = borderParts[2];
+            }
+          }
+        }
+      }
+
+      const autoHeightValue = changes.autoHeight !== undefined ? changes.autoHeight : colDef?.autoHeight;
+      if (autoHeightValue !== undefined) newStyles.autoHeight = autoHeightValue;
+    }
+
+    setStyles(newStyles);
+  }, [selectedColumns, columnDefinitions]);
+
+  // Apply styles immediately when changed
+  const applyStyle = useCallback((styleUpdates: Partial<StylesState>) => {
+    const newStyles = { ...styles, ...styleUpdates };
+    setStyles(newStyles);
+
+    // Build style object
+    const styleObject: any = {
+      fontFamily: newStyles.fontFamily,
+      fontSize: `${newStyles.fontSize}px`,
+      fontWeight: newStyles.fontWeight,
+      fontStyle: newStyles.fontStyle,
+      whiteSpace: newStyles.wrapText ? 'normal' : 'nowrap',
+    };
+
+    // Handle text decoration
+    if (newStyles.textDecoration.length > 0) {
+      styleObject.textDecoration = newStyles.textDecoration.join(' ');
+    }
+
+    // Apply colors
+    if (newStyles.textColor) styleObject.color = newStyles.textColor;
+    if (newStyles.backgroundColor) styleObject.backgroundColor = newStyles.backgroundColor;
+
+    // Handle borders
+    const borderValue = `${newStyles.borderWidth}px ${newStyles.borderStyle} ${newStyles.borderColor}`;
+    const hasBorder = newStyles.borderTop || newStyles.borderRight || newStyles.borderBottom || newStyles.borderLeft;
+    
+    if (hasBorder) {
+      if (newStyles.borderTop && newStyles.borderRight && newStyles.borderBottom && newStyles.borderLeft) {
+        // All borders - use shorthand
+        styleObject.border = borderValue;
+      } else {
+        // Individual borders
+        styleObject.borderTop = newStyles.borderTop ? borderValue : 'none';
+        styleObject.borderRight = newStyles.borderRight ? borderValue : 'none';
+        styleObject.borderBottom = newStyles.borderBottom ? borderValue : 'none';
+        styleObject.borderLeft = newStyles.borderLeft ? borderValue : 'none';
+      }
+    } else {
+      styleObject.border = 'none';
+    }
+
+    // Create style function that preserves existing styles
+    const cellStyleFunction = (params: any) => {
+      const colId = params.column?.getColId();
+      if (!colId) return styleObject;
+      
+      const colDef = columnDefinitions.get(colId);
+      const changes = pendingChanges.get(colId) || {};
+      const existingStyleDef = changes.cellStyle !== undefined ? changes.cellStyle : colDef?.cellStyle;
+      
+      // If there's an existing style function with a format string, preserve it
+      if (existingStyleDef && typeof existingStyleDef === 'function') {
+        const formatString = (existingStyleDef as any).__formatString;
+        if (formatString) {
+          // Create a new style function that merges base styles with conditional formatting
+          const tempFunction = createCellStyleFunction(formatString, styleObject);
+          return tempFunction(params);
+        } else {
+          // Regular style function - merge with existing styles
+          const existingStyle = existingStyleDef(params) || {};
+          return { ...existingStyle, ...styleObject };
+        }
+      }
+      
+      // No existing style function - just return the style object
+      return styleObject;
+    };
+    
+    (cellStyleFunction as any).__baseStyle = styleObject;
+    
+    updateBulkProperty('cellStyle', cellStyleFunction);
+    updateBulkProperty('autoHeight', newStyles.autoHeight);
+
+    // Apply alignment
+    let cellClass = '';
+    if (newStyles.verticalAlign && newStyles.textAlign) {
+      cellClass = `cell-align-${newStyles.verticalAlign}-${newStyles.textAlign}`;
+    } else if (newStyles.verticalAlign) {
+      cellClass = `cell-vertical-align-${newStyles.verticalAlign}`;
+    } else if (newStyles.textAlign) {
+      cellClass = `cell-horizontal-align-${newStyles.textAlign}`;
+    }
+    updateBulkProperty('cellClass', cellClass || undefined);
+  }, [styles, updateBulkProperty, columnDefinitions, pendingChanges]);
+
+  // Font family options - include monospace fonts used in the app
+  const fontFamilyOptions = [
+    { value: 'monospace', label: 'System Monospace' },
+    { value: '"Fira Code", monospace', label: 'Fira Code' },
+    { value: '"JetBrains Mono", monospace', label: 'JetBrains Mono' },
+    { value: '"IBM Plex Mono", monospace', label: 'IBM Plex Mono' },
+    { value: '"Roboto Mono", monospace', label: 'Roboto Mono' },
+    { value: '"Source Code Pro", monospace', label: 'Source Code Pro' },
+    { value: 'Inter', label: 'Inter' },
+    { value: 'Arial', label: 'Arial' },
+    { value: 'Helvetica', label: 'Helvetica' },
   ];
 
   return (
-    <div className="flex h-full gap-3">
-      <div className="flex-1">
-        {/* Multi-column selection alert */}
-        {selectedColumns.size > 1 && (
-          <Alert className="mb-3 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              <strong>Bulk Edit Mode:</strong> You have {selectedColumns.size} columns selected. All styling changes will be applied to ALL selected columns simultaneously.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {/* Mode selector */}
-        <div className="flex items-center justify-between mb-3">
-          <ToggleGroup type="single" value={activeMode} onValueChange={(v) => v && setActiveMode(v as 'cell' | 'header')}>
-            <ToggleGroupItem value="cell" className="ribbon-toggle-group-item">
-              <Square className="ribbon-icon-xs mr-1" />
-              Cell
-            </ToggleGroupItem>
-            <ToggleGroupItem value="header" className="ribbon-toggle-group-item">
-              <Type className="ribbon-icon-xs mr-1" />
-              Header
-            </ToggleGroupItem>
-          </ToggleGroup>
+    <div className="flex flex-col gap-2">
+      {/* First Row - Typography and Text Formatting */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Font Family */}
+        <Select 
+          value={styles.fontFamily} 
+          onValueChange={(value) => applyStyle({ fontFamily: value })}
+        >
+          <SelectTrigger className="w-[140px] h-8 text-xs bg-gray-800 border-gray-700">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-800 border-gray-700">
+            {fontFamilyOptions.map(opt => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                <span style={{ fontFamily: opt.value }}>{opt.label}</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Font Size */}
+        <Select 
+          value={styles.fontSize} 
+          onValueChange={(value) => applyStyle({ fontSize: value })}
+        >
+          <SelectTrigger className="w-[70px] h-8 text-xs bg-gray-800 border-gray-700">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-800 border-gray-700">
+            {['10', '11', '12', '13', '14', '16', '18', '20', '24'].map(size => (
+              <SelectItem key={size} value={size} className="text-xs">{size}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Font Size Adjust */}
+        <div className="flex items-center">
           <Button
             variant="ghost"
             size="sm"
-            onClick={resetStyles}
-            className="h-6 px-2 text-xs"
+            className="h-8 w-8 p-0 hover:bg-gray-700"
+            onClick={() => {
+              const currentSize = parseInt(styles.fontSize);
+              if (currentSize > 10) applyStyle({ fontSize: String(currentSize - 1) });
+            }}
           >
-            <RotateCcw className="w-3 h-3 mr-1" />
-            Reset
+            <span className="text-xs">A-</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-gray-700"
+            onClick={() => {
+              const currentSize = parseInt(styles.fontSize);
+              if (currentSize < 24) applyStyle({ fontSize: String(currentSize + 1) });
+            }}
+          >
+            <span className="text-xs">A+</span>
           </Button>
         </div>
 
-        {/* Style controls */}
-        <div className="space-y-2">
-          <div className="grid grid-cols-4 gap-4">
-            {/* Typography controls */}
-            <div>
-              <Label className="ribbon-section-header">FONT</Label>
-              <Select value={styleState.fontFamily} onValueChange={(value) => updateStyle('fontFamily', value)}>
-                <SelectTrigger className="h-6 w-full text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Inter">Inter</SelectItem>
-                  <SelectItem value="Arial">Arial</SelectItem>
-                  <SelectItem value="Helvetica">Helvetica</SelectItem>
-                  <SelectItem value="Times New Roman">Times New Roman</SelectItem>
-                  <SelectItem value="Georgia">Georgia</SelectItem>
-                  <SelectItem value="Courier New">Courier New</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <Separator orientation="vertical" className="h-6" />
 
-            <div>
-              <Label className="ribbon-section-header">SIZE</Label>
-              <Select value={styleState.fontSize} onValueChange={(value) => updateStyle('fontSize', value)}>
-                <SelectTrigger className="h-6 w-full text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {fontSizeOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Bold, Italic, Underline */}
+        <div className="flex items-center">
+          <Button
+            variant={styles.fontWeight === 'bold' ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.fontWeight === 'bold' ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => applyStyle({ fontWeight: styles.fontWeight === 'bold' ? 'normal' : 'bold' })}
+          >
+            <Bold className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={styles.textDecoration.includes('italic') ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.textDecoration.includes('italic') ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => {
+              const newDeco = [...styles.textDecoration];
+              const idx = newDeco.indexOf('italic');
+              if (idx > -1) {
+                newDeco.splice(idx, 1);
+                applyStyle({ textDecoration: newDeco, fontStyle: 'normal' });
+              } else {
+                newDeco.push('italic');
+                applyStyle({ textDecoration: newDeco, fontStyle: 'italic' });
+              }
+            }}
+          >
+            <Italic className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={styles.textDecoration.includes('underline') ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.textDecoration.includes('underline') ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => {
+              const newDeco = [...styles.textDecoration];
+              const idx = newDeco.indexOf('underline');
+              if (idx > -1) {
+                newDeco.splice(idx, 1);
+              } else {
+                newDeco.push('underline');
+              }
+              applyStyle({ textDecoration: newDeco });
+            }}
+          >
+            <Underline className="h-4 w-4" />
+          </Button>
+        </div>
 
-            <div>
-              <Label className="ribbon-section-header">WEIGHT</Label>
-              <Select value={styleState.fontWeight} onValueChange={(value) => updateStyle('fontWeight', value)}>
-                <SelectTrigger className="h-6 w-full text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="300">Light</SelectItem>
-                  <SelectItem value="normal">Regular</SelectItem>
-                  <SelectItem value="500">Medium</SelectItem>
-                  <SelectItem value="600">Semibold</SelectItem>
-                  <SelectItem value="bold">Bold</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <Separator orientation="vertical" className="h-6" />
 
-            {/* Text alignment */}
-            <div>
-              <Label className="ribbon-section-header">ALIGN</Label>
-              <ToggleGroup 
-                type="single" 
-                value={styleState.textAlign || ''}
-                onValueChange={(value) => updateStyle('textAlign', value || '')} 
-                className="h-6 w-full"
-              >
-                <ToggleGroupItem value="left" className="alignment-toggle-item" title="Align Left">
-                  <AlignLeft className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="center" className="alignment-toggle-item" title="Align Center">
-                  <AlignCenter className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="right" className="alignment-toggle-item" title="Align Right">
-                  <AlignRight className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="justify" className="alignment-toggle-item" title="Justify">
-                  <AlignJustify className="h-4 w-4" />
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-
-            {/* Font style */}
-            <div>
-              <Label className="ribbon-section-header">STYLE</Label>
-              <ToggleGroup 
-                type="multiple" 
-                value={[
-                  ...(styleState.fontWeight === 'bold' || styleState.fontWeight === '600' || styleState.fontWeight === '700' ? ['bold'] : []),
-                  ...(styleState.fontStyle === 'italic' ? ['italic'] : []),
-                  ...styleState.textDecoration
-                ]} 
-                onValueChange={(values) => {
-                  // Handle bold
-                  if (values.includes('bold') && styleState.fontWeight !== 'bold') {
-                    updateStyle('fontWeight', 'bold');
-                  } else if (!values.includes('bold') && (styleState.fontWeight === 'bold' || styleState.fontWeight === '600' || styleState.fontWeight === '700')) {
-                    updateStyle('fontWeight', 'normal');
-                  }
-                  
-                  // Handle italic
-                  updateStyle('fontStyle', values.includes('italic') ? 'italic' : 'normal');
-                  
-                  // Handle decorations
-                  updateStyle('textDecoration', values.filter(v => ['underline', 'line-through'].includes(v)));
-                }} 
-                className="h-6 w-full"
-              >
-                <ToggleGroupItem value="bold" className="alignment-toggle-item" title="Bold">
-                  <Bold className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="italic" className="alignment-toggle-item" title="Italic">
-                  <Italic className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="underline" className="alignment-toggle-item" title="Underline">
-                  <Underline className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="line-through" className="alignment-toggle-item" title="Strikethrough">
-                  <Strikethrough className="h-4 w-4" />
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-
-            {/* Text color */}
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-1 h-5">
-                <Label className="ribbon-section-header flex-1 mb-0">TEXT COLOR</Label>
-                <Switch 
-                  checked={styleState.applyTextColor}
-                  onCheckedChange={(checked) => updateStyle('applyTextColor', checked)}
-                  className="h-4 w-7 data-[state=checked]:bg-primary"
-                />
-              </div>
-              <ColorPicker
-                value={styleState.textColor}
-                onChange={(color) => updateStyle('textColor', color)}
-                label=""
+        {/* Text Color */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 hover:bg-gray-700 flex items-center gap-1"
+            onClick={() => setShowColorPicker(showColorPicker === 'text' ? null : 'text')}
+          >
+            <Type className="h-4 w-4" />
+            <div 
+              className="w-4 h-3 border border-gray-600" 
+              style={{ backgroundColor: styles.textColor }}
+            />
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+          {showColorPicker === 'text' && (
+            <div className="absolute top-full mt-1 p-2 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-50">
+              <input
+                type="color"
+                value={styles.textColor}
+                onChange={(e) => {
+                  applyStyle({ textColor: e.target.value });
+                  setShowColorPicker(null);
+                }}
+                className="w-32 h-32"
               />
-            </div>
-
-            {/* Background color */}
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-1 h-5">
-                <Label className="ribbon-section-header flex-1 mb-0">BACKGROUND</Label>
-                <Switch 
-                  checked={styleState.applyBackgroundColor}
-                  onCheckedChange={(checked) => updateStyle('applyBackgroundColor', checked)}
-                  className="h-4 w-7 data-[state=checked]:bg-primary"
-                />
-              </div>
-              <ColorPicker
-                value={styleState.backgroundColor}
-                onChange={(color) => updateStyle('backgroundColor', color)}
-                label=""
-              />
-            </div>
-
-            {/* Vertical alignment */}
-            <div>
-              <Label className="ribbon-section-header">V-ALIGN</Label>
-              <ToggleGroup 
-                type="single" 
-                value={styleState.verticalAlign || ''}
-                onValueChange={(value) => updateStyle('verticalAlign', value || '')} 
-                className="h-6 w-full"
+              <Button
+                size="sm"
+                variant="ghost"
+                className="mt-2 w-full text-xs"
+                onClick={() => {
+                  const defaults = getDefaultStyles();
+                  applyStyle({ textColor: defaults.textColor });
+                  setShowColorPicker(null);
+                }}
               >
-                <ToggleGroupItem value="top" className="alignment-toggle-item" title="Align Top">
-                  <AlignVerticalJustifyStart className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="middle" className="alignment-toggle-item" title="Align Middle">
-                  <AlignVerticalJustifyCenter className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="bottom" className="alignment-toggle-item" title="Align Bottom">
-                  <AlignVerticalJustifyEnd className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="stretch" className="alignment-toggle-item" title="Stretch">
-                  <AlignVerticalSpaceAround className="h-4 w-4" />
-                </ToggleGroupItem>
-              </ToggleGroup>
+                Reset to Theme Default
+              </Button>
             </div>
+          )}
+        </div>
 
-            {/* Border controls */}
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-1 h-5">
-                <Label className="ribbon-section-header flex-1 mb-0">BORDER</Label>
-                <Switch 
-                  checked={styleState.applyBorder}
-                  onCheckedChange={(checked) => updateStyle('applyBorder', checked)}
-                  className="h-4 w-7 data-[state=checked]:bg-primary"
-                />
-              </div>
-              <Select 
-                value={styleState.borderSides} 
-                onValueChange={(value) => updateStyle('borderSides', value)}
-                disabled={!styleState.applyBorder}
-              >
-                <SelectTrigger className="h-6 w-full text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Sides</SelectItem>
-                  <SelectItem value="top">Top</SelectItem>
-                  <SelectItem value="right">Right</SelectItem>
-                  <SelectItem value="bottom">Bottom</SelectItem>
-                  <SelectItem value="left">Left</SelectItem>
-                  <SelectItem value="none">None</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Border width */}
-            <div className={cn(!styleState.applyBorder && "opacity-50")}>
-              <Label className="ribbon-section-header">WIDTH</Label>
-              <Input
-                type="number"
-                min="1"
-                max="10"
-                value={styleState.borderWidth}
-                onChange={(e) => updateStyle('borderWidth', e.target.value)}
-                className="h-6 text-xs"
-                disabled={!styleState.applyBorder}
+        {/* Background Color */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 hover:bg-gray-700 flex items-center gap-1"
+            onClick={() => setShowColorPicker(showColorPicker === 'background' ? null : 'background')}
+          >
+            <Palette className="h-4 w-4" />
+            <div 
+              className="w-4 h-3 border border-gray-600" 
+              style={{ backgroundColor: styles.backgroundColor }}
+            />
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+          {showColorPicker === 'background' && (
+            <div className="absolute top-full mt-1 p-2 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-50">
+              <input
+                type="color"
+                value={styles.backgroundColor}
+                onChange={(e) => {
+                  applyStyle({ backgroundColor: e.target.value });
+                  setShowColorPicker(null);
+                }}
+                className="w-32 h-32"
               />
-            </div>
-
-            {/* Border style */}
-            <div className={cn(!styleState.applyBorder && "opacity-50")}>
-              <Label className="ribbon-section-header">STYLE</Label>
-              <Select 
-                value={styleState.borderStyle} 
-                onValueChange={(value) => updateStyle('borderStyle', value)}
-                disabled={!styleState.applyBorder}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="mt-2 w-full text-xs"
+                onClick={() => {
+                  const defaults = getDefaultStyles();
+                  applyStyle({ backgroundColor: defaults.backgroundColor });
+                  setShowColorPicker(null);
+                }}
               >
-                <SelectTrigger className="h-6 w-full text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="solid">Solid</SelectItem>
-                  <SelectItem value="dashed">Dashed</SelectItem>
-                  <SelectItem value="dotted">Dotted</SelectItem>
-                  <SelectItem value="double">Double</SelectItem>
-                </SelectContent>
-              </Select>
+                Reset to Theme Default
+              </Button>
             </div>
-
-            {/* Border color */}
-            <div className={cn(!styleState.applyBorder && "opacity-50")}>
-              <Label className="ribbon-section-header">COLOR</Label>
-              <ColorPicker
-                value={styleState.borderColor}
-                onChange={(color) => updateStyle('borderColor', color)}
-                label=""
-              />
-            </div>
-
-            {/* Cell-specific options */}
-            {activeMode === 'cell' && (
-              <>
-                <div>
-                  <Label className="ribbon-section-header">TEXT WRAP</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Switch 
-                      checked={styleState.wrapText}
-                      onCheckedChange={(checked) => updateStyle('wrapText', checked)}
-                      className="h-4 w-7 data-[state=checked]:bg-primary"
-                    />
-                    <WrapText className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="ribbon-section-header">AUTO HEIGHT</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Switch 
-                      checked={styleState.autoHeight}
-                      onCheckedChange={(checked) => updateStyle('autoHeight', checked)}
-                      className="h-4 w-7 data-[state=checked]:bg-primary"
-                    />
-                    <Maximize2 className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Preview panel */}
-      <div className="w-64 border-l pl-3">
-        <Label className="text-xs font-semibold mb-2 block">Preview</Label>
-        <div className="border rounded-md p-4 bg-background">
-          <div 
-            className="min-h-[100px] flex items-center justify-center p-2 border rounded"
-            style={{
-              fontFamily: styleState.fontFamily,
-              fontSize: `${styleState.fontSize}px`,
-              fontWeight: styleState.fontWeight,
-              fontStyle: styleState.fontStyle,
-              textDecoration: styleState.textDecoration.join(' '),
-              color: styleState.applyTextColor ? styleState.textColor : undefined,
-              backgroundColor: styleState.applyBackgroundColor ? styleState.backgroundColor : undefined,
-              textAlign: styleState.textAlign as any || 'left',
-              alignItems: styleState.verticalAlign === 'top' ? 'flex-start' :
-                         styleState.verticalAlign === 'bottom' ? 'flex-end' :
-                         styleState.verticalAlign === 'stretch' ? 'stretch' : 'center',
-              whiteSpace: styleState.wrapText ? 'normal' : 'nowrap',
-              border: styleState.applyBorder ? 
-                (styleState.borderSides === 'all' ? 
-                  `${styleState.borderWidth}px ${styleState.borderStyle} ${styleState.borderColor}` : 
-                  'none'
-                ) : undefined,
-              borderTop: styleState.applyBorder && styleState.borderSides === 'top' ? 
-                `${styleState.borderWidth}px ${styleState.borderStyle} ${styleState.borderColor}` : undefined,
-              borderRight: styleState.applyBorder && styleState.borderSides === 'right' ? 
-                `${styleState.borderWidth}px ${styleState.borderStyle} ${styleState.borderColor}` : undefined,
-              borderBottom: styleState.applyBorder && styleState.borderSides === 'bottom' ? 
-                `${styleState.borderWidth}px ${styleState.borderStyle} ${styleState.borderColor}` : undefined,
-              borderLeft: styleState.applyBorder && styleState.borderSides === 'left' ? 
-                `${styleState.borderWidth}px ${styleState.borderStyle} ${styleState.borderColor}` : undefined,
-            }}
+      {/* Second Row - Alignment and Borders */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Text Alignment */}
+        <div className="flex items-center">
+          <Button
+            variant={styles.textAlign === 'left' ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.textAlign === 'left' ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => applyStyle({ textAlign: styles.textAlign === 'left' ? '' : 'left' })}
           >
-            <span>Sample Text</span>
+            <AlignLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={styles.textAlign === 'center' ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.textAlign === 'center' ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => applyStyle({ textAlign: styles.textAlign === 'center' ? '' : 'center' })}
+          >
+            <AlignCenter className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={styles.textAlign === 'right' ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.textAlign === 'right' ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => applyStyle({ textAlign: styles.textAlign === 'right' ? '' : 'right' })}
+          >
+            <AlignRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={styles.textAlign === 'justify' ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.textAlign === 'justify' ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => applyStyle({ textAlign: styles.textAlign === 'justify' ? '' : 'justify' })}
+          >
+            <AlignJustify className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Borders */}
+        <div className="flex items-center gap-1">
+          <Button
+            variant={(styles.borderTop && styles.borderRight && styles.borderBottom && styles.borderLeft) ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${(styles.borderTop && styles.borderRight && styles.borderBottom && styles.borderLeft) ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => {
+              const allBorders = styles.borderTop && styles.borderRight && styles.borderBottom && styles.borderLeft;
+              applyStyle({ 
+                borderTop: !allBorders,
+                borderRight: !allBorders,
+                borderBottom: !allBorders,
+                borderLeft: !allBorders
+              });
+            }}
+            title="All borders"
+          >
+            <Grid3x3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={styles.borderTop ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.borderTop ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => applyStyle({ borderTop: !styles.borderTop })}
+            title="Top border"
+          >
+            <div className="w-4 h-4 border-t-2 border-current" />
+          </Button>
+          <Button
+            variant={styles.borderRight ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.borderRight ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => applyStyle({ borderRight: !styles.borderRight })}
+            title="Right border"
+          >
+            <div className="w-4 h-4 border-r-2 border-current" />
+          </Button>
+          <Button
+            variant={styles.borderBottom ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.borderBottom ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => applyStyle({ borderBottom: !styles.borderBottom })}
+            title="Bottom border"
+          >
+            <div className="w-4 h-4 border-b-2 border-current" />
+          </Button>
+          <Button
+            variant={styles.borderLeft ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`h-8 w-8 p-0 ${styles.borderLeft ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+            onClick={() => applyStyle({ borderLeft: !styles.borderLeft })}
+            title="Left border"
+          >
+            <div className="w-4 h-4 border-l-2 border-current" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-gray-700"
+            onClick={() => applyStyle({ 
+              borderTop: false,
+              borderRight: false,
+              borderBottom: false,
+              borderLeft: false
+            })}
+            title="No borders"
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+          
+          {/* Border Style Dropdown */}
+          <Select 
+            value={styles.borderStyle} 
+            onValueChange={(value) => applyStyle({ borderStyle: value })}
+          >
+            <SelectTrigger className="w-[80px] h-8 text-xs bg-gray-800 border-gray-700">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectItem value="solid" className="text-xs">Solid</SelectItem>
+              <SelectItem value="dashed" className="text-xs">Dashed</SelectItem>
+              <SelectItem value="dotted" className="text-xs">Dotted</SelectItem>
+              <SelectItem value="double" className="text-xs">Double</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {/* Border Color */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 hover:bg-gray-700 flex items-center gap-1"
+              onClick={() => setShowColorPicker(showColorPicker === 'border' ? null : 'border')}
+            >
+              <div 
+                className="w-4 h-3 border-2" 
+                style={{ borderColor: styles.borderColor }}
+              />
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+            {showColorPicker === 'border' && (
+              <div className="absolute top-full mt-1 p-2 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-50">
+                <input
+                  type="color"
+                  value={styles.borderColor}
+                  onChange={(e) => {
+                    applyStyle({ borderColor: e.target.value });
+                    setShowColorPicker(null);
+                  }}
+                  className="w-32 h-32"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="mt-2 w-full text-xs"
+                  onClick={() => {
+                    const defaults = getDefaultStyles();
+                    applyStyle({ borderColor: defaults.borderColor });
+                    setShowColorPicker(null);
+                  }}
+                >
+                  Reset to Theme Default
+                </Button>
+              </div>
+            )}
           </div>
         </div>
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Wrap Text */}
+        <Button
+          variant={styles.wrapText ? 'secondary' : 'ghost'}
+          size="sm"
+          className={`h-8 px-2 ${styles.wrapText ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+          onClick={() => applyStyle({ wrapText: !styles.wrapText })}
+        >
+          <WrapText className="h-4 w-4" />
+        </Button>
+
+        {/* Auto Height */}
+        <Button
+          variant={styles.autoHeight ? 'secondary' : 'ghost'}
+          size="sm"
+          className={`h-8 px-2 ${styles.autoHeight ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
+          onClick={() => applyStyle({ autoHeight: !styles.autoHeight })}
+          title="Auto Height"
+        >
+          <TableProperties className="h-4 w-4" />
+        </Button>
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Number Formatting */}
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 hover:bg-gray-700"
+            title="Currency"
+          >
+            <DollarSign className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 hover:bg-gray-700"
+            title="Percentage"
+          >
+            <Percent className="h-4 w-4" />
+          </Button>
+          <Select defaultValue="accounting">
+            <SelectTrigger className="w-[120px] h-8 text-xs bg-gray-800 border-gray-700">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectItem value="accounting" className="text-xs">Accounting</SelectItem>
+              <SelectItem value="number" className="text-xs">Number</SelectItem>
+              <SelectItem value="currency" className="text-xs">Currency</SelectItem>
+              <SelectItem value="percentage" className="text-xs">Percentage</SelectItem>
+              <SelectItem value="date" className="text-xs">Date</SelectItem>
+              <SelectItem value="time" className="text-xs">Time</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Decimal Places */}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-1 hover:bg-gray-700"
+            title="Decrease decimal places"
+          >
+            <span className="text-xs">.0</span>
+            <Minus className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-1 hover:bg-gray-700"
+            title="Increase decimal places"
+          >
+            <span className="text-xs">.00</span>
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+
+        {/* Conditional Formatting */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 px-3 ml-auto border-gray-700 hover:bg-gray-700"
+        >
+          Conditional Formatting
+        </Button>
       </div>
     </div>
   );
