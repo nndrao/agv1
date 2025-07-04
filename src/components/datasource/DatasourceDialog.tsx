@@ -77,6 +77,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
   const [keyColumn, setKeyColumn] = useState('');
   const [messageRate, setMessageRate] = useState('1000');
   const [autoStart, setAutoStart] = useState(false);
+  const [snapshotTimeoutMs, setSnapshotTimeoutMs] = useState(60000);
   
   // Test state
   const [testing, setTesting] = useState(false);
@@ -113,6 +114,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
         setKeyColumn(datasource.keyColumn);
         setAutoStart(datasource.autoStart || false);
         setManualColumns(datasource.columnDefinitions || []);
+        setSnapshotTimeoutMs(datasource.snapshotTimeoutMs || 60000);
         
         // Load saved inferred fields
         if (datasource.inferredFields) {
@@ -240,6 +242,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
       snapshotEndToken,
       keyColumn,
       messageRate,
+      snapshotTimeoutMs,
     });
 
     try {
@@ -281,10 +284,35 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
       snapshotEndToken,
       keyColumn,
       messageRate,
+      snapshotTimeoutMs,
     });
 
     try {
-      const result = await provider.fetchSnapshot(100);
+      // Use Map to track unique rows if key column is specified
+      const dataMap = keyColumn ? new Map<string, any>() : null;
+      let accumulatedData: any[] = [];
+      
+      const result = await provider.fetchSnapshot(100, (batch, _totalRows) => {
+        // Handle duplicates based on key column
+        if (keyColumn && dataMap) {
+          batch.forEach(row => {
+            const key = row[keyColumn];
+            if (key !== undefined && key !== null) {
+              dataMap.set(String(key), row);
+            }
+          });
+          accumulatedData = Array.from(dataMap.values());
+        } else {
+          // No key column - just accumulate
+          accumulatedData.push(...batch);
+        }
+        
+        // Update preview with first 10 rows
+        setPreviewData(accumulatedData.slice(0, 10));
+        // Update testing message
+        setTestError(''); // Clear any errors
+        console.log(`[DatasourceDialog] Batch: ${batch.length} rows, Unique total: ${accumulatedData.length}`);
+      });
       
       if (result.success && result.data && result.data.length > 0) {
         setPreviewData(result.data.slice(0, 10)); // Show first 10 rows
@@ -767,6 +795,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
       inferredFields: inferredFields.map(field => convertFieldNodeToInfo(field)),
       createdAt: datasourceId ? getDatasource(datasourceId)?.createdAt || Date.now() : Date.now(),
       updatedAt: Date.now(),
+      snapshotTimeoutMs,
     };
 
     if (datasourceId) {
@@ -974,6 +1003,22 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                       </div>
                     </div>
                   )}
+
+                  <div>
+                    <Label htmlFor="snapshot-timeout">Snapshot Timeout (ms)</Label>
+                    <Input
+                      id="snapshot-timeout"
+                      type="number"
+                      value={snapshotTimeoutMs}
+                      onChange={(e) => setSnapshotTimeoutMs(parseInt(e.target.value) || 60000)}
+                      placeholder="60000"
+                      min="10000"
+                      max="600000"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Time to wait for snapshot completion (10-600 seconds)
+                    </p>
+                  </div>
 
                   <div className="flex items-center space-x-2">
                     <Checkbox

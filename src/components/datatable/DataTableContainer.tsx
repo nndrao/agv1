@@ -113,17 +113,34 @@ export const DataTableContainer = memo(({
   }, [selectedDatasourceId, datasourceColumns, setCurrentColumnDefs]); // Remove gridApi from dependencies
   
   // Show toast when snapshot data is loaded
+  const [hasShownSnapshotToast, setHasShownSnapshotToast] = useState(false);
+  
+  // Debug logging for snapshot completion
+  React.useEffect(() => {
+    console.log(`[DataTableContainer] Snapshot status changed for ${selectedDatasourceId}:`, {
+      isSnapshotComplete,
+      dataLength: datasourceData?.length || 0,
+      hasShownToast: hasShownSnapshotToast
+    });
+  }, [isSnapshotComplete, selectedDatasourceId, datasourceData?.length]);
+  
   React.useEffect(() => {
     if (selectedDatasourceId && isSnapshotComplete && datasourceData && datasourceData.length > 0) {
-      // Use a flag to ensure toast only shows once
-      if (!hasAutoEnabledUpdates) {
+      // Only show toast once per datasource
+      if (!hasShownSnapshotToast) {
         toast({
           title: 'Snapshot loaded',
           description: `${datasourceData.length} rows loaded from datasource`,
         });
+        setHasShownSnapshotToast(true);
       }
     }
-  }, [selectedDatasourceId, isSnapshotComplete, datasourceData?.length, toast, hasAutoEnabledUpdates]);
+  }, [selectedDatasourceId, isSnapshotComplete, datasourceData?.length, toast, hasShownSnapshotToast]);
+  
+  // Reset toast flag when datasource changes
+  React.useEffect(() => {
+    setHasShownSnapshotToast(false);
+  }, [selectedDatasourceId]);
   
   // State for dialogs
   const [showGridOptionsDialog, setShowGridOptionsDialog] = useState(false);
@@ -486,25 +503,25 @@ export const DataTableContainer = memo(({
           onToggleUpdates={() => setUpdatesEnabled(!updatesEnabled)}
         />
         
+        <DataTableGrid
+          columnDefs={processedColumns}
+          rowData={selectedDatasourceId 
+            ? (datasourceData || []) 
+            : dataRow
+          }
+          gridApiRef={gridApiRef}
+          keyColumn={selectedDatasourceId ? datasources?.find(ds => ds.id === selectedDatasourceId)?.keyColumn : undefined}
+        />
+        
         {selectedDatasourceId && !isSnapshotComplete && (
-          <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-700 dark:border-gray-300 mx-auto mb-2"></div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Loading datasource snapshot...</p>
+          <div className="absolute top-0 right-0 m-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 z-10">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400"></div>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                Loading snapshot... {datasourceData?.length || 0} rows
+              </p>
             </div>
           </div>
-        )}
-        
-        {(!selectedDatasourceId || isSnapshotComplete) && (
-          <DataTableGrid
-            columnDefs={processedColumns}
-            rowData={selectedDatasourceId 
-              ? (datasourceData || []) 
-              : dataRow
-            }
-            gridApiRef={gridApiRef}
-            keyColumn={selectedDatasourceId ? datasources?.find(ds => ds.id === selectedDatasourceId)?.keyColumn : undefined}
-          />
         )}
         
         <ColumnFormattingDialog

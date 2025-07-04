@@ -121,7 +121,7 @@ export class StompDatasourceProvider {
     }
   }
 
-  async fetchSnapshot(maxRows?: number): Promise<StompConnectionResult> {
+  async fetchSnapshot(maxRows?: number, onBatchReceived?: (batch: any[], totalRows: number, isComplete?: boolean) => void): Promise<StompConnectionResult> {
     try {
       // Connect if not already connected
       if (!this.isConnected) {
@@ -129,10 +129,18 @@ export class StompDatasourceProvider {
       }
 
       return new Promise((resolve) => {
+        const instanceId = Math.random().toString(36).substring(7);
+        console.log(`[StompDatasourceProvider] Starting fetchSnapshot instance: ${instanceId}`);
+        
         const receivedData: any[] = [];
         this.statistics.snapshotRowsReceived = 0;
         this.statistics.snapshotStartTime = Date.now();
         this.isReceivingSnapshot = true;
+        
+        // Message sequence counter for debugging
+        let messageSequence = 0;
+        let lastBatchMessageSequence = 0;
+        let endTokenMessageSequence = 0;
         
         // Start periodic stats logging
         this.startStatsLogging();
@@ -169,28 +177,43 @@ export class StompDatasourceProvider {
               const messageBody = message.body;
               const messageBytes = new TextEncoder().encode(messageBody).length;
               this.statistics.bytesReceived += messageBytes;
+              messageSequence++;
+              
               // Process received message
+              
+              // Log message type for debugging
+              const messagePreview = messageBody.substring(0, 50);
+              console.log(`[StompDatasourceProvider ${instanceId}] Message #${messageSequence}: ${messagePreview}... (${messageBytes} bytes), current total: ${receivedData.length} rows`);
               
               // Check if this is a snapshot end token (string starting with 'Success' or matching the token)
               if (this.config.snapshotEndToken) {
                 if (messageBody.startsWith('Success') || 
                     messageBody.includes(this.config.snapshotEndToken)) {
                   // Snapshot end detected
+                  endTokenMessageSequence = messageSequence;
                   this.isReceivingSnapshot = false;
                   this.statistics.snapshotEndTime = Date.now();
                   this.statistics.snapshotDuration = this.statistics.snapshotEndTime - (this.statistics.snapshotStartTime || 0);
-                  console.log(`[StompDatasourceProvider] Snapshot end token received: ${this.statistics.snapshotRowsReceived} rows so far`);
+                  console.log(`[StompDatasourceProvider ${instanceId}] Message #${messageSequence}: Snapshot end token received: receivedData.length=${receivedData.length}, lastBatchMessage=#${lastBatchMessageSequence}`);
                   
-                  // On slow networks, wait a bit for any remaining messages in transit
-                  setTimeout(() => {
-                    console.log(`[StompDatasourceProvider] Snapshot completed: ${this.statistics.snapshotRowsReceived} rows in ${this.statistics.snapshotDuration}ms`);
-                    resolveOnce({
-                      success: true,
-                      data: receivedData,
-                      rawData: receivedData,
-                      statistics: { ...this.statistics },
-                    });
-                  }, 500); // 500ms grace period for slow networks
+                  // Since all messages are processed sequentially in the STOMP queue,
+                  // when we receive the end token, all data messages have been processed
+                  console.log(`[StompDatasourceProvider ${instanceId}] Snapshot complete: receivedData.length=${receivedData.length}, stats.snapshotRowsReceived=${this.statistics.snapshotRowsReceived}`);
+                  
+                  // Call the batch callback one final time with isComplete=true
+                  if (onBatchReceived) {
+                    console.log(`[StompDatasourceProvider ${instanceId}] Calling batch callback with completion flag, final count: ${receivedData.length}`);
+                    onBatchReceived([...receivedData], receivedData.length, true);
+                  }
+                  
+                  // Resolve the promise
+                  resolveOnce({
+                    success: true,
+                    data: receivedData,
+                    rawData: receivedData,
+                    statistics: { ...this.statistics },
+                  });
+                  
                   return;
                 }
               }
@@ -206,19 +229,26 @@ export class StompDatasourceProvider {
                   this.isReceivingSnapshot = false;
                   this.statistics.snapshotEndTime = Date.now();
                   this.statistics.snapshotDuration = this.statistics.snapshotEndTime - (this.statistics.snapshotStartTime || 0);
-                  console.log(`[StompDatasourceProvider] Snapshot end token received (non-JSON): ${this.statistics.snapshotRowsReceived} rows so far`);
+                  console.log(`[StompDatasourceProvider ${instanceId}] Snapshot end token received (non-JSON): receivedData.length=${receivedData.length}, stats.snapshotRowsReceived=${this.statistics.snapshotRowsReceived}`);
                   
                   if (!resolved) {
-                    // On slow networks, wait a bit for any remaining messages in transit
-                    setTimeout(() => {
-                      console.log(`[StompDatasourceProvider] Snapshot completed (non-JSON token): ${this.statistics.snapshotRowsReceived} rows in ${this.statistics.snapshotDuration}ms`);
-                      resolveOnce({
-                        success: true,
-                        data: receivedData,
-                        rawData: receivedData,
-                        statistics: { ...this.statistics },
-                      });
-                    }, 500); // 500ms grace period for slow networks
+                    // Since all messages are processed sequentially in the STOMP queue,
+                    // when we receive the end token, all data messages have been processed
+                    console.log(`[StompDatasourceProvider ${instanceId}] Snapshot complete (non-JSON): receivedData.length=${receivedData.length}, stats.snapshotRowsReceived=${this.statistics.snapshotRowsReceived}`);
+                    
+                    // Call the batch callback one final time with isComplete=true
+                    if (onBatchReceived) {
+                      console.log(`[StompDatasourceProvider ${instanceId}] Calling batch callback with completion flag (non-JSON), final count: ${receivedData.length}`);
+                      onBatchReceived([...receivedData], receivedData.length, true);
+                    }
+                    
+                    // Resolve the promise
+                    resolveOnce({
+                      success: true,
+                      data: receivedData,
+                      rawData: receivedData,
+                      statistics: { ...this.statistics },
+                    });
                   }
                   // Continue receiving updates for real-time data
                   return;
@@ -230,14 +260,35 @@ export class StompDatasourceProvider {
               // Process data based on whether it's snapshot or update
               if (this.isReceivingSnapshot) {
                 // During snapshot, just append data
+                let batchData: any[] = [];
+                const previousLength = receivedData.length;
+                
                 if (Array.isArray(data)) {
+                  lastBatchMessageSequence = messageSequence;
+                  console.log(`[StompDatasourceProvider ${instanceId}] Message #${messageSequence}: Processing batch of ${data.length} rows, before: ${receivedData.length}`);
                   receivedData.push(...data);
+                  batchData = data;
                   this.statistics.snapshotRowsReceived += data.length;
                   this.statistics.snapshotBytesReceived += messageBytes;
+                  console.log(`[StompDatasourceProvider ${instanceId}] Message #${messageSequence}: After batch: ${receivedData.length} rows`);
                 } else if (typeof data === 'object' && data !== null) {
+                  lastBatchMessageSequence = messageSequence;
                   receivedData.push(data);
+                  batchData = [data];
                   this.statistics.snapshotRowsReceived += 1;
                   this.statistics.snapshotBytesReceived += messageBytes;
+                }
+                
+                // Debug logging
+                if (receivedData.length < previousLength) {
+                  console.error(`[StompDatasourceProvider ${instanceId}] Data array shrunk! Was ${previousLength}, now ${receivedData.length}`);
+                }
+                
+                // Call the batch callback if provided
+                if (onBatchReceived && batchData.length > 0) {
+                  // Pass all accumulated data so far and the total count
+                  console.log(`[StompDatasourceProvider ${instanceId}] Calling batch callback with ${receivedData.length} total rows`);
+                  onBatchReceived([...receivedData], receivedData.length, false);
                 }
                 
                 // Log progress every 5000 rows
@@ -251,6 +302,7 @@ export class StompDatasourceProvider {
                 
                 this.statistics.updateRowsReceived += updates.length;
                 this.statistics.updateBytesReceived += messageBytes;
+                console.log(`[StompDatasourceProvider] Received ${updates.length} real-time updates, notifying ${this.updateCallbacks.length} callbacks`);
                 // Notify update callbacks with just the updates
                 this.updateCallbacks.forEach(callback => callback(updates));
               }

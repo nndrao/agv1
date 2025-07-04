@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { DatasourceConfig, useDatasourceStore } from '@/stores/datasource.store';
-import { StompDatasourceProvider } from '@/providers/StompDatasourceProvider';
-import { UpdateEventEmitter } from '@/utils/UpdateEventEmitter';
+import { UpdateEventEmitter, UpdateEvent } from '@/utils/UpdateEventEmitter';
 import { DataStoreManager } from '@/services/datasource/DataStoreManager';
 import { ConflatedDataStore } from '@/services/datasource/ConflatedDataStore';
 import { DatasourceStatistics } from '@/services/datasource/DatasourceStatistics';
+import { DatasourceProviderManager } from '@/services/datasource/DatasourceProviderManager';
 
 interface DatasourceContextType {
   // Currently active datasources
@@ -77,11 +77,13 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   const [snapshotStatus, setSnapshotStatus] = useState<Map<string, 'loading' | 'complete' | 'error'>>(new Map());
   const [datasourceStatistics, setDatasourceStatistics] = useState<Map<string, DatasourceStatistics>>(new Map());
   const [componentUsage, setComponentUsage] = useState<Map<string, Set<string>>>(new Map());
-  const [providers, setProviders] = useState<Map<string, StompDatasourceProvider>>(new Map());
   const [showDatasourceList, setShowDatasourceList] = useState(false);
   
   // Initialize data store manager
   const dataStoreManager = useRef(DataStoreManager.getInstance()).current;
+  
+  // Initialize datasource provider manager
+  const providerManager = useRef(DatasourceProviderManager.getInstance()).current;
   
   // Initialize update event emitter with batching DISABLED (conflation happens in ConflatedDataStore)
   const updateEmitterRef = useRef<UpdateEventEmitter>(new UpdateEventEmitter(10000, { enabled: false, interval: 100 }));
@@ -98,6 +100,9 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   // Track update subscriptions
   const updateSubscriptionsRef = useRef<Map<string, ((data: any) => void) | null>>(new Map());
   
+  // Track datasources being activated to prevent concurrent activations
+  const activatingDatasourcesRef = useRef<Set<string>>(new Set());
+  
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -110,9 +115,19 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   const activateDatasource = useCallback(async (datasourceId: string) => {
     // Check if already active
     if (activeDatasources.has(datasourceId)) {
-      // console.log(`[DatasourceContext] Datasource ${datasourceId} is already active`);
+      console.log(`[DatasourceContext] Datasource ${datasourceId} is already active`);
       return;
     }
+    
+    // Check if already being activated
+    if (activatingDatasourcesRef.current.has(datasourceId)) {
+      console.log(`[DatasourceContext] Datasource ${datasourceId} is already being activated`);
+      return;
+    }
+    
+    // Mark as being activated
+    activatingDatasourcesRef.current.add(datasourceId);
+    console.log(`[DatasourceContext] Activating datasource ${datasourceId}`);
     
     const datasource = getDatasource(datasourceId);
     if (!datasource) {
@@ -127,14 +142,6 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     
     try {
       if (datasource.type === 'stomp') {
-        const provider = new StompDatasourceProvider({
-          ...datasource,
-          messageRate: '1000', // TODO: Get from datasource config
-        });
-        
-        // Store provider for later cleanup
-        setProviders(prev => new Map(prev).set(datasourceId, provider));
-        
         // Create conflated data store for this datasource
         const dataStore = dataStoreManager.createStore(datasource);
         const statistics = dataStoreManager.getStatistics(datasourceId)!;
@@ -142,55 +149,96 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
         // Start snapshot tracking
         statistics.startSnapshot();
         
-        // Connect and fetch data
-        const result = await provider.fetchSnapshot(); // Fetch all available data
+        // Clear any existing data first
+        dataStore.setSnapshot([]);
+        setDatasourceData(prev => new Map(prev).set(datasourceId, []));
         
-        if (result.success && result.data) {
-          // Set snapshot data in the conflated store
-          dataStore.setSnapshot(result.data || []);
-          
-          // Complete snapshot tracking
-          statistics.completeSnapshot(result.data?.length || 0, result.statistics?.bytesReceived || 0);
-          
-          // Store the datasource and its data (for backward compatibility)
-          setActiveDatasources(prev => new Map(prev).set(datasourceId, datasource));
-          setDatasourceData(prev => new Map(prev).set(datasourceId, result.data || []));
-          setConnectionStatus(prev => new Map(prev).set(datasourceId, 'connected'));
+        // Subscribe to the datasource via the singleton manager
+        await providerManager.subscribe(datasource, {
+          id: `context-${datasourceId}`,
+          onSnapshot: (data, totalRows, isComplete) => {
+            console.log(`[DatasourceContext] onSnapshot called: data.length=${data.length}, totalRows=${totalRows}, complete: ${isComplete}`);
+            
+            // Update the data store
+            dataStore.setSnapshot(data);
+            
+            // Update datasource data for UI (this will trigger AG-Grid updates)
+            setDatasourceData(prev => {
+              const newMap = new Map(prev);
+              newMap.set(datasourceId, data);
+              console.log(`[DatasourceContext] Updated datasourceData for ${datasourceId}: ${data.length} rows`);
+              return newMap;
+            });
+            
+            // Update snapshot status
+            if (isComplete) {
+              console.log(`[DatasourceContext] Marking snapshot as COMPLETE for ${datasourceId} with ${data.length} rows`);
+              snapshotCompleteRef.current.set(datasourceId, true);
+              setSnapshotStatus(prev => {
+                const newMap = new Map(prev);
+                newMap.set(datasourceId, 'complete');
+                console.log(`[DatasourceContext] Snapshot status map updated:`, Array.from(newMap.entries()));
+                return newMap;
+              });
+              statistics.completeSnapshot(data.length, 0);
+            } else {
+              setSnapshotStatus(prev => new Map(prev).set(datasourceId, 'loading'));
+              statistics.updateSnapshotProgress(totalRows, 1000);
+            }
+            
+            setDatasourceStatistics(prev => new Map(prev).set(datasourceId, statistics));
+          },
+          onUpdate: (updates) => {
+            // Handle real-time updates by adding them to the data store
+            console.log(`[DatasourceContext] Received ${updates.length} real-time updates for ${datasourceId}`);
+            
+            // Add updates to the ConflatedDataStore
+            dataStore.addBulkUpdates(updates, 'update');
+            
+            // Also emit update event for backward compatibility
+            const updateEvent: UpdateEvent = {
+              type: 'transaction',
+              datasourceId,
+              transaction: { update: updates },
+              timestamp: Date.now()
+            };
+            updateEmitter.emit('update', updateEvent);
+          },
+          onError: (error) => {
+            console.error(`[DatasourceContext] Error from provider:`, error);
+            setConnectionStatus(prev => new Map(prev).set(datasourceId, 'error'));
+            setSnapshotStatus(prev => new Map(prev).set(datasourceId, 'error'));
+          }
+        });
+        
+        // Mark as active and connected
+        setActiveDatasources(prev => new Map(prev).set(datasourceId, datasource));
+        setConnectionStatus(prev => new Map(prev).set(datasourceId, 'connected'));
+        
+        // Check if snapshot is already complete
+        const existingData = providerManager.getSnapshotData(datasourceId);
+        if (existingData) {
+          snapshotCompleteRef.current.set(datasourceId, true);
           setSnapshotStatus(prev => new Map(prev).set(datasourceId, 'complete'));
-          
-          // Store statistics reference
-          setDatasourceStatistics(prev => new Map(prev).set(datasourceId, statistics));
-          
-          // No need to subscribe to UpdateEventEmitter - updates go directly to ConflatedDataStore
-          
-          // console.log(`[DatasourceContext] Datasource ${datasource.name} activated with ${result.data.length} rows`);
-        } else {
-          throw new Error(result.error || 'Failed to connect');
+          statistics.completeSnapshot(existingData.length, 0);
         }
       }
       // TODO: Handle REST datasources
     } catch (error) {
-      // console.error(`[DatasourceContext] Error activating datasource ${datasourceId}:`, error);
+      console.error(`[DatasourceContext] Error activating datasource ${datasourceId}:`, error);
       setConnectionStatus(prev => new Map(prev).set(datasourceId, 'error'));
       setSnapshotStatus(prev => new Map(prev).set(datasourceId, 'error'));
       snapshotCompleteRef.current.delete(datasourceId);
+    } finally {
+      // Remove from activating set
+      activatingDatasourcesRef.current.delete(datasourceId);
     }
   }, [getDatasource, activeDatasources]);
   
   // Deactivate a datasource
   const deactivateDatasource = useCallback((datasourceId: string) => {
-    // Clean up provider
-    const provider = providers.get(datasourceId);
-    if (provider) {
-      provider.disconnect();
-      setProviders(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(datasourceId);
-        return newMap;
-      });
-    }
-    
-    // No need to remove from update emitter - we're not using it
+    // Unsubscribe from provider manager
+    providerManager.unsubscribe(datasourceId, `context-${datasourceId}`);
     
     // Remove from data store manager
     dataStoreManager.removeStore(datasourceId);
@@ -224,15 +272,25 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     snapshotCompleteRef.current.delete(datasourceId);
     updateSubscriptionsRef.current.delete(datasourceId);
     
-    // console.log(`[DatasourceContext] Datasource ${datasourceId} deactivated`);
-  }, [providers, updateEmitter, dataStoreManager]);
+    console.log(`[DatasourceContext] Datasource ${datasourceId} deactivated`);
+  }, [providerManager, dataStoreManager]);
   
   // Refresh a datasource
   const refreshDatasource = useCallback(async (datasourceId: string) => {
-    // Deactivate and reactivate
-    deactivateDatasource(datasourceId);
-    await activateDatasource(datasourceId);
-  }, [activateDatasource, deactivateDatasource]);
+    const datasource = getDatasource(datasourceId);
+    if (!datasource || datasource.type !== 'stomp') {
+      console.error(`[DatasourceContext] Cannot refresh datasource ${datasourceId}`);
+      return;
+    }
+    
+    // Clear existing data
+    setDatasourceData(prev => new Map(prev).set(datasourceId, []));
+    setSnapshotStatus(prev => new Map(prev).set(datasourceId, 'loading'));
+    snapshotCompleteRef.current.set(datasourceId, false);
+    
+    // Refresh via provider manager - this will notify all subscribers
+    await providerManager.refresh(datasource);
+  }, [getDatasource, providerManager]);
   
   // Register a component as using a datasource
   const registerComponent = useCallback((datasourceId: string, componentId: string) => {
@@ -264,54 +322,9 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
 
   // Subscribe to updates for a datasource (called by components when ready)
   const subscribeToUpdates = useCallback((datasourceId: string) => {
-    const provider = providers.get(datasourceId);
-    if (!provider) {
-      console.warn(`[DatasourceContext] Cannot subscribe - no provider for ${datasourceId}`);
-      return;
-    }
-
-    // Check if already subscribed
-    if (updateSubscriptionsRef.current.has(datasourceId)) {
-      // console.log(`[DatasourceContext] Already subscribed to updates for ${datasourceId}`);
-      return;
-    }
-
-    // console.log(`[DatasourceContext] Subscribing to updates for ${datasourceId}`);
-    
-    // Mark as ready for updates immediately to avoid dropping updates
-    snapshotCompleteRef.current.set(datasourceId, true);
-    // console.log(`[DatasourceContext] Marked ${datasourceId} as ready for updates`);
-    
-    // Create update handler that sends updates directly to ConflatedDataStore
-    const updateHandler = (updatedData: any) => {
-      // Get the data store for direct updates
-      const dataStore = dataStoreManager.getStore(datasourceId);
-      if (!dataStore) {
-        console.warn(`[DatasourceContext] No data store for ${datasourceId}`);
-        return;
-      }
-      
-      // Track update in statistics
-      const statistics = dataStoreManager.getStatistics(datasourceId);
-      if (statistics) {
-        statistics.recordUpdate(true);
-      }
-      
-      // Send updates directly to the ConflatedDataStore
-      const updates = Array.isArray(updatedData) ? updatedData : [updatedData];
-      
-      // The ConflatedDataStore will handle conflation and emit updates to subscribers
-      dataStore.addBulkUpdates(updates, 'update');
-      
-      // console.log(`[DatasourceContext] Sent ${updates.length} updates directly to ConflatedDataStore`);
-    };
-    
-    // Subscribe to real-time updates
-    provider.subscribeToUpdates(updateHandler);
-    
-    // Store the handler reference
-    updateSubscriptionsRef.current.set(datasourceId, updateHandler);
-  }, [providers]);
+    // Updates are now handled automatically via the provider manager subscription
+    console.log(`[DatasourceContext] subscribeToUpdates called for ${datasourceId} (handled by provider manager)`);
+  }, []);
 
   // Initialize worker with grid data (kept for backward compatibility, but no-op)
   const initializeWorkerForGrid = useCallback(() => {
@@ -326,26 +339,16 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   }, []);
 
   // Unsubscribe from updates for a datasource
-  const unsubscribeFromUpdates = useCallback((datasourceId: string) => {
-    // Check if subscribed
-    if (!updateSubscriptionsRef.current.has(datasourceId)) {
-      // console.log(`[DatasourceContext] Not subscribed to updates for ${datasourceId}`);
-      return;
-    }
-
-    // console.log(`[DatasourceContext] Unsubscribing from updates for ${datasourceId}`);
-    
-    // Mark as not ready for updates
-    snapshotCompleteRef.current.set(datasourceId, false);
-    
-    // Remove the handler reference (provider will handle cleanup internally)
-    updateSubscriptionsRef.current.delete(datasourceId);
+  const unsubscribeFromUpdates = useCallback((_datasourceId: string) => {
+    // Updates are now handled automatically via the provider manager subscription
+    console.log(`[DatasourceContext] unsubscribeFromUpdates called (handled by provider manager)`);
   }, []);
   
   // Get provider for a datasource
-  const getProvider = useCallback((datasourceId: string) => {
-    return providers.get(datasourceId);
-  }, [providers]);
+  const getProvider = useCallback((_datasourceId: string) => {
+    // Providers are now managed by the singleton manager
+    return undefined;
+  }, []);
   
   // Get data store for a datasource
   const getDataStore = useCallback((datasourceId: string) => {
@@ -377,12 +380,11 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   // Clean up on unmount
   React.useEffect(() => {
     return () => {
-      // Disconnect all providers
-      providers.forEach(provider => provider.disconnect());
-      // Shutdown event emitter
+      // Providers are now managed by the singleton manager
+      // Just shutdown event emitter
       updateEmitter.shutdown();
     };
-  }, [providers, updateEmitter]);
+  }, [updateEmitter]);
   
   const value: DatasourceContextType = {
     activeDatasources,

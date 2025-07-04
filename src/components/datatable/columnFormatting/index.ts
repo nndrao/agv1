@@ -9,7 +9,7 @@ export { CustomPreview } from './components/custom/CustomPreview';
 
 // Tab content components
 export { GeneralCustomContent } from './components/tabs/GeneralCustomContent';
-export { StylingCustomContent } from './components/tabs/StylingCustomContent';
+export { StylingCustomContentV2 as StylingCustomContent } from './components/tabs/StylingCustomContentV2';
 export { FormatCustomContent } from './components/tabs/FormatCustomContent';
 export { FilterCustomContent } from './components/tabs/FilterCustomContent';
 export { EditorCustomContent } from './components/tabs/EditorCustomContent';

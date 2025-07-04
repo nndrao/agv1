@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Home,
   Table,
@@ -11,6 +11,8 @@ import {
   Plus,
   ChevronDown,
   ChevronRight,
+  Download,
+  Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,6 +23,9 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ThemeToggle } from '@/components/datatable/ThemeToggle';
+import { SettingsExportService } from '@/services/settings/SettingsExportService';
+import { ImportExportDialog } from '@/components/settings/ImportExportDialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface SidebarItem {
   id: string;
@@ -97,6 +102,10 @@ interface AppSidebarProps {
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, onDatasourceClick }) => {
   const [openSections, setOpenSections] = React.useState<string[]>(['data']);
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | undefined>();
 
   const toggleSection = (sectionId: string) => {
     setOpenSections((prev) =>
@@ -104,6 +113,45 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
         ? prev.filter((id) => id !== sectionId)
         : [...prev, sectionId]
     );
+  };
+
+  const handleExportSettings = async () => {
+    try {
+      const settings = await SettingsExportService.exportAllSettings();
+      SettingsExportService.downloadSettings(settings);
+      toast({
+        title: "Settings exported",
+        description: "All application settings have been exported successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export settings. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Export error:', error);
+    }
+  };
+
+  const handleImportSettings = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImportFile(file);
+    setImportDialogOpen(true);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleImportComplete = () => {
+    toast({
+      title: "Settings imported",
+      description: "Application settings have been imported successfully. Please refresh the page to apply changes.",
+    });
+    setImportFile(undefined);
   };
 
   const renderSidebarItem = (item: SidebarItem, level = 0) => {
@@ -169,11 +217,36 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
         <div className="p-2 space-y-1">
           {/* Quick Actions */}
           {!collapsed && (
-            <div className="mb-4">
+            <div className="mb-4 space-y-2">
               <Button variant="default" className="w-full justify-start gap-2">
                 <Plus className="h-4 w-4" />
                 New Table
               </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 justify-start gap-2"
+                  onClick={handleExportSettings}
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 justify-start gap-2"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4" />
+                  Import
+                </Button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportSettings}
+                className="hidden"
+              />
             </div>
           )}
 
@@ -191,6 +264,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
           </div>
         </div>
       )}
+      
+      {/* Import Dialog */}
+      <ImportExportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        mode="import"
+        importFile={importFile}
+        onImportComplete={handleImportComplete}
+      />
     </div>
   );
 };

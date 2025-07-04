@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDatasourceStore } from '@/stores/datasource.store';
 import { useDatasourceContext } from '@/contexts/DatasourceContext';
 import { useProfileStore, useActiveProfile } from '@/components/datatable/stores/profile.store';
@@ -100,21 +100,35 @@ export const useComponentDatasource = (instanceId: string) => {
   // Get current datasource data from the store snapshot
   const [currentData, setCurrentData] = useState<any[] | undefined>(undefined);
   const currentStatus = selectedDatasourceId ? connectionStatus.get(selectedDatasourceId) : undefined;
-  const isSnapshotComplete = selectedDatasourceId ? snapshotStatus?.get(selectedDatasourceId) === 'complete' : true;
+  const snapshotStatusValue = selectedDatasourceId ? snapshotStatus?.get(selectedDatasourceId) : undefined;
+  const isSnapshotComplete = selectedDatasourceId ? snapshotStatusValue === 'complete' : true;
   
-  // Update data when snapshot is complete
+  // Debug logging
+  React.useEffect(() => {
+    if (selectedDatasourceId) {
+      console.log(`[useComponentDatasource] Snapshot status for ${selectedDatasourceId}:`, {
+        snapshotStatusValue,
+        isSnapshotComplete,
+        hasData: !!currentData,
+        dataLength: currentData?.length || 0
+      });
+    }
+  }, [selectedDatasourceId, snapshotStatusValue, isSnapshotComplete, currentData]);
+  
+  // Update data when datasource data changes (including during loading)
   useEffect(() => {
-    if (selectedDatasourceId && isSnapshotComplete) {
+    if (selectedDatasourceId) {
       const dataStore = getDataStore(selectedDatasourceId);
       if (dataStore) {
-        // Get initial snapshot
+        // Get current snapshot from data store
         setCurrentData(dataStore.getSnapshot());
       } else {
         // Fallback to datasourceData map
-        setCurrentData(datasourceData.get(selectedDatasourceId));
+        const data = datasourceData.get(selectedDatasourceId);
+        setCurrentData(data);
       }
     }
-  }, [selectedDatasourceId, isSnapshotComplete, getDataStore, datasourceData]);
+  }, [selectedDatasourceId, getDataStore, datasourceData]);
   
   // Register component and load datasource columns when profile changes
   useEffect(() => {

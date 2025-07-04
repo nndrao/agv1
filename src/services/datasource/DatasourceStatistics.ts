@@ -90,6 +90,16 @@ export class DatasourceStatistics {
     });
   }
   
+  updateSnapshotProgress(rowCount: number, bytesReceived: number = 0): void {
+    const current = this.stats$.value;
+    
+    this.stats$.next({
+      ...current,
+      snapshotRowCount: rowCount,
+      snapshotBytesReceived: current.snapshotBytesReceived + bytesReceived,
+    });
+  }
+  
   completeSnapshot(rowCount: number, bytesReceived: number = 0): void {
     const current = this.stats$.value;
     const endTime = Date.now();
