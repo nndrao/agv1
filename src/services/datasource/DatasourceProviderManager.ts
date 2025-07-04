@@ -40,7 +40,10 @@ export class DatasourceProviderManager {
     });
 
     this.providers.set(datasource.id, provider);
-    this.subscribers.set(datasource.id, new Set());
+    // Don't reset subscribers if they already exist (important for refresh)
+    if (!this.subscribers.has(datasource.id)) {
+      this.subscribers.set(datasource.id, new Set());
+    }
     
     // Set up update broadcasting to all subscribers
     const unsubscribe = provider.subscribeToUpdates((updates) => {
@@ -110,6 +113,10 @@ export class DatasourceProviderManager {
     provider: StompDatasourceProvider
   ): Promise<void> {
     console.log(`[DatasourceProviderManager] Starting snapshot fetch for ${datasource.id}`);
+    
+    // Check if we have any subscribers
+    const subscribers = this.subscribers.get(datasource.id) || new Set();
+    console.log(`[DatasourceProviderManager] fetchSnapshot: ${subscribers.size} subscribers ready to be notified`);
     
     // Create promise to track fetch
     const fetchPromise = (async () => {
@@ -230,6 +237,11 @@ export class DatasourceProviderManager {
     // Create new provider (this will set up update broadcasting again)
     const newProvider = this.getOrCreateProvider(datasource);
 
+    // Log current subscribers
+    const subscribers = this.subscribers.get(datasource.id);
+    console.log(`[DatasourceProviderManager] After refresh, ${subscribers?.size || 0} subscribers for ${datasource.id}:`, 
+      subscribers ? Array.from(subscribers).map(s => s.id) : []);
+    
     // Fetch new snapshot
     await this.fetchSnapshot(datasource, newProvider);
   }

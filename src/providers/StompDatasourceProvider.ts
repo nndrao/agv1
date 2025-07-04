@@ -122,9 +122,11 @@ export class StompDatasourceProvider {
   }
 
   async fetchSnapshot(maxRows?: number, onBatchReceived?: (batch: any[], totalRows: number, isComplete?: boolean) => void): Promise<StompConnectionResult> {
+    console.log(`[StompDatasourceProvider] fetchSnapshot called for ${this.config.name || 'unknown'}, connected: ${this.isConnected}`);
     try {
       // Connect if not already connected
       if (!this.isConnected) {
+        console.log(`[StompDatasourceProvider] Not connected, connecting...`);
         await this.connect();
       }
 
@@ -170,6 +172,7 @@ export class StompDatasourceProvider {
         }, timeoutMs);
 
         // Subscribe to the topic
+        console.log(`[StompDatasourceProvider ${instanceId}] Subscribing to topic: ${this.config.listenerTopic}`);
         subscription = this.client!.subscribe(
           this.config.listenerTopic!,
           (message: IMessage) => {
@@ -337,10 +340,15 @@ export class StompDatasourceProvider {
               triggerDestination = `${this.config.listenerTopic}/${this.messageRate}`;
             }
             
+            const requestBody = (this.config as any).requestBody || 'START';
+            console.log(`[StompDatasourceProvider ${instanceId}] Sending request message to ${triggerDestination}: ${requestBody}`);
+            
             this.client!.publish({
               destination: triggerDestination,
-              body: (this.config as any).requestBody || 'START',
+              body: requestBody,
             });
+          } else {
+            console.log(`[StompDatasourceProvider ${instanceId}] No request message configured, waiting for data...`);
           }
         }, 1000); // 1 second delay like in test client
       });
