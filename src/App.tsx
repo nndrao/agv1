@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { AppWithContainer } from './AppWithContainer';
+import { TestRealTimeUpdates } from './TestRealTimeUpdates';
+import { TestWebSocketUpdates } from './TestWebSocketUpdates';
 import { Menu } from 'lucide-react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import { ThemeToggle } from '@/components/datatable/ThemeToggle';
-import { LazyDataTable, GridSkeleton, usePreloadAgGrid } from '@/components/datatable/LazyAgGrid';
+import { GridSkeleton, usePreloadAgGrid } from '@/components/datatable/LazyAgGrid';
+import { DataTableSimplified } from '@/components/datatable/DataTableSimplified';
 import { generateFixedIncomeData, type FixedIncomePosition } from '@/components/datatable/lib/dataGenerator';
 import { inferColumnDefinitions } from '@/utils/columnUtils';
 import { type ColumnDef } from '@/components/datatable/types';
@@ -92,7 +95,7 @@ function LegacyApp() {
             <ErrorBoundary FallbackComponent={ErrorFallback}>
               <Suspense fallback={<GridSkeleton />}>
                 {!isLoading && data.length > 0 ? (
-                  <LazyDataTable columnDefs={columns} dataRow={data} />
+                  <DataTableSimplified columnDefs={columns} dataRow={data} />
                 ) : (
                   <GridSkeleton />
                 )}
@@ -115,7 +118,13 @@ function LegacyApp() {
 }
 
 function App() {
-  const [useContainer] = useState(true); // Toggle this to switch between layouts
+  const [useContainer] = useState(false); // Set to false to use simplified version
+  const [testRealtime] = useState(true); // Set to true to test real-time updates
+  
+  if (testRealtime) {
+    // return <TestRealTimeUpdates />;  // Simple test with applyTransactionAsync
+    return <TestWebSocketUpdates />;     // Full WebSocket datasource test
+  }
   
   if (useContainer) {
     return <AppWithContainer />;

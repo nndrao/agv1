@@ -38,7 +38,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { profileOptimizer } from '@/components/datatable/lib/profileOptimizer';
 import { useDatasourceStore } from '@/stores/datasource.store';
-import { useDatasourceContext } from '@/contexts/DatasourceContext';
+// import { useDatasourceContext } from '@/contexts/DatasourceContext';
 // import { DatasourceStatistics } from '@/components/datasource/DatasourceStatistics';
 import { DraggableStatisticsDialog } from './DraggableStatisticsDialog';
 
@@ -83,6 +83,9 @@ interface DataTableToolbarProps {
   onDatasourceChange?: (datasourceId: string | undefined) => void;
   updatesEnabled?: boolean;
   onToggleUpdates?: () => void;
+  // Additional props for simplified version
+  isConnected?: boolean;
+  onRestart?: () => void;
 }
 
 export function DataTableToolbar({ 
@@ -100,7 +103,9 @@ export function DataTableToolbar({
   selectedDatasourceId,
   onDatasourceChange,
   updatesEnabled = false,
-  onToggleUpdates
+  onToggleUpdates,
+  isConnected,
+  onRestart
 }: DataTableToolbarProps) {
   const { toast } = useToast();
   const activeProfile = useActiveProfile();
@@ -116,13 +121,25 @@ export function DataTableToolbar({
   
   // Datasource hooks
   const { datasources, getDatasource } = useDatasourceStore();
-  const { 
-    activateDatasource, 
-    deactivateDatasource, 
-    refreshDatasource,
-    connectionStatus,
-    activeDatasources 
-  } = useDatasourceContext();
+  
+  // For simplified version, these will be undefined
+  let activateDatasource: any;
+  let deactivateDatasource: any;
+  let refreshDatasource: any;
+  let connectionStatus: any;
+  let activeDatasources = new Map();
+  
+  // Try to use context if available (for backward compatibility)
+  try {
+    const context = require('@/contexts/DatasourceContext').useDatasourceContext();
+    activateDatasource = context.activateDatasource;
+    deactivateDatasource = context.deactivateDatasource;
+    refreshDatasource = context.refreshDatasource;
+    connectionStatus = context.connectionStatus;
+    activeDatasources = context.activeDatasources;
+  } catch (e) {
+    // Context not available, using simplified version
+  }
   
   // State for profile dialogs
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -639,7 +656,7 @@ export function DataTableToolbar({
                     </SelectContent>
                   </Select>
                 </div>
-                {selectedDatasourceId && activeDatasources.has(selectedDatasourceId) && (
+                {selectedDatasourceId && (isConnected !== undefined ? isConnected : activeDatasources.has(selectedDatasourceId)) && (
                   <>
                     <div className="flex gap-1 px-2 pb-2">
                       <Button
@@ -648,7 +665,12 @@ export function DataTableToolbar({
                         className="flex-1 h-7 text-xs"
                         onClick={async (e) => {
                           e.stopPropagation();
-                          await refreshDatasource(selectedDatasourceId);
+                          // Use new onRestart if available, otherwise use legacy refreshDatasource
+                          if (onRestart) {
+                            onRestart();
+                          } else if (refreshDatasource) {
+                            await refreshDatasource(selectedDatasourceId);
+                          }
                           toast({
                             title: 'Datasource refreshed',
                             description: 'The datasource has been restarted',

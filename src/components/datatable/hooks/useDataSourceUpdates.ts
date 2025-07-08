@@ -63,12 +63,18 @@ export function useDataSourceUpdates({
 
   // Handle updates enable/disable and subscribe to ConflatedDataStore
   useEffect(() => {
+    console.log('[useDataSourceUpdates] Effect running:', { 
+      datasourceId, 
+      hasGridApi: !!gridApi, 
+      updatesEnabled 
+    });
+    
     if (!datasourceId || !gridApi) {
       return;
     }
 
     if (updatesEnabled) {
-      // console.log('[useDataSourceUpdates] Enabling updates for:', datasourceId);
+      console.log('[useDataSourceUpdates] Enabling updates for:', datasourceId);
       subscribeToUpdates(datasourceId);
       
       // Get the data store for this datasource
@@ -80,6 +86,8 @@ export function useDataSourceUpdates({
       
       // Subscribe to store updates
       const handleStoreUpdates = (updates: DataUpdate<any>[]) => {
+        console.log(`[useDataSourceUpdates] handleStoreUpdates called with ${updates.length} updates, gridApi: ${!!gridApi}`);
+        
         if (!gridApi || updates.length === 0) return;
         
         const startTime = Date.now();
@@ -108,16 +116,24 @@ export function useDataSourceUpdates({
         
         // Apply transaction to grid
         try {
+          console.log('[useDataSourceUpdates] Applying transaction:', {
+            add: transaction.add.length,
+            update: transaction.update.length,
+            remove: transaction.remove.length,
+            hasGridApi: !!gridApi,
+            keyColumn
+          });
+          
           const result = gridApi.applyTransaction(transaction);
           
           if (result) {
             const latency = Date.now() - startTime;
-            // console.log('[useDataSourceUpdates] Transaction applied:', {
-            //   added: result.add?.length || 0,
-            //   updated: result.update?.length || 0,
-            //   removed: result.remove?.length || 0,
-            //   latency: latency + 'ms'
-            // });
+            console.log('[useDataSourceUpdates] Transaction applied:', {
+              added: result.add?.length || 0,
+              updated: result.update?.length || 0,
+              removed: result.remove?.length || 0,
+              latency: latency + 'ms'
+            });
             
             // Record latency in statistics
             const statistics = dataStoreManager.getStatistics(datasourceId);
@@ -134,6 +150,7 @@ export function useDataSourceUpdates({
       };
       
       // Subscribe to updates event
+      console.log(`[useDataSourceUpdates] Subscribing to dataStore updates for ${datasourceId}`);
       dataStore.on('updates', handleStoreUpdates);
       storeSubscriptionRef.current = () => dataStore.off('updates', handleStoreUpdates);
       

@@ -153,6 +153,8 @@ export class ConflatedDataStore<T extends Record<string, any>> extends BrowserEv
     // Convert to array format for compatibility
     const updateArray = Array.from(updates.values());
     
+    console.log(`[ConflatedDataStore] Emitting ${updateArray.length} updates to listeners`);
+    
     // Emit updates event only - avoid multiple events
     this.emit('updates', updateArray);
     

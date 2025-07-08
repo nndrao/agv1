@@ -48,11 +48,11 @@ export class DatasourceProviderManager {
     // Set up update broadcasting to all subscribers
     const unsubscribe = provider.subscribeToUpdates((updates) => {
       const subscribers = this.subscribers.get(datasource.id);
-      console.log(`[DatasourceProviderManager] Broadcasting ${updates.length} updates to ${subscribers?.size || 0} subscribers for ${datasource.id}`);
+      // console.log(`[DatasourceProviderManager] Broadcasting ${updates.length} updates to ${subscribers?.size || 0} subscribers for ${datasource.id}`);
       if (subscribers) {
         subscribers.forEach(subscriber => {
           if (subscriber.onUpdate) {
-            console.log(`[DatasourceProviderManager] Sending updates to subscriber ${subscriber.id}`);
+            // console.log(`[DatasourceProviderManager] Sending updates to subscriber ${subscriber.id}`);
             subscriber.onUpdate(updates);
           }
         });

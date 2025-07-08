@@ -117,11 +117,11 @@ export const DataTableContainer = memo(({
   
   // Debug logging for snapshot completion
   React.useEffect(() => {
-    console.log(`[DataTableContainer] Snapshot status changed for ${selectedDatasourceId}:`, {
-      isSnapshotComplete,
-      dataLength: datasourceData?.length || 0,
-      hasShownToast: hasShownSnapshotToast
-    });
+    // console.log(`[DataTableContainer] Snapshot status changed for ${selectedDatasourceId}:`, {
+    //   isSnapshotComplete,
+    //   dataLength: datasourceData?.length || 0,
+    //   hasShownToast: hasShownSnapshotToast
+    // });
   }, [isSnapshotComplete, selectedDatasourceId, datasourceData?.length]);
   
   React.useEffect(() => {
@@ -155,7 +155,7 @@ export const DataTableContainer = memo(({
   // Initialize datasource updates hook for real-time updates
   useDataSourceUpdates({
     datasourceId: selectedDatasourceId,
-    gridApi: gridApi, // Use state version that updates when grid is ready
+    gridApi: gridApi || gridApiRef.current, // Use state first, fallback to ref
     keyColumn: datasources?.find(ds => ds.id === selectedDatasourceId)?.keyColumn,
     asyncTransactionWaitMillis: 60,
     updatesEnabled,
@@ -221,19 +221,19 @@ export const DataTableContainer = memo(({
     }
   }, [enableUnifiedConfig, unifiedConfig.config, unifiedConfig.configToProfile, handleProfileChange]);
   
-  // Auto-enable updates when snapshot is complete - DISABLED for performance
-  // React.useEffect(() => {
-  //   if (isSnapshotComplete && !hasAutoEnabledUpdates && selectedDatasourceId) {
-  //     // console.log('[DataTableContainer] Snapshot complete, auto-enabling updates');
-  //     setUpdatesEnabled(true);
-  //     setHasAutoEnabledUpdates(true);
-  //     toast({
-  //       title: 'Real-time updates enabled',
-  //       description: 'Live data updates are now active',
-  //       duration: 3000,
-  //     });
-  //   }
-  // }, [isSnapshotComplete, hasAutoEnabledUpdates, selectedDatasourceId, toast]);
+  // Auto-enable updates when snapshot is complete
+  React.useEffect(() => {
+    if (isSnapshotComplete && !hasAutoEnabledUpdates && selectedDatasourceId) {
+      console.log('[DataTableContainer] Snapshot complete, auto-enabling updates');
+      setUpdatesEnabled(true);
+      setHasAutoEnabledUpdates(true);
+      toast({
+        title: 'Real-time updates enabled',
+        description: 'Live data updates are now active',
+        duration: 3000,
+      });
+    }
+  }, [isSnapshotComplete, hasAutoEnabledUpdates, selectedDatasourceId, toast]);
   
   // Reset auto-enable flag when datasource changes
   React.useEffect(() => {

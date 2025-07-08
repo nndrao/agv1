@@ -25,8 +25,11 @@ export class DataStoreManager {
   }
   
   createStore(config: DatasourceConfig): ConflatedDataStore<any> {
+    console.log(`[DataStoreManager] Creating store for ${config.id}`);
+    
     const existingEntry = this.stores.get(config.id);
     if (existingEntry) {
+      console.log(`[DataStoreManager] Store already exists for ${config.id}`);
       // Update last access time
       existingEntry.lastAccess = Date.now();
       return existingEntry.store;
@@ -71,6 +74,7 @@ export class DataStoreManager {
       entry.lastAccess = Date.now();
       return entry.store;
     }
+    console.log(`[DataStoreManager] No store found for ${datasourceId}. Available stores:`, Array.from(this.stores.keys()));
     return undefined;
   }
   
@@ -88,6 +92,7 @@ export class DataStoreManager {
   }
   
   removeStore(datasourceId: string): void {
+    console.log(`[DataStoreManager] removeStore called for ${datasourceId}`);
     const entry = this.stores.get(datasourceId);
     if (entry) {
       // Clean up
@@ -96,6 +101,8 @@ export class DataStoreManager {
       this.stores.delete(datasourceId);
       
       console.log(`[DataStoreManager] Removed store for datasource: ${datasourceId}`);
+    } else {
+      console.log(`[DataStoreManager] No store to remove for ${datasourceId}`);
     }
   }
   

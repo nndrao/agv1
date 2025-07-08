@@ -19,6 +19,7 @@ interface DataTableGridProps {
   rowData: Record<string, unknown>[];
   gridApiRef: React.MutableRefObject<GridApi | null>;
   keyColumn?: string;
+  onGridReady?: (params: any) => void;
 }
 
 /**
@@ -29,16 +30,26 @@ export const DataTableGrid = memo(({
   columnDefs, 
   rowData,
   gridApiRef,
-  keyColumn 
+  keyColumn,
+  onGridReady: externalOnGridReady
 }: DataTableGridProps) => {
   const { theme: currentTheme } = useTheme();
   const { selectedFont, selectedFontSize } = useDataTableContext();
   const isDarkMode = currentTheme === 'dark';
   
+  // Log keyColumn configuration
+  React.useEffect(() => {
+    if (keyColumn) {
+      console.log('[DataTableGrid] Key column configured:', keyColumn);
+    } else {
+      console.log('[DataTableGrid] No key column configured - using default row ID generation');
+    }
+  }, [keyColumn]);
+  
   // Get memoized callbacks
   const {
     getContextMenuItems,
-    onGridReady,
+    onGridReady: internalOnGridReady,
     onColumnMoved,
     onColumnResized,
     onColumnVisible,
@@ -48,6 +59,17 @@ export const DataTableGrid = memo(({
     excelStyles,
     defaultExcelExportParams,
   } = useGridCallbacks(gridApiRef, () => {});
+  
+  // Combined grid ready handler
+  const onGridReady = React.useCallback((params: any) => {
+    // Call internal handler first
+    internalOnGridReady(params);
+    
+    // Then call external handler if provided
+    if (externalOnGridReady) {
+      externalOnGridReady(params);
+    }
+  }, [internalOnGridReady, externalOnGridReady]);
   
   // Create theme configuration
   const theme = useMemo(() => {
@@ -126,7 +148,6 @@ export const DataTableGrid = memo(({
         suppressScrollOnNewData={true}
         debounceVerticalScrollbar={true}
         suppressColumnMoveAnimation={true}
-        suppressPropertyNamesCheck={true}
         sideBar={{
           toolPanels: [
             {

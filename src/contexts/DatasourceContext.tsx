@@ -143,8 +143,10 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     try {
       if (datasource.type === 'stomp') {
         // Create conflated data store for this datasource
+        console.log(`[DatasourceContext] Creating data store for ${datasourceId}`);
         const dataStore = dataStoreManager.createStore(datasource);
         const statistics = dataStoreManager.getStatistics(datasourceId)!;
+        console.log(`[DatasourceContext] Data store created:`, !!dataStore, 'Statistics:', !!statistics);
         
         // Start snapshot tracking
         statistics.startSnapshot();
@@ -190,7 +192,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
           },
           onUpdate: (updates) => {
             // Handle real-time updates by adding them to the data store
-            console.log(`[DatasourceContext] Received ${updates.length} real-time updates for ${datasourceId}`);
+            // console.log(`[DatasourceContext] Received ${updates.length} real-time updates for ${datasourceId}`);
             
             // Add updates to the ConflatedDataStore
             dataStore.addBulkUpdates(updates, 'update');

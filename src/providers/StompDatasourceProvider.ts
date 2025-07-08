@@ -142,7 +142,6 @@ export class StompDatasourceProvider {
         // Message sequence counter for debugging
         let messageSequence = 0;
         let lastBatchMessageSequence = 0;
-        let endTokenMessageSequence = 0;
         
         // Start periodic stats logging
         this.startStatsLogging();
@@ -161,6 +160,7 @@ export class StompDatasourceProvider {
         // Set up a timeout
         // Use configured timeout or default to 60 seconds for large datasets
         const timeoutMs = this.config.snapshotTimeoutMs || 60000;
+        console.log(`[StompDatasourceProvider] Setting snapshot timeout to ${timeoutMs}ms`);
         const timeout = setTimeout(() => {
           // Timeout reached, returning collected data
           console.warn(`[StompDatasourceProvider] Snapshot timeout reached after ${timeoutMs}ms. Received ${receivedData.length} rows.`);
@@ -184,16 +184,15 @@ export class StompDatasourceProvider {
               
               // Process received message
               
-              // Log message type for debugging
-              const messagePreview = messageBody.substring(0, 50);
-              console.log(`[StompDatasourceProvider ${instanceId}] Message #${messageSequence}: ${messagePreview}... (${messageBytes} bytes), current total: ${receivedData.length} rows`);
+              // Log message type for debugging - commented out for clarity
+              // const messagePreview = messageBody.substring(0, 50);
+              // console.log(`[StompDatasourceProvider ${instanceId}] Message #${messageSequence}: ${messagePreview}... (${messageBytes} bytes), current total: ${receivedData.length} rows`);
               
               // Check if this is a snapshot end token (string starting with 'Success' or matching the token)
               if (this.config.snapshotEndToken) {
                 if (messageBody.startsWith('Success') || 
                     messageBody.includes(this.config.snapshotEndToken)) {
                   // Snapshot end detected
-                  endTokenMessageSequence = messageSequence;
                   this.isReceivingSnapshot = false;
                   this.statistics.snapshotEndTime = Date.now();
                   this.statistics.snapshotDuration = this.statistics.snapshotEndTime - (this.statistics.snapshotStartTime || 0);
@@ -305,7 +304,7 @@ export class StompDatasourceProvider {
                 
                 this.statistics.updateRowsReceived += updates.length;
                 this.statistics.updateBytesReceived += messageBytes;
-                console.log(`[StompDatasourceProvider] Received ${updates.length} real-time updates, notifying ${this.updateCallbacks.length} callbacks`);
+                // console.log(`[StompDatasourceProvider] Received ${updates.length} real-time updates, notifying ${this.updateCallbacks.length} callbacks`);
                 // Notify update callbacks with just the updates
                 this.updateCallbacks.forEach(callback => callback(updates));
               }
