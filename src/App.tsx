@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { AppWithContainer } from './AppWithContainer';
-import { TestRealTimeUpdates } from './TestRealTimeUpdates';
-import { TestWebSocketUpdates } from './TestWebSocketUpdates';
 import { Menu } from 'lucide-react';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -119,12 +117,6 @@ function LegacyApp() {
 
 function App() {
   const [useContainer] = useState(false); // Set to false to use simplified version
-  const [testRealtime] = useState(true); // Set to true to test real-time updates
-  
-  if (testRealtime) {
-    // return <TestRealTimeUpdates />;  // Simple test with applyTransactionAsync
-    return <TestWebSocketUpdates />;     // Full WebSocket datasource test
-  }
   
   if (useContainer) {
     return <AppWithContainer />;
