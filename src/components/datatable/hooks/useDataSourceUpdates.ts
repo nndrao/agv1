@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { GridApi } from 'ag-grid-community';
 import { useDatasourceContext } from '@/contexts/DatasourceContext';
 import { DataUpdate } from '@/services/datasource/ConflatedDataStore';
+import { useDatasourceStore } from '@/stores/datasource.store';
 
 export interface UseDataSourceUpdatesOptions {
   datasourceId?: string;
@@ -72,20 +73,32 @@ export function useDataSourceUpdates({
     if (!datasourceId || !gridApi) {
       return;
     }
+    
+    // Check if datasource exists in the store
+    const { datasources } = useDatasourceStore.getState();
+    const datasourceExists = datasources.some(ds => ds.id === datasourceId);
+    
+    if (!datasourceExists) {
+      console.log(`[useDataSourceUpdates] Datasource ${datasourceId} not found in store, skipping`);
+      return;
+    }
 
     if (updatesEnabled) {
       console.log('[useDataSourceUpdates] Enabling updates for:', datasourceId);
       subscribeToUpdates(datasourceId);
       
-      // Get the data store for this datasource
-      const dataStore = getDataStore(datasourceId);
-      if (!dataStore) {
-        console.warn('[useDataSourceUpdates] No data store found for:', datasourceId);
-        return;
-      }
-      
-      // Subscribe to store updates
-      const handleStoreUpdates = (updates: DataUpdate<any>[]) => {
+      // Function to set up store subscription
+      const setupStoreSubscription = () => {
+        const dataStore = getDataStore(datasourceId);
+        if (!dataStore) {
+          // This can happen if the datasource hasn't been activated yet
+          // The store will be created when activateDatasource is called
+          console.log(`[useDataSourceUpdates] Waiting for data store creation for: ${datasourceId}`);
+          return false;
+        }
+        
+        // Subscribe to store updates
+        const handleStoreUpdates = (updates: DataUpdate<any>[]) => {
         console.log(`[useDataSourceUpdates] handleStoreUpdates called with ${updates.length} updates, gridApi: ${!!gridApi}`);
         
         if (!gridApi || updates.length === 0) return;
@@ -149,25 +162,53 @@ export function useDataSourceUpdates({
         }
       };
       
-      // Subscribe to updates event
-      console.log(`[useDataSourceUpdates] Subscribing to dataStore updates for ${datasourceId}`);
-      dataStore.on('updates', handleStoreUpdates);
-      storeSubscriptionRef.current = () => dataStore.off('updates', handleStoreUpdates);
-      
-      // Subscribe to metrics if callback provided
-      if (onUpdateMetrics) {
-        const subscription = dataStore.getMetrics$().subscribe(metrics => {
-          onUpdateMetrics({
-            totalUpdates: metrics.totalUpdatesReceived,
-            successfulUpdates: metrics.updatesApplied,
-            failedUpdates: 0, // Not tracked in ConflatedDataStore
-            lastUpdateTime: metrics.lastUpdateTimestamp,
-            conflatedUpdates: metrics.updatesConflated,
-            droppedUpdates: 0, // Not tracked in ConflatedDataStore
-            updateLatency: metrics.averageUpdateRate
+        // Subscribe to updates event
+        console.log(`[useDataSourceUpdates] Subscribing to dataStore updates for ${datasourceId}`);
+        dataStore.on('updates', handleStoreUpdates);
+        storeSubscriptionRef.current = () => dataStore.off('updates', handleStoreUpdates);
+        
+        // Subscribe to metrics if callback provided
+        if (onUpdateMetrics) {
+          const subscription = dataStore.getMetrics$().subscribe(metrics => {
+            onUpdateMetrics({
+              totalUpdates: metrics.totalUpdatesReceived,
+              successfulUpdates: metrics.updatesApplied,
+              failedUpdates: 0, // Not tracked in ConflatedDataStore
+              lastUpdateTime: metrics.lastUpdateTimestamp,
+              conflatedUpdates: metrics.updatesConflated,
+              droppedUpdates: 0, // Not tracked in ConflatedDataStore
+              updateLatency: metrics.averageUpdateRate
+            });
           });
-        });
-        metricsSubscriptionRef.current = () => subscription.unsubscribe();
+          metricsSubscriptionRef.current = () => subscription.unsubscribe();
+        }
+        
+        return true; // Successfully set up subscription
+      };
+      
+      // Try to set up subscription immediately
+      if (!setupStoreSubscription()) {
+        // If failed, retry after a delay
+        const retryTimeout = setTimeout(() => {
+          if (setupStoreSubscription()) {
+            console.log(`[useDataSourceUpdates] Successfully connected to data store for ${datasourceId} after retry`);
+          } else {
+            console.log(`[useDataSourceUpdates] Still no data store for ${datasourceId} after retry`);
+          }
+        }, 1000);
+        
+        return () => {
+          clearTimeout(retryTimeout);
+          unsubscribeFromUpdates(datasourceId);
+          if (storeSubscriptionRef.current) {
+            storeSubscriptionRef.current();
+            storeSubscriptionRef.current = null;
+          }
+          if (metricsSubscriptionRef.current) {
+            metricsSubscriptionRef.current();
+            metricsSubscriptionRef.current = null;
+          }
+        };
       }
     } else {
       // console.log('[useDataSourceUpdates] Disabling updates for:', datasourceId);

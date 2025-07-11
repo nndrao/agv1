@@ -142,6 +142,9 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
     
     try {
       if (datasource.type === 'stomp') {
+        // Mark as active early to prevent cleanup during async operations
+        setActiveDatasources(prev => new Map(prev).set(datasourceId, datasource));
+        
         // Create conflated data store for this datasource
         console.log(`[DatasourceContext] Creating data store for ${datasourceId}`);
         const dataStore = dataStoreManager.createStore(datasource);
@@ -160,6 +163,15 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
           id: `context-${datasourceId}`,
           onSnapshot: (data, totalRows, isComplete) => {
             console.log(`[DatasourceContext] onSnapshot called: data.length=${data.length}, totalRows=${totalRows}, complete: ${isComplete}`);
+            
+            // Check if we have a key column to detect duplicates
+            const keyColumn = datasource.keyColumn;
+            if (keyColumn) {
+              const uniqueKeys = new Set(data.map(row => row[keyColumn]));
+              if (uniqueKeys.size !== data.length) {
+                console.warn(`[DatasourceContext] Duplicate rows detected! ${data.length} rows but only ${uniqueKeys.size} unique keys`);
+              }
+            }
             
             // Update the data store
             dataStore.setSnapshot(data);
@@ -192,10 +204,16 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
           },
           onUpdate: (updates) => {
             // Handle real-time updates by adding them to the data store
-            // console.log(`[DatasourceContext] Received ${updates.length} real-time updates for ${datasourceId}`);
+            console.log(`[DatasourceContext] Received ${updates.length} real-time updates for ${datasourceId}`);
             
-            // Add updates to the ConflatedDataStore
-            dataStore.addBulkUpdates(updates, 'update');
+            // Get the current data store (not the one from closure)
+            const currentDataStore = dataStoreManager.getStore(datasourceId);
+            if (currentDataStore) {
+              // Add updates to the ConflatedDataStore
+              currentDataStore.addBulkUpdates(updates, 'update');
+            } else {
+              console.warn(`[DatasourceContext] No data store found for updates on ${datasourceId}`);
+            }
             
             // Also emit update event for backward compatibility
             const updateEvent: UpdateEvent = {
@@ -213,8 +231,7 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
           }
         });
         
-        // Mark as active and connected
-        setActiveDatasources(prev => new Map(prev).set(datasourceId, datasource));
+        // Mark as connected (already marked as active earlier)
         setConnectionStatus(prev => new Map(prev).set(datasourceId, 'connected'));
         
         // Check if snapshot is already complete
@@ -324,9 +341,21 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
 
   // Subscribe to updates for a datasource (called by components when ready)
   const subscribeToUpdates = useCallback((datasourceId: string) => {
-    // Updates are now handled automatically via the provider manager subscription
-    console.log(`[DatasourceContext] subscribeToUpdates called for ${datasourceId} (handled by provider manager)`);
-  }, []);
+    // Start updates through the provider manager
+    console.log(`[DatasourceContext] subscribeToUpdates called for ${datasourceId}`);
+    
+    // Ensure data store exists before starting updates
+    const existingStore = dataStoreManager.getStore(datasourceId);
+    if (!existingStore) {
+      console.log(`[DatasourceContext] Data store missing for ${datasourceId}, recreating...`);
+      const datasource = getDatasource(datasourceId);
+      if (datasource && datasource.type === 'stomp') {
+        dataStoreManager.createStore(datasource);
+      }
+    }
+    
+    providerManager.startUpdates(datasourceId);
+  }, [providerManager, dataStoreManager, getDatasource]);
 
   // Initialize worker with grid data (kept for backward compatibility, but no-op)
   const initializeWorkerForGrid = useCallback(() => {
@@ -341,10 +370,11 @@ export const DatasourceProvider: React.FC<DatasourceProviderProps> = ({ children
   }, []);
 
   // Unsubscribe from updates for a datasource
-  const unsubscribeFromUpdates = useCallback((_datasourceId: string) => {
-    // Updates are now handled automatically via the provider manager subscription
-    console.log(`[DatasourceContext] unsubscribeFromUpdates called (handled by provider manager)`);
-  }, []);
+  const unsubscribeFromUpdates = useCallback((datasourceId: string) => {
+    // Stop updates through the provider manager
+    console.log(`[DatasourceContext] unsubscribeFromUpdates called for ${datasourceId}`);
+    providerManager.stopUpdates(datasourceId);
+  }, [providerManager]);
   
   // Get provider for a datasource
   const getProvider = useCallback((_datasourceId: string) => {

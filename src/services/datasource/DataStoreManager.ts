@@ -61,6 +61,7 @@ export class DataStoreManager {
     
     // Store the entry
     this.stores.set(config.id, entry);
+    console.log(`[DataStoreManager] Store created and added for ${config.id}. Total stores: ${this.stores.size}`);
     
     // Set up memory monitoring
     this.setupMemoryMonitoring(config.id);
@@ -92,7 +93,8 @@ export class DataStoreManager {
   }
   
   removeStore(datasourceId: string): void {
-    console.log(`[DataStoreManager] removeStore called for ${datasourceId}`);
+    console.log(`[DataStoreManager] removeStore called for ${datasourceId}. Current stores: ${Array.from(this.stores.keys()).join(', ')}`);
+    // console.trace('[DataStoreManager] removeStore stack trace');
     const entry = this.stores.get(datasourceId);
     if (entry) {
       // Clean up

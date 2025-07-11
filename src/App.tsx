@@ -116,7 +116,7 @@ function LegacyApp() {
 }
 
 function App() {
-  const [useContainer] = useState(false); // Set to false to use simplified version
+  const [useContainer] = useState(true); // Set to true to use container with sidebar
   
   if (useContainer) {
     return <AppWithContainer />;

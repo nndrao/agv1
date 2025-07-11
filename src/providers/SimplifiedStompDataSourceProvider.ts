@@ -1,14 +1,14 @@
-import { EventEmitter } from 'events';
 import { Client, IMessage } from '@stomp/stompjs';
 import { ColDef } from 'ag-grid-community';
 import { IDataSourceProvider, DataSourceEvent, DataSourceEventType, DataSourceStatistics } from './IDataSourceProvider';
 import { StompDatasourceConfig } from '@/stores/datasource.store';
+import { BrowserEventEmitter } from '@/services/datasource/BrowserEventEmitter';
 
 /**
  * Simplified STOMP datasource provider implementation
  * Handles WebSocket connection and data streaming with a clean event-based interface
  */
-export class SimplifiedStompDataSourceProvider extends EventEmitter implements IDataSourceProvider {
+export class SimplifiedStompDataSourceProvider extends BrowserEventEmitter implements IDataSourceProvider {
   readonly id: string;
   readonly name: string;
   
@@ -228,6 +228,16 @@ export class SimplifiedStompDataSourceProvider extends EventEmitter implements I
           
           // Emit final batch if any remaining data
           if (this.snapshotData.length > 0) {
+            console.log(`[${this.id}] Emitting final snapshot batch: ${this.snapshotData.length} rows`);
+            
+            // Check for duplicates in the data
+            if (this.config.keyColumn) {
+              const uniqueKeys = new Set(this.snapshotData.map(row => row[this.config.keyColumn]));
+              if (uniqueKeys.size !== this.snapshotData.length) {
+                console.warn(`[${this.id}] Duplicate rows in snapshot data! ${this.snapshotData.length} rows but only ${uniqueKeys.size} unique keys`);
+              }
+            }
+            
             this.emit('snapshotData', { 
               type: 'snapshotData', 
               rows: [...this.snapshotData], 
@@ -268,10 +278,22 @@ export class SimplifiedStompDataSourceProvider extends EventEmitter implements I
       
       if (this.isReceivingSnapshot) {
         // During snapshot, collect and batch data
+        console.log(`[${this.id}] Received ${rows.length} rows, total accumulated: ${this.snapshotData.length + rows.length}`);
+        
+        // Check if these rows contain duplicates
+        if (this.config.keyColumn && rows.length > 0) {
+          const firstRowKey = rows[0][this.config.keyColumn];
+          const existingRow = this.snapshotData.find(r => r[this.config.keyColumn] === firstRowKey);
+          if (existingRow) {
+            console.warn(`[${this.id}] Received duplicate row with key ${firstRowKey}!`);
+          }
+        }
+        
         this.snapshotData.push(...rows);
         
         // Emit batches of 1000 rows to avoid overwhelming the UI
         if (this.snapshotData.length >= 1000) {
+          console.log(`[${this.id}] Emitting snapshot batch: ${this.snapshotData.length} rows`);
           this.emit('snapshotData', { 
             type: 'snapshotData', 
             rows: [...this.snapshotData], 

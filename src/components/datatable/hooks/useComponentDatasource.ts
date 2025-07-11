@@ -23,6 +23,22 @@ export const useComponentDatasource = (instanceId: string) => {
   // Get datasource from active profile
   const selectedDatasourceId = activeProfile?.datasourceId;
   
+  // Validate datasource exists and clean up if not
+  React.useEffect(() => {
+    if (selectedDatasourceId && activeProfile) {
+      const datasource = datasources.find(ds => ds.id === selectedDatasourceId);
+      if (!datasource) {
+        console.warn(`[useComponentDatasource] Profile references non-existent datasource: ${selectedDatasourceId}, clearing reference`);
+        // Clear the datasource reference from the profile
+        updateProfile(activeProfile.id, {
+          ...activeProfile,
+          datasourceId: undefined,
+          updatedAt: Date.now()
+        });
+      }
+    }
+  }, [selectedDatasourceId, datasources, activeProfile, updateProfile]);
+  
   const [columnDefinitions, setColumnDefinitions] = useState<any[]>([]);
   
   // Handle datasource selection

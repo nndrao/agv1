@@ -1,4 +1,4 @@
-import { StompDatasourceProvider } from '@/providers/StompDatasourceProvider';
+import { SimplifiedStompDataSourceProvider } from '@/providers/SimplifiedStompDataSourceProvider';
 import { StompDatasourceConfig } from '@/stores/datasource.store';
 
 export interface ProviderSubscriber {
@@ -10,11 +10,10 @@ export interface ProviderSubscriber {
 
 export class DatasourceProviderManager {
   private static instance: DatasourceProviderManager;
-  private providers = new Map<string, StompDatasourceProvider>();
+  private providers = new Map<string, SimplifiedStompDataSourceProvider>();
   private subscribers = new Map<string, Set<ProviderSubscriber>>();
   private snapshotData = new Map<string, any[]>();
   private fetchingSnapshots = new Map<string, Promise<any>>();
-  private updateUnsubscribers = new Map<string, () => void>();
 
   private constructor() {}
 
@@ -28,16 +27,13 @@ export class DatasourceProviderManager {
   /**
    * Get or create a provider for a datasource
    */
-  private getOrCreateProvider(datasource: StompDatasourceConfig): StompDatasourceProvider {
+  private getOrCreateProvider(datasource: StompDatasourceConfig): SimplifiedStompDataSourceProvider {
     const existingProvider = this.providers.get(datasource.id);
     if (existingProvider) {
       return existingProvider;
     }
 
-    const provider = new StompDatasourceProvider({
-      ...datasource,
-      messageRate: '1000', // TODO: Get from datasource config
-    });
+    const provider = new SimplifiedStompDataSourceProvider(datasource);
 
     this.providers.set(datasource.id, provider);
     // Don't reset subscribers if they already exist (important for refresh)
@@ -45,21 +41,28 @@ export class DatasourceProviderManager {
       this.subscribers.set(datasource.id, new Set());
     }
     
-    // Set up update broadcasting to all subscribers
-    const unsubscribe = provider.subscribeToUpdates((updates) => {
+    // Set up event listeners for the simplified provider
+    provider.on('update', (event) => {
       const subscribers = this.subscribers.get(datasource.id);
-      // console.log(`[DatasourceProviderManager] Broadcasting ${updates.length} updates to ${subscribers?.size || 0} subscribers for ${datasource.id}`);
-      if (subscribers) {
+      if (subscribers && event.rows) {
         subscribers.forEach(subscriber => {
           if (subscriber.onUpdate) {
-            // console.log(`[DatasourceProviderManager] Sending updates to subscriber ${subscriber.id}`);
-            subscriber.onUpdate(updates);
+            subscriber.onUpdate(event.rows);
           }
         });
       }
     });
     
-    this.updateUnsubscribers.set(datasource.id, unsubscribe);
+    provider.on('error', (event) => {
+      const subscribers = this.subscribers.get(datasource.id);
+      if (subscribers && event.error) {
+        subscribers.forEach(subscriber => {
+          if (subscriber.onError) {
+            subscriber.onError(event.error);
+          }
+        });
+      }
+    });
     
     return provider;
   }
@@ -73,11 +76,18 @@ export class DatasourceProviderManager {
   ): Promise<void> {
     console.log(`[DatasourceProviderManager] Subscribe request from ${subscriber.id} to ${datasource.id}`);
     
+    // Check if subscriber already exists
+    const subscribers = this.subscribers.get(datasource.id) || new Set();
+    const existingSubscriber = Array.from(subscribers).find(s => s.id === subscriber.id);
+    if (existingSubscriber) {
+      console.log(`[DatasourceProviderManager] Subscriber ${subscriber.id} already exists for ${datasource.id}, updating`);
+      subscribers.delete(existingSubscriber);
+    }
+    
     // Get or create provider
     const provider = this.getOrCreateProvider(datasource);
     
-    // Add subscriber
-    const subscribers = this.subscribers.get(datasource.id) || new Set();
+    // Add subscriber (we already got subscribers above and removed any existing one)
     subscribers.add(subscriber);
     this.subscribers.set(datasource.id, subscribers);
 
@@ -110,7 +120,7 @@ export class DatasourceProviderManager {
    */
   private async fetchSnapshot(
     datasource: StompDatasourceConfig,
-    provider: StompDatasourceProvider
+    provider: SimplifiedStompDataSourceProvider
   ): Promise<void> {
     console.log(`[DatasourceProviderManager] Starting snapshot fetch for ${datasource.id}`);
     
@@ -121,32 +131,60 @@ export class DatasourceProviderManager {
     // Create promise to track fetch
     const fetchPromise = (async () => {
       try {
-        const result = await provider.fetchSnapshot(undefined, (allDataSoFar, totalRows, isComplete) => {
-          // Store snapshot data
-          this.snapshotData.set(datasource.id, allDataSoFar);
-          
-          // Notify all subscribers
-          const subscribers = this.subscribers.get(datasource.id) || new Set();
-          subscribers.forEach(subscriber => {
-            console.log(`[DatasourceProviderManager] Notifying subscriber ${subscriber.id}: ${allDataSoFar.length} rows (totalRows param: ${totalRows}), complete: ${isComplete}`);
-            // Always use the actual array length, not the totalRows parameter which might be stale
-            subscriber.onSnapshot(allDataSoFar, allDataSoFar.length, isComplete || false);
-          });
-        });
-
-        if (result.success && result.data) {
-          // Final update
-          this.snapshotData.set(datasource.id, result.data);
-          
-          // Notify all subscribers with final data
-          const subscribers = this.subscribers.get(datasource.id) || new Set();
-          subscribers.forEach(subscriber => {
-            console.log(`[DatasourceProviderManager] Final snapshot for subscriber ${subscriber.id}: ${result.data?.length} rows`);
-            subscriber.onSnapshot(result.data || [], result.data?.length || 0, true);
-          });
-        } else {
-          throw new Error(result.error || 'Failed to fetch snapshot');
+        // Set up event listeners for snapshot
+        let isComplete = false;
+        
+        const snapshotHandler = (event: any) => {
+          if (event.type === 'snapshotData') {
+            // The provider already sends accumulated data, so we just pass it through
+            this.snapshotData.set(datasource.id, event.rows);
+            
+            // Notify all subscribers
+            const subscribers = this.subscribers.get(datasource.id) || new Set();
+            subscribers.forEach(subscriber => {
+              console.log(`[DatasourceProviderManager] Notifying subscriber ${subscriber.id}: ${event.rows.length} rows, complete: ${event.isLastBatch}`);
+              subscriber.onSnapshot(event.rows, event.rows.length, event.isLastBatch || false);
+            });
+          }
+        };
+        
+        const completeHandler = (event: any) => {
+          if (event.type === 'snapshotComplete') {
+            isComplete = true;
+            console.log(`[DatasourceProviderManager] Snapshot complete for ${datasource.id}: ${event.totalRows} rows`);
+            
+            // Final update to ensure all subscribers are notified with the stored snapshot data
+            const finalData = this.snapshotData.get(datasource.id) || [];
+            const subscribers = this.subscribers.get(datasource.id) || new Set();
+            subscribers.forEach(subscriber => {
+              console.log(`[DatasourceProviderManager] Final snapshot for subscriber ${subscriber.id}: ${finalData.length} rows`);
+              subscriber.onSnapshot(finalData, finalData.length, true);
+            });
+            
+            // Clean up listeners
+            provider.off('snapshotData', snapshotHandler);
+            provider.off('snapshotComplete', completeHandler);
+          }
+        };
+        
+        // Add listeners
+        provider.on('snapshotData', snapshotHandler);
+        provider.on('snapshotComplete', completeHandler);
+        
+        // Start the provider
+        await provider.start();
+        
+        // Wait for snapshot to complete (with timeout)
+        const timeout = 30000; // 30 seconds
+        const startTime = Date.now();
+        while (!isComplete && (Date.now() - startTime) < timeout) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
+        
+        if (!isComplete) {
+          throw new Error('Snapshot fetch timeout');
+        }
+        
       } catch (error) {
         console.error(`[DatasourceProviderManager] Error fetching snapshot for ${datasource.id}:`, error);
         
@@ -192,14 +230,7 @@ export class DatasourceProviderManager {
       console.log(`[DatasourceProviderManager] No more subscribers for ${datasourceId}, disconnecting provider`);
       const provider = this.providers.get(datasourceId);
       if (provider) {
-        // Unsubscribe from updates
-        const unsubscriber = this.updateUnsubscribers.get(datasourceId);
-        if (unsubscriber) {
-          unsubscriber();
-          this.updateUnsubscribers.delete(datasourceId);
-        }
-        
-        provider.disconnect();
+        provider.stop();
         this.providers.delete(datasourceId);
         this.snapshotData.delete(datasourceId);
         this.subscribers.delete(datasourceId);
@@ -223,15 +254,8 @@ export class DatasourceProviderManager {
       return;
     }
 
-    // Unsubscribe from updates
-    const unsubscriber = this.updateUnsubscribers.get(datasource.id);
-    if (unsubscriber) {
-      unsubscriber();
-      this.updateUnsubscribers.delete(datasource.id);
-    }
-    
     // Disconnect and reconnect
-    provider.disconnect();
+    provider.stop();
     this.providers.delete(datasource.id);
     
     // Create new provider (this will set up update broadcasting again)
@@ -266,5 +290,27 @@ export class DatasourceProviderManager {
   getSubscriberCount(datasourceId: string): number {
     const subscribers = this.subscribers.get(datasourceId);
     return subscribers ? subscribers.size : 0;
+  }
+  
+  /**
+   * Start updates for a datasource
+   */
+  startUpdates(datasourceId: string): void {
+    const provider = this.providers.get(datasourceId);
+    if (provider) {
+      console.log(`[DatasourceProviderManager] Starting updates for ${datasourceId}`);
+      provider.startUpdates();
+    }
+  }
+  
+  /**
+   * Stop updates for a datasource
+   */
+  stopUpdates(datasourceId: string): void {
+    const provider = this.providers.get(datasourceId);
+    if (provider) {
+      console.log(`[DatasourceProviderManager] Stopping updates for ${datasourceId}`);
+      provider.stopUpdates();
+    }
   }
 }
