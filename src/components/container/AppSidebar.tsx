@@ -218,7 +218,21 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
           {/* Quick Actions */}
           {!collapsed && (
             <div className="mb-4 space-y-2">
-              <Button variant="default" className="w-full justify-start gap-2">
+              <Button 
+                variant="default" 
+                className="w-full justify-start gap-2"
+                onClick={() => {
+                  // Create a new table panel in dockview
+                  const tableId = `table-${Date.now()}`;
+                  const title = `Table ${new Date().toLocaleTimeString()}`;
+                  if ((window as any).dockviewApi?.addTablePanel) {
+                    (window as any).dockviewApi.addTablePanel(tableId, title);
+                  }
+                  if (onItemClick) {
+                    onItemClick(); // Close mobile sidebar if open
+                  }
+                }}
+              >
                 <Plus className="h-4 w-4" />
                 New Table
               </Button>
