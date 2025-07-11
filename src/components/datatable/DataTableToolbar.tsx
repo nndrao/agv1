@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Settings2, Sliders, MoreVertical, User, Save, Plus, Copy, Database, RefreshCw, Power, PlayCircle, Pause, BarChart3, Columns } from "lucide-react";
+import { Settings2, Sliders, MoreVertical, User, Save, Plus, Copy, Database, RefreshCw, Power, PlayCircle, Pause, BarChart3, Columns, Sun, Moon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +38,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { profileOptimizer } from '@/components/datatable/lib/profileOptimizer';
 import { useDatasourceStore } from '@/stores/datasource.store';
+import { useTheme } from '@/components/datatable/ThemeProvider';
 // import { useDatasourceContext } from '@/contexts/DatasourceContext';
 // import { DatasourceStatistics } from '@/components/datasource/DatasourceStatistics';
 import { DraggableStatisticsDialog } from './DraggableStatisticsDialog';
@@ -121,6 +122,9 @@ export function DataTableToolbar({
   
   // Datasource hooks
   const { datasources, getDatasource } = useDatasourceStore();
+  
+  // Theme hook
+  const { theme, setTheme } = useTheme();
   
   // For simplified version, these will be undefined
   let activateDatasource: any;
@@ -503,8 +507,13 @@ export function DataTableToolbar({
 
   return (
     <>
-      <div className="flex items-center justify-between p-2 border-b bg-muted/30">
+      <div className="flex items-center justify-between p-2 border-b bg-background/95 border-border" style={{backgroundColor: 'hsl(var(--background))'}}>
       <div className="flex items-center gap-2">
+        {/* Debug theme indicator */}
+        <div className="text-xs text-muted-foreground px-2 py-1 rounded bg-muted/50">
+          Theme: {theme}
+        </div>
+        
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
@@ -537,7 +546,7 @@ export function DataTableToolbar({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex-1 h-8 text-xs"
+                  className="flex-1 h-8 text-xs hover:bg-accent hover:text-accent-foreground transition-colors"
                   onClick={handleSaveProfile}
                   disabled={!activeProfile || activeProfile.isDefault}
                   title="Save current state to profile"
@@ -548,7 +557,7 @@ export function DataTableToolbar({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex-1 h-8 text-xs"
+                  className="flex-1 h-8 text-xs hover:bg-accent hover:text-accent-foreground transition-colors"
                   onClick={() => setShowCreateDialog(true)}
                   title="Create new profile"
                 >
@@ -558,7 +567,7 @@ export function DataTableToolbar({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex-1 h-8 text-xs"
+                  className="flex-1 h-8 text-xs hover:bg-accent hover:text-accent-foreground transition-colors"
                   onClick={openDuplicateDialog}
                   disabled={!activeProfile}
                   title="Duplicate current profile"
@@ -608,6 +617,23 @@ export function DataTableToolbar({
       </div>
       
       <div className="flex items-center gap-2">
+        {/* Theme Toggle Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => {
+            console.log('Current theme:', theme);
+            const newTheme = theme === 'light' ? 'dark' : 'light';
+            console.log('Switching to:', newTheme);
+            setTheme(newTheme);
+          }}
+        >
+          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Toggle theme - Current: {theme}</span>
+        </Button>
+        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
@@ -646,7 +672,13 @@ export function DataTableToolbar({
                           <div className="flex items-center gap-2">
                             <span>{ds.name}</span>
                             {activeDatasources.has(ds.id) && (
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge 
+                                variant={connectionStatus.get(ds.id) === 'connected' ? "default" : "secondary"} 
+                                className={`text-xs ${connectionStatus.get(ds.id) === 'connected' 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                                }`}
+                              >
                                 {connectionStatus.get(ds.id) === 'connected' ? 'Active' : 'Connecting'}
                               </Badge>
                             )}
@@ -656,13 +688,26 @@ export function DataTableToolbar({
                     </SelectContent>
                   </Select>
                 </div>
+                {selectedDatasourceId && (
+                  <div className="px-2 pb-1">
+                    <Badge 
+                      variant={isConnected !== undefined ? (isConnected ? "default" : "secondary") : (activeDatasources.has(selectedDatasourceId) ? "default" : "secondary")}
+                      className={`text-xs ${(isConnected !== undefined ? isConnected : activeDatasources.has(selectedDatasourceId))
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
+                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                      }`}
+                    >
+                      {isConnected !== undefined ? (isConnected ? 'Connected' : 'Disconnected') : (activeDatasources.has(selectedDatasourceId) ? 'Active' : 'Inactive')}
+                    </Badge>
+                  </div>
+                )}
                 {selectedDatasourceId && (isConnected !== undefined ? isConnected : activeDatasources.has(selectedDatasourceId)) && (
                   <>
                     <div className="flex gap-1 px-2 pb-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 h-7 text-xs"
+                        className="flex-1 h-7 text-xs hover:bg-accent hover:text-accent-foreground transition-colors"
                         onClick={async (e) => {
                           e.stopPropagation();
                           // Use new onRestart if available, otherwise use legacy refreshDatasource
@@ -683,7 +728,7 @@ export function DataTableToolbar({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 h-7 text-xs"
+                        className="flex-1 h-7 text-xs hover:bg-destructive hover:text-destructive-foreground transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
                           deactivateDatasource(selectedDatasourceId);
@@ -701,7 +746,11 @@ export function DataTableToolbar({
                       <Button
                         size="sm"
                         variant={updatesEnabled ? "secondary" : "outline"}
-                        className="w-full h-7 text-xs"
+                        className={`w-full h-7 text-xs transition-colors ${
+                          updatesEnabled 
+                            ? 'hover:bg-secondary/80 hover:text-secondary-foreground' 
+                            : 'hover:bg-accent hover:text-accent-foreground'
+                        }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           onToggleUpdates?.();
@@ -730,7 +779,7 @@ export function DataTableToolbar({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="w-full h-7 text-xs"
+                        className="w-full h-7 text-xs hover:bg-accent hover:text-accent-foreground transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowStatisticsDialog(true);
@@ -744,7 +793,7 @@ export function DataTableToolbar({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="w-full h-7 text-xs"
+                        className="w-full h-7 text-xs hover:bg-accent hover:text-accent-foreground transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleFetchColumnDefs();
@@ -761,7 +810,7 @@ export function DataTableToolbar({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="w-full h-7 text-xs"
+                      className="w-full h-7 text-xs hover:bg-green-50 hover:text-green-700 hover:border-green-300 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-700 transition-colors"
                       onClick={async (e) => {
                         e.stopPropagation();
                         await activateDatasource(selectedDatasourceId);
@@ -837,6 +886,7 @@ export function DataTableToolbar({
         <DialogFooter>
           <Button 
             variant="outline" 
+            className="hover:bg-accent hover:text-accent-foreground transition-colors"
             onClick={() => {
               setShowCreateDialog(false);
               setProfileName('');
@@ -845,7 +895,11 @@ export function DataTableToolbar({
           >
             Cancel
           </Button>
-          <Button onClick={handleCreateProfile} disabled={!profileName.trim()}>
+          <Button 
+            className="hover:bg-primary/90 transition-colors"
+            onClick={handleCreateProfile} 
+            disabled={!profileName.trim()}
+          >
             Create Profile
           </Button>
         </DialogFooter>
@@ -895,6 +949,7 @@ export function DataTableToolbar({
         <DialogFooter>
           <Button 
             variant="outline" 
+            className="hover:bg-accent hover:text-accent-foreground transition-colors"
             onClick={() => {
               setShowDuplicateDialog(false);
               setProfileName('');
@@ -903,7 +958,11 @@ export function DataTableToolbar({
           >
             Cancel
           </Button>
-          <Button onClick={handleDuplicateProfile} disabled={!profileName.trim() || !selectedProfileId}>
+          <Button 
+            className="hover:bg-primary/90 transition-colors"
+            onClick={handleDuplicateProfile} 
+            disabled={!profileName.trim() || !selectedProfileId}
+          >
             Duplicate
           </Button>
         </DialogFooter>

@@ -4,13 +4,17 @@ import {
   DockviewReadyEvent,
   IDockviewPanelProps,
   DockviewApi,
+  themeDark,
+  themeLight,
 } from 'dockview';
 import { DataTable } from '@/components/datatable/DataTable';
 import { generateFixedIncomeData } from '@/components/datatable/lib/dataGenerator';
 import { inferColumnDefinitions } from '@/utils/columnUtils';
 import { useWorkspaceStore } from './stores/workspace.store';
+import { useTheme } from '@/components/datatable/ThemeProvider';
 import 'dockview/dist/styles/dockview.css';
-import '@/styles/dockview.css';
+
+
 
 // Panel component for DataTable
 const DataTablePanel: React.FC<IDockviewPanelProps> = ({ params }) => {
@@ -57,6 +61,7 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
   const apiRef = useRef<DockviewApi>();
   const { getActiveWorkspace, saveLayout } = useWorkspaceStore();
   const activeWorkspace = getActiveWorkspace();
+  const { theme } = useTheme();
 
   // Handle dockview ready
   const onReady = (event: DockviewReadyEvent) => {
@@ -122,8 +127,7 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
       <DockviewReact
         components={panels}
         onReady={onReady}
-        className="dockview-theme-light dark:dockview-theme-dark"
-        singleTabMode="fullwidth"
+        theme={theme === 'dark' ? themeDark : themeLight}
       />
     </div>
   );
