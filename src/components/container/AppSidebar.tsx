@@ -22,19 +22,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/datatable/ThemeToggle';
 import { SettingsExportService } from '@/services/settings/SettingsExportService';
 import { ImportExportDialog } from '@/components/settings/ImportExportDialog';
+import { TableDialog } from './TableDialog';
 import { useToast } from '@/hooks/use-toast';
 
 interface SidebarItem {
@@ -119,8 +110,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
   
   // New Table dialog state
   const [newTableDialogOpen, setNewTableDialogOpen] = useState(false);
-  const [tableId, setTableId] = useState('');
-  const [tableCaption, setTableCaption] = useState('');
 
   const toggleSection = (sectionId: string) => {
     setOpenSections((prev) =>
@@ -170,35 +159,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
   };
 
   const handleNewTableClick = () => {
-    // Generate default values
-    const defaultTableId = `table-${Date.now()}`;
-    const defaultCaption = `Table ${new Date().toLocaleTimeString()}`;
-    
-    // Set prepopulated values
-    setTableId(defaultTableId);
-    setTableCaption(defaultCaption);
     setNewTableDialogOpen(true);
   };
 
-  const handleCreateTable = () => {
-    if (!tableId.trim() || !tableCaption.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please provide both table ID and caption.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleCreateTable = (tableId: string, tableCaption: string) => {
     // Create the table panel
     if ((window as any).dockviewApi?.addTablePanel) {
-      (window as any).dockviewApi.addTablePanel(tableId.trim(), tableCaption.trim());
+      (window as any).dockviewApi.addTablePanel(tableId, tableCaption);
     }
-
-    // Close the dialog
-    setNewTableDialogOpen(false);
-    setTableId('');
-    setTableCaption('');
 
     // Close mobile sidebar if open
     if (onItemClick) {
@@ -336,60 +304,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
       />
       
       {/* New Table Dialog */}
-      <Dialog open={newTableDialogOpen} onOpenChange={setNewTableDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Create New Table</DialogTitle>
-            <DialogDescription>
-              Configure the table ID and tab header caption for your new table.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="table-id" className="text-right">
-                Table ID
-              </Label>
-              <Input
-                id="table-id"
-                value={tableId}
-                onChange={(e) => setTableId(e.target.value)}
-                className="col-span-3"
-                placeholder="table-123456"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="table-caption" className="text-right">
-                Tab Caption
-              </Label>
-              <Input
-                id="table-caption"
-                value={tableCaption}
-                onChange={(e) => setTableCaption(e.target.value)}
-                className="col-span-3"
-                placeholder="My Table"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setNewTableDialogOpen(false);
-                setTableId('');
-                setTableCaption('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleCreateTable}
-              disabled={!tableId.trim() || !tableCaption.trim()}
-            >
-              Create Table
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TableDialog
+        open={newTableDialogOpen}
+        onOpenChange={setNewTableDialogOpen}
+        mode="create"
+        onSubmit={handleCreateTable}
+      />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   DockviewReact,
   DockviewReadyEvent,
@@ -12,6 +12,7 @@ import { generateFixedIncomeData } from '@/components/datatable/lib/dataGenerato
 import { inferColumnDefinitions } from '@/utils/columnUtils';
 import { useWorkspaceStore } from './stores/workspace.store';
 import { useTheme } from '@/components/datatable/ThemeProvider';
+import { TableDialog } from './TableDialog';
 import 'dockview/dist/styles/dockview.css';
 
 
@@ -62,6 +63,10 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
   const { getActiveWorkspace, saveLayout } = useWorkspaceStore();
   const activeWorkspace = getActiveWorkspace();
   const { theme } = useTheme();
+  
+  // Rename dialog state
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renamingPanel, setRenamingPanel] = useState<{ id: string; title: string } | null>(null);
 
   // Handle dockview ready
   const onReady = (event: DockviewReadyEvent) => {
@@ -88,6 +93,9 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
         saveLayout(layout);
       }
     });
+
+    // Add right-click handler for tabs
+    setupTabContextMenu(event.api);
   };
 
   const addDefaultPanel = (api: DockviewApi) => {
@@ -114,6 +122,83 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
     });
   };
 
+  // Setup context menu for tabs
+  const setupTabContextMenu = (api: DockviewApi) => {
+    // Defer setup to ensure DOM is ready
+    setTimeout(() => {
+      // Add global handler for right-clicks
+      const handleContextMenu = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        
+        // Debug: log what was clicked with distinctive prefix
+        console.log('🔴 TAB-RENAME: Right-clicked element:', target);
+        console.log('🔴 TAB-RENAME: Classes:', target.className);
+        console.log('🔴 TAB-RENAME: Parent classes:', target.parentElement?.className);
+        
+        // Check for dockview tab elements
+        const tabElement = target.closest('.dv-default-tab') || 
+                          (target.classList.contains('dv-default-tab-content') ? target.parentElement : null);
+        
+        if (tabElement) {
+          console.log('🔴 TAB-RENAME: Found tab element:', tabElement);
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Get tab text content - might need to look at child elements
+          const tabText = tabElement.textContent?.trim() || 
+                         tabElement.querySelector('.dv-tab-content')?.textContent?.trim() || '';
+          
+          console.log('🔴 TAB-RENAME: Tab text:', tabText);
+          
+          // Find the panel by matching title
+          const panels = api.panels || [];
+          let foundPanel = null;
+          
+          for (const panel of panels) {
+            if (panel.title === tabText) {
+              foundPanel = panel;
+              break;
+            }
+          }
+          
+          if (foundPanel) {
+            console.log('🔴 TAB-RENAME: Found panel:', foundPanel);
+            setRenamingPanel({
+              id: foundPanel.id,
+              title: foundPanel.title || ''
+            });
+            setRenameDialogOpen(true);
+            return false; // Prevent default
+          } else {
+            console.log('🔴 TAB-RENAME: No matching panel found for tab text:', tabText);
+            console.log('🔴 TAB-RENAME: Available panels:', panels.map(p => ({ id: p.id, title: p.title })));
+          }
+        }
+      };
+      
+      // Add listener to document to catch all right-clicks
+      document.addEventListener('contextmenu', handleContextMenu, true);
+      
+      // Store cleanup function
+      (api as any).__contextMenuCleanup = () => {
+        document.removeEventListener('contextmenu', handleContextMenu, true);
+      };
+    }, 1000); // Increase delay further
+  };
+
+
+  // Handle rename submit
+  const handleRename = (_id: string, newTitle: string) => {
+    if (!apiRef.current || !renamingPanel) return;
+    
+    const panel = apiRef.current.getPanel(renamingPanel.id);
+    if (panel) {
+      panel.setTitle(newTitle);
+    }
+    
+    setRenamingPanel(null);
+  };
+
   // Expose API for external use
   useEffect(() => {
     (window as any).dockviewApi = {
@@ -129,6 +214,18 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
         onReady={onReady}
         theme={theme === 'dark' ? themeDark : themeLight}
       />
+      
+      {/* Rename Dialog */}
+      {renamingPanel && (
+        <TableDialog
+          open={renameDialogOpen}
+          onOpenChange={setRenameDialogOpen}
+          mode="rename"
+          initialId={renamingPanel.id}
+          initialTitle={renamingPanel.title}
+          onSubmit={handleRename}
+        />
+      )}
     </div>
   );
 };
