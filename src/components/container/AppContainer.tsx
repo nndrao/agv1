@@ -95,8 +95,8 @@ export const AppContainer: React.FC<AppContainerProps> = ({ children }) => {
           onMouseEnter={handlePillMouseEnter}
           onMouseLeave={handlePillMouseLeave}
         >
-          <div className="bg-primary/10 hover:bg-primary/20 rounded-r-full py-8 px-1 cursor-pointer transition-all duration-200 hover:px-2">
-            <ChevronRight className="h-5 w-5 text-primary" />
+          <div className="bg-primary/30 hover:bg-primary/40 rounded-r-full py-12 px-0.5 cursor-pointer transition-all duration-200 hover:px-1.5 border-r-2 border-primary/50 hover:border-primary/70">
+            <ChevronRight className="h-4 w-4 text-primary/90" />
           </div>
         </div>
 

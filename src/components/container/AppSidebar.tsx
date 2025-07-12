@@ -48,22 +48,10 @@ interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   {
-    id: 'home',
-    label: 'Home',
-    icon: Home,
-    href: '/',
-  },
-  {
     id: 'data',
     label: 'Data',
     icon: Database,
     items: [
-      {
-        id: 'tables',
-        label: 'Tables',
-        icon: Table,
-        href: '/tables',
-      },
       {
         id: 'sources',
         label: 'Data Sources',
@@ -71,37 +59,6 @@ const sidebarItems: SidebarItem[] = [
         href: '/sources',
       },
     ],
-  },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    icon: BarChart,
-    items: [
-      {
-        id: 'dashboards',
-        label: 'Dashboards',
-        icon: Layout,
-        href: '/dashboards',
-      },
-      {
-        id: 'reports',
-        label: 'Reports',
-        icon: FileText,
-        href: '/reports',
-      },
-    ],
-  },
-  {
-    id: 'workspaces',
-    label: 'Workspaces',
-    icon: Folder,
-    href: '/workspaces',
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings,
-    href: '/settings',
   },
 ];
 
