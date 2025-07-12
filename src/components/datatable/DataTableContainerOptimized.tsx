@@ -19,7 +19,7 @@ import { DataTableProps, ColumnDef } from './types';
 import { useProfileStore } from '@/components/datatable/stores/profile.store';
 import { useTheme } from '@/components/datatable/ThemeProvider';
 import { useColumnFormattingStore } from './columnFormatting/store/columnFormatting.store';
-import { useComponentDatasource } from './hooks/useComponentDatasource';
+import { useInstanceDatasource } from './hooks/useInstanceDatasource';
 import { useDatasourceStore } from '@/stores/datasource.store';
 // import { useToast } from '@/hooks/use-toast';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
@@ -65,8 +65,8 @@ export const DataTableContainerOptimized = memo(({
     appId: 'agv1'
   });
   
-  // Memoized component datasource hook
-  const datasourceHook = useComponentDatasource(instanceId);
+  // Memoized instance datasource hook
+  const datasourceHook = useInstanceDatasource(instanceId);
   const { 
     selectedDatasourceId, 
     columnDefinitions: datasourceColumns,

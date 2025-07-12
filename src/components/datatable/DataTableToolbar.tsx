@@ -413,13 +413,8 @@ export function DataTableToolbar({
         sortModel
       });
       
-      // Save datasource if selected
-      if (selectedDatasourceId !== activeProfile.datasourceId) {
-        const { updateProfile } = useProfileStore.getState();
-        updateProfile(activeProfile.id, {
-          datasourceId: selectedDatasourceId
-        });
-      }
+      // Note: Datasource selection is now managed at the instance level,
+      // not saved in profiles, to allow different tables to use different datasources
       
       // Clear optimizer cache for this profile so it gets reprocessed
       profileOptimizer.clearCache(activeProfile.id);

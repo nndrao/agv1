@@ -2,56 +2,49 @@ import React, { memo, useMemo, useRef, useState } from 'react';
 import { GridApi } from 'ag-grid-community';
 import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
-import { DataTableToolbar } from './DataTableToolbar';
-import { ProfileManagerV2 } from './ProfileManagerV2';
-import { UnifiedConfigProvider } from './UnifiedConfigContext';
-import { ColumnFormattingDialog } from './columnFormatting/ColumnFormattingDialog';
-import { GridOptionsPropertyEditor } from './gridOptions/GridOptionsPropertyEditor';
+import { DataTableToolbarInstance } from './DataTableToolbarInstance';
+import { ColumnFormattingDialogInstance } from './columnFormatting/ColumnFormattingDialogInstance';
+import { GridOptionsPropertyEditorInstance } from './gridOptions/GridOptionsPropertyEditorInstance';
 // import { DataSourceFloatingDialog } from './datasource/DataSourceFloatingDialog';
+import { ProfileStoreProvider, useInstanceProfile } from './ProfileStoreProvider';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
 import { useGridState } from './hooks/useGridState';
-import { useProfileSync } from './hooks/useProfileSync';
+import { useInstanceProfileSync } from './hooks/useInstanceProfileSync';
 import { useColumnOperations } from './hooks/useColumnOperations';
 import { useGridOptions } from './gridOptions/hooks/useGridOptions';
-import { useUnifiedConfig } from './hooks/useUnifiedConfig';
 import { useDataSourceUpdates } from './hooks/useDataSourceUpdates';
 import { DataTableProps } from './types';
-import { useProfileStore, useHasHydrated } from '@/components/datatable/stores/profile.store';
 import { useTheme } from '@/components/datatable/ThemeProvider';
 import { useColumnFormattingStore } from './columnFormatting/store/columnFormatting.store';
-import { useComponentDatasource } from './hooks/useComponentDatasource';
+import { useInstanceDatasource } from './hooks/useInstanceDatasource';
 import { useDatasourceStore } from '@/stores/datasource.store';
 import { useToast } from '@/hooks/use-toast';
 import './datatable.css';
 
 /**
- * Container component that manages the state and logic for the DataTable.
- * This component coordinates all the hooks and provides context to child components.
+ * Inner container component that uses instance-specific profile hooks.
+ * This component must be wrapped with ProfileStoreProvider.
  */
-export const DataTableContainer = memo(({ 
+const DataTableInner = memo(({ 
   columnDefs, 
   dataRow, 
-  instanceId = 'datatable-default',
-  useUnifiedConfig: enableUnifiedConfig = false 
+  instanceId = 'datatable-default'
 }: DataTableProps) => {
   const gridApiRef = useRef<GridApi | null>(null);
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
-  const { saveColumnCustomizations, saveGridOptions } = useProfileStore();
+  // Use instance-specific profile hooks
+  const saveColumnCustomizations = useInstanceProfile((state) => state.saveColumnCustomizations);
+  const saveGridOptions = useInstanceProfile((state) => state.saveGridOptions);
+  const getActiveProfile = useInstanceProfile((state) => state.getActiveProfile);
+  const _hasHydrated = useInstanceProfile((state) => state._hasHydrated);
   const { theme } = useTheme();
   const { datasources } = useDatasourceStore();
   const { toast } = useToast();
   const [updatesEnabled, setUpdatesEnabled] = useState(false);
   const [hasAutoEnabledUpdates, setHasAutoEnabledUpdates] = useState(false);
   
-  // Initialize unified config if enabled
-  const unifiedConfig = useUnifiedConfig({
-    instanceId,
-    autoLoad: enableUnifiedConfig,
-    userId: 'default-user', // TODO: Get from auth context
-    appId: 'agv1' // TODO: Get from app config
-  });
   
-  // Initialize component datasource hook
+  // Initialize instance-level datasource hook
   const { 
     selectedDatasourceId, 
     columnDefinitions: datasourceColumns,
@@ -59,7 +52,7 @@ export const DataTableContainer = memo(({
     // currentStatus: datasourceStatus,
     isSnapshotComplete,
     handleDatasourceChange 
-  } = useComponentDatasource(instanceId);
+  } = useInstanceDatasource(instanceId);
   
   // Use datasource columns if available, otherwise use provided columns
   const effectiveColumnDefs = React.useMemo(() => {
@@ -169,7 +162,7 @@ export const DataTableContainer = memo(({
   const processedColumns = useColumnProcessor(currentColumnDefs);
   
   // Handle profile synchronization
-  const { handleProfileChange } = useProfileSync(
+  const { handleProfileChange } = useInstanceProfileSync(
     setCurrentColumnDefs, 
     setSelectedFont, 
     setSelectedFontSize,
@@ -177,14 +170,14 @@ export const DataTableContainer = memo(({
   );
   
   // Wait for store hydration
-  const hasHydrated = useHasHydrated();
+  const hasHydrated = _hasHydrated;
   
   // Initialize and apply active profile on mount
   const hasInitializedRef = React.useRef(false);
   React.useEffect(() => {
     if (hasInitializedRef.current || !hasHydrated) return;
     
-    const activeProfile = useProfileStore.getState().getActiveProfile();
+    const activeProfile = getActiveProfile();
     if (activeProfile && columnDefs && columnDefs.length > 0) {
       // console.log('[DataTableContainer] Active profile on mount (after hydration):', {
       //   profileId: activeProfile.id,
@@ -210,16 +203,6 @@ export const DataTableContainer = memo(({
     }
   }, [columnDefs, hasHydrated]); // Wait for hydration
   
-  // Sync unified config with existing profile system if enabled
-  React.useEffect(() => {
-    if (enableUnifiedConfig && unifiedConfig.config) {
-      // Convert unified config to profile and apply
-      const profile = unifiedConfig.configToProfile(unifiedConfig.config);
-      if (profile) {
-        handleProfileChange(profile);
-      }
-    }
-  }, [enableUnifiedConfig, unifiedConfig.config, unifiedConfig.configToProfile, handleProfileChange]);
   
   // Auto-enable updates when snapshot is complete
   React.useEffect(() => {
@@ -254,35 +237,11 @@ export const DataTableContainer = memo(({
     // Save font to profile's grid options
     saveGridOptions({ font });
     
-    // Update unified config if enabled
-    if (enableUnifiedConfig && unifiedConfig.config) {
-      const activeVersion = unifiedConfig.config.settings.versions[unifiedConfig.config.settings.activeVersionId];
-      if (activeVersion) {
-        unifiedConfig.updateConfig({
-          settings: {
-            ...unifiedConfig.config.settings,
-            versions: {
-              ...unifiedConfig.config.settings.versions,
-              [unifiedConfig.config.settings.activeVersionId]: {
-                ...activeVersion,
-                config: {
-                  ...activeVersion.config,
-                  gridOptions: {
-                    ...(activeVersion.config.gridOptions || {}),
-                    font
-                  }
-                }
-              }
-            }
-          }
-        });
-      }
-    }
     
     if (gridApiRef.current) {
       gridApiRef.current.refreshCells({ force: true });
     }
-  }, [setSelectedFont, saveGridOptions, enableUnifiedConfig, unifiedConfig]);
+  }, [setSelectedFont, saveGridOptions]);
   
   // Handle font size changes
   const handleFontSizeChange = React.useCallback((size: string) => {
@@ -291,35 +250,11 @@ export const DataTableContainer = memo(({
     // Save font size to profile's grid options
     saveGridOptions({ fontSize: size });
     
-    // Update unified config if enabled
-    if (enableUnifiedConfig && unifiedConfig.config) {
-      const activeVersion = unifiedConfig.config.settings.versions[unifiedConfig.config.settings.activeVersionId];
-      if (activeVersion) {
-        unifiedConfig.updateConfig({
-          settings: {
-            ...unifiedConfig.config.settings,
-            versions: {
-              ...unifiedConfig.config.settings.versions,
-              [unifiedConfig.config.settings.activeVersionId]: {
-                ...activeVersion,
-                config: {
-                  ...activeVersion.config,
-                  gridOptions: {
-                    ...(activeVersion.config.gridOptions || {}),
-                    fontSize: size
-                  }
-                }
-              }
-            }
-          }
-        });
-      }
-    }
     
     if (gridApiRef.current) {
       gridApiRef.current.refreshCells({ force: true });
     }
-  }, [setSelectedFontSize, saveGridOptions, enableUnifiedConfig, unifiedConfig]);
+  }, [setSelectedFontSize, saveGridOptions]);
   
   // Handle data source changes
   // const handleApplyDataSources = React.useCallback((dataSources: any[]) => {
@@ -457,35 +392,11 @@ export const DataTableContainer = memo(({
     getColumnDefsWithStyles,
   ]);
   
-  // Create unified config context value
-  const unifiedConfigContextValue = useMemo(() => ({
-    ...unifiedConfig,
-    instanceId,
-    enabled: enableUnifiedConfig,
-    createVersion: unifiedConfig.createVersion || (async () => {}),
-    activateVersion: unifiedConfig.activateVersion || (async () => {})
-  }), [unifiedConfig, instanceId, enableUnifiedConfig]);
 
   return (
-    <UnifiedConfigProvider value={unifiedConfigContextValue}>
-      <DataTableProvider value={contextValue}>
+    <DataTableProvider value={contextValue}>
         <div className="h-full w-full flex flex-col overflow-hidden">
-        {enableUnifiedConfig && (
-          <div className="px-4 py-2 border-b">
-            <ProfileManagerV2 
-              instanceId={instanceId}
-              variant="inline"
-              onConfigChange={(config) => {
-                // Convert to profile and apply
-                const profile = unifiedConfig.configToProfile(config);
-                if (profile) {
-                  handleProfileChange(profile);
-                }
-              }}
-            />
-          </div>
-        )}
-        <DataTableToolbar
+        <DataTableToolbarInstance
           selectedFont={selectedFont}
           selectedFontSize={selectedFontSize}
           onFontChange={handleFontChange}
@@ -524,7 +435,7 @@ export const DataTableContainer = memo(({
           </div>
         )}
         
-        <ColumnFormattingDialog
+        <ColumnFormattingDialogInstance
           open={showColumnDialog}
           onOpenChange={setShowColumnDialog}
           columnDefs={processedColumns}
@@ -532,7 +443,7 @@ export const DataTableContainer = memo(({
           onApply={handleApplyColumnChanges}
         />
         
-        <GridOptionsPropertyEditor
+        <GridOptionsPropertyEditorInstance
           isOpen={showGridOptionsDialog}
           onClose={() => setShowGridOptionsDialog(false)}
           onApply={handleApplyGridOptions}
@@ -542,7 +453,28 @@ export const DataTableContainer = memo(({
       </div>
       
     </DataTableProvider>
-    </UnifiedConfigProvider>
+  );
+});
+
+DataTableInner.displayName = 'DataTableInner';
+
+/**
+ * Container component that manages the state and logic for the DataTable.
+ * This component wraps the inner component with ProfileStoreProvider.
+ */
+export const DataTableContainer = memo(({ 
+  columnDefs, 
+  dataRow, 
+  instanceId = 'datatable-default'
+}: DataTableProps) => {
+  return (
+    <ProfileStoreProvider instanceId={instanceId}>
+      <DataTableInner
+        columnDefs={columnDefs}
+        dataRow={dataRow}
+        instanceId={instanceId}
+      />
+    </ProfileStoreProvider>
   );
 });
 
