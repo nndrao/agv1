@@ -24,6 +24,7 @@ export interface Workspace {
 interface WorkspaceStore {
   workspaces: Workspace[];
   activeWorkspaceId: string;
+  hasUnsavedChanges: boolean;
   
   // Actions
   createWorkspace: (name: string, description?: string) => Workspace;
@@ -35,6 +36,7 @@ interface WorkspaceStore {
   // Layout management
   saveLayout: (layout: any) => void;
   saveOpenViews: (views: Workspace['openViews']) => void;
+  setHasUnsavedChanges: (hasChanges: boolean) => void;
 }
 
 const DEFAULT_WORKSPACE_ID = 'default-workspace';
@@ -54,6 +56,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
     (set, get) => ({
       workspaces: [createDefaultWorkspace()],
       activeWorkspaceId: DEFAULT_WORKSPACE_ID,
+      hasUnsavedChanges: false,
       
       createWorkspace: (name, description) => {
         const newWorkspace: Workspace = {
@@ -121,11 +124,16 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       saveLayout: (layout) => {
         const { activeWorkspaceId } = get();
         get().updateWorkspace(activeWorkspaceId, { layout });
+        set({ hasUnsavedChanges: false });
       },
       
       saveOpenViews: (views) => {
         const { activeWorkspaceId } = get();
         get().updateWorkspace(activeWorkspaceId, { openViews: views });
+      },
+      
+      setHasUnsavedChanges: (hasChanges) => {
+        set({ hasUnsavedChanges: hasChanges });
       },
     }),
     {
@@ -133,6 +141,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       partialize: (state) => ({
         workspaces: state.workspaces,
         activeWorkspaceId: state.activeWorkspaceId,
+        // Don't persist hasUnsavedChanges
       }),
     }
   )

@@ -27,6 +27,7 @@ import { SettingsExportService } from '@/services/settings/SettingsExportService
 import { ImportExportDialog } from '@/components/settings/ImportExportDialog';
 import { TableDialog } from './TableDialog';
 import { useToast } from '@/hooks/use-toast';
+import { WorkspaceSelector } from './WorkspaceSelector';
 
 interface SidebarItem {
   id: string;
@@ -238,6 +239,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
 
   return (
     <div className="flex-1 flex flex-col">
+      {/* Workspace Selector */}
+      <WorkspaceSelector />
+      
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {/* Quick Actions */}

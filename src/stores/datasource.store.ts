@@ -47,9 +47,12 @@ export type DatasourceConfig = StompDatasourceConfig | RestDatasourceConfig;
 export interface ColumnDefinition {
   field: string;
   headerName: string;
-  cellDataType: 'text' | 'number' | 'boolean' | 'date' | 'object';
+  cellDataType: 'text' | 'number' | 'boolean' | 'date' | 'dateString' | 'object';
   width?: number;
   hide?: boolean;
+  filter?: string;
+  valueFormatter?: string;
+  type?: string;
 }
 
 export interface FieldInfo {

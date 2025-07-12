@@ -113,6 +113,12 @@ export const dateFormats = [
   { value: 'h:mm AM/PM', label: 'h:mm AM/PM', example: '3:45 PM' },
   { value: 'HH:mm:ss', label: 'HH:mm:ss', example: '15:45:30' },
   { value: 'MM/DD/YY h:mm AM/PM', label: 'DateTime', example: '12/31/23 3:45 PM' },
+  // ISO Date formats
+  { value: 'YYYY-MM-DDTHH:mm:ss.sssZ', label: 'ISO Full', example: '2023-12-31T15:45:30.123Z' },
+  { value: 'YYYY-MM-DD HH:mm:ss', label: 'ISO DateTime', example: '2023-12-31 15:45:30' },
+  { value: 'YYYY-MM-DDTHH:mm:ss', label: 'ISO DateTime (T)', example: '2023-12-31T15:45:30' },
+  { value: 'YYYY-MM-DD HH:mm', label: 'Date & Time', example: '2023-12-31 15:45' },
+  { value: 'MMM D, YYYY h:mm AM/PM', label: 'Long DateTime', example: 'Dec 31, 2023 3:45 PM' },
 ];
 
 // Currency symbols

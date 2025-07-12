@@ -31,8 +31,7 @@ import './datatable.css';
 export const DataTableContainerOptimized = memo(({ 
   columnDefs, 
   dataRow, 
-  instanceId = 'datatable-default',
-  useUnifiedConfig: enableUnifiedConfig = false 
+  instanceId = 'datatable-default'
 }: DataTableProps) => {
   // Performance monitoring
   const { } = usePerformanceMonitor({
@@ -60,7 +59,7 @@ export const DataTableContainerOptimized = memo(({
   // Memoized unified config
   const unifiedConfig = useUnifiedConfig({
     instanceId,
-    autoLoad: enableUnifiedConfig,
+    autoLoad: false,
     userId: 'default-user',
     appId: 'agv1'
   });
@@ -121,14 +120,14 @@ export const DataTableContainerOptimized = memo(({
     setSelectedFont(font);
     saveGridOptions({ font });
     
-    if (enableUnifiedConfig && unifiedConfig.config) {
+    if (unifiedConfig.config) {
       // Update unified config logic here
     }
     
     if (gridApiRef.current) {
       gridApiRef.current.refreshCells({ force: true });
     }
-  }, [setSelectedFont, saveGridOptions, enableUnifiedConfig, unifiedConfig]);
+  }, [setSelectedFont, saveGridOptions, unifiedConfig]);
   
   const handleFontSizeChange = useCallback((size: string) => {
     setSelectedFontSize(size);
@@ -232,24 +231,16 @@ export const DataTableContainerOptimized = memo(({
   
   return (
     <DataTableProvider value={contextValue}>
-      <UnifiedConfigProvider value={enableUnifiedConfig ? {
+      <UnifiedConfigProvider value={{
         ...unifiedConfig,
         instanceId,
         enabled: true,
         createVersion: unifiedConfig.createVersion || (async () => {}),
-        activateVersion: unifiedConfig.activateVersion || (async () => {})
-      } : { 
-        instanceId, 
-        enabled: false,
-        config: null,
-        loading: false,
-        error: null,
-        loadConfig: async () => {},
-        updateConfig: async () => {},
-        createVersion: async () => {},
-        activateVersion: async () => {},
-        configToProfile: () => null,
-        profileToConfig: () => ({})
+        activateVersion: unifiedConfig.activateVersion || (async () => {}),
+        loadConfig: unifiedConfig.loadConfig || (async () => {}),
+        updateConfig: unifiedConfig.updateConfig || (async () => {}),
+        configToProfile: unifiedConfig.configToProfile || (() => null),
+        profileToConfig: unifiedConfig.profileToConfig || (() => ({}))
       }}>
         <div className="datatable-container h-full flex flex-col">
           <DataTableToolbar 
@@ -325,7 +316,6 @@ export const DataTableContainerOptimized = memo(({
   // Custom comparison for memo optimization
   return (
     prevProps.instanceId === nextProps.instanceId &&
-    prevProps.useUnifiedConfig === nextProps.useUnifiedConfig &&
     JSON.stringify(prevProps.columnDefs) === JSON.stringify(nextProps.columnDefs) &&
     JSON.stringify(prevProps.dataRow) === JSON.stringify(nextProps.dataRow)
   );

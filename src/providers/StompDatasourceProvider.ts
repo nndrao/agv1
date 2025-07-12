@@ -492,7 +492,16 @@ export class StompDatasourceProvider {
   private static inferType(value: any): FieldInfo['type'] {
     if (value === null || value === undefined) return 'string';
     if (typeof value === 'string') {
-      // Check if it's a date string
+      // Check if it's an ISO date string
+      // Match formats like: 2025-07-12T11:40:58.458Z or 2025-07-12T11:40:58 or 2025-07-12
+      const isoDatePattern = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:\d{2})?)?$/;
+      if (isoDatePattern.test(value)) {
+        const parsed = Date.parse(value);
+        if (!isNaN(parsed)) {
+          return 'date';
+        }
+      }
+      // Also check for other common date patterns
       if (!isNaN(Date.parse(value)) && /\d{4}-\d{2}-\d{2}/.test(value)) {
         return 'date';
       }

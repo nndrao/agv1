@@ -765,6 +765,14 @@ function handleDateFormat(value: unknown, formatString: string): string {
   if (isNaN(date.getTime())) return String(value);
   
   const pad = (n: number) => n.toString().padStart(2, '0');
+  const pad3 = (n: number) => n.toString().padStart(3, '0');
+  
+  // Handle timezone offset
+  const timezoneOffset = date.getTimezoneOffset();
+  const offsetHours = Math.floor(Math.abs(timezoneOffset) / 60);
+  const offsetMinutes = Math.abs(timezoneOffset) % 60;
+  const offsetSign = timezoneOffset <= 0 ? '+' : '-';
+  const offsetString = `${offsetSign}${pad(offsetHours)}:${pad(offsetMinutes)}`;
   
   return formatString
     .replace(/YYYY/g, date.getFullYear().toString())
@@ -783,8 +791,11 @@ function handleDateFormat(value: unknown, formatString: string): string {
     .replace(/m/g, date.getMinutes().toString())
     .replace(/ss/g, pad(date.getSeconds()))
     .replace(/s/g, date.getSeconds().toString())
+    .replace(/sss/g, pad3(date.getMilliseconds()))
     .replace(/AM\/PM/g, date.getHours() < 12 ? 'AM' : 'PM')
-    .replace(/am\/pm/g, date.getHours() < 12 ? 'am' : 'pm');
+    .replace(/am\/pm/g, date.getHours() < 12 ? 'am' : 'pm')
+    .replace(/Z/g, date.toISOString().slice(-1) === 'Z' ? 'Z' : offsetString)
+    .replace(/T/g, 'T'); // Literal T separator for ISO format
 }
 
 // Cell style function

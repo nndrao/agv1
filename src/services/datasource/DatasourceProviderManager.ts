@@ -44,7 +44,7 @@ export class DatasourceProviderManager {
     // Set up event listeners for the simplified provider
     provider.on('update', (event) => {
       const subscribers = this.subscribers.get(datasource.id);
-      if (subscribers && event.rows) {
+      if (subscribers && event.type === 'update' && event.rows) {
         subscribers.forEach(subscriber => {
           if (subscriber.onUpdate) {
             subscriber.onUpdate(event.rows);
@@ -55,7 +55,7 @@ export class DatasourceProviderManager {
     
     provider.on('error', (event) => {
       const subscribers = this.subscribers.get(datasource.id);
-      if (subscribers && event.error) {
+      if (subscribers && event.type === 'error' && event.error) {
         subscribers.forEach(subscriber => {
           if (subscriber.onError) {
             subscriber.onError(event.error);
@@ -275,6 +275,24 @@ export class DatasourceProviderManager {
    */
   getSnapshotData(datasourceId: string): any[] | undefined {
     return this.snapshotData.get(datasourceId);
+  }
+
+  /**
+   * Get provider for a datasource configuration
+   */
+  getProvider(datasource: StompDatasourceConfig): SimplifiedStompDataSourceProvider {
+    return this.getOrCreateProvider(datasource);
+  }
+
+  /**
+   * Register a subscriber and return an unsubscribe function
+   */
+  registerSubscriber(datasourceId: string): () => void {
+    // Return a function that unsubscribes when called
+    return () => {
+      // No-op for now, as the actual subscription happens via subscribe method
+      console.log(`[DatasourceProviderManager] Unsubscribe requested for ${datasourceId}`);
+    };
   }
 
   /**

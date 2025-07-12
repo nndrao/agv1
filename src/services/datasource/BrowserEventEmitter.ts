@@ -63,4 +63,42 @@ export class BrowserEventEmitter {
   eventNames(): string[] {
     return Array.from(this.events.keys());
   }
+
+  // Add compatibility methods for Node.js EventEmitter interface
+  addListener(event: string, listener: (...args: any[]) => void): this {
+    return this.on(event, listener);
+  }
+
+  removeListener(event: string, listener: (...args: any[]) => void): this {
+    return this.off(event, listener);
+  }
+
+  setMaxListeners(_n: number): this {
+    // No-op for browser compatibility
+    return this;
+  }
+
+  getMaxListeners(): number {
+    // Return Node.js default
+    return 10;
+  }
+
+  listeners(event: string): Function[] {
+    const listeners = this.events.get(event);
+    return listeners ? Array.from(listeners) : [];
+  }
+
+  rawListeners(event: string): Function[] {
+    return this.listeners(event);
+  }
+
+  prependListener(event: string, listener: (...args: any[]) => void): this {
+    // For simplicity, just add normally (browser doesn't guarantee order)
+    return this.on(event, listener);
+  }
+
+  prependOnceListener(event: string, listener: (...args: any[]) => void): this {
+    // For simplicity, just add normally
+    return this.once(event, listener);
+  }
 }

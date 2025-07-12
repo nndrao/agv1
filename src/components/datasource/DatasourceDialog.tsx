@@ -95,6 +95,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
   
   // Column state
   const [manualColumns, setManualColumns] = useState<ColumnDefinition[]>([]);
+  const [fieldColumnOverrides, setFieldColumnOverrides] = useState<Record<string, Partial<ColumnDefinition>>>({});
   const [newColumn, setNewColumn] = useState({ field: '', header: '', type: 'text' as ColumnDefinition['cellDataType'] });
   const [, setColumnsGridApi] = useState<GridApi | null>(null);
   const [showUpdateColumnsAlert, setShowUpdateColumnsAlert] = useState(false);
@@ -142,24 +143,54 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
     setExpandedFields(objectPaths);
   }, [inferredFields]);
   
+  // Filter fields based on search query
+  const filterFields = (fields: FieldNode[], query: string): FieldNode[] => {
+    if (!query) return fields;
+    
+    const lowerQuery = query.toLowerCase();
+    
+    return fields.reduce((acc: FieldNode[], field) => {
+      const matchesQuery = 
+        field.path.toLowerCase().includes(lowerQuery) ||
+        field.name.toLowerCase().includes(lowerQuery);
+      
+      if (field.children) {
+        const filteredChildren = filterFields(field.children, query);
+        if (matchesQuery || filteredChildren.length > 0) {
+          acc.push({
+            ...field,
+            children: filteredChildren.length > 0 ? filteredChildren : field.children
+          });
+        }
+      } else if (matchesQuery) {
+        acc.push(field);
+      }
+      
+      return acc;
+    }, []);
+  };
+  
   // Update select all checkbox state
   useEffect(() => {
     const filteredFields = filterFields(inferredFields, fieldSearchQuery);
-    const allPaths = new Set<string>();
+    const allLeafPaths = new Set<string>();
     
-    const collectAllPaths = (fields: FieldNode[]) => {
+    const collectAllLeafPaths = (fields: FieldNode[]) => {
       fields.forEach(field => {
-        allPaths.add(field.path);
+        // Only add non-object fields (leaf nodes)
+        if (field.type !== 'object' || !field.children || field.children.length === 0) {
+          allLeafPaths.add(field.path);
+        }
         if (field.children) {
-          collectAllPaths(field.children);
+          collectAllLeafPaths(field.children);
         }
       });
     };
     
-    collectAllPaths(filteredFields);
+    collectAllLeafPaths(filteredFields);
     
-    const selectedCount = Array.from(allPaths).filter(path => selectedFields.has(path)).length;
-    const totalCount = allPaths.size;
+    const selectedCount = Array.from(allLeafPaths).filter(path => selectedFields.has(path)).length;
+    const totalCount = allLeafPaths.size;
     
     if (selectedCount === 0) {
       setSelectAllChecked(false);
@@ -176,7 +207,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
   // Center dialog on open
   useEffect(() => {
     if (open && !isDragging) {
-      const centerX = (window.innerWidth - 800) / 2;
+      const centerX = (window.innerWidth - 900) / 2;
       const centerY = (window.innerHeight - 600) / 2;
       setPosition({ x: centerX, y: centerY });
     }
@@ -337,6 +368,17 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
     }
   };
 
+  const handleClearAllFields = () => {
+    setInferredFields([]);
+    setSelectedFields(new Set());
+    setSelectAllChecked(false);
+    setSelectAllIndeterminate(false);
+    toast({
+      title: 'Fields cleared',
+      description: 'All inferred fields have been removed',
+    });
+  };
+
   const convertToFieldNodes = (fields: Record<string, any>): FieldNode[] => {
     return Object.entries(fields).map(([key, field]) => ({
       path: field.path,
@@ -423,33 +465,6 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
     }
   };
   
-  // Filter fields based on search query
-  const filterFields = (fields: FieldNode[], query: string): FieldNode[] => {
-    if (!query) return fields;
-    
-    const lowerQuery = query.toLowerCase();
-    
-    return fields.reduce((acc: FieldNode[], field) => {
-      const matchesQuery = 
-        field.path.toLowerCase().includes(lowerQuery) ||
-        field.name.toLowerCase().includes(lowerQuery);
-      
-      if (field.children) {
-        const filteredChildren = filterFields(field.children, query);
-        if (matchesQuery || filteredChildren.length > 0) {
-          acc.push({
-            ...field,
-            children: filteredChildren.length > 0 ? filteredChildren : field.children
-          });
-        }
-      } else if (matchesQuery) {
-        acc.push(field);
-      }
-      
-      return acc;
-    }, []);
-  };
-  
   // Select field with all its children
   const selectFieldWithChildren = (field: FieldNode, select: boolean) => {
     const fieldsToUpdate = new Set<string>();
@@ -483,25 +498,35 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
   // Handle select all functionality
   const handleSelectAll = (checked: boolean) => {
     const filteredFields = filterFields(inferredFields, fieldSearchQuery);
-    const allPaths = new Set<string>();
-    
-    const collectAllLeafPaths = (fields: FieldNode[]) => {
-      fields.forEach(field => {
-        // Only add non-object fields (leaf nodes)
-        if (field.type !== 'object' || !field.children || field.children.length === 0) {
-          allPaths.add(field.path);
-        }
-        if (field.children) {
-          collectAllLeafPaths(field.children);
-        }
-      });
-    };
-    
-    collectAllLeafPaths(filteredFields);
     
     if (checked) {
-      setSelectedFields(prev => new Set([...prev, ...allPaths]));
+      // Select all fields by going through each top-level field
+      // This ensures consistent behavior with individual field selection
+      filteredFields.forEach(field => {
+        if (field.type === 'object' && field.children) {
+          selectFieldWithChildren(field, true);
+        } else {
+          setSelectedFields(prev => new Set([...prev, field.path]));
+        }
+      });
     } else {
+      // Deselect all fields
+      const allPaths = new Set<string>();
+      
+      const collectAllLeafPaths = (fields: FieldNode[]) => {
+        fields.forEach(field => {
+          // Only add non-object fields (leaf nodes)
+          if (field.type !== 'object' || !field.children || field.children.length === 0) {
+            allPaths.add(field.path);
+          }
+          if (field.children) {
+            collectAllLeafPaths(field.children);
+          }
+        });
+      };
+      
+      collectAllLeafPaths(filteredFields);
+      
       setSelectedFields(prev => {
         const newSet = new Set(prev);
         allPaths.forEach(path => newSet.delete(path));
@@ -519,9 +544,9 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
     // For object fields, check if any/all children are selected
     let isChecked = false;
     let isIndeterminate = false;
+    const leafChildren: string[] = [];
     
     if (field.type === 'object' && field.children) {
-      const leafChildren: string[] = [];
       const collectLeafPaths = (f: FieldNode) => {
         if (f.type !== 'object' || !f.children || f.children.length === 0) {
           leafChildren.push(f.path);
@@ -568,7 +593,14 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
             {field.type}
           </Badge>
           
-          <span className="text-sm font-medium flex-1 truncate">{field.name}</span>
+          <span className="text-sm font-medium flex-1 truncate" title={field.path}>
+            {field.name}
+            {field.type === 'object' && field.children && isChecked && (
+              <span className="text-xs text-muted-foreground ml-1">
+                ({leafChildren.length})
+              </span>
+            )}
+          </span>
         </div>
         
         {isExpanded && field.children && (
@@ -627,12 +659,26 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
   
   // Get all columns for display
   const getAllColumns = useMemo(() => {
-    const columnsFromFields = Array.from(selectedFields).map(path => ({
-      field: path,
-      headerName: path.split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' '),
-      cellDataType: getFieldType(path),
-      source: 'field' as const,
-    }));
+    const columnsFromFields = Array.from(selectedFields).map(path => {
+      const override = fieldColumnOverrides[path] || {};
+      const fieldType = getFieldType(path);
+      const cellDataType = override.cellDataType || fieldType || 'text';
+      
+      const columnInfo = {
+        field: path,
+        headerName: override.headerName || path.split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' '),
+        cellDataType: cellDataType,
+        source: 'field' as const,
+        type: undefined as string | undefined,
+      };
+      
+      // Show what type will be applied
+      if (cellDataType === 'number') {
+        columnInfo.type = 'numericColumn';
+      }
+      
+      return columnInfo;
+    });
     
     const columnsFromManual = manualColumns.map(col => ({
       ...col,
@@ -640,7 +686,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
     }));
     
     return [...columnsFromFields, ...columnsFromManual];
-  }, [selectedFields, manualColumns, inferredFields]);
+  }, [selectedFields, manualColumns, inferredFields, fieldColumnOverrides]);
   
   // AG-Grid column definitions
   const columnDefs = useMemo<ColDef[]>(() => [
@@ -675,31 +721,21 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
       flex: 1,
       minWidth: 150,
       sortable: true,
-      filter: true,
+      filter: 'agTextColumnFilter',
       floatingFilter: true,
-      cellRenderer: (params: any) => {
-        return (
-          <div className="flex items-center gap-2">
-            <span>{params.value}</span>
-            {params.data.source === 'field' && (
-              <Badge variant="secondary" className="text-xs px-1 py-0.5">auto</Badge>
-            )}
-          </div>
-        );
-      },
     },
     {
       field: 'cellDataType',
       headerName: 'Type',
       width: 120,
       sortable: true,
-      filter: true,
+      filter: 'agTextColumnFilter',
       floatingFilter: true,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: {
-        values: ['text', 'number', 'boolean', 'date', 'object'],
+        values: ['text', 'number', 'boolean', 'date', 'dateString', 'object'],
       },
-      editable: (params: any) => params.data.source === 'manual',
+      editable: true,
     },
     {
       field: 'headerName',
@@ -707,9 +743,9 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
       flex: 1,
       minWidth: 200,
       sortable: true,
-      filter: true,
+      filter: 'agTextColumnFilter',
       floatingFilter: true,
-      editable: (params: any) => params.data.source === 'manual',
+      editable: true,
     },
   ], [toggleFieldSelection, setManualColumns]);
   
@@ -750,17 +786,43 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
         }
         setManualColumns(updated);
       }
+    } else if (data.source === 'field') {
+      // Handle field-based columns
+      setFieldColumnOverrides(prev => ({
+        ...prev,
+        [data.field]: {
+          ...prev[data.field],
+          [colDef?.field as string]: newValue,
+        },
+      }));
     }
   }, [manualColumns]);
 
   const handleUpdateColumns = () => {
-    // Clear all manual columns and reset to only selected fields
+    // Clear ALL columns (both from fields and manual)
+    // This is achieved by clearing manual columns since columns from fields
+    // are automatically generated from selectedFields
     setManualColumns([]);
+    
+    // The columns will now only show what's in selectedFields
+    // since getAllColumns will regenerate based on current selectedFields
+    
     setShowUpdateColumnsAlert(false);
     setActiveTab('columns');
     toast({
       title: 'Columns updated',
-      description: `${selectedFields.size} columns created from selected fields`,
+      description: `All columns cleared and ${selectedFields.size} columns created from selected fields`,
+    });
+  };
+
+  const handleClearAllColumns = () => {
+    // Clear both selected fields and manual columns
+    setSelectedFields(new Set());
+    setManualColumns([]);
+    setFieldColumnOverrides({});
+    toast({
+      title: 'All columns cleared',
+      description: 'Removed all columns from the Columns tab',
     });
   };
 
@@ -774,11 +836,32 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
     }
 
     // Build columns from selected fields + manual columns
-    const columnsFromFields: ColumnDefinition[] = Array.from(selectedFields).map(path => ({
-      field: path,
-      headerName: path.split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' '),
-      cellDataType: 'text',
-    }));
+    const columnsFromFields: ColumnDefinition[] = Array.from(selectedFields).map(path => {
+      const override = fieldColumnOverrides[path] || {};
+      const fieldType = getFieldType(path);
+      const cellDataType = override.cellDataType || fieldType || 'text';
+      
+      const column: ColumnDefinition = {
+        field: path,
+        headerName: override.headerName || path.split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' '),
+        cellDataType: cellDataType,
+      };
+      
+      // Apply date-specific settings
+      if (cellDataType === 'date' || cellDataType === 'dateString') {
+        column.filter = 'agDateColumnFilter';
+        // Default to ISO DateTime format for date columns
+        column.valueFormatter = 'YYYY-MM-DD HH:mm:ss';
+      }
+      
+      // Apply number-specific settings
+      if (cellDataType === 'number') {
+        column.type = 'numericColumn';
+        column.filter = 'agNumberColumnFilter';
+      }
+      
+      return column;
+    });
 
     const datasource: StompDatasourceConfig = {
       id: datasourceId || `stomp-${Date.now()}`,
@@ -826,7 +909,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
         ref={dialogRef}
         className={cn(
           "absolute bg-background border rounded-lg shadow-lg flex flex-col",
-          isMaximized ? "inset-4" : "w-[700px] h-[700px]",
+          isMaximized ? "inset-4" : "w-[900px] h-[600px]",
           isDragging && "cursor-move"
         )}
         style={!isMaximized ? {
@@ -913,134 +996,168 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
           {/* Connection Tab */}
           {activeTab === 'connection' && (
             <div className="h-full flex flex-col">
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4 max-w-2xl">
+              <ScrollArea className="flex-1">
+                <div className="p-6 space-y-5">
+                  {/* Basic Configuration */}
                   <div>
-                    <Label htmlFor="name">Name *</Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="My STOMP Datasource"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="websocket-url">WebSocket URL *</Label>
-                    <Input
-                      id="websocket-url"
-                      value={websocketUrl}
-                      onChange={(e) => setWebsocketUrl(e.target.value)}
-                      placeholder="ws://localhost:8080"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="listener-topic">Listener Topic *</Label>
-                    <Input
-                      id="listener-topic"
-                      value={listenerTopic}
-                      onChange={(e) => setListenerTopic(e.target.value)}
-                      placeholder="/snapshot/positions"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="request-destination">Destination</Label>
-                      <Input
-                        id="request-destination"
-                        value={requestMessage}
-                        onChange={(e) => setRequestMessage(e.target.value)}
-                        placeholder="/app/trigger"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="request-body">Body</Label>
-                      <Input
-                        id="request-body"
-                        value={requestBody}
-                        onChange={(e) => setRequestBody(e.target.value)}
-                        placeholder="TriggerTopic"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="snapshot-token">Snapshot End Token</Label>
-                      <Input
-                        id="snapshot-token"
-                        value={snapshotEndToken}
-                        onChange={(e) => setSnapshotEndToken(e.target.value)}
-                        placeholder="Success"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="key-column">Key Column</Label>
-                      <Input
-                        id="key-column"
-                        value={keyColumn}
-                        onChange={(e) => setKeyColumn(e.target.value)}
-                        placeholder="id"
-                      />
-                    </div>
-                  </div>
-
-                  {listenerTopic.includes('/snapshot/') && (
-                    <div>
+                    <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Basic Configuration</h3>
+                    <div className="space-y-4">
                       <div>
-                        <Label htmlFor="message-rate">Message Rate (msg/s)</Label>
+                        <Label htmlFor="name">Datasource Name *</Label>
                         <Input
-                          id="message-rate"
-                          type="number"
-                          value={messageRate}
-                          onChange={(e) => setMessageRate(e.target.value)}
-                          placeholder="1000"
+                          id="name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="My STOMP Datasource"
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="websocket-url">WebSocket URL *</Label>
+                          <Input
+                            id="websocket-url"
+                            value={websocketUrl}
+                            onChange={(e) => setWebsocketUrl(e.target.value)}
+                            placeholder="ws://localhost:8080"
+                            className="mt-1.5"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="listener-topic">Listener Topic *</Label>
+                          <Input
+                            id="listener-topic"
+                            value={listenerTopic}
+                            onChange={(e) => setListenerTopic(e.target.value)}
+                            placeholder="/snapshot/positions"
+                            className="mt-1.5"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Request Configuration */}
+                  <div>
+                    <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Request Configuration</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="request-destination">Destination</Label>
+                        <Input
+                          id="request-destination"
+                          value={requestMessage}
+                          onChange={(e) => setRequestMessage(e.target.value)}
+                          placeholder="/app/trigger"
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="request-body">Body</Label>
+                        <Input
+                          id="request-body"
+                          value={requestBody}
+                          onChange={(e) => setRequestBody(e.target.value)}
+                          placeholder="TriggerTopic"
+                          className="mt-1.5"
                         />
                       </div>
                     </div>
-                  )}
+                  </div>
 
+                  <Separator />
+
+                  {/* Data Configuration */}
                   <div>
-                    <Label htmlFor="snapshot-timeout">Snapshot Timeout (ms)</Label>
-                    <Input
-                      id="snapshot-timeout"
-                      type="number"
-                      value={snapshotTimeoutMs}
-                      onChange={(e) => setSnapshotTimeoutMs(parseInt(e.target.value) || 60000)}
-                      placeholder="60000"
-                      min="10000"
-                      max="600000"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Time to wait for snapshot completion (10-600 seconds)
-                    </p>
+                    <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Data Configuration</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="snapshot-token">Snapshot End Token</Label>
+                        <Input
+                          id="snapshot-token"
+                          value={snapshotEndToken}
+                          onChange={(e) => setSnapshotEndToken(e.target.value)}
+                          placeholder="Success"
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="key-column">Key Column</Label>
+                        <Input
+                          id="key-column"
+                          value={keyColumn}
+                          onChange={(e) => setKeyColumn(e.target.value)}
+                          placeholder="id"
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="snapshot-timeout">Snapshot Timeout</Label>
+                        <div className="relative mt-1.5">
+                          <Input
+                            id="snapshot-timeout"
+                            type="number"
+                            value={snapshotTimeoutMs}
+                            onChange={(e) => setSnapshotTimeoutMs(parseInt(e.target.value) || 60000)}
+                            placeholder="60000"
+                            min="10000"
+                            max="600000"
+                            className="pr-12"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">ms</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          10-600 seconds
+                        </p>
+                      </div>
+                      {listenerTopic.includes('/snapshot/') && (
+                        <div>
+                          <Label htmlFor="message-rate">Message Rate</Label>
+                          <div className="relative mt-1.5">
+                            <Input
+                              id="message-rate"
+                              type="number"
+                              value={messageRate}
+                              onChange={(e) => setMessageRate(e.target.value)}
+                              placeholder="1000"
+                              className="pr-16"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">msg/s</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="auto-start"
-                      checked={autoStart}
-                      onCheckedChange={(checked) => setAutoStart(checked as boolean)}
-                    />
-                    <label
-                      htmlFor="auto-start"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Auto-start on application load
-                    </label>
+                  <Separator />
+
+                  {/* Options */}
+                  <div>
+                    <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Options</h3>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="auto-start"
+                        checked={autoStart}
+                        onCheckedChange={(checked) => setAutoStart(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="auto-start"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Auto-start on application load
+                      </label>
+                    </div>
                   </div>
 
+                  {/* Preview Data */}
                   {previewData.length > 0 && (
                     <>
                       <Separator />
                       <div>
-                        <h4 className="text-sm font-medium mb-2">Preview (First 10 rows)</h4>
-                        <div className="border rounded-lg overflow-auto max-h-48">
-                          <pre className="text-xs p-2">
+                        <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Preview Data</h3>
+                        <div className="border rounded-lg overflow-auto max-h-48 bg-muted/30">
+                          <pre className="text-xs p-3 font-mono">
                             {JSON.stringify(previewData, null, 2)}
                           </pre>
                         </div>
@@ -1049,6 +1166,46 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                   )}
                 </div>
               </ScrollArea>
+              
+              {/* Test Connection Footer */}
+              <div className="p-4 border-t bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTestConnection}
+                      disabled={testing || !websocketUrl}
+                    >
+                      {testing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle className="mr-2 h-4 w-4" />
+                          Test Connection
+                        </>
+                      )}
+                    </Button>
+
+                    {testResult && testResult.success && (
+                      <div className="flex items-center text-sm text-green-600">
+                        <CheckCircle2 className="mr-1 h-4 w-4" />
+                        Connected successfully
+                      </div>
+                    )}
+
+                    {testError && (
+                      <div className="flex items-center text-sm text-red-600">
+                        <AlertCircle className="mr-1 h-4 w-4" />
+                        <span className="line-clamp-1">{testError}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1068,24 +1225,34 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                         Inferred Fields {inferredFields.length > 0 && `(${filterFields(inferredFields, fieldSearchQuery).length})`}
                       </h3>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleInferFields}
-                      disabled={testing || !websocketUrl || !listenerTopic}
-                    >
-                      {testing ? (
-                        <>
-                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                          Inferring...
-                        </>
-                      ) : (
-                        <>
-                          <Database className="mr-2 h-3 w-3" />
-                          Infer Fields
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleInferFields}
+                        disabled={testing || !websocketUrl || !listenerTopic}
+                      >
+                        {testing ? (
+                          <>
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                            Inferring...
+                          </>
+                        ) : (
+                          <>
+                            <Database className="mr-2 h-3 w-3" />
+                            Infer Fields
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleClearAllFields}
+                        disabled={inferredFields.length === 0}
+                      >
+                        Clear All
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="relative">
@@ -1126,17 +1293,26 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                 </div>
                 <ScrollArea className="h-full">
                   <div className="p-2 space-y-1">
-                    {Array.from(selectedFields).sort().map(path => (
-                      <div key={path} className="text-xs p-2 bg-muted rounded flex items-center justify-between group">
-                        <span className="truncate">{path}</span>
-                        <button
-                          onClick={() => toggleFieldSelection(path)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                        </button>
-                      </div>
-                    ))}
+                    {Array.from(selectedFields).sort().map(path => {
+                      const parts = path.split('.');
+                      
+                      return (
+                        <div key={path} className="text-xs p-2 bg-muted rounded flex items-center justify-between group">
+                          <span className="truncate font-mono" title={path}>
+                            {parts.length > 1 && (
+                              <span className="text-muted-foreground">{parts.slice(0, -1).join('.')}.</span>
+                            )}
+                            <span className="text-foreground">{parts[parts.length - 1]}</span>
+                          </span>
+                          <button
+                            onClick={() => toggleFieldSelection(path)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               </div>
@@ -1148,6 +1324,18 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
           {activeTab === 'columns' && (
             <div className="h-full flex flex-col">
               <div className="p-4 border-b space-y-3">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-medium">Add Manual Column</h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleClearAllColumns}
+                    disabled={getAllColumns.length === 0}
+                  >
+                    <Trash2 className="mr-2 h-3 w-3" />
+                    Clear All
+                  </Button>
+                </div>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Field name"
@@ -1201,6 +1389,7 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
                       suppressMenuHide={true}
                       animateRows={true}
                       stopEditingWhenCellsLoseFocus={true}
+                      singleClickEdit={true}
                     />
                   </div>
                 ) : (
@@ -1217,46 +1406,11 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t">
-          <div className="flex items-center gap-3">
-            {activeTab === 'connection' && (
-              <>
-                <Button 
-                  variant="outline" 
-                  onClick={handleTestConnection}
-                  disabled={testing || !websocketUrl || !listenerTopic}
-                >
-                  {testing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Testing...
-                    </>
-                  ) : (
-                    <>
-                      <PlayCircle className="mr-2 h-4 w-4" />
-                      Test Connection
-                    </>
-                  )}
-                </Button>
-                
-                {testResult && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span>Connected successfully</span>
-                  </div>
-                )}
-
-                {testError && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <span>{testError}</span>
-                  </div>
-                )}
-              </>
-            )}
-            
+        <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/10">
+          <div className="flex items-center gap-2">
             {activeTab === 'fields' && selectedFields.size > 0 && (
               <Button
+                size="sm"
                 variant="outline"
                 onClick={() => setShowUpdateColumnsAlert(true)}
               >
@@ -1265,11 +1419,11 @@ export const DatasourceDialog: React.FC<DatasourceDialogProps> = ({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              {datasourceId ? 'Update' : 'Create'} Datasource
+            <Button size="sm" onClick={handleSave}>
+              {datasourceId ? 'Update' : 'Save'} Datasource
             </Button>
           </div>
         </div>

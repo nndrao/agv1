@@ -63,9 +63,10 @@ interface DockviewContainerProps {
 
 export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className }) => {
   const apiRef = useRef<DockviewApi>();
-  const { getActiveWorkspace, saveLayout } = useWorkspaceStore();
+  const { getActiveWorkspace, saveLayout, activeWorkspaceId, setHasUnsavedChanges } = useWorkspaceStore();
   const activeWorkspace = getActiveWorkspace();
   const { theme } = useTheme();
+  const previousWorkspaceRef = useRef<string | null>(null);
   
   // Rename dialog state
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -89,12 +90,11 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
       addDefaultPanel(event.api);
     }
 
-    // Save layout on changes
+    // Track layout changes but don't auto-save
+    // Layout will only be saved when user explicitly clicks save in WorkspaceSelector
     event.api.onDidLayoutChange(() => {
-      if (apiRef.current) {
-        const layout = apiRef.current.toJSON();
-        saveLayout(layout);
-      }
+      // Mark workspace as having unsaved changes
+      setHasUnsavedChanges(true);
     });
 
     // Add right-click handler for tabs
@@ -208,7 +208,42 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
       addTablePanel,
       api: apiRef.current,
     };
+    (window as any).__dockviewApi = apiRef.current;
   }, []);
+
+  // Handle workspace switching
+  useEffect(() => {
+    if (!apiRef.current || !activeWorkspaceId) return;
+    
+    // Check if workspace actually changed
+    if (previousWorkspaceRef.current === activeWorkspaceId) return;
+    
+    previousWorkspaceRef.current = activeWorkspaceId;
+    
+    // Clear current layout
+    const panels = apiRef.current.panels;
+    panels.forEach(panel => {
+      apiRef.current.removePanel(panel);
+    });
+    
+    // Load new workspace layout
+    if (activeWorkspace?.layout?.panels) {
+      try {
+        apiRef.current.fromJSON(activeWorkspace.layout as any);
+        // Clear unsaved changes flag after loading a workspace
+        setHasUnsavedChanges(false);
+      } catch (e) {
+        console.error('Failed to restore workspace layout:', e);
+        // Add default panel if restore fails
+        addDefaultPanel(apiRef.current);
+        setHasUnsavedChanges(false);
+      }
+    } else {
+      // Add default panel for new workspace
+      addDefaultPanel(apiRef.current);
+      setHasUnsavedChanges(false);
+    }
+  }, [activeWorkspaceId, activeWorkspace]);
 
   return (
     <div className={className}>

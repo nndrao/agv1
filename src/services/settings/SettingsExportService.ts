@@ -1,7 +1,7 @@
 import { LocalStorageAdapter } from '@/services/storage/LocalStorageAdapter';
 import { useDatasourceStore } from '@/stores/datasource.store';
 import { useColumnTemplateStore } from '@/stores/columnTemplate.store';
-import { useWorkspaceStore } from '@/stores/workspace.store';
+import { useWorkspaceStore } from '@/components/container/stores/workspace.store';
 
 export interface ExportedSettings {
   version: string;
@@ -340,13 +340,39 @@ export class SettingsExportService {
           
           // Add all imported workspaces
           for (const workspace of settings.data.workspaces) {
-            store.addWorkspace(workspace);
+            // Skip default workspace as it always exists
+            if (workspace.id === 'default-workspace') {
+              // Update default workspace with imported data
+              store.updateWorkspace('default-workspace', {
+                name: workspace.name,
+                description: workspace.description,
+                layout: workspace.layout,
+                openViews: workspace.openViews
+              });
+            } else {
+              // Create new workspace
+              const newWorkspace = store.createWorkspace(workspace.name, workspace.description);
+              // Update with layout and other data
+              store.updateWorkspace(newWorkspace.id, {
+                layout: workspace.layout,
+                openViews: workspace.openViews
+              });
+            }
           }
         } else {
           // Only add workspaces that don't exist
           for (const workspace of settings.data.workspaces) {
-            if (!store.getWorkspace(workspace.id)) {
-              store.addWorkspace(workspace);
+            if (!store.workspaces.find(w => w.id === workspace.id)) {
+              if (workspace.id === 'default-workspace') {
+                // Skip default workspace in non-overwrite mode
+                continue;
+              }
+              // Create new workspace with all data
+              const newWorkspace = store.createWorkspace(workspace.name, workspace.description);
+              store.updateWorkspace(newWorkspace.id, {
+                layout: workspace.layout,
+                openViews: workspace.openViews
+              });
             }
           }
         }

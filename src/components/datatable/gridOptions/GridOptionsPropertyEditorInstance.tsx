@@ -24,7 +24,7 @@ import {
   Search,
   X
 } from 'lucide-react';
-import { GridOptionsConfig } from './types';
+import { GridOptionsConfig, GridOptionsSection } from './types';
 import { useInstanceProfile } from '../ProfileStoreProvider';
 import { GridOptionsPropertyGrid } from './components/GridOptionsPropertyGrid';
 import { gridOptionsSections } from './gridOptionsConfig';
@@ -51,7 +51,7 @@ export const GridOptionsPropertyEditorInstance: React.FC<GridOptionsPropertyEdit
   const [hasChanges, setHasChanges] = useState(false);
   const [activeTab, setActiveTab] = useState('display');
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [, setExpandedSections] = useState<Set<string>>(new Set());
 
   // Initialize options when dialog opens
   useEffect(() => {
@@ -143,18 +143,6 @@ export const GridOptionsPropertyEditorInstance: React.FC<GridOptionsPropertyEdit
     });
   }, [toast, getActiveProfile]);
 
-  // Toggle section expansion
-  const toggleSection = useCallback((sectionId: string) => {
-    setExpandedSections(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(sectionId)) {
-        newSet.delete(sectionId);
-      } else {
-        newSet.add(sectionId);
-      }
-      return newSet;
-    });
-  }, []);
 
   // Get icon for tab
   const getTabIcon = (tabId: string) => {
@@ -171,17 +159,17 @@ export const GridOptionsPropertyEditorInstance: React.FC<GridOptionsPropertyEdit
   };
 
   // Filter sections based on search
-  const getFilteredSections = (tabSections: typeof gridOptionsSections[keyof typeof gridOptionsSections]) => {
-    if (!searchTerm || !Array.isArray(tabSections)) return tabSections as any[];
+  const getFilteredSections = (tabSections: GridOptionsSection[]) => {
+    if (!searchTerm || !Array.isArray(tabSections)) return tabSections;
     
-    return tabSections.map((section: any) => ({
+    return tabSections.map((section: GridOptionsSection) => ({
       ...section,
-      properties: section.properties.filter((prop: any) =>
+      options: section.options.filter((prop: any) =>
         prop.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
         prop.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
         prop.description?.toLowerCase().includes(searchTerm.toLowerCase())
       )
-    })).filter(section => section.properties.length > 0);
+    })).filter(section => section.options.length > 0);
   };
 
   return (
@@ -254,9 +242,10 @@ export const GridOptionsPropertyEditorInstance: React.FC<GridOptionsPropertyEdit
                           key={section.id}
                           sections={[section]}
                           options={localOptions}
-                          onOptionChange={handleOptionChange}
-                          isExpanded={expandedSections.has(section.id)}
-                          onToggleExpanded={() => toggleSection(section.id)}
+                          onChange={handleOptionChange}
+                          profileOptions={getActiveProfile()?.gridOptions || {}}
+                          searchTerm={searchTerm}
+                          viewMode="categorized"
                         />
                       ))}
                       

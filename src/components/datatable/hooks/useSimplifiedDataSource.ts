@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GridApi } from 'ag-grid-community';
 import { IDataSourceProvider, DataSourceEvent } from '@/providers/IDataSourceProvider';
-import { DataSourceProviderManager } from '@/providers/DataSourceProviderManager';
-import { useDatasourceStore } from '@/stores/datasource.store';
+import { DatasourceProviderManager as DataSourceProviderManager } from '@/services/datasource/DatasourceProviderManager';
+import { useDatasourceStore, StompDatasourceConfig } from '@/stores/datasource.store';
 import { useToast } from '@/hooks/use-toast';
 
 interface UseSimplifiedDataSourceOptions {
@@ -158,12 +158,19 @@ export function useSimplifiedDataSource({
       console.error(`[useSimplifiedDataSource] Datasource ${datasourceId} not found`);
       return;
     }
+
+    // Only support STOMP datasources for now
+    if (datasourceConfig.type !== 'stomp') {
+      console.error(`[useSimplifiedDataSource] Datasource type ${datasourceConfig.type} not supported`);
+      setError(new Error(`Datasource type ${datasourceConfig.type} not supported`));
+      return;
+    }
     
     console.log(`[useSimplifiedDataSource] Setting up provider for ${datasourceId}`);
     
     // Get provider from manager (singleton)
     const manager = DataSourceProviderManager.getInstance();
-    const dsProvider = manager.getProvider(datasourceConfig);
+    const dsProvider = manager.getProvider(datasourceConfig as StompDatasourceConfig);
     providerRef.current = dsProvider;
     setProvider(dsProvider);
     
@@ -195,7 +202,7 @@ export function useSimplifiedDataSource({
     dsProvider.on('error', handleError);
     
     // Start the provider if not already connected
-    dsProvider.start().catch(err => {
+    dsProvider.start().catch((err: Error) => {
       console.error(`[useSimplifiedDataSource] Failed to start provider:`, err);
       setError(err);
     });

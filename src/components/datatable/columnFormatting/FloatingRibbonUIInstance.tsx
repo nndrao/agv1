@@ -8,6 +8,7 @@ import { CustomTabs } from './components/custom/CustomTabs';
 import { CustomContent } from './components/custom/CustomContent';
 import { useInstanceRibbonState } from './hooks/useInstanceRibbonState';
 import { ErrorBoundary, IsolatedErrorBoundary } from './components/ErrorBoundary';
+import { RibbonTab } from './types';
 interface FloatingRibbonUIInstanceProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
