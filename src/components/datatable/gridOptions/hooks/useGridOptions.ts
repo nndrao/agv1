@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { GridOptionsConfig } from '../types';
-import { useProfileStore } from '../../stores/profile.store';
+import { useInstanceProfile } from '../../ProfileStoreProvider';
 import { useToast } from '@/hooks/use-toast';
 
 interface UseGridOptionsReturn {
@@ -14,8 +14,8 @@ interface UseGridOptionsReturn {
 
 export const useGridOptions = (gridApi?: any): UseGridOptionsReturn => {
   const { toast } = useToast();
-  const getActiveProfile = useProfileStore(state => state.getActiveProfile);
-  const saveGridOptions = useProfileStore(state => state.saveGridOptions);
+  const getActiveProfile = useInstanceProfile(state => state.getActiveProfile);
+  const saveGridOptions = useInstanceProfile(state => state.saveGridOptions);
   const [localOptions, setLocalOptions] = useState<GridOptionsConfig>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -40,13 +40,83 @@ export const useGridOptions = (gridApi?: any): UseGridOptionsReturn => {
     setHasUnsavedChanges(hasChanges);
   }, [profileOptions]);
 
-  // Apply grid options to AG-Grid
-  const applyGridOptions = useCallback((api: any) => {
+  // Reset grid options to defaults
+  const resetGridOptionsToDefaults = useCallback((api: any) => {
     if (!api) return;
+
+    console.log('[useGridOptions] Resetting grid options to defaults');
+
+    // Reset all grid options to their default values
+    api.setGridOption('headerHeight', undefined);
+    api.setGridOption('rowHeight', undefined);
+    api.setGridOption('floatingFiltersHeight', undefined);
+    api.setGridOption('groupHeaderHeight', undefined);
+    api.setGridOption('animateRows', true);
+    api.setGridOption('pagination', false);
+    api.setGridOption('paginationPageSize', 100);
+    api.setGridOption('rowSelection', undefined);
+    api.setGridOption('suppressRowDeselection', false);
+    api.setGridOption('suppressRowClickSelection', false);
+    api.setGridOption('enableRangeSelection', false);
+    api.setGridOption('editType', undefined);
+    api.setGridOption('singleClickEdit', false);
+    api.setGridOption('stopEditingWhenCellsLoseFocus', true);
+    api.setGridOption('enterNavigatesVertically', false);
+    api.setGridOption('enterNavigatesVerticallyAfterEdit', false);
+    api.setGridOption('enableCellChangeFlash', false);
+    api.setGridOption('cellFlashDelay', 500);
+    api.setGridOption('cellFadeDelay', 1000);
+    api.setGridOption('enableRtl', false);
+    api.setGridOption('domLayout', 'normal');
+    api.setGridOption('rowBuffer', 10);
+    api.setGridOption('suppressColumnVirtualisation', false);
+    api.setGridOption('suppressRowVirtualisation', false);
+    api.setGridOption('sideBar', false);
+    api.setGridOption('statusBar', false);
+    
+    // Reset all other options
+    api.setGridOption('rowDragManaged', false);
+    api.setGridOption('rowDragEntireRow', false);
+    api.setGridOption('rowDragMultiRow', false);
+    api.setGridOption('suppressMoveWhenRowDragging', false);
+    api.setGridOption('copyHeadersToClipboard', true);
+    api.setGridOption('copyGroupHeadersToClipboard', true);
+    api.setGridOption('suppressCopyRowsToClipboard', false);
+    api.setGridOption('suppressCopySingleCellRanges', false);
+    api.setGridOption('tooltipShowDelay', undefined);
+    api.setGridOption('tooltipHideDelay', undefined);
+    api.setGridOption('tooltipMouseTrack', false);
+    api.setGridOption('suppressMenuHide', false);
+    
+    // Group options
+    api.setGridOption('groupDefaultExpanded', 0);
+    api.setGridOption('groupMaintainOrder', false);
+    api.setGridOption('groupSelectsChildren', false);
+    api.setGridOption('groupIncludeFooter', false);
+    api.setGridOption('groupIncludeTotalFooter', false);
+    api.setGridOption('groupSuppressAutoColumn', false);
+    api.setGridOption('groupRemoveSingleChildren', false);
+    api.setGridOption('groupRemoveLowestSingleChildren', false);
+    api.setGridOption('groupDisplayType', 'singleColumn');
+    api.setGridOption('groupRowsSticky', false);
+    api.setGridOption('rowGroupPanelShow', 'never');
+    api.setGridOption('suppressRowGroupHidesColumns', false);
+    api.setGridOption('suppressMakeColumnVisibleAfterUnGroup', false);
+  }, []);
+
+  // Apply grid options to AG-Grid
+  const applyGridOptions = useCallback((api: any, resetFirst: boolean = false) => {
+    if (!api) return;
+
+    // Reset to defaults first if requested
+    if (resetFirst) {
+      resetGridOptionsToDefaults(api);
+    }
 
     console.log('[useGridOptions] Applying grid options to grid:', {
       optionsCount: Object.keys(localOptions).length,
-      options: localOptions
+      options: localOptions,
+      resetFirst
     });
 
     // Apply each option to the grid
@@ -331,7 +401,7 @@ export const useGridOptions = (gridApi?: any): UseGridOptionsReturn => {
         api.setGridOption('statusBar', false);
       }
     }
-  }, [localOptions]);
+  }, [localOptions, resetGridOptionsToDefaults]);
 
   // Save to profile
   const saveToProfile = useCallback(() => {
@@ -384,6 +454,14 @@ export const useGridOptions = (gridApi?: any): UseGridOptionsReturn => {
       applyGridOptions(gridApi);
     }
   }, [gridApi, applyGridOptions]);
+
+  // Reset and apply options when profile changes
+  useEffect(() => {
+    if (gridApi && activeProfile?.id) {
+      // Reset to defaults first to clear any previous profile settings
+      applyGridOptions(gridApi, true);
+    }
+  }, [activeProfile?.id, gridApi, applyGridOptions]);
 
   return {
     gridOptions: localOptions,

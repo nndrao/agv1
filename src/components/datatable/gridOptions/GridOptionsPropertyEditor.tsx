@@ -22,7 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { GridOptionsConfig } from './types';
-import { useProfileStore } from '../stores/profile.store';
+import { useInstanceProfile } from '../ProfileStoreProvider';
 import { GridOptionsPropertyGrid } from './components/GridOptionsPropertyGrid';
 import { gridOptionsSections } from './gridOptionsConfig';
 import './grid-options-shadcn.css';
@@ -41,8 +41,8 @@ export const GridOptionsPropertyEditor: React.FC<GridOptionsPropertyEditorProps>
   currentOptions = {}
 }) => {
   const { toast } = useToast();
-  const activeProfile = useProfileStore(state => state.getActiveProfile());
-  const updateProfile = useProfileStore(state => state.updateProfile);
+  const activeProfile = useInstanceProfile(state => state.getActiveProfile());
+  const updateProfile = useInstanceProfile(state => state.updateProfile);
   
   // Local state for editing
   const [localOptions, setLocalOptions] = useState<GridOptionsConfig>(currentOptions);
@@ -102,7 +102,7 @@ export const GridOptionsPropertyEditor: React.FC<GridOptionsPropertyEditorProps>
     }
 
     // Get fresh profile state to ensure we don't overwrite columnCustomizations
-    const currentProfile = useProfileStore.getState().getActiveProfile();
+    const currentProfile = activeProfile;
     if (!currentProfile) {
       toast({
         title: 'Profile not found',

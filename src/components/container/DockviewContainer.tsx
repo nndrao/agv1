@@ -20,16 +20,19 @@ import 'dockview/dist/styles/dockview.css';
 // Panel component for DataTable
 const DataTablePanel: React.FC<IDockviewPanelProps> = ({ params }) => {
   const { tableId } = params as { tableId: string; title: string; datasourceId?: string };
+  // Note: datasourceId can be passed in params for future use when we want to pre-select a datasource
+  // For now, each table starts with sample data and users can select datasources via the UI
   
-  // Always use sample data and let the DataTable handle datasource selection
-  const [data] = React.useState(() => generateFixedIncomeData(10000));
-  const [columns] = React.useState(() => inferColumnDefinitions(data));
+  // Use sample data as default
+  // Each DataTable instance will maintain its own configuration including datasource selection
+  const [defaultData] = React.useState(() => generateFixedIncomeData(10000));
+  const [defaultColumns] = React.useState(() => inferColumnDefinitions(defaultData));
 
   return (
     <div className="h-full w-full">
       <DataTable 
-        columnDefs={columns} 
-        dataRow={data} 
+        columnDefs={defaultColumns} 
+        dataRow={defaultData} 
         instanceId={tableId}
       />
     </div>

@@ -4,7 +4,7 @@ import { DataTableProvider } from './DataTableContext';
 import { DataTableGrid } from './DataTableGrid';
 import { DataTableToolbarInstance } from './DataTableToolbarInstance';
 import { ColumnFormattingDialogInstance } from './columnFormatting/ColumnFormattingDialogInstance';
-import { GridOptionsPropertyEditorInstance } from './gridOptions/GridOptionsPropertyEditorInstance';
+import { GridOptionsPropertyEditor } from './gridOptions/GridOptionsPropertyEditor';
 // import { DataSourceFloatingDialog } from './datasource/DataSourceFloatingDialog';
 import { ProfileStoreProvider, useInstanceProfile } from './ProfileStoreProvider';
 import { useColumnProcessor } from './hooks/useColumnProcessor';
@@ -36,6 +36,7 @@ const DataTableInner = memo(({
   const saveColumnCustomizations = useInstanceProfile((state) => state.saveColumnCustomizations);
   const saveGridOptions = useInstanceProfile((state) => state.saveGridOptions);
   const getActiveProfile = useInstanceProfile((state) => state.getActiveProfile);
+  const updateProfile = useInstanceProfile((state) => state.updateProfile);
   const _hasHydrated = useInstanceProfile((state) => state._hasHydrated);
   const { theme } = useTheme();
   const { datasources } = useDatasourceStore();
@@ -51,8 +52,26 @@ const DataTableInner = memo(({
     currentData: datasourceData,
     // currentStatus: datasourceStatus,
     isSnapshotComplete,
-    handleDatasourceChange 
+    handleDatasourceChange: handleDatasourceChangeBase
   } = useInstanceDatasource(instanceId);
+  
+  // Wrap datasource change handler to also save to profile
+  const handleDatasourceChange = React.useCallback((datasourceId: string | undefined) => {
+    console.log('[DataTableContainer] Datasource changed:', datasourceId);
+    
+    // Update the instance-level datasource
+    handleDatasourceChangeBase(datasourceId);
+    
+    // Save to active profile
+    const activeProfile = getActiveProfile();
+    if (activeProfile) {
+      console.log('[DataTableContainer] Saving datasource to profile:', {
+        profileId: activeProfile.id,
+        datasourceId
+      });
+      updateProfile(activeProfile.id, { datasourceId });
+    }
+  }, [handleDatasourceChangeBase, getActiveProfile, updateProfile]);
   
   // Use datasource columns if available, otherwise use provided columns
   const effectiveColumnDefs = React.useMemo(() => {
@@ -443,7 +462,7 @@ const DataTableInner = memo(({
           onApply={handleApplyColumnChanges}
         />
         
-        <GridOptionsPropertyEditorInstance
+        <GridOptionsPropertyEditor
           isOpen={showGridOptionsDialog}
           onClose={() => setShowGridOptionsDialog(false)}
           onApply={handleApplyGridOptions}
