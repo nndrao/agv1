@@ -12,7 +12,10 @@ import { generateFixedIncomeData } from '@/components/datatable/lib/dataGenerato
 import { inferColumnDefinitions } from '@/utils/columnUtils';
 import { useWorkspaceStore } from './stores/workspace.store';
 import { useTheme } from '@/components/datatable/ThemeProvider';
-import { TableDialog } from './TableDialog';
+import { PanelDialog, PanelType } from './PanelDialog';
+import { ReportPanel } from '@/components/panels/ReportPanel';
+import { DashboardPanel } from '@/components/panels/DashboardPanel';
+import { ChartPanel } from '@/components/panels/ChartPanel';
 import 'dockview/dist/styles/dockview.css';
 
 
@@ -54,6 +57,9 @@ const EmptyPanel: React.FC<IDockviewPanelProps> = () => {
 // Register panel components
 const panels = {
   dataTable: DataTablePanel,
+  report: ReportPanel,
+  dashboard: DashboardPanel,
+  chart: ChartPanel,
   empty: EmptyPanel,
 };
 
@@ -63,10 +69,20 @@ interface DockviewContainerProps {
 
 export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className }) => {
   const apiRef = useRef<DockviewApi>();
-  const { getActiveWorkspace, saveLayout, activeWorkspaceId, setHasUnsavedChanges } = useWorkspaceStore();
+  const { 
+    getActiveWorkspace, 
+    saveLayout, 
+    activeWorkspaceId, 
+    setHasUnsavedChanges,
+    trackPanel,
+    markPanelClosed,
+    markPanelOpen,
+    getPanelInfo
+  } = useWorkspaceStore();
   const activeWorkspace = getActiveWorkspace();
   const { theme } = useTheme();
   const previousWorkspaceRef = useRef<string | null>(null);
+  const isWorkspaceSwitching = useRef(false);
   
   // Rename dialog state
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -80,6 +96,29 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
     if (activeWorkspace?.layout?.panels) {
       try {
         event.api.fromJSON(activeWorkspace.layout as any);
+        
+        // Track all restored panels
+        setTimeout(() => {
+          event.api.panels.forEach(panel => {
+            const panelComponent = panel.view?.content?.element;
+            const params = panel.params || {};
+            
+            // Determine panel type from component or params
+            let panelType: 'dataTable' | 'report' | 'dashboard' | 'chart' = 'dataTable';
+            if (panel.view?.content?.componentId) {
+              panelType = panel.view.content.componentId as any;
+            }
+            
+            trackPanel({
+              id: panel.id,
+              title: panel.title || params.title || 'Untitled',
+              type: panelType,
+              createdAt: Date.now(),
+              params: params,
+              isOpen: true
+            });
+          });
+        }, 100);
       } catch (e) {
         console.error('Failed to restore layout:', e);
         // Add default panel if restore fails
@@ -96,33 +135,162 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
       // Mark workspace as having unsaved changes
       setHasUnsavedChanges(true);
     });
+    
+    // Track panel addition
+    event.api.onDidAddPanel((panel) => {
+      // Check if panel is already tracked
+      const existingPanel = getPanelInfo(panel.id);
+      if (!existingPanel) {
+        const params = panel.params || {};
+        let panelType: 'dataTable' | 'report' | 'dashboard' | 'chart' = 'dataTable';
+        
+        // Try to determine type from the panel's view
+        if (panel.view?.content?.componentId) {
+          panelType = panel.view.content.componentId as any;
+        }
+        
+        trackPanel({
+          id: panel.id,
+          title: panel.title || params.title || 'Untitled',
+          type: panelType,
+          createdAt: Date.now(),
+          params: params,
+          isOpen: true
+        });
+      } else {
+        // Panel exists, just mark it as open
+        markPanelOpen(panel.id);
+      }
+    });
+    
+    // Track panel removal
+    event.api.onDidRemovePanel((panel) => {
+      // Don't track panel closures during workspace switching
+      if (!isWorkspaceSwitching.current && panel && panel.id) {
+        markPanelClosed(panel.id);
+      }
+    });
 
     // Add right-click handler for tabs
     setupTabContextMenu(event.api);
   };
 
   const addDefaultPanel = (api: DockviewApi) => {
+    const panelId = 'default';
+    const title = 'Fixed Income Portfolio';
+    
     api.addPanel({
-      id: 'default',
+      id: panelId,
       component: 'dataTable',
       params: {
         tableId: 'default-table',
-        title: 'Fixed Income Portfolio',
+        title: title,
       },
-      title: 'Fixed Income Portfolio',
+      title: title,
+    });
+    
+    // Track the default panel
+    trackPanel({
+      id: panelId,
+      title: title,
+      type: 'dataTable',
+      createdAt: Date.now(),
+      params: { tableId: 'default-table' },
+      isOpen: true
     });
   };
 
-  // Add new table panel
-  const addTablePanel = (tableId: string, title: string) => {
+  // Add new panel with specified type
+  const addPanel = (panelId: string, title: string, panelType: 'dataTable' | 'report' | 'dashboard' | 'chart' = 'dataTable', additionalParams?: any) => {
     if (!apiRef.current) return;
 
+    const params = {
+      ...additionalParams,
+      title,
+    };
+
+    // Add type-specific params
+    switch (panelType) {
+      case 'dataTable':
+        params.tableId = panelId;
+        break;
+      case 'report':
+        params.reportId = panelId;
+        break;
+      case 'dashboard':
+        params.dashboardId = panelId;
+        break;
+      case 'chart':
+        params.chartId = panelId;
+        break;
+    }
+
     apiRef.current.addPanel({
-      id: tableId,
-      component: 'dataTable',
-      params: { tableId, title },
+      id: panelId,
+      component: panelType,
+      params,
       title,
     });
+    
+    // Track panel in workspace store
+    trackPanel({
+      id: panelId,
+      title,
+      type: panelType,
+      createdAt: Date.now(),
+      params: additionalParams,
+      isOpen: true
+    });
+  };
+  
+  // Reopen a closed panel
+  const reopenPanel = (panelInfo: any) => {
+    if (!apiRef.current) return;
+    
+    const params = {
+      ...panelInfo.params,
+      title: panelInfo.title,
+    };
+    
+    // Add type-specific params
+    switch (panelInfo.type) {
+      case 'dataTable':
+        params.tableId = panelInfo.id;
+        break;
+      case 'report':
+        params.reportId = panelInfo.id;
+        break;
+      case 'dashboard':
+        params.dashboardId = panelInfo.id;
+        break;
+      case 'chart':
+        params.chartId = panelInfo.id;
+        break;
+    }
+    
+    apiRef.current.addPanel({
+      id: panelInfo.id,
+      component: panelInfo.type,
+      params,
+      title: panelInfo.title,
+    });
+    
+    // Mark panel as open
+    markPanelOpen(panelInfo.id);
+  };
+  
+  // Focus an existing panel
+  const focusPanel = (panelId: string) => {
+    if (!apiRef.current) return;
+    const panel = apiRef.current.getPanel(panelId);
+    if (panel) {
+      panel.focus();
+    }
+  };
+
+  // Legacy method for backward compatibility
+  const addTablePanel = (tableId: string, title: string) => {
+    addPanel(tableId, title, 'dataTable');
   };
 
   // Setup context menu for tabs
@@ -191,7 +359,7 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
 
 
   // Handle rename submit
-  const handleRename = (_id: string, newTitle: string) => {
+  const handleRename = (_id: string, newTitle: string, _type: PanelType) => {
     if (!apiRef.current || !renamingPanel) return;
     
     const panel = apiRef.current.getPanel(renamingPanel.id);
@@ -205,7 +373,10 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
   // Expose API for external use
   useEffect(() => {
     (window as any).dockviewApi = {
-      addTablePanel,
+      addPanel,
+      addTablePanel, // Keep for backward compatibility
+      reopenPanel,
+      focusPanel,
       api: apiRef.current,
     };
     (window as any).__dockviewApi = apiRef.current;
@@ -220,6 +391,9 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
     
     previousWorkspaceRef.current = activeWorkspaceId;
     
+    // Set flag to prevent tracking panel closures during switch
+    isWorkspaceSwitching.current = true;
+    
     // Clear current layout
     const panels = apiRef.current.panels;
     panels.forEach(panel => {
@@ -232,6 +406,40 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
         apiRef.current.fromJSON(activeWorkspace.layout as any);
         // Clear unsaved changes flag after loading a workspace
         setHasUnsavedChanges(false);
+        
+        // Track and mark all panels in layout as open
+        setTimeout(() => {
+          const openPanelIds = apiRef.current.panels.map(p => p.id);
+          
+          // Track all currently open panels
+          apiRef.current.panels.forEach(panel => {
+            const params = panel.params || {};
+            let panelType: 'dataTable' | 'report' | 'dashboard' | 'chart' = 'dataTable';
+            if (panel.view?.content?.componentId) {
+              panelType = panel.view.content.componentId as any;
+            }
+            
+            trackPanel({
+              id: panel.id,
+              title: panel.title || params.title || 'Untitled',
+              type: panelType,
+              createdAt: Date.now(),
+              params: params,
+              isOpen: true
+            });
+          });
+          
+          // Update open/closed status for existing tracked panels
+          if (activeWorkspace.allPanels) {
+            activeWorkspace.allPanels.forEach(panel => {
+              if (openPanelIds.includes(panel.id)) {
+                markPanelOpen(panel.id);
+              } else {
+                markPanelClosed(panel.id);
+              }
+            });
+          }
+        }, 100);
       } catch (e) {
         console.error('Failed to restore workspace layout:', e);
         // Add default panel if restore fails
@@ -243,6 +451,9 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
       addDefaultPanel(apiRef.current);
       setHasUnsavedChanges(false);
     }
+    
+    // Reset flag after workspace switch is complete
+    isWorkspaceSwitching.current = false;
   }, [activeWorkspaceId, activeWorkspace]);
 
   return (
@@ -255,10 +466,11 @@ export const DockviewContainer: React.FC<DockviewContainerProps> = ({ className 
       
       {/* Rename Dialog */}
       {renamingPanel && (
-        <TableDialog
+        <PanelDialog
           open={renameDialogOpen}
           onOpenChange={setRenameDialogOpen}
           mode="rename"
+          panelType="dataTable"
           initialId={renamingPanel.id}
           initialTitle={renamingPanel.title}
           onSubmit={handleRename}

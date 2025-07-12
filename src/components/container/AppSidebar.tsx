@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Download,
   Upload,
+  BarChart3,
+  LayoutDashboard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,12 +24,19 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ThemeToggle } from '@/components/datatable/ThemeToggle';
 import { SettingsExportService } from '@/services/settings/SettingsExportService';
 import { ImportExportDialog } from '@/components/settings/ImportExportDialog';
-import { TableDialog } from './TableDialog';
+import { PanelDialog, PanelType } from './PanelDialog';
 import { useToast } from '@/hooks/use-toast';
 import { WorkspaceSelector } from './WorkspaceSelector';
+import { PanelHistorySelector } from './PanelHistorySelector';
 
 interface SidebarItem {
   id: string;
@@ -109,8 +118,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | undefined>();
   
-  // New Table dialog state
-  const [newTableDialogOpen, setNewTableDialogOpen] = useState(false);
+  // Panel creation state
+  const [panelDialogOpen, setPanelDialogOpen] = useState(false);
+  const [selectedPanelType, setSelectedPanelType] = useState<PanelType>('dataTable');
 
   const toggleSection = (sectionId: string) => {
     setOpenSections((prev) =>
@@ -159,14 +169,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
     setImportFile(undefined);
   };
 
-  const handleNewTableClick = () => {
-    setNewTableDialogOpen(true);
+  const handleCreatePanel = (panelType: PanelType) => {
+    setSelectedPanelType(panelType);
+    setPanelDialogOpen(true);
   };
 
-  const handleCreateTable = (tableId: string, tableCaption: string) => {
-    // Create the table panel
-    if ((window as any).dockviewApi?.addTablePanel) {
-      (window as any).dockviewApi.addTablePanel(tableId, tableCaption);
+  const handlePanelSubmit = (id: string, title: string, type: PanelType, additionalParams?: any) => {
+    // Create the panel
+    if ((window as any).dockviewApi?.addPanel) {
+      (window as any).dockviewApi.addPanel(id, title, type, additionalParams);
     }
 
     // Close mobile sidebar if open
@@ -174,10 +185,36 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
       onItemClick();
     }
 
+    const panelTypeName = type === 'dataTable' ? 'Table' : 
+                         type === 'report' ? 'Report' :
+                         type === 'dashboard' ? 'Dashboard' : 'Chart';
+    
     toast({
-      title: "Table Created",
-      description: `Table "${tableCaption}" has been created successfully.`,
+      title: `${panelTypeName} Created`,
+      description: `${panelTypeName} "${title}" has been created successfully.`,
     });
+  };
+
+  const handleReopenPanel = (panel: any) => {
+    if ((window as any).dockviewApi?.reopenPanel) {
+      (window as any).dockviewApi.reopenPanel(panel);
+    }
+    
+    // Close mobile sidebar if open
+    if (onItemClick) {
+      onItemClick();
+    }
+    
+    toast({
+      title: 'Panel Reopened',
+      description: `"${panel.title}" has been reopened.`,
+    });
+  };
+  
+  const handleFocusPanel = (panelId: string) => {
+    if ((window as any).dockviewApi?.focusPanel) {
+      (window as any).dockviewApi.focusPanel(panelId);
+    }
   };
 
   const renderSidebarItem = (item: SidebarItem, level = 0) => {
@@ -247,14 +284,39 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
           {/* Quick Actions */}
           {!collapsed && (
             <div className="mb-4 space-y-2">
-              <Button 
-                variant="default" 
-                className="w-full justify-start gap-2"
-                onClick={handleNewTableClick}
-              >
-                <Plus className="h-4 w-4" />
-                New Table
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="default" 
+                    className="w-full justify-start gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Panel
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={() => handleCreatePanel('dataTable')}>
+                    <Table className="h-4 w-4 mr-2" />
+                    Data Table
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleCreatePanel('report')}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Report
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleCreatePanel('dashboard')}>
+                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleCreatePanel('chart')}>
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Chart
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <PanelHistorySelector 
+                onReopenPanel={handleReopenPanel}
+                onFocusPanel={handleFocusPanel}
+              />
               <div className="flex gap-2">
                 <Button 
                   variant="outline" 
@@ -307,12 +369,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onItemClick, 
         onImportComplete={handleImportComplete}
       />
       
-      {/* New Table Dialog */}
-      <TableDialog
-        open={newTableDialogOpen}
-        onOpenChange={setNewTableDialogOpen}
+      {/* Panel Creation Dialog */}
+      <PanelDialog
+        open={panelDialogOpen}
+        onOpenChange={setPanelDialogOpen}
         mode="create"
-        onSubmit={handleCreateTable}
+        panelType={selectedPanelType}
+        onSubmit={handlePanelSubmit}
       />
     </div>
   );

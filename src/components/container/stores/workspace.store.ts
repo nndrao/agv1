@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export interface PanelInfo {
+  id: string;
+  title: string;
+  type: 'dataTable' | 'dashboard' | 'report' | 'chart';
+  createdAt: number;
+  params?: any; // Store panel-specific parameters
+  isOpen: boolean;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -19,6 +28,8 @@ export interface Workspace {
     title: string;
     config?: any;
   }[];
+  // Panel tracking
+  allPanels?: PanelInfo[]; // All panels ever created
 }
 
 interface WorkspaceStore {
@@ -37,6 +48,14 @@ interface WorkspaceStore {
   saveLayout: (layout: any) => void;
   saveOpenViews: (views: Workspace['openViews']) => void;
   setHasUnsavedChanges: (hasChanges: boolean) => void;
+  
+  // Panel tracking
+  trackPanel: (panel: PanelInfo) => void;
+  markPanelClosed: (panelId: string) => void;
+  markPanelOpen: (panelId: string) => void;
+  getClosedPanels: () => PanelInfo[];
+  getAllPanels: () => PanelInfo[];
+  getPanelInfo: (panelId: string) => PanelInfo | undefined;
 }
 
 const DEFAULT_WORKSPACE_ID = 'default-workspace';
@@ -49,6 +68,7 @@ const createDefaultWorkspace = (): Workspace => ({
   updatedAt: Date.now(),
   layout: {},
   openViews: [],
+  allPanels: [],
 });
 
 export const useWorkspaceStore = create<WorkspaceStore>()(
@@ -67,6 +87,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
           updatedAt: Date.now(),
           layout: {},
           openViews: [],
+          allPanels: [],
         };
         
         set((state) => ({
@@ -134,6 +155,56 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       
       setHasUnsavedChanges: (hasChanges) => {
         set({ hasUnsavedChanges: hasChanges });
+      },
+      
+      // Panel tracking methods
+      trackPanel: (panel) => {
+        const { activeWorkspaceId } = get();
+        get().updateWorkspace(activeWorkspaceId, {
+          allPanels: [
+            ...(get().getActiveWorkspace()?.allPanels || []).filter(p => p.id !== panel.id),
+            panel
+          ]
+        });
+      },
+      
+      markPanelClosed: (panelId) => {
+        const { activeWorkspaceId } = get();
+        const workspace = get().getActiveWorkspace();
+        if (!workspace) return;
+        
+        const updatedPanels = workspace.allPanels?.map(p => 
+          p.id === panelId ? { ...p, isOpen: false } : p
+        ) || [];
+        
+        get().updateWorkspace(activeWorkspaceId, { allPanels: updatedPanels });
+      },
+      
+      markPanelOpen: (panelId) => {
+        const { activeWorkspaceId } = get();
+        const workspace = get().getActiveWorkspace();
+        if (!workspace) return;
+        
+        const updatedPanels = workspace.allPanels?.map(p => 
+          p.id === panelId ? { ...p, isOpen: true } : p
+        ) || [];
+        
+        get().updateWorkspace(activeWorkspaceId, { allPanels: updatedPanels });
+      },
+      
+      getClosedPanels: () => {
+        const workspace = get().getActiveWorkspace();
+        return workspace?.allPanels?.filter(p => !p.isOpen) || [];
+      },
+      
+      getAllPanels: () => {
+        const workspace = get().getActiveWorkspace();
+        return workspace?.allPanels || [];
+      },
+      
+      getPanelInfo: (panelId) => {
+        const workspace = get().getActiveWorkspace();
+        return workspace?.allPanels?.find(p => p.id === panelId);
       },
     }),
     {
