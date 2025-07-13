@@ -21,6 +21,8 @@ export default defineConfig({
       'clsx',
       'tailwind-merge',
       'class-variance-authority',
+      '@openfin/workspace',
+      '@openfin/workspace-platform',
     ],
     exclude: ['@vite/client', '@vite/env'],
   },
@@ -43,10 +45,11 @@ export default defineConfig({
       output: {
         manualChunks: {
           // Vendor chunks
-          'react-vendor': ['react', 'react-dom', 'react-error-boundary'],
+          'react-vendor': ['react', 'react-dom', 'react-error-boundary', 'react-router-dom'],
           'ag-grid-vendor': ['ag-grid-community', 'ag-grid-react', 'ag-grid-enterprise'],
           'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-tabs'],
           'utils': ['zustand', 'clsx', 'tailwind-merge', 'class-variance-authority'],
+          'openfin-vendor': ['@openfin/workspace', '@openfin/workspace-platform'],
         },
       },
     },
@@ -62,6 +65,7 @@ export default defineConfig({
         './src/main.tsx',
         './src/App.tsx',
         './src/components/datatable/lazy-ag-grid.tsx',
+        './src/openfin/provider/provider.tsx',
       ],
     },
   },

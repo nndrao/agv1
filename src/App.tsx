@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { AppWithContainer } from './AppWithContainer';
+import { AppRouter } from './routes/AppRouter';
 import { Menu } from 'lucide-react';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -116,8 +117,20 @@ function LegacyApp() {
 }
 
 function App() {
+  const [isOpenFin, setIsOpenFin] = useState(false);
   const [useContainer] = useState(true); // Set to true to use container with sidebar
   
+  useEffect(() => {
+    // Check if we're running in OpenFin
+    setIsOpenFin(typeof fin !== 'undefined');
+  }, []);
+  
+  // If running in OpenFin, use the router for different views
+  if (isOpenFin) {
+    return <AppRouter />;
+  }
+  
+  // Otherwise use the traditional app structure
   if (useContainer) {
     return <AppWithContainer />;
   }

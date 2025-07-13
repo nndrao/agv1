@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dock Test</title>
+    <script>
+        async function testDock() {
+            console.log('Testing dock functionality...');
+            
+            try {
+                // Import workspace modules
+                const { Home, Storefront, Dock, init } = fin.Workspace;
+                
+                // Initialize platform
+                await init({
+                    browser: {
+                        defaultWindowOptions: {
+                            icon: 'http://localhost:5173/vite.svg'
+                        }
+                    }
+                });
+                
+                // Register home
+                await Home.register({
+                    title: 'Test Home',
+                    id: 'test-home',
+                    icon: 'http://localhost:5173/vite.svg',
+                    onUserInput: async () => ({ results: [] }),
+                    onResultDispatch: async () => {}
+                });
+                
+                // Register storefront
+                await Storefront.register({
+                    title: 'Test Store',
+                    id: 'test-store',
+                    icon: 'http://localhost:5173/vite.svg',
+                    getApps: async () => [],
+                    getLandingPage: async () => ({}),
+                    getNavigation: async () => [],
+                    getFooter: async () => ({ logo: { src: 'http://localhost:5173/vite.svg' }, links: [] }),
+                    launchApp: async () => {}
+                });
+                
+                // Register dock with custom buttons
+                const dockConfig = {
+                    id: 'test-dock',
+                    title: 'Test Dock',
+                    icon: 'http://localhost:5173/vite.svg',
+                    workspaceComponents: ['home'],
+                    buttons: [
+                        {
+                            tooltip: 'Test Button 1',
+                            iconUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2"%3E%3Cline x1="12" y1="5" x2="12" y2="19"%3E%3C/line%3E%3Cline x1="5" y1="12" x2="19" y2="12"%3E%3C/line%3E%3C/svg%3E',
+                            action: { id: 'test-1' }
+                        },
+                        {
+                            tooltip: 'Test Button 2',
+                            iconUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2"%3E%3Ccircle cx="12" cy="12" r="10"%3E%3C/circle%3E%3C/svg%3E',
+                            action: { id: 'test-2' }
+                        }
+                    ]
+                };
+                
+                console.log('Registering dock with config:', dockConfig);
+                await Dock.register(dockConfig);
+                
+                // Show dock
+                await Dock.show();
+                
+                console.log('✅ Dock test successful!');
+                document.getElementById('status').textContent = 'Dock registered successfully!';
+                
+            } catch (error) {
+                console.error('❌ Dock test failed:', error);
+                document.getElementById('status').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        // Run test when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof fin !== 'undefined') {
+                testDock();
+            } else {
+                document.getElementById('status').textContent = 'Not running in OpenFin';
+            }
+        });
+    </script>
+</head>
+<body style="font-family: Arial; padding: 20px;">
+    <h1>OpenFin Dock Test</h1>
+    <p id="status">Initializing...</p>
+    <button onclick="testDock()">Re-run Test</button>
+</body>
+</html>

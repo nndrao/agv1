@@ -1,0 +1,51 @@
+{
+  "devtools_port": 9090,
+  "licenseKey": "openfin-demo-license-key",
+  "runtime": {
+    "version": "41.134.102.4"
+  },
+  "platform": {
+    "uuid": "agv1-workspace-platform",
+    "name": "AGV1 Workspace Platform",
+    "description": "Advanced Grid Visualization Workspace Platform",
+    "icon": "http://localhost:5173/vite.svg",
+    "autoShow": true,
+    "providerUrl": "http://localhost:5173/provider",
+    "preventQuitOnLastWindowClosed": true,
+    "defaultWindowOptions": {
+      "permissions": {
+        "System": {
+          "launchExternalProcess": true,
+          "readRegistryValue": true,
+          "openUrlWithBrowser": {
+            "enabled": true,
+            "protocols": ["http", "https", "mailto"]
+          }
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "stack.nextTab",
+        "keys": "Ctrl+Tab"
+      },
+      {
+        "command": "stack.previousTab",
+        "keys": "Ctrl+Shift+Tab"
+      }
+    ]
+  },
+  "snapshot": {
+    "windows": []
+  },
+  "customSettings": {
+    "appId": "agv1-workspace"
+  },
+  "shortcut": {
+    "company": "AGV1",
+    "description": "Launch AGV1 Workspace Platform",
+    "icon": "http://localhost:5173/vite.svg",
+    "name": "AGV1 Workspace",
+    "target": ["desktop", "start-menu"]
+  }
+}

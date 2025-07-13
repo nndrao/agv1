@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:developers.openfin.co)",
+      "Bash(git checkout:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(mv:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:resources.here.io)"
+    ],
+    "deny": []
+  }
+}
